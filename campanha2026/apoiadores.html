@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campanha 2026 — Apoiadores</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="header-placeholder"></div>
+
+<main>
+  <div class="page-header">
+    <h1>Apoiadores</h1>
+    <p>Lideranças mapeadas, confirmadas e em risco — situação por município</p>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi green"><div class="kpi-label">Confirmados</div><div class="kpi-value" id="tot-conf">—</div><div class="kpi-sub">apoiadores ativos</div></div>
+    <div class="kpi amber"><div class="kpi-label">Mapeados</div><div class="kpi-value" id="tot-map">—</div><div class="kpi-sub">em prospecção</div></div>
+    <div class="kpi red"><div class="kpi-label">Em risco</div><div class="kpi-value" id="tot-risk">—</div><div class="kpi-sub">atenção necessária</div></div>
+    <div class="kpi blue"><div class="kpi-label">Taxa confirmação</div><div class="kpi-value" id="tot-pct">—</div><div class="kpi-sub">do total mapeado</div></div>
+  </div>
+
+  <div class="row2">
+    <div class="chart-card">
+      <div class="chart-title">Status de apoio por município</div>
+      <div class="chart-sub">Top 10 municípios com maior base mapeada</div>
+      <div class="legend">
+        <span><i style="background:#3fb950"></i>Confirmado</span>
+        <span><i style="background:#d29922"></i>Mapeado</span>
+        <span><i style="background:#f85149"></i>Risco</span>
+      </div>
+      <div class="chart-wrap" style="height:300px">
+        <canvas id="chartAp" role="img" aria-label="Apoiadores por município">Apoiadores por município.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Distribuição por perfil</div>
+      <div class="chart-sub">Tipo de liderança mapeada na campanha</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chartPerfil" role="img" aria-label="Perfil dos apoiadores">Perfil dos apoiadores.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Lista completa de apoiadores mapeados</div>
+    <div class="chart-sub">Situação atualizada de cada liderança por município</div>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="filterAp('todos',this)">Todos</button>
+      <button class="filter-btn" onclick="filterAp('confirmado',this)">Confirmados</button>
+      <button class="filter-btn" onclick="filterAp('mapeado',this)">Mapeados</button>
+      <button class="filter-btn" onclick="filterAp('risco',this)">Em risco</button>
+      <button class="filter-btn" onclick="filterAp('estratégico',this)">Estratégico</button>
+      <button class="filter-btn" onclick="filterAp('principal',this)">Principal</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Nome</th><th>Município</th><th>Perfil</th><th>Categoria</th><th>Situação</th><th>Candidato 2024</th>
+        </tr></thead>
+        <tbody id="tbl-ap"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer>Dashboard Campanha 2026 · Mato Grosso</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="nav.js"></script>
+<script>
+renderHeader('apoiadores.html');
+
+const apAll = [
+  {nome:'Mariano',           mun:'Água Boa',           perfil:'prefeito',            cat:'estratégico', sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Eva',               mun:'Água Boa',           perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Bicho',             mun:'Água Boa',           perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Rejane Garcia',     mun:'Água Boa',           perfil:'vereador',            cat:'estratégico', sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Mauri Moresco',     mun:'Água Boa',           perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - não eleito'},
+  {nome:'Bruno Reis',        mun:'Água Boa',           perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - não eleito'},
+  {nome:'Renato Beraldo',    mun:'Água Boa',           perfil:'vereador',            cat:'principal',   sit:'mapeado',    cand:'sim - eleito'},
+  {nome:'Vilsinho',          mun:'Canarana',           perfil:'prefeito',            cat:'estratégico', sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Jocasta',           mun:'Canarana',           perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Sancler',           mun:'Canarana',           perfil:'vereador',            cat:'estratégico', sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Valdir',            mun:'Canarana',           perfil:'assessor',            cat:'principal',   sit:'confirmado', cand:'sim - não eleito'},
+  {nome:'Baco',              mun:'Cocalinho',          perfil:'prefeito',            cat:'estratégico', sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Sabonete',          mun:'Cocalinho',          perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - não eleito'},
+  {nome:'Prof. Jarbas',      mun:'Cocalinho',          perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Fabio Arruda',      mun:'Cocalinho',          perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Montes',            mun:'Cocalinho',          perfil:'vereador',            cat:'principal',   sit:'risco',      cand:'sim - eleito'},
+  {nome:'Kalil',             mun:'Querência',          perfil:'prefeito',            cat:'estratégico', sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Divino Goiamat',    mun:'Querência',          perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Luis Vezzaro',      mun:'Querência',          perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Fernando Gorgen',   mun:'Querência',          perfil:'prefeito',            cat:'estratégico', sit:'mapeado',    cand:'não'},
+  {nome:'Gilmar',            mun:'Querência',          perfil:'prefeito',            cat:'estratégico', sit:'mapeado',    cand:'sim - eleito'},
+  {nome:'Dr José',           mun:'Rib. Cascalheira',   perfil:'prefeito',            cat:'estratégico', sit:'confirmado', cand:'não'},
+  {nome:'Nego Xinai',        mun:'Rib. Cascalheira',   perfil:'vereador',            cat:'estratégico', sit:'confirmado', cand:'sim - não eleito'},
+  {nome:'Elizeuzinho',       mun:'Rib. Cascalheira',   perfil:'vereador',            cat:'principal',   sit:'risco',      cand:'sim - não eleito'},
+  {nome:'Vandinho',          mun:'Rib. Cascalheira',   perfil:'vereador',            cat:'principal',   sit:'mapeado',    cand:'sim - eleito'},
+  {nome:'Geovan',            mun:'Campinápolis',       perfil:'prefeito',            cat:'estratégico', sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Sula Piaba',        mun:'Campinápolis',       perfil:'vereador',            cat:'principal',   sit:'mapeado',    cand:'sim - eleito'},
+  {nome:'Clélia',            mun:'Campinápolis',       perfil:'assessor',            cat:'principal',   sit:'confirmado', cand:'não'},
+  {nome:'Ednaldo Quati',     mun:'Nova Xavantina',     perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Cebola',            mun:'Nova Xavantina',     perfil:'prefeito',            cat:'estratégico', sit:'confirmado', cand:'sim - não eleito'},
+  {nome:'Pazzeto',           mun:'Nova Xavantina',     perfil:'prefeito',            cat:'estratégico', sit:'mapeado',    cand:'não'},
+  {nome:'Biroska',           mun:'Barra do Garças',    perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - não eleito'},
+  {nome:'Padre Cristiano',   mun:'Barra do Garças',    perfil:'liderança',           cat:'estratégico', sit:'confirmado', cand:'não'},
+  {nome:'Ronair',            mun:'Barra do Garças',    perfil:'vereador',            cat:'estratégico', sit:'risco',      cand:'sim - eleito'},
+  {nome:'Reginaldo',         mun:'Nova Nazaré',        perfil:'prefeito',            cat:'estratégico', sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Geslaine',          mun:'Nova Nazaré',        perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Cebim',             mun:'Bom Jesus Araguaia', perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Rone',              mun:'Bom Jesus Araguaia', perfil:'prefeito',            cat:'principal',   sit:'confirmado', cand:'não'},
+  {nome:'Adão',              mun:'Novo Santo Antônio', perfil:'prefeito',            cat:'estratégico', sit:'confirmado', cand:'não'},
+  {nome:'Giselda',           mun:'Luciara',            perfil:'vereador',            cat:'principal',   sit:'risco',      cand:'sim - não eleito'},
+  {nome:'Faustinho',         mun:'Luciara',            perfil:'prefeito',            cat:'estratégico', sit:'confirmado', cand:'não'},
+  {nome:'Zé Maria',          mun:'Santa Terezinha',    perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Baixote',           mun:'Santa Terezinha',    perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Betim',             mun:'Serra Nova Dourada', perfil:'vereador',            cat:'operacional', sit:'risco',      cand:'sim - eleito'},
+  {nome:'Cora',              mun:'São José do Xingu',  perfil:'candidato prefeito',  cat:'estratégico', sit:'risco',      cand:'sim - não eleito'},
+  {nome:'Avila',             mun:'Cuiabá',             perfil:'assessor',            cat:'estratégico', sit:'confirmado', cand:'não'},
+  {nome:'Daniel',            mun:'Ponte Branca',       perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Vanice',            mun:'Gaúcha do Norte',    perfil:'vereador',            cat:'principal',   sit:'confirmado', cand:'sim - eleito'},
+  {nome:'Cesar',             mun:'Gaúcha do Norte',    perfil:'vereador',            cat:'estratégico', sit:'confirmado', cand:'sim - eleito'},
+];
+
+// KPI counts
+const totC = apAll.filter(a=>a.sit==='confirmado').length;
+const totM = apAll.filter(a=>a.sit==='mapeado').length;
+const totR = apAll.filter(a=>a.sit==='risco').length;
+const tot  = apAll.length;
+document.getElementById('tot-conf').textContent = totC;
+document.getElementById('tot-map').textContent  = totM;
+document.getElementById('tot-risk').textContent = totR;
+document.getElementById('tot-pct').textContent  = Math.round(totC/tot*100)+'%';
+
+// Chart por município
+const munNames = [...new Set(apAll.map(a=>a.mun))].slice(0,10);
+const munConf  = munNames.map(m=>apAll.filter(a=>a.mun===m&&a.sit==='confirmado').length);
+const munMap   = munNames.map(m=>apAll.filter(a=>a.mun===m&&a.sit==='mapeado').length);
+const munRisk  = munNames.map(m=>apAll.filter(a=>a.mun===m&&a.sit==='risco').length);
+
+new Chart(document.getElementById('chartAp'), {
+  type:'bar',
+  data:{
+    labels: munNames,
+    datasets:[
+      {label:'Confirmado', data:munConf, backgroundColor:'#3fb950', borderRadius:3},
+      {label:'Mapeado',    data:munMap,  backgroundColor:'#d29922', borderRadius:3},
+      {label:'Risco',      data:munRisk, backgroundColor:'#f85149', borderRadius:3}
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+    scales:{
+      x:{stacked:true, ticks:{color:'#8b949e',font:{size:10},maxRotation:40}, grid:{display:false}, border:{color:'rgba(255,255,255,0.06)'}},
+      y:{stacked:true, ticks:{color:'#8b949e',font:{size:11}}, grid:{color:'rgba(255,255,255,0.05)'}, border:{display:false}}
+    }
+  }
+});
+
+// Perfil
+const perfilCount = {};
+apAll.forEach(a=>{ perfilCount[a.perfil] = (perfilCount[a.perfil]||0)+1; });
+const perfilLabels = Object.keys(perfilCount);
+const perfilData   = Object.values(perfilCount);
+
+new Chart(document.getElementById('chartPerfil'), {
+  type:'doughnut',
+  data:{
+    labels: perfilLabels,
+    datasets:[{ data:perfilData, backgroundColor:['#58a6ff','#3fb950','#d29922','#bc8cff','#f85149','#39d353','#8b949e'], borderWidth:0 }]
+  },
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:true, position:'bottom', labels:{color:'#8b949e',font:{size:11},padding:8,boxWidth:8}} } }
+});
+
+// Tabela
+let currentFilter = 'todos';
+function renderTable() {
+  const data = currentFilter === 'todos' ? apAll :
+    ['confirmado','mapeado','risco'].includes(currentFilter)
+      ? apAll.filter(a=>a.sit===currentFilter)
+      : apAll.filter(a=>a.cat===currentFilter);
+
+  const tb = document.getElementById('tbl-ap');
+  tb.innerHTML = '';
+  data.forEach(a=>{
+    const sitClass = a.sit==='confirmado'?'badge-conf':a.sit==='mapeado'?'badge-map':'badge-risk';
+    const candCol  = a.cand.includes('eleito')&&!a.cand.includes('não') ? '#3fb950' : a.cand.includes('não eleito') ? '#d29922' : '#8b949e';
+    tb.innerHTML += `<tr>
+      <td><strong>${a.nome}</strong></td>
+      <td>${a.mun}</td>
+      <td style="color:var(--text2)">${a.perfil}</td>
+      <td style="color:var(--text3);font-size:12px">${a.cat}</td>
+      <td><span class="badge ${sitClass}">${a.sit}</span></td>
+      <td style="font-size:12px;color:${candCol}">${a.cand}</td>
+    </tr>`;
+  });
+}
+function filterAp(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+renderTable();
+</script>
+</body>
+</html>
