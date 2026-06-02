@@ -1,240 +1,292 @@
-// Agenda: FullCalendar + criação de atividades no Google Agenda (via Web App).
+// Agenda — calendário vanilla (JS puro) + lista de próximas atividades.
 
 AUTH.exigir();
 
-const ag = {
+const ui = {
   status: document.getElementById("status"),
   statusModal: document.getElementById("statusModal"),
   form: document.getElementById("formEvento"),
   btnSalvar: document.getElementById("btnSalvarEvento"),
-  btnSair: document.getElementById("btnSair"),
   btnNova: document.getElementById("btnNova"),
   diaInteiro: document.getElementById("evDiaInteiro"),
-  fim: document.getElementById("evFim"),
+  miniCal: document.getElementById("miniCalendario"),
+  tituloMes: document.getElementById("tituloMes"),
+  lista: document.getElementById("listaEventos"),
+  tituloLista: document.getElementById("tituloLista"),
+  btnLimpar: document.getElementById("btnLimparFiltro"),
+  btnMesAnt: document.getElementById("btnMesAnt"),
+  btnMesProx: document.getElementById("btnMesProx"),
 };
 
-let calendar = null;
+// Semana começa na segunda-feira (col 5 = sábado, col 6 = domingo).
+const DIAS_SEM = ["S", "T", "Q", "Q", "S", "S", "D"];
+const MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+const ORIGENS = {
+  campanha: { rotulo: "campanha", cor: "#1f4e8c" },
+  pessoal: { rotulo: "pessoal", cor: "#c45c26" },
+};
+
 let modalEvento = null;
-let modalDetalhe = null;
+let mesAtual = new Date();
+let diaFiltro = null;
+let todosEventos = [];
 
-function alerta(elemento, msg, tipo) {
-  elemento.textContent = msg;
-  elemento.className =
-    "alert " +
-    (tipo === "erro"
-      ? "alert-danger"
-      : tipo === "sucesso"
-      ? "alert-success"
-      : tipo === "carregando"
-      ? "alert-info"
-      : "d-none");
+function chaveDia(d) {
+  return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
 }
 
-function configValida() {
-  return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
-}
-
-// Date -> valor para <input type="datetime-local"> (horário local).
-function paraInputLocal(date) {
-  const z = (n) => String(n).padStart(2, "0");
+function mesmoDia(a, b) {
   return (
-    date.getFullYear() +
-    "-" +
-    z(date.getMonth() + 1) +
-    "-" +
-    z(date.getDate()) +
-    "T" +
-    z(date.getHours()) +
-    ":" +
-    z(date.getMinutes())
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
   );
 }
 
-// Busca eventos do período no Web App (usado pelo FullCalendar).
-function buscarEventos(fetchInfo, sucesso, falha) {
-  if (!configValida()) {
-    alerta(ag.status, "Configure a URL do Web App em js/config.js.", "erro");
-    falha(new Error("sem config"));
+// Deslocamento para grade com início na segunda (0=seg … 6=dom).
+// Deslocamento para grade com início na segunda (0=seg … 6=dom).
+function offsetSegunda(date) {
+  return (date.getDay() + 6) % 7;
+}
+
+function tituloMesAno(date) {
+  return MESES[date.getMonth()] + "      " + date.getFullYear();
+}
+
+function mapaEventosPorDia() {
+  const mapa = {};
+  todosEventos.forEach((e) => {
+    const k = chaveDia(new Date(e.inicio));
+    if (!mapa[k]) mapa[k] = new Set();
+    mapa[k].add(e.origem || "campanha");
+  });
+  return mapa;
+}
+
+function htmlMarcadores(origens) {
+  if (!origens || !origens.size) return "";
+  let html = '<span class="mini-cal-marcadores">';
+  origens.forEach((o) => {
+    html += `<i class="marcador marcador-${o}"></i>`;
+  });
+  return html + "</span>";
+}
+
+function classeColuna(idx) {
+  if (idx === 5) return " col-sabado";
+  if (idx === 6) return " col-domingo";
+  return "";
+}
+
+function renderMiniCalendario() {
+  const ano = mesAtual.getFullYear();
+  const mes = mesAtual.getMonth();
+  ui.tituloMes.textContent = tituloMesAno(mesAtual);
+
+  const primeiro = new Date(ano, mes, 1);
+  const inicioGrid = new Date(primeiro);
+  inicioGrid.setDate(1 - offsetSegunda(primeiro));
+
+  const eventosPorDia = mapaEventosPorDia();
+
+  let html =
+    '<div class="mini-cal-grid">' +
+    DIAS_SEM.map((d, i) => {
+      return `<div class="mini-cal-head${classeColuna(i)}">${d}</div>`;
+    }).join("");
+
+  const hoje = new Date();
+  let cursor = new Date(inicioGrid);
+
+  for (let i = 0; i < 42; i++) {
+    const col = i % 7;
+    const foraMes = cursor.getMonth() !== mes;
+    const ehHoje = mesmoDia(cursor, hoje);
+    const selecionado = diaFiltro && mesmoDia(cursor, diaFiltro);
+    const origens = eventosPorDia[chaveDia(cursor)];
+
+    let cls = "mini-cal-dia" + classeColuna(col);
+    if (foraMes) cls += " fora-mes";
+    if (ehHoje) cls += " hoje";
+    if (selecionado) cls += " selecionado";
+    if (origens && origens.size) cls += " com-evento";
+
+    html += `<button type="button" class="${cls}" data-dia="${cursor.toISOString()}">${cursor.getDate()}${htmlMarcadores(origens)}</button>`;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  html += "</div>";
+  ui.miniCal.innerHTML = html;
+
+  ui.miniCal.querySelectorAll(".mini-cal-dia").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const d = new Date(btn.dataset.dia);
+      diaFiltro = diaFiltro && mesmoDia(d, diaFiltro) ? null : d;
+      renderMiniCalendario();
+      renderLista();
+    });
+  });
+}
+
+function renderLista() {
+  let eventos = todosEventos.slice();
+
+  if (diaFiltro) {
+    eventos = eventos.filter((e) => mesmoDia(new Date(e.inicio), diaFiltro));
+    ui.tituloLista.textContent =
+      "atividades em " +
+      new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(diaFiltro);
+    ui.btnLimpar.classList.remove("d-none");
+  } else {
+    const agora = new Date();
+    eventos = eventos.filter((e) => new Date(e.inicio) >= agora);
+    ui.tituloLista.textContent = "próximas atividades";
+    ui.btnLimpar.classList.add("d-none");
+  }
+
+  eventos.sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
+
+  if (!eventos.length) {
+    ui.lista.innerHTML =
+      '<p class="text-secondary text-center py-4 mb-0">nenhuma atividade neste período.</p>';
     return;
   }
 
-  const url = new URL(CONFIG.WEB_APP_URL);
-  url.searchParams.set("recurso", "agenda");
-  url.searchParams.set("inicio", fetchInfo.startStr);
-  url.searchParams.set("fim", fetchInfo.endStr);
-  AUTH.aplicarNaUrl(url);
-
-  fetch(url.toString(), { method: "GET" })
-    .then((r) => r.json())
-    .then((json) => {
-      if (!AUTH.tratarResposta(json)) return;
-      if (!json.ok) {
-        alerta(ag.status, "Erro ao carregar agenda: " + json.erro, "erro");
-        falha(new Error(json.erro));
-        return;
-      }
-      alerta(ag.status, "", null);
-      const eventos = (json.eventos || []).map((e) => ({
-        id: e.id,
-        title: e.titulo,
-        start: e.inicio,
-        end: e.fim,
-        allDay: e.diaInteiro,
-        extendedProps: { local: e.local, descricao: e.descricao },
-      }));
-      sucesso(eventos);
+  ui.lista.innerHTML = eventos
+    .map((ev) => {
+      const inicio = new Date(ev.inicio);
+      const hora = ev.diaInteiro
+        ? "dia inteiro"
+        : AgendaAPI.fmtHora.format(inicio);
+      const origem = ev.origem || "campanha";
+      const rotuloOrigem = ev.origemTitulo || ORIGENS[origem]?.rotulo || origem;
+      return `
+        <div class="lista-evento-item lista-evento-${origem}">
+          <div class="lista-evento-data">
+            <span class="lista-evento-dia">${inicio.getDate()}</span>
+            <span class="lista-evento-mes">${new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(inicio)}</span>
+          </div>
+          <div class="lista-evento-corpo">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <strong>${escapar(ev.titulo)}</strong>
+              <span class="badge-origem badge-origem-${origem}">${escapar(rotuloOrigem)}</span>
+            </div>
+            <span class="text-secondary small d-block">${hora}${ev.local ? " · " + escapar(ev.local) : ""}</span>
+            ${ev.descricao ? `<span class="small">${escapar(ev.descricao)}</span>` : ""}
+          </div>
+        </div>`;
     })
-    .catch((err) => {
-      alerta(ag.status, "Erro ao carregar agenda: " + err.message, "erro");
-      falha(err);
-    });
+    .join("");
 }
 
-function iniciarCalendario() {
-  const el = document.getElementById("calendario");
-  const telaPequena = window.innerWidth < 768;
+function escapar(txt) {
+  const d = document.createElement("div");
+  d.textContent = txt || "";
+  return d.innerHTML;
+}
 
-  calendar = new FullCalendar.Calendar(el, {
-    locale: "pt-br",
-    firstDay: 0, // domingo (padrão BR)
-    initialView: telaPequena ? "listWeek" : "dayGridMonth",
-    height: "auto",
-    // Toolbar mais enxuta no celular (menos botões = menos “estourado”).
-    headerToolbar: telaPequena
-      ? { left: "prev,next", center: "title", right: "listWeek,dayGridMonth" }
-      : { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,listWeek" },
-    buttonText: {
-      today: "Hoje",
-      month: "Mês",
-      week: "Semana",
-      day: "Dia",
-      list: "Lista",
-    },
-    views: {
-      dayGridMonth: { buttonText: "Mês" },
-      timeGridWeek: { buttonText: "Semana" },
-      listWeek: {
-        buttonText: "Lista",
-        noEventsText: "Nenhuma atividade neste período",
-      },
-    },
-    titleFormat: telaPequena
-      ? { month: "short", year: "numeric" }
-      : { month: "long", year: "numeric" },
-    nowIndicator: true,
-    events: buscarEventos,
+async function carregarEventos() {
+  if (!AgendaAPI.configValida()) {
+    AgendaAPI.alerta(ui.status, "Configure a URL do Web App em js/config.js.", "erro");
+    return;
+  }
 
-    dateClick: function (info) {
-      abrirNovoEvento(info.date);
-    },
+  AgendaAPI.alerta(ui.status, "Carregando...", "carregando");
 
-    eventClick: function (info) {
-      mostrarDetalhe(info.event);
-    },
-  });
+  try {
+    const inicio = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
+    const fim = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 2, 0);
+    const eventos = await AgendaAPI.buscar(inicio, fim);
+    if (eventos === null) return;
 
-  calendar.render();
+    todosEventos = eventos;
+    AgendaAPI.alerta(ui.status, "", null);
+    renderMiniCalendario();
+    renderLista();
+  } catch (err) {
+    AgendaAPI.alerta(ui.status, "Erro: " + err.message, "erro");
+  }
 }
 
 function abrirNovoEvento(data) {
-  ag.form.reset();
-  alerta(ag.statusModal, "", null);
+  ui.form.reset();
+  AgendaAPI.alerta(ui.statusModal, "", null);
 
-  const inicio = data || new Date();
-  document.getElementById("evInicio").value = paraInputLocal(inicio);
+  const inicio = data || diaFiltro || new Date();
+  document.getElementById("evInicio").value = AgendaAPI.paraInputLocal(inicio);
   const fim = new Date(inicio.getTime() + CONFIG.AGENDA.DURACAO_PADRAO_MIN * 60000);
-  document.getElementById("evFim").value = paraInputLocal(fim);
+  document.getElementById("evFim").value = AgendaAPI.paraInputLocal(fim);
   document.getElementById("evLembrete").value = CONFIG.AGENDA.LEMBRETE_PADRAO_MIN;
 
   modalEvento.show();
 }
 
-function mostrarDetalhe(evento) {
-  document.getElementById("detTitulo").textContent = evento.title || "Atividade";
-
-  const opt = { dateStyle: "full", timeStyle: evento.allDay ? undefined : "short" };
-  const fmt = new Intl.DateTimeFormat("pt-BR", opt);
-  let quando = fmt.format(evento.start);
-  if (evento.end && !evento.allDay) {
-    quando +=
-      " até " +
-      new Intl.DateTimeFormat("pt-BR", { timeStyle: "short" }).format(evento.end);
-  }
-
-  document.getElementById("detQuando").textContent = quando;
-  document.getElementById("detLocal").textContent =
-    evento.extendedProps.local || "—";
-  document.getElementById("detDescricao").textContent =
-    evento.extendedProps.descricao || "—";
-
-  modalDetalhe.show();
-}
-
-// Salvar nova atividade.
-ag.form.addEventListener("submit", async (e) => {
+ui.form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (!configValida()) {
-    alerta(ag.statusModal, "Configure a URL do Web App em js/config.js.", "erro");
-    return;
-  }
+  if (!AgendaAPI.configValida()) return;
 
-  const diaInteiro = ag.diaInteiro.checked;
   const inicioVal = document.getElementById("evInicio").value;
-  const fimVal = document.getElementById("evFim").value;
-
   if (!inicioVal) {
-    alerta(ag.statusModal, "Informe a data/hora de início.", "erro");
+    AgendaAPI.alerta(ui.statusModal, "Informe o início.", "erro");
     return;
   }
 
-  const corpo = {
-    recurso: "agenda",
-    chave: AUTH.getChave(),
-    titulo: document.getElementById("evTitulo").value.trim(),
-    inicio: new Date(inicioVal).toISOString(),
-    fim: fimVal ? new Date(fimVal).toISOString() : null,
-    local: document.getElementById("evLocal").value.trim(),
-    descricao: document.getElementById("evDescricao").value.trim(),
-    diaInteiro: diaInteiro,
-    duracaoMin: CONFIG.AGENDA.DURACAO_PADRAO_MIN,
-    lembreteMin: document.getElementById("evLembrete").value,
-  };
-
-  alerta(ag.statusModal, "Salvando...", "carregando");
-  ag.btnSalvar.disabled = true;
+  AgendaAPI.alerta(ui.statusModal, "Salvando...", "carregando");
+  ui.btnSalvar.disabled = true;
 
   try {
-    const resp = await fetch(CONFIG.WEB_APP_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(corpo),
+    await AgendaAPI.criar({
+      titulo: document.getElementById("evTitulo").value.trim(),
+      inicio: new Date(inicioVal).toISOString(),
+      fim: document.getElementById("evFim").value
+        ? new Date(document.getElementById("evFim").value).toISOString()
+        : null,
+      local: document.getElementById("evLocal").value.trim(),
+      descricao: document.getElementById("evDescricao").value.trim(),
+      diaInteiro: ui.diaInteiro.checked,
+      duracaoMin: CONFIG.AGENDA.DURACAO_PADRAO_MIN,
+      lembreteMin: document.getElementById("evLembrete").value,
     });
-    const json = await resp.json();
-    if (!AUTH.tratarResposta(json)) return;
-
-    if (!json.ok) throw new Error(json.erro || "Falha ao salvar.");
 
     modalEvento.hide();
-    alerta(ag.status, "Atividade adicionada à agenda!", "sucesso");
-    calendar.refetchEvents();
+    AgendaAPI.alerta(ui.status, "Atividade adicionada!", "sucesso");
+    carregarEventos();
   } catch (err) {
-    alerta(ag.statusModal, "Erro ao salvar: " + err.message, "erro");
+    AgendaAPI.alerta(ui.statusModal, "Erro: " + err.message, "erro");
   } finally {
-    ag.btnSalvar.disabled = false;
+    ui.btnSalvar.disabled = false;
   }
 });
 
-// Desabilita os horários quando "dia inteiro" está marcado.
-ag.diaInteiro.addEventListener("change", () => {
-  const inteiro = ag.diaInteiro.checked;
-  document.getElementById("evFim").disabled = inteiro;
-  document.getElementById("evLembrete").disabled = inteiro;
+ui.diaInteiro.addEventListener("change", () => {
+  document.getElementById("evFim").disabled = ui.diaInteiro.checked;
+  document.getElementById("evLembrete").disabled = ui.diaInteiro.checked;
 });
 
-ag.btnNova.addEventListener("click", () => abrirNovoEvento(new Date()));
+ui.btnNova.addEventListener("click", () => abrirNovoEvento());
+ui.btnLimpar.addEventListener("click", () => {
+  diaFiltro = null;
+  renderMiniCalendario();
+  renderLista();
+});
+
+ui.btnMesAnt.addEventListener("click", () => {
+  mesAtual.setMonth(mesAtual.getMonth() - 1);
+  diaFiltro = null;
+  carregarEventos();
+});
+
+ui.btnMesProx.addEventListener("click", () => {
+  mesAtual.setMonth(mesAtual.getMonth() + 1);
+  diaFiltro = null;
+  carregarEventos();
+});
 
 document.addEventListener("DOMContentLoaded", () => {
   modalEvento = new bootstrap.Modal(document.getElementById("modalEvento"));
-  modalDetalhe = new bootstrap.Modal(document.getElementById("modalDetalhe"));
-  iniciarCalendario();
+  carregarEventos();
 });

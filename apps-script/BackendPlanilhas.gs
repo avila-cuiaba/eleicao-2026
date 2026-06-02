@@ -50,9 +50,22 @@ const CABECALHOS = ["data", "nome", "cidade", "observacao"];
 
 // ===================== AGENDA =====================
 
-// Agenda (Google Calendar) usada pela campanha.
-const AGENDA_ID =
-  "5022e5968413188b563f3ed7f37711c25a4ddf55dd9e05183b045c82f1a5b840@group.calendar.google.com";
+// Várias agendas podem alimentar o mesmo calendário (leitura).
+// Novos eventos pelo app vão para AGENDA_GRAVACAO (campanha).
+const AGENDAS = {
+  campanha: {
+    id: "5022e5968413188b563f3ed7f37711c25a4ddf55dd9e05183b045c82f1a5b840@group.calendar.google.com",
+    titulo: "Campanha",
+    gravar: true,
+  },
+  pessoal: {
+    id: "", // cole o ID da agenda pessoal (Settings > Integrate calendar)
+    titulo: "Pessoal",
+    gravar: false,
+  },
+};
+
+const AGENDA_GRAVACAO = "campanha";
 
 // ===================== AUTORIZAÇÃO =====================
 
@@ -169,39 +182,61 @@ function obterSheet(planilhaKey, nomeAba) {
 
 // ===================== AGENDA (handlers) =====================
 
-function obterAgenda() {
-  const cal = CalendarApp.getCalendarById(AGENDA_ID);
+function obterAgenda(chave) {
+  const key = chave || AGENDA_GRAVACAO;
+  const cfg = AGENDAS[key];
+  if (!cfg || !cfg.id) {
+    throw new Error("Agenda não cadastrada: " + key);
+  }
+  const cal = CalendarApp.getCalendarById(cfg.id);
   if (!cal) {
     throw new Error(
-      "Agenda não encontrada ou sem acesso. Verifique o AGENDA_ID e o compartilhamento."
+      "Agenda sem acesso: " + key + ". Compartilhe com a conta do Apps Script."
     );
   }
   return cal;
 }
 
-// Lista eventos no período (?inicio=ISO&fim=ISO).
-function doGetAgenda(p) {
-  const cal = obterAgenda();
+function eventoParaJson(ev, origem, origemTitulo) {
+  return {
+    id: ev.getId(),
+    origem: origem,
+    origemTitulo: origemTitulo,
+    titulo: ev.getTitle(),
+    inicio: ev.getStartTime().toISOString(),
+    fim: ev.getEndTime().toISOString(),
+    diaInteiro: ev.isAllDayEvent(),
+    local: ev.getLocation() || "",
+    descricao: ev.getDescription() || "",
+  };
+}
 
+function listarEventosAgendas(inicio, fim) {
+  const todos = [];
+  Object.keys(AGENDAS).forEach(function (key) {
+    const cfg = AGENDAS[key];
+    if (!cfg.id) return;
+    const cal = CalendarApp.getCalendarById(cfg.id);
+    if (!cal) return;
+    cal.getEvents(inicio, fim).forEach(function (ev) {
+      todos.push(eventoParaJson(ev, key, cfg.titulo));
+    });
+  });
+  todos.sort(function (a, b) {
+    return new Date(a.inicio) - new Date(b.inicio);
+  });
+  return todos;
+}
+
+// Lista eventos de todas as agendas cadastradas.
+function doGetAgenda(p) {
   const agora = new Date();
   const inicio = p.inicio ? new Date(p.inicio) : agora;
   const fim = p.fim
     ? new Date(p.fim)
     : new Date(agora.getTime() + 60 * 24 * 60 * 60 * 1000);
 
-  const eventos = cal.getEvents(inicio, fim).map(function (ev) {
-    return {
-      id: ev.getId(),
-      titulo: ev.getTitle(),
-      inicio: ev.getStartTime().toISOString(),
-      fim: ev.getEndTime().toISOString(),
-      diaInteiro: ev.isAllDayEvent(),
-      local: ev.getLocation() || "",
-      descricao: ev.getDescription() || "",
-    };
-  });
-
-  return responder({ ok: true, eventos: eventos });
+  return responder({ ok: true, eventos: listarEventosAgendas(inicio, fim) });
 }
 
 // Cria ou atualiza um evento na agenda.
@@ -210,7 +245,7 @@ function doPostAgenda(corpo) {
     return atualizarEventoAgenda(corpo);
   }
 
-  const cal = obterAgenda();
+  const cal = obterAgenda(corpo.origem || AGENDA_GRAVACAO);
 
   if (!corpo.titulo) throw new Error("Título é obrigatório.");
   if (!corpo.inicio) throw new Error("Data/hora de início é obrigatória.");
@@ -271,16 +306,13 @@ function autorizar() {
   // Toca na planilha padrão (pede permissão do Sheets).
   SpreadsheetApp.openById(PLANILHAS[PLANILHA_PADRAO].id);
 
-  // Toca na agenda (pede permissão do Calendar) e testa o acesso.
-  const cal = CalendarApp.getCalendarById(AGENDA_ID);
-  if (cal) {
-    Logger.log("Agenda OK: " + cal.getName());
-  } else {
-    Logger.log(
-      "ATENCAO: agenda nao acessivel. Compartilhe a agenda com esta conta " +
-        "(permissao 'Fazer alteracoes em eventos') e rode de novo."
-    );
-  }
+  // Toca em cada agenda cadastrada (pede permissão do Calendar).
+  Object.keys(AGENDAS).forEach(function (key) {
+    const cfg = AGENDAS[key];
+    if (!cfg.id) return;
+    const cal = CalendarApp.getCalendarById(cfg.id);
+    if (cal) Logger.log("Agenda OK (" + key + "): " + cal.getName());
+  });
 }
 
 function responder(obj) {

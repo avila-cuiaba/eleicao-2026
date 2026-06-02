@@ -1,4 +1,4 @@
-// Funções compartilhadas entre as 3 telas de agenda (FullCalendar, Toast UI, Lista).
+// Funções compartilhadas da agenda (calendário vanilla + Google Agenda).
 
 const AgendaAPI = {
   fmtData: new Intl.DateTimeFormat("pt-BR", {
