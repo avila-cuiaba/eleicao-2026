@@ -1,22 +1,26 @@
 /**
  * Backend do projeto Eleição 2026 (Google Apps Script - Web App).
  *
- * UMA ÚNICA publicação (1 WEB_APP_URL) atende TODAS as planilhas abaixo.
- * Para adicionar uma planilha/aba nova, inclua uma linha em PLANILHAS
- * (chave curta -> { id, gid }) e reimplante (Nova versão).
+ * Recursos atendidos por UMA única publicação (1 WEB_APP_URL):
+ *   - planilha (padrão): leitura/gravação no Google Sheets
+ *   - agenda: leitura/criação de eventos no Google Agenda (Calendar)
+ *   - login: valida a chave de acesso
  *
- * O frontend escolhe a planilha pelo parâmetro:
- *   GET  -> ?planilha=mapa-voto
- *   POST -> { "planilha": "mapa-voto", ... }
+ * SEGURANÇA (Opção A):
+ *   Defina a senha em: Configurações do projeto > Propriedades do script
+ *   Propriedade:  SENHA_ACESSO = a_senha_desejada
+ *   - Se a propriedade NÃO existir, o acesso fica ABERTO (sem proteção).
+ *   - O frontend envia a chave em ?chave=... (GET) ou { "chave": "..." } (POST).
+ *   A senha fica só aqui no Google, NUNCA no repositório.
  *
- * Na URL da planilha:
- *   https://docs.google.com/spreadsheets/d/<ID>/edit?gid=<GID>
- *   - <ID>  = identificador da planilha
- *   - <GID> = identificador da aba (0 = primeira aba)
+ * Roteamento:
+ *   GET  ?recurso=planilha|agenda|login & ...
+ *   POST { "recurso": "planilha|agenda", ... }
  */
 
-// >>> Planilhas/abas permitidas (chave curta -> { id, gid }).
-// OBS: as chaves abaixo são provisórias — renomeie para algo significativo.
+// ===================== PLANILHAS =====================
+
+// Planilhas/abas permitidas (chave curta -> { id, gid }).
 const PLANILHAS = {
   "mapa-voto": {
     id: "1taZumjanEoFXxRO7RArrDY5DDjR8rzzYQxT5w6CxEeU",
@@ -30,7 +34,6 @@ const PLANILHAS = {
     id: "1uWHTfEsNJzdXC0uXxM3yIcQW8BIfpiBWha6wNlQpS9I",
     gid: 1492182435,
   },
-  // As duas abaixo são a MESMA planilha (mesmo id), em abas (gid) diferentes:
   "planilha-4-aba1": {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1105165439,
@@ -41,99 +44,113 @@ const PLANILHAS = {
   },
 };
 
-// Planilha usada quando nenhum parâmetro "planilha" é informado.
 const PLANILHA_PADRAO = "mapa-voto";
-
-// Nome de aba opcional. Vazio = usa o gid do cadastro (ou a primeira aba).
 const ABA_PADRAO = "";
-
-// Cabeçalhos padrão (usado só na gravação quando a aba está vazia).
-// A coluna "data" é preenchida automaticamente no doPost.
 const CABECALHOS = ["data", "nome", "cidade", "observacao"];
 
-/**
- * GET: retorna os dados de uma aba como JSON.
- * Parâmetros opcionais: ?planilha=chave&aba=NomeDaAba
- *
- * Retorna:
- *  - valores: matriz crua (linhas x colunas) — usada pelo dashboard, pois a
- *    planilha pode ter imagens nos cabeçalhos e tabelas empilhadas.
- *  - dados: lista de objetos chaveados pelo cabeçalho (compatibilidade).
- */
+// ===================== AGENDA =====================
+
+// Agenda (Google Calendar) usada pela campanha.
+const AGENDA_ID =
+  "5022e5968413188b563f3ed7f37711c25a4ddf55dd9e05183b045c82f1a5b840@group.calendar.google.com";
+
+// ===================== AUTORIZAÇÃO =====================
+
+function autorizado(chave) {
+  const segredo = PropertiesService.getScriptProperties().getProperty("SENHA_ACESSO");
+  if (!segredo) return true; // sem segredo configurado = acesso aberto
+  return String(chave || "") === segredo;
+}
+
+function respostaNaoAutorizado() {
+  return responder({ ok: false, naoAutorizado: true, erro: "Acesso negado" });
+}
+
+// ===================== ROTEAMENTO =====================
+
 function doGet(e) {
   try {
-    const planilha = (e && e.parameter && e.parameter.planilha) || PLANILHA_PADRAO;
-    const nomeAba = (e && e.parameter && e.parameter.aba) || ABA_PADRAO;
-    const sheet = obterSheet(planilha, nomeAba);
-    const valores = sheet.getDataRange().getValues();
+    const p = (e && e.parameter) || {};
+    if (!autorizado(p.chave)) return respostaNaoAutorizado();
 
-    let dados = [];
-    if (valores.length >= 2) {
-      const cabecalhos = valores[0];
-      dados = valores.slice(1).map(function (linha) {
-        const obj = {};
-        cabecalhos.forEach(function (col, i) {
-          obj[col] = linha[i];
-        });
-        return obj;
-      });
-    }
-
-    return responder({ ok: true, valores: valores, dados: dados });
+    const recurso = p.recurso || "planilha";
+    if (recurso === "login") return responder({ ok: true });
+    if (recurso === "agenda") return doGetAgenda(p);
+    return doGetPlanilha(p);
   } catch (erro) {
     return responder({ ok: false, erro: String(erro) });
   }
 }
 
-/**
- * POST: grava uma nova linha na aba.
- * Corpo esperado (JSON em text/plain):
- *   { "planilha": "chave", "aba": "Dados", "nome": "...", ... }
- */
 function doPost(e) {
   try {
     const corpo = JSON.parse((e && e.postData && e.postData.contents) || "{}");
-    const planilha = corpo.planilha || PLANILHA_PADRAO;
-    const nomeAba = corpo.aba || ABA_PADRAO;
-    const sheet = obterSheet(planilha, nomeAba);
+    if (!autorizado(corpo.chave)) return respostaNaoAutorizado();
 
-    // Lê o cabeçalho atual da planilha para montar a linha na ordem correta.
-    const ultimaColuna = sheet.getLastColumn();
-    const cabecalhos =
-      ultimaColuna > 0
-        ? sheet.getRange(1, 1, 1, ultimaColuna).getValues()[0]
-        : CABECALHOS;
-
-    const agora = Utilities.formatDate(
-      new Date(),
-      Session.getScriptTimeZone(),
-      "yyyy-MM-dd HH:mm:ss"
-    );
-
-    const linha = cabecalhos.map(function (col) {
-      if (col === "data") return agora;
-      return corpo[col] != null ? corpo[col] : "";
-    });
-
-    sheet.appendRow(linha);
-    return responder({ ok: true });
+    const recurso = corpo.recurso || "planilha";
+    if (recurso === "agenda") return doPostAgenda(corpo);
+    return doPostPlanilha(corpo);
   } catch (erro) {
     return responder({ ok: false, erro: String(erro) });
   }
+}
+
+// ===================== PLANILHA (handlers) =====================
+
+function doGetPlanilha(p) {
+  const planilha = p.planilha || PLANILHA_PADRAO;
+  const nomeAba = p.aba || ABA_PADRAO;
+  const sheet = obterSheet(planilha, nomeAba);
+  const valores = sheet.getDataRange().getValues();
+
+  let dados = [];
+  if (valores.length >= 2) {
+    const cabecalhos = valores[0];
+    dados = valores.slice(1).map(function (linha) {
+      const obj = {};
+      cabecalhos.forEach(function (col, i) {
+        obj[col] = linha[i];
+      });
+      return obj;
+    });
+  }
+
+  return responder({ ok: true, valores: valores, dados: dados });
+}
+
+function doPostPlanilha(corpo) {
+  const planilha = corpo.planilha || PLANILHA_PADRAO;
+  const nomeAba = corpo.aba || ABA_PADRAO;
+  const sheet = obterSheet(planilha, nomeAba);
+
+  const ultimaColuna = sheet.getLastColumn();
+  const cabecalhos =
+    ultimaColuna > 0
+      ? sheet.getRange(1, 1, 1, ultimaColuna).getValues()[0]
+      : CABECALHOS;
+
+  const agora = Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone(),
+    "yyyy-MM-dd HH:mm:ss"
+  );
+
+  const linha = cabecalhos.map(function (col) {
+    if (col === "data") return agora;
+    return corpo[col] != null ? corpo[col] : "";
+  });
+
+  sheet.appendRow(linha);
+  return responder({ ok: true });
 }
 
 /**
  * Resolve a planilha (pela chave) e retorna a aba.
- * Ordem de seleção da aba:
- *   1) por nome (se "aba" for informado e existir);
- *   2) por gid (definido no cadastro da planilha);
- *   3) primeira aba.
+ * Ordem: 1) por nome; 2) por gid do cadastro; 3) primeira aba.
  */
 function obterSheet(planilhaKey, nomeAba) {
   const cfg = PLANILHAS[planilhaKey];
-  if (!cfg) {
-    throw new Error("Planilha não cadastrada: " + planilhaKey);
-  }
+  if (!cfg) throw new Error("Planilha não cadastrada: " + planilhaKey);
 
   const ss = SpreadsheetApp.openById(cfg.id);
 
@@ -141,18 +158,105 @@ function obterSheet(planilhaKey, nomeAba) {
     const porNome = ss.getSheetByName(nomeAba);
     if (porNome) return porNome;
   }
-
   if (cfg.gid != null) {
     const abas = ss.getSheets();
     for (let i = 0; i < abas.length; i++) {
       if (abas[i].getSheetId() === cfg.gid) return abas[i];
     }
   }
-
   return ss.getSheets()[0];
 }
 
-/** Resposta JSON padrão do Web App. */
+// ===================== AGENDA (handlers) =====================
+
+function obterAgenda() {
+  const cal = CalendarApp.getCalendarById(AGENDA_ID);
+  if (!cal) {
+    throw new Error(
+      "Agenda não encontrada ou sem acesso. Verifique o AGENDA_ID e o compartilhamento."
+    );
+  }
+  return cal;
+}
+
+// Lista eventos no período (?inicio=ISO&fim=ISO).
+function doGetAgenda(p) {
+  const cal = obterAgenda();
+
+  const agora = new Date();
+  const inicio = p.inicio ? new Date(p.inicio) : agora;
+  const fim = p.fim
+    ? new Date(p.fim)
+    : new Date(agora.getTime() + 60 * 24 * 60 * 60 * 1000);
+
+  const eventos = cal.getEvents(inicio, fim).map(function (ev) {
+    return {
+      id: ev.getId(),
+      titulo: ev.getTitle(),
+      inicio: ev.getStartTime().toISOString(),
+      fim: ev.getEndTime().toISOString(),
+      diaInteiro: ev.isAllDayEvent(),
+      local: ev.getLocation() || "",
+      descricao: ev.getDescription() || "",
+    };
+  });
+
+  return responder({ ok: true, eventos: eventos });
+}
+
+// Cria um evento na agenda.
+function doPostAgenda(corpo) {
+  const cal = obterAgenda();
+
+  if (!corpo.titulo) throw new Error("Título é obrigatório.");
+  if (!corpo.inicio) throw new Error("Data/hora de início é obrigatória.");
+
+  const inicio = new Date(corpo.inicio);
+  const opcoes = {};
+  if (corpo.descricao) opcoes.description = corpo.descricao;
+  if (corpo.local) opcoes.location = corpo.local;
+
+  let ev;
+  if (corpo.diaInteiro) {
+    ev = cal.createAllDayEvent(corpo.titulo, inicio, opcoes);
+  } else {
+    const duracaoMin = Number(corpo.duracaoMin) || 60;
+    const fim = corpo.fim
+      ? new Date(corpo.fim)
+      : new Date(inicio.getTime() + duracaoMin * 60000);
+    ev = cal.createEvent(corpo.titulo, inicio, fim, opcoes);
+
+    if (corpo.lembreteMin != null && corpo.lembreteMin !== "") {
+      ev.addPopupReminder(Number(corpo.lembreteMin));
+    }
+  }
+
+  return responder({ ok: true, id: ev.getId() });
+}
+
+// ===================== UTIL / AUTORIZAÇÃO MANUAL =====================
+
+/**
+ * Rode esta função no editor (Executar) para conceder TODAS as permissões
+ * de uma vez (Planilhas + Agenda) e testar o acesso à agenda.
+ * Veja o resultado em "Registro de execução" (Logs).
+ */
+function autorizar() {
+  // Toca na planilha padrão (pede permissão do Sheets).
+  SpreadsheetApp.openById(PLANILHAS[PLANILHA_PADRAO].id);
+
+  // Toca na agenda (pede permissão do Calendar) e testa o acesso.
+  const cal = CalendarApp.getCalendarById(AGENDA_ID);
+  if (cal) {
+    Logger.log("Agenda OK: " + cal.getName());
+  } else {
+    Logger.log(
+      "ATENCAO: agenda nao acessivel. Compartilhe a agenda com esta conta " +
+        "(permissao 'Fazer alteracoes em eventos') e rode de novo."
+    );
+  }
+}
+
 function responder(obj) {
   return ContentService.createTextOutput(
     JSON.stringify(obj)

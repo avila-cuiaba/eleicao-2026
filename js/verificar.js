@@ -1,6 +1,8 @@
 // Página de verificação: testa o acesso a cada planilha cadastrada
 // chamando o Web App (GET ?planilha=chave) e exibindo o status.
 
+AUTH.exigir();
+
 const ui = {
   status: document.getElementById("status"),
   lista: document.getElementById("lista"),
@@ -33,6 +35,7 @@ function limparStatus() {
 function urlPlanilha(chave) {
   const url = new URL(CONFIG.WEB_APP_URL);
   url.searchParams.set("planilha", chave);
+  AUTH.aplicarNaUrl(url);
   return url.toString();
 }
 
@@ -112,6 +115,8 @@ async function testar(p, card) {
     const resp = await fetch(urlPlanilha(p.chave), { method: "GET" });
     const json = await resp.json();
     const ms = Math.round(performance.now() - inicio);
+
+    if (!AUTH.tratarResposta(json)) return false;
 
     if (!json.ok) {
       throw new Error(json.erro || "Resposta sem ok=true");

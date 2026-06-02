@@ -8,6 +8,16 @@ const CONFIG = {
   // URL do Web App do Google Apps Script (preencher depois de publicar)
   WEB_APP_URL: "https://script.google.com/macros/s/AKfycbznvDEewPSR0YG_CUlAfTXtrNzCWlsy2ZUGpasW4rb98P_MfsZZphVxagG-_v0QCg/exec",
 
+  // Exigir login (chave de acesso) nas páginas. A senha em si fica no
+  // Apps Script (Propriedade SENHA_ACESSO), nunca aqui no repositório.
+  EXIGIR_LOGIN: true,
+
+  // Parâmetros padrão da agenda (criação de eventos).
+  AGENDA: {
+    DURACAO_PADRAO_MIN: 60, // duração do evento quando não informado o fim
+    LEMBRETE_PADRAO_MIN: 30, // lembrete (pop-up) padrão antes do evento
+  },
+
   // Chave da planilha (deve existir em PLANILHAS no BackendPlanilhas.gs).
   // Opções atuais: "mapa-voto", "planilha-2", "planilha-3",
   //                "planilha-4-aba1", "planilha-4-aba2".

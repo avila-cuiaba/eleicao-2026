@@ -1,6 +1,8 @@
 // Dashboard: lê a matriz crua da planilha (GET) e monta, para cada tabela,
 // cards de totais e um gráfico comparativo (votos 2018 x 2022 x projeção ideal).
 
+AUTH.exigir();
+
 const el = {
   status: document.getElementById("status"),
   btnAtualizar: document.getElementById("btnAtualizar"),
@@ -51,6 +53,7 @@ function urlConsulta() {
   const url = new URL(CONFIG.WEB_APP_URL);
   if (CONFIG.PLANILHA) url.searchParams.set("planilha", CONFIG.PLANILHA);
   if (CONFIG.ABA) url.searchParams.set("aba", CONFIG.ABA);
+  AUTH.aplicarNaUrl(url);
   return url.toString();
 }
 
@@ -69,6 +72,7 @@ async function carregarDashboard() {
   try {
     const resp = await fetch(urlConsulta(), { method: "GET" });
     const json = await resp.json();
+    if (!AUTH.tratarResposta(json)) return;
     if (!json.ok) throw new Error(json.erro || "Falha ao consultar.");
 
     montar(json.valores || []);

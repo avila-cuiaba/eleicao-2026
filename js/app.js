@@ -1,5 +1,7 @@
 // Lógica do frontend: consulta (GET) e gravação (POST) no Web App do Apps Script.
 
+AUTH.exigir();
+
 const els = {
   status: document.getElementById("status"),
   form: document.getElementById("formRegistro"),
@@ -36,6 +38,7 @@ function urlConsulta() {
   const url = new URL(CONFIG.WEB_APP_URL);
   if (CONFIG.PLANILHA) url.searchParams.set("planilha", CONFIG.PLANILHA);
   if (CONFIG.ABA) url.searchParams.set("aba", CONFIG.ABA);
+  AUTH.aplicarNaUrl(url);
   return url.toString();
 }
 
@@ -55,6 +58,7 @@ async function carregarDados() {
   try {
     const resp = await fetch(urlConsulta(), { method: "GET" });
     const json = await resp.json();
+    if (!AUTH.tratarResposta(json)) return;
 
     if (!json.ok) {
       throw new Error(json.erro || "Falha ao consultar.");
@@ -112,6 +116,7 @@ async function enviarDados(evento) {
   }
 
   const dados = {
+    chave: AUTH.getChave(),
     planilha: CONFIG.PLANILHA,
     aba: CONFIG.ABA,
     nome: document.getElementById("nome").value.trim(),
@@ -129,6 +134,7 @@ async function enviarDados(evento) {
       body: JSON.stringify(dados),
     });
     const json = await resp.json();
+    if (!AUTH.tratarResposta(json)) return;
 
     if (!json.ok) {
       throw new Error(json.erro || "Falha ao gravar.");
