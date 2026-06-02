@@ -21,14 +21,21 @@ function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
 }
 
+function classeAlerta(tipo) {
+  if (tipo === "sucesso") return "alert alert-success";
+  if (tipo === "erro") return "alert alert-danger";
+  if (tipo === "carregando") return "alert alert-info";
+  return "alert d-none";
+}
+
 function mostrarStatus(mensagem, tipo) {
   el.status.textContent = mensagem;
-  el.status.className = "status " + (tipo || "");
+  el.status.className = classeAlerta(tipo);
 }
 
 function limparStatus() {
   el.status.textContent = "";
-  el.status.className = "status";
+  el.status.className = "alert d-none";
 }
 
 // Converte valor da planilha em número (trata milhar "." e decimal ",").
@@ -132,12 +139,12 @@ function montar(valores) {
 
 function renderizarTabela(tab, idx, totais, serie) {
   const secao = document.createElement("section");
-  secao.className = "bloco-tabela";
+  secao.className = "mb-4";
 
-  // Cards de totais.
+  // Cards de totais + gráfico comparativo.
   secao.innerHTML = `
-    <h2 class="titulo-bloco">${tab.titulo}</h2>
-    <div class="cards">
+    <h2 class="h4 text-brand border-bottom pb-2 mb-3">${tab.titulo}</h2>
+    <div class="row g-2 g-md-3 mb-3">
       ${cardKpi("Municípios", totais.municipios)}
       ${cardKpi("Eleitores", totais.eleitores)}
       ${cardKpi("Votos 2018", totais.votos2018)}
@@ -145,10 +152,12 @@ function renderizarTabela(tab, idx, totais, serie) {
       ${cardKpi("Projeção mínima", totais.minima, "kpi-minima")}
       ${cardKpi("Projeção ideal", totais.ideal, "kpi-ideal")}
     </div>
-    <div class="card">
-      <h3>Comparativo: votos 2018 × 2022 × projeção ideal</h3>
-      <div class="grafico-wrapper">
-        <canvas id="grafico-${idx}"></canvas>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h3 class="h6 mb-3">Comparativo: votos 2018 × 2022 × projeção ideal</h3>
+        <div class="grafico-wrapper">
+          <canvas id="grafico-${idx}"></canvas>
+        </div>
       </div>
     </div>
   `;
@@ -208,9 +217,13 @@ function renderizarTabela(tab, idx, totais, serie) {
 
 function cardKpi(rotulo, valor, extraClasse) {
   return `
-    <div class="card-kpi ${extraClasse || ""}">
-      <span class="card-kpi-rotulo">${rotulo}</span>
-      <strong class="card-kpi-valor">${fmt.format(valor)}</strong>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card h-100 shadow-sm ${extraClasse || ""}">
+        <div class="card-body py-2 px-3">
+          <div class="text-secondary small">${rotulo}</div>
+          <strong class="kpi-valor d-block">${fmt.format(valor)}</strong>
+        </div>
+      </div>
     </div>
   `;
 }

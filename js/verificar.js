@@ -13,14 +13,21 @@ function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
 }
 
+function classeAlerta(tipo) {
+  if (tipo === "sucesso") return "alert alert-success";
+  if (tipo === "erro") return "alert alert-danger";
+  if (tipo === "carregando") return "alert alert-info";
+  return "alert d-none";
+}
+
 function mostrarStatus(msg, tipo) {
   ui.status.textContent = msg;
-  ui.status.className = "status " + (tipo || "");
+  ui.status.className = classeAlerta(tipo);
 }
 
 function limparStatus() {
   ui.status.textContent = "";
-  ui.status.className = "status";
+  ui.status.className = "alert d-none";
 }
 
 function urlPlanilha(chave) {
@@ -37,45 +44,50 @@ function escapar(txt) {
 
 // Cria o card inicial (estado "verificando") para uma planilha.
 function criarCard(p) {
-  const card = document.createElement("div");
-  card.className = "card card-planilha";
-  card.dataset.chave = p.chave;
-  card.innerHTML = `
-    <div class="card-planilha-topo">
-      <div>
-        <strong class="card-planilha-titulo">${escapar(p.titulo)}</strong>
-        <span class="card-planilha-chave">${escapar(p.chave)}</span>
+  const col = document.createElement("div");
+  col.className = "col-12 col-md-6 col-lg-4";
+  col.dataset.chave = p.chave;
+  col.innerHTML = `
+    <div class="card h-100 shadow-sm">
+      <div class="card-body d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div>
+            <strong class="d-block">${escapar(p.titulo)}</strong>
+            <span class="chave-mono text-secondary">${escapar(p.chave)}</span>
+          </div>
+          <span class="badge rounded-pill text-bg-secondary">verificando…</span>
+        </div>
+        <div class="card-planilha-info text-secondary small mt-2">—</div>
+        <div class="card-planilha-preview mt-2"></div>
+        <div class="d-flex align-items-center gap-3 mt-auto pt-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary btn-retestar">Testar de novo</button>
+          <a class="link-json small" target="_blank" rel="noopener">Abrir JSON</a>
+        </div>
       </div>
-      <span class="badge badge-aguardando">verificando…</span>
-    </div>
-    <div class="card-planilha-info">—</div>
-    <div class="card-planilha-preview"></div>
-    <div class="card-planilha-acoes">
-      <button type="button" class="btn btn-secundario btn-retestar">Testar de novo</button>
-      <a class="link-json" target="_blank" rel="noopener">Abrir JSON</a>
     </div>
   `;
 
-  card.querySelector(".link-json").href = urlPlanilha(p.chave);
-  card
+  col.querySelector(".link-json").href = urlPlanilha(p.chave);
+  col
     .querySelector(".btn-retestar")
-    .addEventListener("click", () => testar(p, card));
-  return card;
+    .addEventListener("click", () => testar(p, col));
+  return col;
 }
 
 function setBadge(card, texto, classe) {
   const badge = card.querySelector(".badge");
   badge.textContent = texto;
-  badge.className = "badge " + classe;
+  badge.className = "badge rounded-pill " + classe;
 }
 
 // Monta uma mini-tabela com as primeiras linhas/colunas da matriz.
 function montarPreview(valores) {
-  if (!valores || !valores.length) return "<em>sem linhas</em>";
+  if (!valores || !valores.length) return "<em class='text-secondary'>sem linhas</em>";
 
   const maxLinhas = Math.min(valores.length, 4);
   const maxCols = Math.min(valores[0].length, 7);
-  let html = '<div class="tabela-wrapper"><table class="mini-tabela"><tbody>';
+  let html =
+    '<div class="table-responsive"><table class="table table-sm table-bordered mini-tabela mb-0"><tbody>';
 
   for (let i = 0; i < maxLinhas; i++) {
     html += "<tr>";
@@ -91,7 +103,7 @@ function montarPreview(valores) {
 
 // Testa uma planilha e atualiza o card.
 async function testar(p, card) {
-  setBadge(card, "verificando…", "badge-aguardando");
+  setBadge(card, "verificando…", "text-bg-secondary");
   card.querySelector(".card-planilha-info").textContent = "—";
   card.querySelector(".card-planilha-preview").innerHTML = "";
 
@@ -109,7 +121,7 @@ async function testar(p, card) {
     const linhas = valores.length;
     const colunas = linhas ? valores[0].length : 0;
 
-    setBadge(card, "OK", "badge-ok");
+    setBadge(card, "OK", "text-bg-success");
     card.querySelector(
       ".card-planilha-info"
     ).textContent = `${fmtNum.format(linhas)} linhas × ${fmtNum.format(
@@ -120,7 +132,7 @@ async function testar(p, card) {
     );
     return true;
   } catch (e) {
-    setBadge(card, "ERRO", "badge-erro");
+    setBadge(card, "ERRO", "text-bg-danger");
     card.querySelector(".card-planilha-info").textContent = e.message;
     return false;
   }

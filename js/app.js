@@ -14,14 +14,21 @@ function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
 }
 
+function classeAlerta(tipo) {
+  if (tipo === "sucesso") return "alert alert-success";
+  if (tipo === "erro") return "alert alert-danger";
+  if (tipo === "carregando") return "alert alert-info";
+  return "alert d-none";
+}
+
 function mostrarStatus(mensagem, tipo) {
   els.status.textContent = mensagem;
-  els.status.className = "status " + (tipo || "");
+  els.status.className = classeAlerta(tipo);
 }
 
 function limparStatus() {
   els.status.textContent = "";
-  els.status.className = "status";
+  els.status.className = "alert d-none";
 }
 
 // Monta a URL de consulta com a aba configurada.
