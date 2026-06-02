@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campanha 2026 — Municípios</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="header-placeholder"></div>
+
+<main>
+  <div class="page-header">
+    <h1>Municípios</h1>
+    <p>Acompanhamento individual de metas, prioridade e potencial de crescimento</p>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi blue"><div class="kpi-label">Total municípios</div><div class="kpi-value">141</div><div class="kpi-sub">todo o estado</div></div>
+    <div class="kpi green"><div class="kpi-label">Prioridade zero</div><div class="kpi-value">9</div><div class="kpi-sub">foco principal</div></div>
+    <div class="kpi amber"><div class="kpi-label">Araguaia prioritário</div><div class="kpi-value">18</div><div class="kpi-sub">médio foco</div></div>
+    <div class="kpi purple"><div class="kpi-label">MT prioridade</div><div class="kpi-value">14</div><div class="kpi-sub">oportunidade</div></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Municípios prioritários — votação atual vs metas 2026</div>
+    <div class="chart-sub">Top municípios por volume de votos e projeção de crescimento</div>
+    <div class="legend">
+      <span><i style="background:#3fb950"></i>2022</span>
+      <span><i style="background:#d29922"></i>Meta mín. 2026</span>
+      <span><i style="background:#bc8cff"></i>Ideal 2026</span>
+    </div>
+    <div class="chart-wrap" style="height:380px">
+      <canvas id="chartMun" role="img" aria-label="Votos por município">Votos por município prioritário.</canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Acompanhamento por município</div>
+    <div class="chart-sub">Progresso da votação 2022 em relação à meta mínima 2026</div>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="filter('todos',this)">Todos</button>
+      <button class="filter-btn" onclick="filter('zero',this)">Prioridade zero</button>
+      <button class="filter-btn" onclick="filter('araguaia',this)">Araguaia prioritário</button>
+      <button class="filter-btn" onclick="filter('mt',this)">MT prioridade</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Município</th><th>Região</th><th>Prioridade</th>
+          <th>Eleitores</th><th>2018</th><th>2022</th>
+          <th>Meta mín.</th><th>Ideal</th><th>% meta</th><th>Progresso</th>
+        </tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="chart-card">
+      <div class="chart-title">Municípios com maior potencial de crescimento</div>
+      <div class="chart-sub">Delta entre meta 2026 e resultado 2022</div>
+      <div class="chart-wrap" style="height:300px">
+        <canvas id="chartDelta" role="img" aria-label="Potencial de crescimento">Potencial de crescimento por município.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Concentração de votos — top 10 municípios</div>
+      <div class="chart-sub">Participação no total de votos 2022</div>
+      <div class="chart-wrap" style="height:300px">
+        <canvas id="chartConc" role="img" aria-label="Concentração de votos">Concentração de votos.</canvas>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Dashboard Campanha 2026 · Mato Grosso</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="nav.js"></script>
+<script>
+renderHeader('municipios.html');
+
+const munAll = [
+  {ord:1, m:'Água Boa',           r:'Médio Araguaia',   p:'zero',     el:18375, v18:5484, v22:8505,  m26:10500, ideal:11000},
+  {ord:2, m:'Canarana',           r:'Médio Araguaia',   p:'zero',     el:15553, v18:2675, v22:2326,  m26:2600,  ideal:2700},
+  {ord:3, m:'Querência',          r:'Médio Araguaia',   p:'zero',     el:12414, v18:245,  v22:1995,  m26:1900,  ideal:2000},
+  {ord:4, m:'Cocalinho',          r:'Médio Araguaia',   p:'zero',     el:4762,  v18:431,  v22:1687,  m26:1300,  ideal:1400},
+  {ord:5, m:'Barra do Garças',    r:'Alto Araguaia',    p:'zero',     el:46109, v18:357,  v22:869,   m26:1600,  ideal:1800},
+  {ord:6, m:'Confresa',           r:'Norte Araguaia',   p:'zero',     el:20232, v18:184,  v22:305,   m26:800,   ideal:900},
+  {ord:7, m:'Cuiabá',             r:'Baixada Cuiabana', p:'zero',     el:378097,v18:91,   v22:606,   m26:1250,  ideal:1400},
+  {ord:8, m:'Ribeirão Cascalheira',r:'Médio Araguaia',  p:'zero',     el:9012,  v18:296,  v22:1217,  m26:1100,  ideal:1200},
+  {ord:9, m:'Várzea Grande',      r:'Baixada Cuiabana', p:'zero',     el:160409,v18:6,    v22:112,   m26:300,   ideal:350},
+  {ord:10,m:'Nova Xavantina',     r:'Médio Araguaia',   p:'araguaia', el:15853, v18:253,  v22:1254,  m26:1200,  ideal:1300},
+  {ord:11,m:'Campinápolis',       r:'Médio Araguaia',   p:'araguaia', el:9676,  v18:457,  v22:786,   m26:1000,  ideal:1200},
+  {ord:12,m:'Nova Nazaré',        r:'Médio Araguaia',   p:'araguaia', el:2649,  v18:287,  v22:733,   m26:1100,  ideal:1200},
+  {ord:13,m:'Bom Jesus Araguaia', r:'Norte Araguaia',   p:'araguaia', el:4641,  v18:366,  v22:505,   m26:600,   ideal:700},
+  {ord:14,m:'Alto Boa Vista',     r:'Norte Araguaia',   p:'araguaia', el:4187,  v18:23,   v22:271,   m26:450,   ideal:500},
+  {ord:15,m:'Canabrava Norte',    r:'Norte Araguaia',   p:'araguaia', el:3639,  v18:0,    v22:223,   m26:450,   ideal:500},
+  {ord:16,m:'Gaúcha do Norte',    r:'Médio Araguaia',   p:'araguaia', el:4974,  v18:373,  v22:414,   m26:500,   ideal:550},
+  {ord:17,m:'Novo Santo Antônio', r:'Norte Araguaia',   p:'araguaia', el:1775,  v18:86,   v22:475,   m26:350,   ideal:400},
+  {ord:18,m:'Alta Floresta',      r:'MT',               p:'mt',       el:39910, v18:7,    v22:3,     m26:10,    ideal:20},
+  {ord:19,m:'Cáceres',            r:'MT',               p:'mt',       el:64839, v18:4,    v22:8,     m26:10,    ideal:20},
+  {ord:20,m:'Lucas Rio Verde',    r:'MT',               p:'mt',       el:46130, v18:3,    v22:5,     m26:5,     ideal:20},
+  {ord:21,m:'Campo Verde',        r:'MT',               p:'mt',       el:29781, v18:4,    v22:36,    m26:30,    ideal:40},
+  {ord:22,m:'Nova Mutum',         r:'MT',               p:'mt',       el:29265, v18:0,    v22:7,     m26:5,     ideal:20},
+  {ord:23,m:'Guarantã Norte',     r:'MT',               p:'mt',       el:21860, v18:2,    v22:0,     m26:5,     ideal:20},
+];
+
+let currentFilter = 'todos';
+
+const badgeClass = {zero:'badge-zero', araguaia:'badge-prio', mt:'badge-mt'};
+const badgeLabel = {zero:'Prio. zero', araguaia:'Araguaia', mt:'MT'};
+const barColor   = {zero:'#58a6ff', araguaia:'#3fb950', mt:'#8b949e'};
+
+function renderTable() {
+  const data = currentFilter === 'todos' ? munAll : munAll.filter(d => d.p === currentFilter);
+  const tb = document.getElementById('tbl');
+  tb.innerHTML = '';
+  data.forEach(d => {
+    const pct  = d.m26 > 0 ? Math.min(Math.round(d.v22 / d.m26 * 100), 100) : 0;
+    const pctLbl = d.m26 > 0 ? Math.round(d.v22 / d.m26 * 100) + '%' : '—';
+    const col  = pct >= 100 ? '#3fb950' : pct >= 70 ? '#d29922' : '#f85149';
+    tb.innerHTML += `<tr>
+      <td class="mono" style="color:var(--text3)">${d.ord}</td>
+      <td><strong>${d.m}</strong></td>
+      <td style="color:var(--text2);font-size:12px">${d.r}</td>
+      <td><span class="badge ${badgeClass[d.p]}">${badgeLabel[d.p]}</span></td>
+      <td class="mono">${d.el > 0 ? d.el.toLocaleString('pt-BR') : '—'}</td>
+      <td class="mono">${d.v18.toLocaleString('pt-BR')}</td>
+      <td class="mono">${d.v22.toLocaleString('pt-BR')}</td>
+      <td class="mono" style="color:var(--amber)">${d.m26.toLocaleString('pt-BR')}</td>
+      <td class="mono" style="color:var(--purple)">${d.ideal.toLocaleString('pt-BR')}</td>
+      <td class="mono" style="color:${col};font-weight:500">${pctLbl}</td>
+      <td style="min-width:80px">
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      </td>
+    </tr>`;
+  });
+}
+
+function filter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+renderTable();
+
+// Chart: top municipios
+const top = munAll.slice(0, 12);
+new Chart(document.getElementById('chartMun'), {
+  type: 'bar',
+  data: {
+    labels: top.map(d => d.m),
+    datasets: [
+      { label:'2022',      data: top.map(d=>d.v22),  backgroundColor:'#3fb950', borderRadius:3 },
+      { label:'Meta mín.', data: top.map(d=>d.m26),  backgroundColor:'#d29922', borderRadius:3 },
+      { label:'Ideal',     data: top.map(d=>d.ideal), backgroundColor:'#bc8cff', borderRadius:3 }
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false} },
+    scales:{
+      x:{ ticks:{color:'#8b949e',font:{size:10},maxRotation:40,autoSkip:false}, grid:{display:false}, border:{color:'rgba(255,255,255,0.06)'} },
+      y:{ ticks:{color:'#8b949e',font:{size:11},callback:v=>v.toLocaleString('pt-BR')}, grid:{color:'rgba(255,255,255,0.05)'}, border:{display:false} }
+    }
+  }
+});
+
+// Delta chart
+const topDelta = [...munAll].sort((a,b)=>(b.m26-b.v22)-(a.m26-a.v22)).slice(0,8);
+new Chart(document.getElementById('chartDelta'), {
+  type: 'bar',
+  data: {
+    labels: topDelta.map(d=>d.m),
+    datasets:[{ data: topDelta.map(d=>d.m26-d.v22), backgroundColor:'#58a6ff', borderRadius:3 }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false, indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{color:'#8b949e',font:{size:10},callback:v=>'+'+v.toLocaleString('pt-BR')}, grid:{color:'rgba(255,255,255,0.05)'}, border:{display:false}},
+      y:{ticks:{color:'#8b949e',font:{size:11}}, grid:{display:false}, border:{color:'rgba(255,255,255,0.06)'}}
+    }
+  }
+});
+
+// Concentração
+const topConc = munAll.filter(d=>d.v22>200).slice(0,8);
+new Chart(document.getElementById('chartConc'), {
+  type: 'doughnut',
+  data:{
+    labels: topConc.map(d=>d.m),
+    datasets:[{ data: topConc.map(d=>d.v22), backgroundColor:['#3fb950','#58a6ff','#d29922','#bc8cff','#f85149','#39d353','#8b949e','#e6b450'], borderWidth:0 }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:true, position:'bottom', labels:{color:'#8b949e',font:{size:10},padding:6,boxWidth:8}} }
+  }
+});
+</script>
+</body>
+</html>
