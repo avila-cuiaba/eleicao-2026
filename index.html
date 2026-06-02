@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eleição 2026</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topo">
+    <div class="container topo-flex">
+      <div>
+        <h1>Eleição 2026</h1>
+        <p class="subtitulo">Consulta e registro de dados</p>
+      </div>
+      <nav class="nav">
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
+        <a href="verificar.html" class="nav-link">Planilhas</a>
+        <a href="index.html" class="nav-link ativo">Registros</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container conteudo">
+    <!-- Acesso rápido ao dashboard e à verificação -->
+    <section class="hero">
+      <div>
+        <h2>Painel de projeções</h2>
+        <p>Veja os cards e gráficos de projeção mínima e ideal de votação.</p>
+      </div>
+      <div class="hero-acoes">
+        <a href="dashboard.html" class="btn btn-primario btn-hero">Abrir Dashboard</a>
+        <a href="verificar.html" class="btn btn-secundario btn-hero">Verificar planilhas</a>
+      </div>
+    </section>
+
+    <!-- Mensagens de status (sucesso / erro) -->
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+
+    <!-- Seção: cadastro / gravação -->
+    <section class="card">
+      <h2>Novo registro</h2>
+      <form id="formRegistro" autocomplete="off">
+        <div class="campo">
+          <label for="nome">Nome</label>
+          <input type="text" id="nome" name="nome" required />
+        </div>
+
+        <div class="campo">
+          <label for="cidade">Cidade</label>
+          <input type="text" id="cidade" name="cidade" required />
+        </div>
+
+        <div class="campo">
+          <label for="observacao">Observação</label>
+          <textarea id="observacao" name="observacao" rows="3"></textarea>
+        </div>
+
+        <button type="submit" id="btnEnviar" class="btn btn-primario">
+          Salvar
+        </button>
+      </form>
+    </section>
+
+    <!-- Seção: consulta / listagem -->
+    <section class="card">
+      <div class="cabecalho-secao">
+        <h2>Registros</h2>
+        <button type="button" id="btnAtualizar" class="btn btn-secundario">
+          Atualizar
+        </button>
+      </div>
+
+      <div class="tabela-wrapper">
+        <table id="tabelaDados">
+          <thead>
+            <tr id="cabecalhoTabela">
+              <!-- Cabeçalhos gerados dinamicamente -->
+            </tr>
+          </thead>
+          <tbody id="corpoTabela">
+            <!-- Linhas geradas dinamicamente -->
+          </tbody>
+        </table>
+        <p id="vazio" class="vazio" hidden>Nenhum registro encontrado.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="container">
+      <small>Projeto Eleição 2026 &middot; dados no Google Sheets</small>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

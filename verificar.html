@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verificar planilhas | Eleição 2026</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topo">
+    <div class="container topo-flex">
+      <div>
+        <h1>Eleição 2026</h1>
+        <p class="subtitulo">Verificação de acesso às planilhas</p>
+      </div>
+      <nav class="nav">
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
+        <a href="verificar.html" class="nav-link ativo">Planilhas</a>
+        <a href="index.html" class="nav-link">Registros</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container conteudo">
+    <div class="barra-acoes">
+      <button type="button" id="btnVerificar" class="btn btn-primario">
+        Verificar todas
+      </button>
+    </div>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+
+    <!-- Cards de cada planilha gerados dinamicamente -->
+    <div id="lista" class="cards-planilhas"></div>
+  </main>
+
+  <footer class="rodape">
+    <div class="container">
+      <small>Projeto Eleição 2026 &middot; diagnóstico de planilhas</small>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/verificar.js"></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard | Eleição 2026</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topo">
+    <div class="container topo-flex">
+      <div>
+        <h1>Eleição 2026</h1>
+        <p class="subtitulo">Dashboard de projeção de votação</p>
+      </div>
+      <nav class="nav">
+        <a href="dashboard.html" class="nav-link ativo">Dashboard</a>
+        <a href="verificar.html" class="nav-link">Planilhas</a>
+        <a href="index.html" class="nav-link">Registros</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container conteudo">
+    <div class="barra-acoes">
+      <button type="button" id="btnAtualizar" class="btn btn-secundario">
+        Atualizar dados
+      </button>
+    </div>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+
+    <!-- As seções de cada tabela são geradas dinamicamente aqui -->
+    <div id="tabelas"></div>
+  </main>
+
+  <footer class="rodape">
+    <div class="container">
+      <small>Projeto Eleição 2026 &middot; dados no Google Sheets</small>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
