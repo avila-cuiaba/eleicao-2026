@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agenda | Eleição 2026</title>
+  <title>Agenda Lista | Eleição 2026</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -21,9 +21,9 @@
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle active" href="#" data-bs-toggle="dropdown">agenda</a>
             <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item active" href="agenda.html">fullcalendar</a></li>
+              <li><a class="dropdown-item" href="agenda.html">fullcalendar</a></li>
               <li><a class="dropdown-item" href="agenda-toast.html">toast ui</a></li>
-              <li><a class="dropdown-item" href="agenda-lista.html">lista</a></li>
+              <li><a class="dropdown-item active" href="agenda-lista.html">lista</a></li>
             </ul>
           </li>
           <li class="nav-item"><a class="nav-link" href="verificar.html">planilhas</a></li>
@@ -36,26 +36,45 @@
 
   <main class="container py-3 py-md-4">
     <ul class="nav nav-pills nav-fill flex-nowrap overflow-auto mb-3 small agenda-tabs">
-      <li class="nav-item"><a class="nav-link active" href="agenda.html">fullcalendar</a></li>
+      <li class="nav-item"><a class="nav-link" href="agenda.html">fullcalendar</a></li>
       <li class="nav-item"><a class="nav-link" href="agenda-toast.html">toast ui</a></li>
-      <li class="nav-item"><a class="nav-link" href="agenda-lista.html">lista</a></li>
+      <li class="nav-item"><a class="nav-link active" href="agenda-lista.html">lista</a></li>
     </ul>
 
-    <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
       <div>
-        <h1 class="h4 mb-0">agenda — fullcalendar</h1>
-        <p class="text-secondary small mb-0">mês, semana e lista</p>
+        <h1 class="h4 mb-0">agenda — lista</h1>
+        <p class="text-secondary small mb-0">próximas atividades + calendário simples</p>
       </div>
-      <button type="button" id="btnNova" class="btn btn-sm btn-primary">
-        Nova atividade
-      </button>
+      <button type="button" id="btnNova" class="btn btn-sm btn-primary flex-shrink-0">nova atividade</button>
     </div>
 
     <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
 
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div id="calendario"></div>
+    <div class="row g-3">
+      <div class="col-12 col-lg-5">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <button type="button" id="btnMesAnt" class="btn btn-sm btn-outline-secondary">&lsaquo;</button>
+              <strong id="tituloMes" class="text-brand"></strong>
+              <button type="button" id="btnMesProx" class="btn btn-sm btn-outline-secondary">&rsaquo;</button>
+            </div>
+            <div id="miniCalendario" class="mini-calendario"></div>
+            <p class="text-secondary small mt-2 mb-0">toque no dia para filtrar a lista</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-7">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h2 class="h6 mb-0" id="tituloLista">próximas atividades</h2>
+              <button type="button" id="btnLimparFiltro" class="btn btn-sm btn-outline-secondary d-none">ver todas</button>
+            </div>
+            <div id="listaEventos" class="lista-eventos"></div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -66,82 +85,61 @@
       <div class="modal-content">
         <form id="formEvento">
           <div class="modal-header">
-            <h2 class="modal-title h5">Nova atividade</h2>
+            <h2 class="modal-title h5">nova atividade</h2>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>
           <div class="modal-body">
             <div class="mb-3">
-              <label for="evTitulo" class="form-label">Título</label>
+              <label for="evTitulo" class="form-label">título</label>
               <input type="text" id="evTitulo" class="form-control" required />
             </div>
             <div class="form-check mb-3">
               <input class="form-check-input" type="checkbox" id="evDiaInteiro" />
-              <label class="form-check-label" for="evDiaInteiro">Dia inteiro</label>
+              <label class="form-check-label" for="evDiaInteiro">dia inteiro</label>
             </div>
             <div class="row g-3">
               <div class="col-12 col-sm-6">
-                <label for="evInicio" class="form-label">Início</label>
+                <label for="evInicio" class="form-label">início</label>
                 <input type="datetime-local" id="evInicio" class="form-control" required />
               </div>
               <div class="col-12 col-sm-6">
-                <label for="evFim" class="form-label">Fim</label>
+                <label for="evFim" class="form-label">fim</label>
                 <input type="datetime-local" id="evFim" class="form-control" />
               </div>
             </div>
             <div class="mb-3 mt-3">
-              <label for="evLocal" class="form-label">Local</label>
+              <label for="evLocal" class="form-label">local</label>
               <input type="text" id="evLocal" class="form-control" />
             </div>
             <div class="mb-3">
-              <label for="evDescricao" class="form-label">Descrição</label>
+              <label for="evDescricao" class="form-label">descrição</label>
               <textarea id="evDescricao" rows="2" class="form-control"></textarea>
             </div>
             <div class="mb-1">
-              <label for="evLembrete" class="form-label">Lembrete (minutos antes)</label>
+              <label for="evLembrete" class="form-label">lembrete (minutos antes)</label>
               <input type="number" id="evLembrete" class="form-control" min="0" />
             </div>
             <div id="statusModal" class="alert d-none mt-3" role="alert"></div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" id="btnSalvarEvento" class="btn btn-primary">Salvar</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">cancelar</button>
+            <button type="submit" id="btnSalvarEvento" class="btn btn-primary">salvar</button>
           </div>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- Modal: detalhes do evento -->
-  <div class="modal fade" id="modalDetalhe" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title h5" id="detTitulo">Atividade</h2>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-        </div>
-        <div class="modal-body">
-          <p class="mb-1"><strong>Quando:</strong> <span id="detQuando"></span></p>
-          <p class="mb-1"><strong>Local:</strong> <span id="detLocal"></span></p>
-          <p class="mb-0"><strong>Descrição:</strong> <span id="detDescricao"></span></p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <footer class="border-top bg-white py-3 mt-4">
     <div class="container">
-      <small class="text-secondary">Projeto Eleição 2026 &middot; Google Agenda</small>
+      <small class="text-secondary">projeto eleição 2026 · lista de atividades</small>
     </div>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales-all.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/agenda.js"></script>
+  <script src="js/agenda-api.js"></script>
+  <script src="js/agenda-lista.js"></script>
 </body>
 </html>

@@ -96,22 +96,38 @@ function iniciarCalendario() {
 
   calendar = new FullCalendar.Calendar(el, {
     locale: "pt-br",
+    firstDay: 0, // domingo (padrão BR)
     initialView: telaPequena ? "listWeek" : "dayGridMonth",
     height: "auto",
-    headerToolbar: {
-      left: "prev,next today",
-      center: "title",
-      right: "dayGridMonth,timeGridWeek,listWeek",
+    // Toolbar mais enxuta no celular (menos botões = menos “estourado”).
+    headerToolbar: telaPequena
+      ? { left: "prev,next", center: "title", right: "listWeek,dayGridMonth" }
+      : { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,listWeek" },
+    buttonText: {
+      today: "Hoje",
+      month: "Mês",
+      week: "Semana",
+      day: "Dia",
+      list: "Lista",
     },
+    views: {
+      dayGridMonth: { buttonText: "Mês" },
+      timeGridWeek: { buttonText: "Semana" },
+      listWeek: {
+        buttonText: "Lista",
+        noEventsText: "Nenhuma atividade neste período",
+      },
+    },
+    titleFormat: telaPequena
+      ? { month: "short", year: "numeric" }
+      : { month: "long", year: "numeric" },
     nowIndicator: true,
     events: buscarEventos,
 
-    // Clicar num dia abre o modal de nova atividade com a data preenchida.
     dateClick: function (info) {
       abrirNovoEvento(info.date);
     },
 
-    // Clicar num evento mostra os detalhes.
     eventClick: function (info) {
       mostrarDetalhe(info.event);
     },

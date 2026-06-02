@@ -81,3 +81,164 @@
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 0.8rem;
 }
+
+/* FullCalendar — toolbar compacta (mobile-first) */
+#calendario .fc .fc-toolbar {
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem !important;
+}
+
+#calendario .fc .fc-toolbar-chunk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+#calendario .fc .fc-toolbar-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+#calendario .fc .fc-button {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  text-transform: none;
+  box-shadow: none !important;
+}
+
+#calendario .fc .fc-button-group > .fc-button {
+  padding: 0.2rem 0.4rem;
+}
+
+#calendario .fc .fc-col-header-cell-cushion,
+#calendario .fc .fc-daygrid-day-number,
+#calendario .fc .fc-list-day-text,
+#calendario .fc .fc-list-day-side-text {
+  font-size: 0.8rem;
+}
+
+@media (min-width: 768px) {
+  #calendario .fc .fc-toolbar-title {
+    font-size: 1.15rem;
+  }
+
+  #calendario .fc .fc-button {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.82rem;
+  }
+}
+
+/* Abas entre os 3 modelos de agenda */
+.agenda-tabs .nav-link {
+  white-space: nowrap;
+  padding: 0.35rem 0.6rem;
+}
+
+/* Toast UI Calendar */
+#calendario-toast {
+  height: 420px;
+}
+
+@media (min-width: 768px) {
+  #calendario-toast {
+    height: 520px;
+  }
+}
+
+/* Mini calendário (agenda-lista) */
+.mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.mini-cal-head {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7785;
+  padding: 4px 0;
+}
+
+.mini-cal-dia {
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  text-align: center;
+  position: relative;
+  min-height: 36px;
+}
+
+.mini-cal-dia.fora-mes {
+  opacity: 0.35;
+}
+
+.mini-cal-dia.hoje {
+  border-color: var(--brand);
+  font-weight: 700;
+}
+
+.mini-cal-dia.selecionado {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+.mini-cal-dia.com-evento::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cor-ideal);
+}
+
+.mini-cal-dia.selecionado.com-evento::after {
+  background: #fff;
+}
+
+/* Lista de eventos (agenda-lista) */
+.lista-eventos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lista-evento-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e3e8ef;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.lista-evento-data {
+  flex-shrink: 0;
+  width: 44px;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.lista-evento-dia {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.lista-evento-mes {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: #6b7785;
+}

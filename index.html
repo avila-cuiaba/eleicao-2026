@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eleição 2026</title>
+  <title>Eleição 2026 - campanha deputado Dr. Eugênio</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -18,7 +18,14 @@
       <div class="collapse navbar-collapse" id="navMenu">
         <ul class="navbar-nav ms-auto align-items-lg-center">
           <li class="nav-item"><a class="nav-link" href="dashboard.html">dashboard</a></li>
-          <li class="nav-item"><a class="nav-link" href="agenda.html">agenda</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">agenda</a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="agenda.html">fullcalendar</a></li>
+              <li><a class="dropdown-item" href="agenda-toast.html">toast ui</a></li>
+              <li><a class="dropdown-item" href="agenda-lista.html">lista</a></li>
+            </ul>
+          </li>
           <li class="nav-item"><a class="nav-link" href="verificar.html">planilhas</a></li>
           <li class="nav-item"><a class="nav-link active" aria-current="page" href="index.html">registros</a></li>
           <li class="nav-item"><button type="button" id="btnSair" class="btn btn-sm btn-outline-light ms-lg-2 mt-2 mt-lg-0">sair</button></li>

@@ -204,8 +204,12 @@ function doGetAgenda(p) {
   return responder({ ok: true, eventos: eventos });
 }
 
-// Cria um evento na agenda.
+// Cria ou atualiza um evento na agenda.
 function doPostAgenda(corpo) {
+  if (corpo.acao === "atualizar") {
+    return atualizarEventoAgenda(corpo);
+  }
+
   const cal = obterAgenda();
 
   if (!corpo.titulo) throw new Error("Título é obrigatório.");
@@ -229,6 +233,28 @@ function doPostAgenda(corpo) {
     if (corpo.lembreteMin != null && corpo.lembreteMin !== "") {
       ev.addPopupReminder(Number(corpo.lembreteMin));
     }
+  }
+
+  return responder({ ok: true, id: ev.getId() });
+}
+
+// Atualiza horário de um evento (arrastar no Toast UI Calendar).
+function atualizarEventoAgenda(corpo) {
+  if (!corpo.id) throw new Error("ID do evento é obrigatório.");
+  if (!corpo.inicio) throw new Error("Data/hora de início é obrigatória.");
+
+  const ev = CalendarApp.getEventById(corpo.id);
+  if (!ev) throw new Error("Evento não encontrado: " + corpo.id);
+
+  const inicio = new Date(corpo.inicio);
+  const fim = corpo.fim
+    ? new Date(corpo.fim)
+    : new Date(inicio.getTime() + 60 * 60000);
+
+  if (corpo.diaInteiro) {
+    ev.setAllDayDate(inicio);
+  } else {
+    ev.setTime(inicio, fim);
   }
 
   return responder({ ok: true, id: ev.getId() });
