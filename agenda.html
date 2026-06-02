@@ -43,7 +43,10 @@
         <div class="card shadow-sm vanilla-cal-card">
           <div class="vanilla-cal-header">
             <button type="button" id="btnMesAnt" class="btn btn-sm btn-vanilla-nav" aria-label="Mês anterior">&lsaquo;</button>
-            <strong id="tituloMes"></strong>
+            <div class="vanilla-cal-titulo">
+              <button type="button" id="btnSelMes" class="btn-vanilla-titulo" aria-label="Selecionar mês"></button>
+              <button type="button" id="btnSelAno" class="btn-vanilla-titulo" aria-label="Selecionar ano"></button>
+            </div>
             <button type="button" id="btnMesProx" class="btn btn-sm btn-vanilla-nav" aria-label="Próximo mês">&rsaquo;</button>
           </div>
           <div class="card-body pt-2">
@@ -53,6 +56,18 @@
               <span class="agenda-legenda-item"><i class="legenda-pessoal"></i> pessoal</span>
             </div>
             <p class="text-secondary small mt-2 mb-0">toque no dia para filtrar a lista</p>
+          </div>
+
+          <!-- Seletor mês/ano — centralizado dentro do card do calendário -->
+          <div id="pickerPeriodo" class="cal-picker d-none" aria-hidden="true">
+            <div class="cal-picker-backdrop" id="pickerBackdrop"></div>
+            <div class="cal-picker-box" role="dialog" aria-modal="true" aria-labelledby="pickerPeriodoTitulo">
+              <div class="cal-picker-header">
+                <strong id="pickerPeriodoTitulo" class="cal-picker-titulo">selecionar</strong>
+                <button type="button" id="pickerFechar" class="cal-picker-fechar" aria-label="Fechar">&times;</button>
+              </div>
+              <div id="pickerPeriodoCorpo"></div>
+            </div>
           </div>
         </div>
       </div>

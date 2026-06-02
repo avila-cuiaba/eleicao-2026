@@ -10,7 +10,13 @@ const ui = {
   btnNova: document.getElementById("btnNova"),
   diaInteiro: document.getElementById("evDiaInteiro"),
   miniCal: document.getElementById("miniCalendario"),
-  tituloMes: document.getElementById("tituloMes"),
+  btnSelMes: document.getElementById("btnSelMes"),
+  btnSelAno: document.getElementById("btnSelAno"),
+  picker: document.getElementById("pickerPeriodo"),
+  pickerTitulo: document.getElementById("pickerPeriodoTitulo"),
+  pickerCorpo: document.getElementById("pickerPeriodoCorpo"),
+  pickerFechar: document.getElementById("pickerFechar"),
+  pickerBackdrop: document.getElementById("pickerBackdrop"),
   lista: document.getElementById("listaEventos"),
   tituloLista: document.getElementById("tituloLista"),
   btnLimpar: document.getElementById("btnLimparFiltro"),
@@ -48,13 +54,75 @@ function mesmoDia(a, b) {
 }
 
 // Deslocamento para grade com início na segunda (0=seg … 6=dom).
-// Deslocamento para grade com início na segunda (0=seg … 6=dom).
 function offsetSegunda(date) {
   return (date.getDay() + 6) % 7;
 }
 
-function tituloMesAno(date) {
-  return MESES[date.getMonth()] + "      " + date.getFullYear();
+function atualizarTituloHeader() {
+  ui.btnSelMes.textContent = MESES[mesAtual.getMonth()];
+  ui.btnSelAno.textContent = String(mesAtual.getFullYear());
+}
+
+function irParaMesAno(mes, ano) {
+  mesAtual.setFullYear(ano, mes, 1);
+  diaFiltro = null;
+  carregarEventos();
+}
+
+function abrirPicker() {
+  ui.picker.classList.remove("d-none");
+  ui.picker.setAttribute("aria-hidden", "false");
+}
+
+function fecharPicker() {
+  ui.picker.classList.add("d-none");
+  ui.picker.setAttribute("aria-hidden", "true");
+}
+
+function abrirSeletorMes() {
+  ui.pickerTitulo.textContent = "selecionar mês";
+  const mesAtivo = mesAtual.getMonth();
+
+  ui.pickerCorpo.innerHTML =
+    '<div class="picker-grid picker-meses">' +
+    MESES.map((nome, i) => {
+      const ativo = i === mesAtivo ? " ativo" : "";
+      return `<button type="button" class="picker-item${ativo}" data-mes="${i}">${nome.slice(0, 3)}</button>`;
+    }).join("") +
+    "</div>";
+
+  ui.pickerCorpo.querySelectorAll("[data-mes]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      irParaMesAno(Number(btn.dataset.mes), mesAtual.getFullYear());
+      fecharPicker();
+    });
+  });
+
+  abrirPicker();
+}
+
+function abrirSeletorAno() {
+  ui.pickerTitulo.textContent = "selecionar ano";
+  const anoAtual = mesAtual.getFullYear();
+  const inicio = anoAtual - 6;
+  const fim = anoAtual + 5;
+
+  let botoes = "";
+  for (let a = inicio; a <= fim; a++) {
+    const ativo = a === anoAtual ? " ativo" : "";
+    botoes += `<button type="button" class="picker-item${ativo}" data-ano="${a}">${a}</button>`;
+  }
+
+  ui.pickerCorpo.innerHTML = `<div class="picker-grid picker-anos">${botoes}</div>`;
+
+  ui.pickerCorpo.querySelectorAll("[data-ano]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      irParaMesAno(mesAtual.getMonth(), Number(btn.dataset.ano));
+      fecharPicker();
+    });
+  });
+
+  abrirPicker();
 }
 
 function mapaEventosPorDia() {
@@ -85,7 +153,7 @@ function classeColuna(idx) {
 function renderMiniCalendario() {
   const ano = mesAtual.getFullYear();
   const mes = mesAtual.getMonth();
-  ui.tituloMes.textContent = tituloMesAno(mesAtual);
+  atualizarTituloHeader();
 
   const primeiro = new Date(ano, mes, 1);
   const inicioGrid = new Date(primeiro);
@@ -286,7 +354,19 @@ ui.btnMesProx.addEventListener("click", () => {
   carregarEventos();
 });
 
+ui.btnSelMes.addEventListener("click", abrirSeletorMes);
+ui.btnSelAno.addEventListener("click", abrirSeletorAno);
+ui.pickerFechar.addEventListener("click", fecharPicker);
+ui.pickerBackdrop.addEventListener("click", fecharPicker);
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !ui.picker.classList.contains("d-none")) {
+    fecharPicker();
+  }
+});
+
 document.addEventListener("DOMContentLoaded", () => {
   modalEvento = new bootstrap.Modal(document.getElementById("modalEvento"));
+  atualizarTituloHeader();
   carregarEventos();
 });
