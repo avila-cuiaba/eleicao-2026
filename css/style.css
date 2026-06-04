@@ -1100,9 +1100,61 @@
   --bs-gutter-y: 0.35rem;
 }
 
+@media (max-width: 991.98px) {
+  .dashboard-resumo-kpis {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .dashboard-resumo-kpis > .dashboard-kpi-cell {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .dashboard-kpi-municipios {
+    grid-column: 1 / span 4;
+    grid-row: 1 / span 2;
+  }
+
+  .dashboard-kpi-populacao {
+    grid-column: 5 / span 8;
+    grid-row: 1;
+  }
+
+  .dashboard-kpi-eleitores {
+    grid-column: 5 / span 8;
+    grid-row: 2;
+  }
+
+  .dashboard-kpi-minima {
+    grid-column: 1 / span 6;
+    grid-row: 3;
+  }
+
+  .dashboard-kpi-ideal {
+    grid-column: 7 / span 6;
+    grid-row: 3;
+  }
+}
+
 .dashboard-kpi-card {
   background: rgba(31, 78, 140, 0.07);
   border: 1px solid rgba(31, 78, 140, 0.1);
+}
+
+.dashboard-kpi-municipios .dashboard-kpi-card {
+  height: 100%;
+}
+
+.dashboard-kpi-municipios .card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  min-height: 100%;
 }
 
 .dashboard-kpi-card.kpi-minima {
