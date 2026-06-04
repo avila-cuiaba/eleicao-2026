@@ -73,6 +73,25 @@ function statusPainel(el, msg, tipo) {
 window.PageLoader = PageLoader;
 window.statusPainel = statusPainel;
 
+function notificarAlturaFrame() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      try {
+        if (window.parent && window.parent !== window && window.parent.ajustarAlturaFrame) {
+          window.parent.ajustarAlturaFrame();
+        }
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ tipo: "eleicao-resize" }, "*");
+        }
+      } catch (e) {
+        /* iframe cross-origin — ignorar */
+      }
+    });
+  });
+}
+
+window.notificarAlturaFrame = notificarAlturaFrame;
+
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => PageLoader.init());
 } else {

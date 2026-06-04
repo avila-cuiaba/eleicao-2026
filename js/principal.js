@@ -48,11 +48,35 @@ function ajustarAlturaFrame() {
 
   try {
     const doc = frame.contentDocument || frame.contentWindow.document;
-    const altura = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 400);
+    const main = document.querySelector(".app-main-frame");
+    const areaMain = main ? main.clientHeight : 0;
+    const preencheViewport = doc.body?.classList.contains("page-dashboard");
+
+    if (preencheViewport) {
+      frame.style.height = "";
+      frame.style.minHeight = "400px";
+      return;
+    }
+
+    frame.style.minHeight = "";
+
+    const docAltura = Math.max(
+      doc.body.scrollHeight,
+      doc.documentElement.scrollHeight,
+      doc.body.offsetHeight,
+      doc.documentElement.offsetHeight
+    );
+    const altura = Math.max(docAltura, areaMain, 400);
     frame.style.height = altura + "px";
   } catch (e) {
     frame.style.height = "70vh";
   }
+}
+
+function agendarAjusteFrame() {
+  ajustarAlturaFrame();
+  setTimeout(ajustarAlturaFrame, 120);
+  setTimeout(ajustarAlturaFrame, 350);
 }
 
 window.ajustarAlturaFrame = ajustarAlturaFrame;
@@ -77,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
     history.replaceState({ p: id }, "", url);
   }
 
-  frame?.addEventListener("load", ajustarAlturaFrame);
+  frame?.addEventListener("load", agendarAjusteFrame);
 });
 
 window.addEventListener("popstate", (e) => {
@@ -87,9 +111,13 @@ window.addEventListener("popstate", (e) => {
 window.addEventListener("message", (event) => {
   if (event.data && event.data.tipo === "eleicao-nav" && event.data.pagina) {
     carregarPagina(event.data.pagina);
+    return;
+  }
+  if (event.data && event.data.tipo === "eleicao-resize") {
+    agendarAjusteFrame();
   }
 });
 
 window.addEventListener("resize", () => {
-  ajustarAlturaFrame();
+  agendarAjusteFrame();
 });

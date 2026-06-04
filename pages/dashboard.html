@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dashboard-page">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,7 +9,7 @@
 </head>
 <body class="bg-light page-frame-body page-dashboard">
   <div class="page-frame-content">
-    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div class="dashboard-topo d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
       <div>
         <h1 class="h4 mb-0">projeção de votação</h1>
       </div>
@@ -23,7 +23,7 @@
 
     <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
 
-    <div class="card shadow-sm border-0 mb-3">
+    <div class="card shadow-sm border-0 mb-3 dashboard-kpis-wrap">
       <div class="card-body py-3">
         <div class="row g-2 g-sm-3 align-items-start dashboard-micro-row">
           <div class="col-5 col-lg-4">
@@ -86,29 +86,58 @@
       </div>
     </div>
 
-    <div class="card shadow-sm border-0">
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0 dashboard-tabela">
-            <thead class="table-light">
+    <div class="card shadow-sm border-0 dashboard-tabela-card">
+      <div class="card-body p-0 dashboard-tabela-panel">
+        <div class="dashboard-tabela-head table-light">
+          <table class="table mb-0 dashboard-tabela">
+            <colgroup>
+              <col class="dashboard-col-municipio" />
+              <col class="dashboard-col-eleitores" />
+              <col class="dashboard-col-2022" />
+              <col class="dashboard-col-minima" />
+              <col class="dashboard-col-ideal" />
+            </colgroup>
+            <thead>
               <tr class="dashboard-thead-row1">
-                <th scope="col" rowspan="2" class="dashboard-col-municipio dashboard-th-municipio-composto align-middle">
+                <th scope="col" rowspan="2" class="dashboard-col-municipio dashboard-th-municipio-composto dashboard-th-base">
                   <span class="dashboard-th-principal">município</span>
                   <span class="dashboard-th-sub text-muted dashboard-th-sub-eleitores">eleitores</span>
                 </th>
-                <th scope="col" rowspan="2" class="text-end dashboard-col-eleitores dashboard-th-desktop-only align-middle">eleitores</th>
+                <th scope="col" rowspan="2" class="text-end dashboard-col-eleitores dashboard-th-desktop-only dashboard-th-base">eleitores</th>
                 <th scope="col" colspan="3" class="text-center dashboard-th-votacao"><strong>votação</strong></th>
               </tr>
               <tr class="dashboard-thead-row2">
-                <th scope="col" class="text-end dashboard-col-2022 dashboard-th-2022 align-middle">2022</th>
-                <th scope="col" class="text-end dashboard-col-minima dashboard-th-minima">
-                  <span class="dashboard-th-badge dashboard-th-badge-minima">mínima</span>
+                <th scope="col" class="dashboard-col-2022 dashboard-th-2022 dashboard-th-col-composto">
+                  <span class="dashboard-th-col-stack">
+                    <span class="dashboard-th-col-rotulo">2022</span>
+                    <span id="thTotal2022" class="dashboard-th-col-total dashboard-th-badge dashboard-th-badge-2022">—</span>
+                  </span>
                 </th>
-                <th scope="col" class="text-end dashboard-col-ideal dashboard-th-ideal">
-                  <span class="dashboard-th-badge dashboard-th-badge-ideal">ideal</span>
+                <th scope="col" class="dashboard-col-minima dashboard-th-minima dashboard-th-col-composto">
+                  <span class="dashboard-th-col-stack">
+                    <span class="dashboard-th-col-rotulo">mínima</span>
+                    <span id="thTotalMinima" class="dashboard-th-col-total dashboard-th-badge dashboard-th-badge-minima">—</span>
+                  </span>
+                </th>
+                <th scope="col" class="dashboard-col-ideal dashboard-th-ideal dashboard-th-col-composto">
+                  <span class="dashboard-th-col-stack">
+                    <span class="dashboard-th-col-rotulo">ideal</span>
+                    <span id="thTotalIdeal" class="dashboard-th-col-total dashboard-th-badge dashboard-th-badge-ideal">—</span>
+                  </span>
                 </th>
               </tr>
             </thead>
+          </table>
+        </div>
+        <div class="dashboard-tabela-body-scroll">
+          <table class="table table-hover mb-0 dashboard-tabela">
+            <colgroup>
+              <col class="dashboard-col-municipio" />
+              <col class="dashboard-col-eleitores" />
+              <col class="dashboard-col-2022" />
+              <col class="dashboard-col-minima" />
+              <col class="dashboard-col-ideal" />
+            </colgroup>
             <tbody id="corpoTabela">
               <tr>
                 <td colspan="5" class="text-center text-secondary py-4">Carregando...</td>

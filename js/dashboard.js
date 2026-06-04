@@ -155,11 +155,12 @@ function atualizarResumo(filtrados) {
     (acc, r) => {
       acc.populacao += r.populacao;
       acc.eleitores += r.eleitores;
+      acc.votos2022 += r.votos2022;
       acc.minima += r.minima;
       acc.ideal += r.ideal;
       return acc;
     },
-    { populacao: 0, eleitores: 0, minima: 0, ideal: 0 }
+    { populacao: 0, eleitores: 0, votos2022: 0, minima: 0, ideal: 0 }
   );
 
   el.kpiMunicipios.textContent = fmt.format(filtrados.length);
@@ -167,6 +168,10 @@ function atualizarResumo(filtrados) {
   el.kpiEleitores.textContent = fmt.format(totais.eleitores);
   el.kpiMinima.textContent = fmt.format(totais.minima);
   el.kpiIdeal.textContent = fmt.format(totais.ideal);
+
+  if (el.thTotal2022) el.thTotal2022.textContent = fmt.format(totais.votos2022);
+  if (el.thTotalMinima) el.thTotalMinima.textContent = fmt.format(totais.minima);
+  if (el.thTotalIdeal) el.thTotalIdeal.textContent = fmt.format(totais.ideal);
 }
 
 function limparResumo() {
@@ -175,6 +180,32 @@ function limparResumo() {
   el.kpiEleitores.textContent = "—";
   el.kpiMinima.textContent = "—";
   el.kpiIdeal.textContent = "—";
+  if (el.thTotal2022) el.thTotal2022.textContent = "—";
+  if (el.thTotalMinima) el.thTotalMinima.textContent = "—";
+  if (el.thTotalIdeal) el.thTotalIdeal.textContent = "—";
+}
+
+function alinharColunasTabela() {
+  const headWrap = document.querySelector(".dashboard-tabela-head");
+  const bodyScroll = document.querySelector(".dashboard-tabela-body-scroll");
+  const headTable = headWrap?.querySelector("table");
+  const bodyTable = bodyScroll?.querySelector("table");
+  if (!headWrap || !bodyScroll || !headTable || !bodyTable) return;
+
+  const largura = bodyScroll.clientWidth;
+  headTable.style.width = largura + "px";
+  bodyTable.style.width = largura + "px";
+
+  const barra = bodyScroll.offsetWidth - bodyScroll.clientWidth;
+  headWrap.style.paddingRight = barra > 0 ? barra + "px" : "0px";
+}
+
+function aposRenderTabela() {
+  requestAnimationFrame(() => {
+    alinharColunasTabela();
+    notificarAlturaFrame();
+    requestAnimationFrame(alinharColunasTabela);
+  });
 }
 
 function renderizarTabela() {
@@ -185,6 +216,7 @@ function renderizarTabela() {
     limparResumo();
     el.corpoTabela.innerHTML =
       '<tr><td colspan="5" class="text-center text-secondary py-4">Nenhum município na planilha.</td></tr>';
+    aposRenderTabela();
     return;
   }
 
@@ -192,6 +224,7 @@ function renderizarTabela() {
     limparResumo();
     el.corpoTabela.innerHTML =
       '<tr><td colspan="5" class="text-center text-secondary py-4">Selecione ao menos uma micro-região.</td></tr>';
+    aposRenderTabela();
     return;
   }
 
@@ -200,6 +233,7 @@ function renderizarTabela() {
   if (!filtrados.length) {
     el.corpoTabela.innerHTML =
       '<tr><td colspan="5" class="text-center text-secondary py-4">Nenhum município para os filtros selecionados.</td></tr>';
+    aposRenderTabela();
     return;
   }
 
@@ -226,6 +260,8 @@ function renderizarTabela() {
       }
     )
     .join("");
+
+  aposRenderTabela();
 }
 
 function montar(valores) {
@@ -255,12 +291,14 @@ async function carregarDashboard() {
 
     montar(json.valores || []);
     limparStatus();
+    aposRenderTabela();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
     el.corpoTabela.innerHTML =
       '<tr><td colspan="5" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>';
   } finally {
     el.btnAtualizar.disabled = false;
+    notificarAlturaFrame();
   }
 }
 
@@ -270,6 +308,9 @@ function initDashboard() {
     btnAtualizar: document.getElementById("btnAtualizar"),
     filtroRegioes: document.getElementById("filtroRegioes"),
     corpoTabela: document.getElementById("corpoTabela"),
+    thTotal2022: document.getElementById("thTotal2022"),
+    thTotalMinima: document.getElementById("thTotalMinima"),
+    thTotalIdeal: document.getElementById("thTotalIdeal"),
     kpiMunicipios: document.getElementById("kpiMunicipios"),
     kpiPopulacao: document.getElementById("kpiPopulacao"),
     kpiEleitores: document.getElementById("kpiEleitores"),
@@ -279,6 +320,8 @@ function initDashboard() {
   if (!el.corpoTabela) return;
 
   el.btnAtualizar.addEventListener("click", carregarDashboard);
+  window.addEventListener("resize", alinharColunasTabela);
+  requestAnimationFrame(() => notificarAlturaFrame());
   carregarDashboard();
 }
 

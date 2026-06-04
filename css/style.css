@@ -212,6 +212,7 @@
 
 .app-main {
   flex: 1;
+  min-height: 0;
   padding: 16px;
   max-width: 1400px;
   width: 100%;
@@ -220,6 +221,8 @@
 .app-main-frame {
   padding: 0;
   max-width: none;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -232,8 +235,101 @@
   background: #f8f9fa;
 }
 
+body[data-pagina="dashboard"] .app-frame {
+  flex: 1 1 auto;
+  min-height: 400px;
+  height: auto;
+}
+
 .page-frame-body {
   margin: 0;
+}
+
+html.dashboard-page {
+  height: 100%;
+}
+
+body.page-dashboard {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body.page-dashboard .page-frame-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body.page-dashboard .dashboard-topo,
+body.page-dashboard .dashboard-kpis-wrap,
+body.page-dashboard #status:not(.d-none) {
+  flex-shrink: 0;
+}
+
+body.page-dashboard .dashboard-tabela-card {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+body.page-dashboard .dashboard-tabela-card > .card-body,
+body.page-dashboard .dashboard-tabela-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dashboard-tabela-head {
+  flex-shrink: 0;
+  background: var(--bs-table-bg, #f8f9fa);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.dashboard-tabela-body-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dashboard-tabela-head .dashboard-tabela,
+.dashboard-tabela-body-scroll .dashboard-tabela {
+  table-layout: fixed;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.dashboard-tabela col.dashboard-col-municipio {
+  width: 26%;
+}
+
+.dashboard-tabela col.dashboard-col-eleitores {
+  width: 14%;
+}
+
+.dashboard-tabela col.dashboard-col-2022 {
+  width: 14%;
+}
+
+.dashboard-tabela col.dashboard-col-minima {
+  width: 23%;
+}
+
+.dashboard-tabela col.dashboard-col-ideal {
+  width: 23%;
 }
 
 .page-frame-content {
@@ -1288,8 +1384,22 @@
 
 .dashboard-th-minima,
 .dashboard-th-ideal {
+  vertical-align: bottom;
+}
+
+.dashboard-th-base,
+.dashboard-th-municipio-composto,
+th.dashboard-col-eleitores.dashboard-th-desktop-only {
+  vertical-align: bottom;
+  padding-bottom: 0.45rem;
+}
+
+.dashboard-th-municipio-composto {
+  text-align: left;
+}
+
+th.dashboard-col-eleitores.dashboard-th-desktop-only {
   text-align: right;
-  vertical-align: middle;
 }
 
 .dashboard-th-principal {
@@ -1318,8 +1428,49 @@
 }
 
 .dashboard-th-2022 {
-  vertical-align: middle;
+  vertical-align: bottom;
   border-left: 2px solid rgba(100, 116, 139, 0.5);
+}
+
+.dashboard-th-col-composto {
+  text-align: right;
+  vertical-align: bottom;
+  padding-bottom: 0.45rem;
+}
+
+.dashboard-th-col-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  gap: 0.18rem;
+  vertical-align: bottom;
+}
+
+.dashboard-th-col-rotulo {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #475569;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.dashboard-th-col-total {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1e293b;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.dashboard-th-col-total.dashboard-th-badge {
+  margin-top: 0;
 }
 
 .dashboard-tabela td.dashboard-col-2022 {
@@ -1328,12 +1479,65 @@
 
 .dashboard-th-badge {
   display: inline-block;
-  padding: 0.28rem 0.55rem;
-  border-radius: 6px;
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
+  box-sizing: border-box;
+}
+
+@media (max-width: 991.98px) {
+  .dashboard-th-col-stack .dashboard-th-badge {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-align: center;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .dashboard-th-col-stack {
+    max-width: none;
+  }
+
+  .dashboard-th-col-stack .dashboard-th-badge {
+    padding: 0.48rem 0.72rem;
+    font-size: 0.68rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    max-width: none;
+  }
+
+  .dashboard-th-col-total.dashboard-th-badge {
+    max-width: none;
+  }
+
+  .dashboard-tabela th.dashboard-th-col-composto,
+  .dashboard-tabela td.dashboard-col-2022,
+  .dashboard-tabela td.dashboard-col-minima,
+  .dashboard-tabela td.dashboard-col-ideal {
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  .dashboard-tabela col.dashboard-col-municipio {
+    width: 52%;
+  }
+
+  .dashboard-tabela col.dashboard-col-2022,
+  .dashboard-tabela col.dashboard-col-minima,
+  .dashboard-tabela col.dashboard-col-ideal {
+    width: 16%;
+  }
+}
+
+.dashboard-th-badge-2022 {
+  background: rgba(148, 163, 184, 0.24);
+  color: #475569;
+  border: 1px solid rgba(148, 163, 184, 0.38);
 }
 
 .dashboard-th-badge-minima {
@@ -1454,26 +1658,27 @@
     padding-right: 0.65rem;
   }
 
-  .dashboard-col-municipio {
-    width: 50%;
+  .dashboard-tabela col.dashboard-col-municipio {
+    width: 52%;
+  }
+
+  .dashboard-tabela col.dashboard-col-eleitores {
+    width: 0;
+  }
+
+  .dashboard-tabela col.dashboard-col-2022,
+  .dashboard-tabela col.dashboard-col-minima,
+  .dashboard-tabela col.dashboard-col-ideal {
+    width: 16%;
   }
 
   .dashboard-col-eleitores {
     display: none;
   }
 
-  .dashboard-col-2022 {
-    width: 15%;
-  }
-
   .dashboard-municipio-eleitores {
     display: block;
     font-size: 0.62rem;
-  }
-
-  .dashboard-col-minima,
-  .dashboard-col-ideal {
-    width: 15%;
   }
 
   .dashboard-tabela td.dashboard-col-minima,
