@@ -1,8 +1,9 @@
-// Página inicial: KPIs (mapa-voto B2:D2) e gráficos de votação / crescimento.
+// Página inicial: KPIs e subdivisões (mapa-voto), gráfico de votação.
 
 const INICIO = {
   PLANILHA: "mapa-voto",
   KPI: { municipios: { linha: 2, col: 1 }, populacao: { linha: 2, col: 2 }, eleitores: { linha: 2, col: 3 } },
+  SUBDIVISOES: { linhaInicio: 3, linhaFim: 7, colNome: 0, colQtd: 1 },
   GRAFICO_COLS: [4, 5, 7],
   ANOS_GRAFICO: ["2018", "2022", "2026"],
   CORES_GRAFICO: [
@@ -13,67 +14,42 @@ const INICIO = {
 };
 
 let chartInicio = null;
-let chartCrescimento = null;
 const fmt = new Intl.NumberFormat("pt-BR");
 const fmtPct = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
 
-const pluginValoresPontos = {
-  id: "valoresPontos",
+const pluginPercentuaisEntreBarras = {
+  id: "percentuaisEntreBarras",
   afterDatasetsDraw(chart) {
-    const meta = chart.getDatasetMeta(0);
-    if (!meta || !meta.data.length) return;
+    const barMeta = chart.getDatasetMeta(0);
+    if (!barMeta || barMeta.data.length < 2) return;
 
-    const { ctx, data } = chart;
-    const valores = data.datasets[0].data;
-    const sufixo = chart.config.options.plugins?.valoresAcimaSufixo || "";
+    const yScale = chart.scales.y;
+    if (!yScale) return;
 
-    ctx.save();
-    ctx.font = "700 12px system-ui, -apple-system, Segoe UI, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
-
-    meta.data.forEach((pt, i) => {
-      const val = valores[i];
-      if (val == null || !pt) return;
-      const sinal = val >= 0 ? "+" : "";
-      const texto =
-        sufixo === "%" ? sinal + fmtPct.format(val) + "%" : fmt.format(val);
-      ctx.fillStyle = sufixo === "%" ? (val >= 0 ? "#059669" : "#dc2626") : "#1e293b";
-      ctx.fillText(texto, pt.x, pt.y - 12);
-    });
-    ctx.restore();
-  },
-};
-
-const pluginPercentuaisSegmentos = {
-  id: "percentuaisSegmentos",
-  afterDatasetsDraw(chart) {
-    const meta = chart.getDatasetMeta(0);
-    if (!meta || meta.data.length < 2) return;
-
+    const yValor = chart.config.options.plugins?.percentualEntreBarrasY ?? 7500;
+    const y = yScale.getPixelForValue(yValor);
     const { ctx } = chart;
     const valores = chart.data.datasets[0].data;
 
     ctx.save();
-    ctx.font = "600 11px system-ui, -apple-system, Segoe UI, sans-serif";
+    ctx.font = "600 12px system-ui, -apple-system, Segoe UI, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    for (let i = 0; i < meta.data.length - 1; i++) {
+    for (let i = 0; i < barMeta.data.length - 1; i++) {
       const anterior = valores[i];
       const proximo = valores[i + 1];
       if (anterior == null || proximo == null || !anterior) continue;
 
       const pct = ((proximo - anterior) / anterior) * 100;
-      const ptA = meta.data[i];
-      const ptB = meta.data[i + 1];
-      if (!ptA || !ptB) continue;
+      const barA = barMeta.data[i];
+      const barB = barMeta.data[i + 1];
+      if (!barA || !barB) continue;
 
-      const x = (ptA.x + ptB.x) / 2;
-      const y = (ptA.y + ptB.y) / 2 - 16;
+      const x = (barA.x + barB.x) / 2;
       const sinal = pct >= 0 ? "+" : "";
       const texto = sinal + fmtPct.format(pct) + "%";
 
@@ -157,6 +133,42 @@ function preencherKpis(valores) {
   document.getElementById("kpiEleitores").textContent = fmt.format(
     parseNumero(celula(valores, k.eleitores.linha, k.eleitores.col))
   );
+  preencherSubdivisoesMunicipios(valores);
+}
+
+function preencherSubdivisoesMunicipios(valores) {
+  const lista = document.getElementById("listaSubdivisoesMunicipios");
+  if (!lista) return;
+
+  const { linhaInicio, linhaFim, colNome, colQtd } = INICIO.SUBDIVISOES;
+  const itens = [];
+
+  for (let linha = linhaInicio; linha <= linhaFim; linha++) {
+    const nome = String(celula(valores, linha, colNome) ?? "").trim();
+    const qtd = parseNumero(celula(valores, linha, colQtd));
+    if (!nome && qtd === 0) continue;
+    itens.push({ nome: nome || "—", qtd });
+  }
+
+  lista.innerHTML = itens.length
+    ? itens
+        .map(
+          (item, i) =>
+            `<li class="home-kpi-subdivisao home-kpi-subdivisao--${i % 5}">
+              <span class="home-kpi-subdivisao-nome">${escapeHtml(item.nome)}</span>
+              <span class="badge rounded-pill home-kpi-subdivisao-badge">${fmt.format(item.qtd)}</span>
+            </li>`
+        )
+        .join("")
+    : '<li class="home-kpi-subdivisao home-kpi-subdivisao-vazio text-muted">Sem subdivisões</li>';
+}
+
+function escapeHtml(texto) {
+  return String(texto)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function extrairDadosVotos(valores) {
@@ -190,6 +202,8 @@ function montarGraficoVotos(rotulos, dados) {
 
   if (chartInicio) chartInicio.destroy();
 
+  const maxVotos = Math.max(...dados, 0);
+
   chartInicio = new Chart(canvas, {
     type: "bar",
     data: {
@@ -210,13 +224,14 @@ function montarGraficoVotos(rotulos, dados) {
         },
       ],
     },
-    plugins: [pluginValoresAcima],
+    plugins: [pluginValoresAcima, pluginPercentuaisEntreBarras],
     options: {
       responsive: true,
       maintainAspectRatio: false,
       layout: { padding: { top: 28 } },
       plugins: {
         valoresAcimaSufixo: "",
+        percentualEntreBarrasY: 7500,
         legend: { display: false },
         tooltip: {
           backgroundColor: "#1e293b",
@@ -245,77 +260,13 @@ function montarGraficoVotos(rotulos, dados) {
         },
         y: {
           beginAtZero: true,
+          suggestedMax: Math.max(maxVotos * 1.08, 10000),
           grace: "8%",
-          grid: { color: "rgba(148, 163, 184, 0.25)" },
-          ticks: { color: "#94a3b8", callback: (v) => fmt.format(v) },
-        },
-      },
-    },
-  });
-}
-
-function montarGraficoCrescimento(rotulos, dados) {
-  const canvas = document.getElementById("graficoInicioCrescimento");
-  if (!canvas || !rotulos.length) return;
-
-  if (chartCrescimento) chartCrescimento.destroy();
-
-  const coresPontos = INICIO.CORES_GRAFICO.map((c) => c.base);
-
-  chartCrescimento = new Chart(canvas, {
-    type: "line",
-    data: {
-      labels: rotulos,
-      datasets: [
-        {
-          label: "Votos",
-          data: dados,
-          borderColor: "#059669",
-          borderWidth: 2.5,
-          tension: 0.25,
-          fill: true,
-          backgroundColor: "rgba(5, 150, 105, 0.12)",
-          pointBackgroundColor: dados.map((_, i) => coresPontos[i] || coresPontos[0]),
-          pointBorderColor: "#ffffff",
-          pointBorderWidth: 2,
-          pointRadius: 6,
-          pointHoverRadius: 7,
-        },
-      ],
-    },
-    plugins: [pluginValoresPontos, pluginPercentuaisSegmentos],
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      layout: { padding: { top: 36, bottom: 8 } },
-      plugins: {
-        valoresAcimaSufixo: "",
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: "#1e293b",
-          padding: 10,
-          cornerRadius: 8,
-          callbacks: {
-            title: (items) => (items[0] ? "Ano " + items[0].label : ""),
-            label: (c) => fmt.format(c.parsed.y) + " votos",
-          },
-        },
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: {
-            color: "#334155",
-            font: { size: 13, weight: "600" },
-          },
-        },
-        y: {
-          beginAtZero: true,
-          grace: "12%",
           grid: { color: "rgba(148, 163, 184, 0.25)" },
           ticks: {
             color: "#94a3b8",
             callback: (v) => fmt.format(v),
+            stepSize: 5000,
           },
         },
       },
@@ -326,7 +277,6 @@ function montarGraficoCrescimento(rotulos, dados) {
 function montarGraficos(valores) {
   const { rotulos, dados } = extrairDadosVotos(valores);
   montarGraficoVotos(rotulos, dados);
-  montarGraficoCrescimento(rotulos, dados);
 }
 
 function ajustarFramePai() {
