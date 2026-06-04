@@ -11,27 +11,18 @@ function initRegistros() {
     vazio: document.getElementById("vazio"),
   };
 
-  if (!els.form) return;
+  if (!els.btnAtualizar || !els.corpo) return;
 
   function configValida() {
     return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
   }
 
-  function classeAlerta(tipo) {
-    if (tipo === "sucesso") return "alert alert-success";
-    if (tipo === "erro") return "alert alert-danger";
-    if (tipo === "carregando") return "alert alert-info";
-    return "alert d-none";
-  }
-
   function mostrarStatus(mensagem, tipo) {
-    els.status.textContent = mensagem;
-    els.status.className = classeAlerta(tipo);
+    statusPainel(els.status, mensagem, tipo);
   }
 
   function limparStatus() {
-    els.status.textContent = "";
-    els.status.className = "alert d-none";
+    statusPainel(els.status, "", null);
   }
 
   function urlConsulta() {
@@ -53,11 +44,15 @@ function initRegistros() {
 
     mostrarStatus("Carregando registros...", "carregando");
     els.btnAtualizar.disabled = true;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
     try {
       const resp = await fetch(urlConsulta(), { method: "GET" });
       const json = await resp.json();
-      if (!AUTH.tratarResposta(json)) return;
+      if (!AUTH.tratarResposta(json)) {
+        limparStatus();
+        return;
+      }
 
       if (!json.ok) {
         throw new Error(json.erro || "Falha ao consultar.");
@@ -147,7 +142,9 @@ function initRegistros() {
     }
   }
 
-  els.form.addEventListener("submit", enviarDados);
+  if (els.form && els.btnEnviar) {
+    els.form.addEventListener("submit", enviarDados);
+  }
   els.btnAtualizar.addEventListener("click", carregarDados);
   carregarDados();
 }

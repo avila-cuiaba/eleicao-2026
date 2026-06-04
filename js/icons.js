@@ -21,6 +21,11 @@ window.APP_ICON_SVG = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
     '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>' +
     "</svg>",
+  atualizar:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true">' +
+    '<path d="M1 4v6h6M23 20v-6h-6"/>' +
+    '<path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>' +
+    "</svg>",
 };
 
 window.APP_MENU = [

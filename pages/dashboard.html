@@ -7,27 +7,119 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
-<body class="bg-light page-frame-body">
+<body class="bg-light page-frame-body page-dashboard">
   <div class="page-frame-content">
-    <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
       <div>
-        <h1 class="h4 mb-0">Projeção de votação</h1>
-        <p class="text-secondary small mb-0">gráficos e tabelas por região e prioridade</p>
+        <h1 class="h4 mb-0">projeção de votação</h1>
       </div>
-      <button type="button" id="btnAtualizar" class="btn btn-sm btn-outline-secondary">
-        Atualizar
+      <button type="button" id="btnAtualizar" class="btn-icone-atualizar" aria-label="Atualizar" title="atualizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true">
+          <path d="M1 4v6h6M23 20v-6h-6"/>
+          <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+        </svg>
       </button>
     </div>
 
     <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
 
-    <div id="tabelas"></div>
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body py-3">
+        <div class="row g-2 g-sm-3 align-items-start dashboard-micro-row">
+          <div class="col-4">
+            <div id="filtroRegioes" class="dashboard-filtro-regioes" role="group" aria-label="Filtrar por micro-região"></div>
+          </div>
+          <div class="col-8">
+            <div class="row g-2 dashboard-resumo-kpis">
+              <div class="col-4">
+                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card">
+                  <div class="card-body py-2 px-2 px-sm-3">
+                    <div class="dashboard-kpi-rotulo">municípios</div>
+                    <strong id="kpiMunicipios" class="dashboard-kpi-valor">—</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card">
+                  <div class="card-body py-2 px-2 px-sm-3">
+                    <div class="dashboard-kpi-rotulo">população</div>
+                    <strong id="kpiPopulacao" class="dashboard-kpi-valor">—</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card">
+                  <div class="card-body py-2 px-2 px-sm-3">
+                    <div class="dashboard-kpi-rotulo">eleitores</div>
+                    <strong id="kpiEleitores" class="dashboard-kpi-valor">—</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card kpi-minima">
+                  <div class="card-body py-2 px-2 px-sm-3">
+                    <div class="dashboard-kpi-rotulo">votação mínima</div>
+                    <strong id="kpiMinima" class="dashboard-kpi-valor">—</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card kpi-ideal">
+                  <div class="card-body py-2 px-2 px-sm-3">
+                    <div class="dashboard-kpi-rotulo">votação ideal</div>
+                    <strong id="kpiIdeal" class="dashboard-kpi-valor">—</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 dashboard-tabela">
+            <thead class="table-light">
+              <tr class="dashboard-thead-row1">
+                <th scope="col" rowspan="2" class="dashboard-col-municipio dashboard-th-municipio-composto align-middle">
+                  <span class="dashboard-th-principal">município</span>
+                  <span class="dashboard-th-sub text-muted dashboard-th-sub-eleitores">eleitores</span>
+                </th>
+                <th scope="col" rowspan="2" class="text-end dashboard-col-eleitores dashboard-th-desktop-only align-middle">eleitores</th>
+                <th scope="col" colspan="3" class="text-center dashboard-th-votacao"><strong>votação</strong></th>
+              </tr>
+              <tr class="dashboard-thead-row2">
+                <th scope="col" class="text-end dashboard-col-2022 dashboard-th-2022 align-middle">2022</th>
+                <th scope="col" class="text-end dashboard-col-minima dashboard-th-minima">
+                  <span class="dashboard-th-badge dashboard-th-badge-minima">mínima</span>
+                </th>
+                <th scope="col" class="text-end dashboard-col-ideal dashboard-th-ideal">
+                  <span class="dashboard-th-badge dashboard-th-badge-ideal">ideal</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="corpoTabela">
+              <tr>
+                <td colspan="5" class="text-center text-secondary py-4">Carregando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
+      <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
+      <span class="visually-hidden">Carregando</span>
+    </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/auth.js"></script>
+  <script src="../js/page-loader.js"></script>
   <script src="../js/dashboard.js"></script>
 </body>
 </html>

@@ -36,37 +36,26 @@ const CONFIG = {
   // Nome da aba (sheet) consultada/gravada. Vazio = primeira aba (gid=0).
   ABA: "",
 
-  // Mapeamento do dashboard.
+  // Dashboard (planilha de municípios — id 1tFJ54zDjwvzqvPwwfSH0OpgxkGygSXkF4pSqIhtImOE).
   DASHBOARD: {
-    // Colunas (índices baseados em 0): A=0, B=1, C=2, D=3, E=4, F=5, G=6
-    COLUNAS: {
-      ROTULO: 0,     // A
-      MUNICIPIOS: 1, // B
-      ELEITORES: 2,  // C
-      VOTOS_2018: 3, // D
-      VOTOS_2022: 4, // E
-      MINIMA: 5,     // F (projeção mínima)
-      IDEAL: 6,      // G (projeção ideal)
-    },
-
-    // Tabelas empilhadas na mesma aba (números de linha da planilha, base 1).
-    // headerRow = linha do cabeçalho; totalRow = linha de somatória;
-    // dataInicio/dataFim = intervalo das linhas de dados (inclusive).
-    TABELAS: [
-      {
-        titulo: "Região",
-        headerRow: 1,
-        totalRow: 2,
-        dataInicio: 3,
-        dataFim: 7,
-      },
-      {
-        titulo: "Prioridade",
-        headerRow: 11,
-        totalRow: 12,
-        dataInicio: 13,
-        dataFim: 17,
-      },
+    PLANILHA: "planilha-2",
+    ABA: "",
+    LINHA_INICIO_DADOS: 2,
+    ORDEM_REGIOES: [
+      "alto araguaia",
+      "medio araguaia",
+      "norte araguaia",
+      "baixada cuiabana",
+      "mt",
     ],
+    COLUNAS: {
+      MUNICIPIO: 1,   // B
+      REGIAO: 2,      // C
+      POPULACAO: 4,   // E
+      ELEITORES: 5,   // F
+      VOTOS_2022: 7,  // H
+      MINIMA: 8,      // I
+      IDEAL: 9,       // J
+    },
   },
 };

@@ -9,21 +9,12 @@ function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
 }
 
-function classeAlerta(tipo) {
-  if (tipo === "sucesso") return "alert alert-success";
-  if (tipo === "erro") return "alert alert-danger";
-  if (tipo === "carregando") return "alert alert-info";
-  return "alert d-none";
-}
-
 function mostrarStatus(msg, tipo) {
-  ui.status.textContent = msg;
-  ui.status.className = classeAlerta(tipo);
+  statusPainel(ui.status, msg, tipo);
 }
 
 function limparStatus() {
-  ui.status.textContent = "";
-  ui.status.className = "alert d-none";
+  statusPainel(ui.status, "", null);
 }
 
 function urlPlanilha(chave) {

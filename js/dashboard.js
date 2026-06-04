@@ -1,38 +1,24 @@
-// Dashboard: lê a matriz crua da planilha (GET) e monta, para cada tabela,
-// cards de totais e um gráfico comparativo (votos 2018 x 2022 x projeção ideal).
+// Dashboard: municípios da planilha-2 filtrados por micro-região (coluna C).
 
-const charts = [];
 const fmt = new Intl.NumberFormat("pt-BR");
+const cfg = CONFIG.DASHBOARD;
 
-const CORES = {
-  votos2018: "#9bb4d6",
-  votos2022: "#1f4e8c",
-  ideal: "#1b7a43", // destaque (troféu / projeção ideal)
-  minima: "#caa14a", // medalha / projeção mínima
-};
+let el = {};
+let registros = [];
+let regioes = [];
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
 }
 
-function classeAlerta(tipo) {
-  if (tipo === "sucesso") return "alert alert-success";
-  if (tipo === "erro") return "alert alert-danger";
-  if (tipo === "carregando") return "alert alert-info";
-  return "alert d-none";
-}
-
 function mostrarStatus(mensagem, tipo) {
-  el.status.textContent = mensagem;
-  el.status.className = classeAlerta(tipo);
+  statusPainel(el.status, mensagem, tipo);
 }
 
 function limparStatus() {
-  el.status.textContent = "";
-  el.status.className = "alert d-none";
+  statusPainel(el.status, "", null);
 }
 
-// Converte valor da planilha em número (trata milhar "." e decimal ",").
 function parseNumero(v) {
   if (typeof v === "number") return v;
   if (v == null || v === "") return 0;
@@ -41,198 +27,256 @@ function parseNumero(v) {
   return isNaN(n) ? 0 : n;
 }
 
+function celula(valores, linha1, col0) {
+  const linha = valores[linha1 - 1];
+  if (!linha) return "";
+  return linha[col0];
+}
+
+function normalizarRegiao(texto) {
+  return String(texto ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function escapeHtml(texto) {
+  return String(texto)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function urlConsulta() {
   const url = new URL(CONFIG.WEB_APP_URL);
-  if (CONFIG.PLANILHA) url.searchParams.set("planilha", CONFIG.PLANILHA);
-  if (CONFIG.ABA) url.searchParams.set("aba", CONFIG.ABA);
+  url.searchParams.set("planilha", cfg.PLANILHA);
+  if (cfg.ABA) url.searchParams.set("aba", cfg.ABA);
   AUTH.aplicarNaUrl(url);
   return url.toString();
 }
 
+function extrairRegistros(valores) {
+  const cols = cfg.COLUNAS;
+  const itens = [];
+
+  for (let linha = cfg.LINHA_INICIO_DADOS; linha <= valores.length; linha++) {
+    const municipio = String(celula(valores, linha, cols.MUNICIPIO) ?? "").trim();
+    if (!municipio) continue;
+
+    const regiaoBruta = String(celula(valores, linha, cols.REGIAO) ?? "").trim();
+    itens.push({
+      municipio,
+      regiao: regiaoBruta,
+      regiaoNorm: normalizarRegiao(regiaoBruta),
+      populacao: parseNumero(celula(valores, linha, cols.POPULACAO)),
+      eleitores: parseNumero(celula(valores, linha, cols.ELEITORES)),
+      votos2022: parseNumero(celula(valores, linha, cols.VOTOS_2022)),
+      minima: parseNumero(celula(valores, linha, cols.MINIMA)),
+      ideal: parseNumero(celula(valores, linha, cols.IDEAL)),
+    });
+  }
+
+  return itens;
+}
+
+function extrairRegioes(itens) {
+  const mapa = new Map();
+
+  itens.forEach((item) => {
+    if (!item.regiaoNorm) return;
+    if (!mapa.has(item.regiaoNorm)) {
+      mapa.set(item.regiaoNorm, item.regiao);
+    }
+  });
+
+  return Array.from(mapa.entries())
+    .map(([norm, rotulo]) => ({ norm, rotulo }))
+    .sort(ordenarRegioes);
+}
+
+function ordenarRegioes(a, b) {
+  const ordem = cfg.ORDEM_REGIOES || [];
+  const indice = (norm) => {
+    const i = ordem.indexOf(norm);
+    return i === -1 ? ordem.length + 1 : i;
+  };
+  const diff = indice(a.norm) - indice(b.norm);
+  if (diff !== 0) return diff;
+  return a.rotulo.localeCompare(b.rotulo, "pt-BR");
+}
+
+function indiceCorRegiao(regiaoNorm) {
+  const ordem = cfg.ORDEM_REGIOES || [];
+  const i = ordem.indexOf(regiaoNorm);
+  return i === -1 ? 0 : i % 5;
+}
+
+function regioesSelecionadas() {
+  return Array.from(el.filtroRegioes.querySelectorAll('input[type="checkbox"]:checked')).map(
+    (cb) => cb.value
+  );
+}
+
+function montarFiltros(listaRegioes) {
+  regioes = listaRegioes;
+  el.filtroRegioes.innerHTML = "";
+
+  if (!listaRegioes.length) {
+    el.filtroRegioes.innerHTML =
+      '<span class="text-secondary small">Nenhuma micro-região encontrada na planilha.</span>';
+    return;
+  }
+
+  listaRegioes.forEach((reg) => {
+    const id = "regiao-" + reg.norm.replace(/[^a-z0-9]+/g, "-");
+    const label = document.createElement("label");
+    label.className = "dashboard-filtro-item dashboard-filtro-cor--" + indiceCorRegiao(reg.norm);
+    label.innerHTML =
+      `<input type="checkbox" class="visually-hidden" id="${id}" value="${escapeHtml(reg.norm)}" checked>` +
+      `<span class="dashboard-filtro-badge">${escapeHtml(reg.rotulo)}</span>`;
+    el.filtroRegioes.appendChild(label);
+  });
+
+  el.filtroRegioes.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    cb.addEventListener("change", renderizarTabela);
+  });
+}
+
+function registrosFiltrados() {
+  const selecionadas = regioesSelecionadas();
+  if (!selecionadas.length) return [];
+  return registros.filter((r) => selecionadas.includes(r.regiaoNorm));
+}
+
+function atualizarResumo(filtrados) {
+  const totais = filtrados.reduce(
+    (acc, r) => {
+      acc.populacao += r.populacao;
+      acc.eleitores += r.eleitores;
+      acc.minima += r.minima;
+      acc.ideal += r.ideal;
+      return acc;
+    },
+    { populacao: 0, eleitores: 0, minima: 0, ideal: 0 }
+  );
+
+  el.kpiMunicipios.textContent = fmt.format(filtrados.length);
+  el.kpiPopulacao.textContent = fmt.format(totais.populacao);
+  el.kpiEleitores.textContent = fmt.format(totais.eleitores);
+  el.kpiMinima.textContent = fmt.format(totais.minima);
+  el.kpiIdeal.textContent = fmt.format(totais.ideal);
+}
+
+function limparResumo() {
+  el.kpiMunicipios.textContent = "—";
+  el.kpiPopulacao.textContent = "—";
+  el.kpiEleitores.textContent = "—";
+  el.kpiMinima.textContent = "—";
+  el.kpiIdeal.textContent = "—";
+}
+
+function renderizarTabela() {
+  const selecionadas = regioesSelecionadas();
+  const filtrados = registrosFiltrados();
+
+  if (!registros.length) {
+    limparResumo();
+    el.corpoTabela.innerHTML =
+      '<tr><td colspan="5" class="text-center text-secondary py-4">Nenhum município na planilha.</td></tr>';
+    return;
+  }
+
+  if (!selecionadas.length) {
+    limparResumo();
+    el.corpoTabela.innerHTML =
+      '<tr><td colspan="5" class="text-center text-secondary py-4">Selecione ao menos uma micro-região.</td></tr>';
+    return;
+  }
+
+  atualizarResumo(filtrados);
+
+  if (!filtrados.length) {
+    el.corpoTabela.innerHTML =
+      '<tr><td colspan="5" class="text-center text-secondary py-4">Nenhum município para os filtros selecionados.</td></tr>';
+    return;
+  }
+
+  el.corpoTabela.innerHTML = filtrados
+    .map(
+      (r) => {
+        const corIdx = indiceCorRegiao(r.regiaoNorm);
+        const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
+        return `<tr>
+        <td class="dashboard-col-municipio">
+          <span class="dashboard-municipio-celula">
+            <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
+            <span class="dashboard-municipio-texto">
+              <span class="dashboard-municipio-nome">${escapeHtml(r.municipio)}</span>
+              <span class="dashboard-municipio-eleitores text-muted">${fmt.format(r.eleitores)}</span>
+            </span>
+          </span>
+        </td>
+        <td class="text-end dashboard-col-eleitores">${fmt.format(r.eleitores)}</td>
+        <td class="text-end dashboard-col-2022">${fmt.format(r.votos2022)}</td>
+        <td class="text-end dashboard-col-minima">${fmt.format(r.minima)}</td>
+        <td class="text-end dashboard-col-ideal">${fmt.format(r.ideal)}</td>
+      </tr>`;
+      }
+    )
+    .join("");
+}
+
+function montar(valores) {
+  registros = extrairRegistros(valores);
+  montarFiltros(extrairRegioes(registros));
+  renderizarTabela();
+}
+
 async function carregarDashboard() {
   if (!configValida()) {
-    mostrarStatus(
-      "Configure a URL do Web App em js/config.js antes de usar o dashboard.",
-      "erro"
-    );
+    mostrarStatus("Configure a URL do Web App em js/config.js.", "erro");
     return;
   }
 
   mostrarStatus("Carregando dados...", "carregando");
   el.btnAtualizar.disabled = true;
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   try {
     const resp = await fetch(urlConsulta(), { method: "GET" });
     const json = await resp.json();
-    if (!AUTH.tratarResposta(json)) return;
-    if (!json.ok) throw new Error(json.erro || "Falha ao consultar.");
+    if (!AUTH.tratarResposta(json)) {
+      limparStatus();
+      return;
+    }
+    if (!json.ok) throw new Error(json.erro || "Falha ao consultar planilha.");
 
     montar(json.valores || []);
     limparStatus();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
+    el.corpoTabela.innerHTML =
+      '<tr><td colspan="5" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>';
   } finally {
     el.btnAtualizar.disabled = false;
   }
 }
 
-// Pega o valor de uma célula (linha 1-based, coluna 0-based).
-function celula(valores, linha1based, col) {
-  const linha = valores[linha1based - 1];
-  if (!linha) return "";
-  return linha[col];
-}
-
-function montar(valores) {
-  charts.forEach((c) => c.destroy());
-  charts.length = 0;
-  el.tabelas.innerHTML = "";
-
-  if (!valores.length) {
-    mostrarStatus("Nenhum dado encontrado na planilha.", "erro");
-    return;
-  }
-
-  const cols = CONFIG.DASHBOARD.COLUNAS;
-
-  CONFIG.DASHBOARD.TABELAS.forEach((tab, idx) => {
-    // Linhas de dados (sem o total).
-    const rotulos = [];
-    const votos2018 = [];
-    const votos2022 = [];
-    const minimas = [];
-    const ideais = [];
-
-    for (let l = tab.dataInicio; l <= tab.dataFim; l++) {
-      const rotulo = celula(valores, l, cols.ROTULO);
-      if (rotulo === "" || rotulo == null) continue; // pula linhas vazias
-      rotulos.push(String(rotulo));
-      votos2018.push(parseNumero(celula(valores, l, cols.VOTOS_2018)));
-      votos2022.push(parseNumero(celula(valores, l, cols.VOTOS_2022)));
-      minimas.push(parseNumero(celula(valores, l, cols.MINIMA)));
-      ideais.push(parseNumero(celula(valores, l, cols.IDEAL)));
-    }
-
-    // Totais (linha de somatória da planilha).
-    const totais = {
-      municipios: parseNumero(celula(valores, tab.totalRow, cols.MUNICIPIOS)),
-      eleitores: parseNumero(celula(valores, tab.totalRow, cols.ELEITORES)),
-      votos2018: parseNumero(celula(valores, tab.totalRow, cols.VOTOS_2018)),
-      votos2022: parseNumero(celula(valores, tab.totalRow, cols.VOTOS_2022)),
-      minima: parseNumero(celula(valores, tab.totalRow, cols.MINIMA)),
-      ideal: parseNumero(celula(valores, tab.totalRow, cols.IDEAL)),
-    };
-
-    renderizarTabela(tab, idx, totais, {
-      rotulos,
-      votos2018,
-      votos2022,
-      minimas,
-      ideais,
-    });
-  });
-}
-
-function renderizarTabela(tab, idx, totais, serie) {
-  const secao = document.createElement("section");
-  secao.className = "mb-4";
-
-  // Cards de totais + gráfico comparativo.
-  secao.innerHTML = `
-    <h2 class="h4 text-brand border-bottom pb-2 mb-3">${tab.titulo}</h2>
-    <div class="row g-2 g-md-3 mb-3">
-      ${cardKpi("Municípios", totais.municipios)}
-      ${cardKpi("Eleitores", totais.eleitores)}
-      ${cardKpi("Votos 2018", totais.votos2018)}
-      ${cardKpi("Votos 2022", totais.votos2022)}
-      ${cardKpi("Projeção mínima", totais.minima, "kpi-minima")}
-      ${cardKpi("Projeção ideal", totais.ideal, "kpi-ideal")}
-    </div>
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h3 class="h6 mb-3">Comparativo: votos 2018 × 2022 × projeção ideal</h3>
-        <div class="grafico-wrapper">
-          <canvas id="grafico-${idx}"></canvas>
-        </div>
-      </div>
-    </div>
-  `;
-
-  el.tabelas.appendChild(secao);
-
-  const ctx = secao.querySelector(`#grafico-${idx}`);
-  const chart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: serie.rotulos,
-      datasets: [
-        {
-          label: "Votos 2018",
-          data: serie.votos2018,
-          backgroundColor: CORES.votos2018,
-          borderRadius: 4,
-        },
-        {
-          label: "Votos 2022",
-          data: serie.votos2022,
-          backgroundColor: CORES.votos2022,
-          borderRadius: 4,
-        },
-        {
-          label: "Projeção ideal",
-          data: serie.ideais,
-          backgroundColor: CORES.ideal,
-          borderColor: "#0f5a30",
-          borderWidth: 2,
-          borderRadius: 4,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "top" },
-        tooltip: {
-          callbacks: {
-            label: (c) => `${c.dataset.label}: ${fmt.format(c.parsed.y)}`,
-          },
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { callback: (v) => fmt.format(v) },
-        },
-      },
-    },
-  });
-
-  charts.push(chart);
-}
-
-function cardKpi(rotulo, valor, extraClasse) {
-  return `
-    <div class="col-6 col-md-4 col-xl-2">
-      <div class="card h-100 shadow-sm ${extraClasse || ""}">
-        <div class="card-body py-2 px-3">
-          <div class="text-secondary small">${rotulo}</div>
-          <strong class="kpi-valor d-block">${fmt.format(valor)}</strong>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-let el = {};
-
 function initDashboard() {
   el = {
     status: document.getElementById("status"),
     btnAtualizar: document.getElementById("btnAtualizar"),
-    tabelas: document.getElementById("tabelas"),
+    filtroRegioes: document.getElementById("filtroRegioes"),
+    corpoTabela: document.getElementById("corpoTabela"),
+    kpiMunicipios: document.getElementById("kpiMunicipios"),
+    kpiPopulacao: document.getElementById("kpiPopulacao"),
+    kpiEleitores: document.getElementById("kpiEleitores"),
+    kpiMinima: document.getElementById("kpiMinima"),
+    kpiIdeal: document.getElementById("kpiIdeal"),
   };
-  if (!el.tabelas) return;
+  if (!el.corpoTabela) return;
 
   el.btnAtualizar.addEventListener("click", carregarDashboard);
   carregarDashboard();

@@ -115,11 +115,7 @@ function urlConsulta() {
 
 function mostrarStatus(msg, tipo) {
   const el = document.getElementById("statusInicio");
-  if (!el) return;
-  el.textContent = msg;
-  el.className =
-    "alert mb-3 " +
-    (tipo === "erro" ? "alert-danger" : tipo === "carregando" ? "alert-info" : "d-none");
+  statusPainel(el, msg, tipo);
 }
 
 function preencherKpis(valores) {

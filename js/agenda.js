@@ -237,11 +237,11 @@ function escapar(txt) {
 
 async function carregarEventos() {
   if (!AgendaAPI.configValida()) {
-    AgendaAPI.alerta(ui.status, "Configure a URL do Web App em js/config.js.", "erro");
+    statusPainel(ui.status, "Configure a URL do Web App em js/config.js.", "erro");
     return;
   }
 
-  AgendaAPI.alerta(ui.status, "Carregando...", "carregando");
+  statusPainel(ui.status, "", "carregando");
 
   try {
     const inicio = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
@@ -250,11 +250,11 @@ async function carregarEventos() {
     if (eventos === null) return;
 
     todosEventos = eventos;
-    AgendaAPI.alerta(ui.status, "", null);
+    statusPainel(ui.status, "", null);
     renderMiniCalendario();
     renderLista();
   } catch (err) {
-    AgendaAPI.alerta(ui.status, "Erro: " + err.message, "erro");
+    statusPainel(ui.status, "Erro: " + err.message, "erro");
   }
 }
 
