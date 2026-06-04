@@ -15,12 +15,22 @@ gratuitamente no **GitHub Pages**, sem necessidade de VPS.
 
 ```
 eleicao-2026/
-├─ index.html          # tela inicial (consulta + formulário)
-├─ css/style.css       # estilo
-├─ js/config.js        # URL do Web App e nome da aba
-├─ js/app.js           # GET (consultar) e POST (gravar)
-├─ apps-script/BackendPlanilhas.gs # backend (doGet + doPost)
-├─ .gitignore
+├─ principal.html      # layout (cabeçalho, sidebar, iframe, footer)
+├─ index.html          # redireciona para principal.html?p=inicio
+├─ login.html          # tela de acesso
+├─ pages/              # conteúdo carregado no iframe
+│  ├─ inicio.html
+│  ├─ dashboard.html   # projeções
+│  ├─ agenda.html
+│  ├─ registros.html
+│  └─ planilhas.html   # verificação das planilhas
+├─ css/style.css
+├─ js/
+│  ├─ config.js
+│  ├─ principal.js     # troca de página no iframe
+│  ├─ layout.js        # sidebar
+│  ├─ auth.js, app.js, dashboard.js, agenda.js, …
+├─ apps-script/BackendPlanilhas.gs
 └─ README.md
 ```
 

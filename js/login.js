@@ -20,7 +20,7 @@ function status(msg, tipo) {
 
 // Se já está logado, vai direto para a home.
 if (AUTH.getChave()) {
-  window.location.replace("index.html");
+  window.location.replace("principal.html?p=inicio");
 }
 
 lg.form.addEventListener("submit", async (e) => {
@@ -45,7 +45,7 @@ lg.form.addEventListener("submit", async (e) => {
 
     if (json.ok) {
       AUTH.setChave(chave);
-      window.location.replace("index.html");
+      window.location.replace("principal.html?p=inicio");
     } else {
       status("Chave inválida. Tente novamente.", "erro");
     }

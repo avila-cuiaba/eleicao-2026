@@ -1,14 +1,6 @@
 // Dashboard: lê a matriz crua da planilha (GET) e monta, para cada tabela,
 // cards de totais e um gráfico comparativo (votos 2018 x 2022 x projeção ideal).
 
-AUTH.exigir();
-
-const el = {
-  status: document.getElementById("status"),
-  btnAtualizar: document.getElementById("btnAtualizar"),
-  tabelas: document.getElementById("tabelas"),
-};
-
 const charts = [];
 const fmt = new Intl.NumberFormat("pt-BR");
 
@@ -232,5 +224,19 @@ function cardKpi(rotulo, valor, extraClasse) {
   `;
 }
 
-el.btnAtualizar.addEventListener("click", carregarDashboard);
-carregarDashboard();
+let el = {};
+
+function initDashboard() {
+  el = {
+    status: document.getElementById("status"),
+    btnAtualizar: document.getElementById("btnAtualizar"),
+    tabelas: document.getElementById("tabelas"),
+  };
+  if (!el.tabelas) return;
+
+  el.btnAtualizar.addEventListener("click", carregarDashboard);
+  carregarDashboard();
+}
+
+AUTH.exigir();
+document.addEventListener("DOMContentLoaded", initDashboard);

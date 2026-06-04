@@ -1,13 +1,7 @@
 // Página de verificação: testa o acesso a cada planilha cadastrada
 // chamando o Web App (GET ?planilha=chave) e exibindo o status.
 
-AUTH.exigir();
-
-const ui = {
-  status: document.getElementById("status"),
-  lista: document.getElementById("lista"),
-  btnVerificar: document.getElementById("btnVerificar"),
-};
+let ui = {};
 
 const fmtNum = new Intl.NumberFormat("pt-BR");
 
@@ -180,5 +174,17 @@ async function verificarTodas() {
   ui.btnVerificar.disabled = false;
 }
 
-ui.btnVerificar.addEventListener("click", verificarTodas);
-verificarTodas();
+function initPlanilhas() {
+  ui = {
+    status: document.getElementById("status"),
+    lista: document.getElementById("lista"),
+    btnVerificar: document.getElementById("btnVerificar"),
+  };
+  if (!ui.lista) return;
+
+  ui.btnVerificar.addEventListener("click", verificarTodas);
+  verificarTodas();
+}
+
+AUTH.exigir();
+document.addEventListener("DOMContentLoaded", initPlanilhas);

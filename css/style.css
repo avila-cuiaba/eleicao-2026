@@ -34,6 +34,246 @@
   text-underline-offset: 4px;
 }
 
+/* Layout com sidebar à esquerda */
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1040;
+  width: 260px;
+  height: 100vh;
+  background: linear-gradient(180deg, var(--brand-dark), var(--brand));
+  color: #fff;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+.app-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px 16px;
+}
+
+.app-sidebar-brand {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.app-sidebar-title {
+  display: block;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+}
+
+.app-sidebar-title:hover {
+  color: #fff;
+  opacity: 0.9;
+}
+
+.app-sidebar-sub {
+  display: block;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 4px;
+}
+
+.app-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.app-sidebar-link {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.app-sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.app-sidebar-link.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-weight: 600;
+}
+
+.app-sidebar-footer {
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.app-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1035;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.app-content {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+.app-header-start {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.app-header-title {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.app-header-sub {
+  margin-top: 2px;
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+.app-topbar-title {
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.app-main {
+  flex: 1;
+  padding: 16px;
+  max-width: 1400px;
+  width: 100%;
+}
+
+.app-main-frame {
+  padding: 0;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-frame {
+  display: block;
+  width: 100%;
+  min-height: 480px;
+  border: none;
+  background: #f8f9fa;
+}
+
+.page-frame-body {
+  margin: 0;
+}
+
+.page-frame-content {
+  padding: 16px;
+}
+
+@media (min-width: 992px) {
+  .page-frame-content {
+    padding: 24px 32px;
+  }
+}
+
+.app-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e9ecef;
+  background: #fff;
+}
+
+@media (min-width: 992px) {
+  .app-sidebar {
+    transform: translateX(0);
+  }
+
+  .app-content {
+    margin-left: 260px;
+  }
+
+  .app-main {
+    padding: 24px 32px;
+  }
+
+  .app-main-frame {
+    padding: 0;
+  }
+
+  .app-header {
+    padding: 18px 32px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  body.sidebar-open .app-sidebar {
+    transform: translateX(0);
+  }
+
+  body.sidebar-open .app-sidebar-backdrop {
+    display: block;
+  }
+}
+
+/* Cards da página inicial */
+.home-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 1px solid #e9ecef;
+}
+
+.home-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(31, 78, 140, 0.12) !important;
+}
+
+.letter-spacing {
+  letter-spacing: 0.06em;
+}
+
+@media (min-width: 768px) {
+  .h2-md {
+    font-size: calc(1.325rem + 0.9vw);
+  }
+}
+
 /* Wrapper de gráfico responsivo (Chart.js precisa de altura definida) */
 .grafico-wrapper {
   position: relative;

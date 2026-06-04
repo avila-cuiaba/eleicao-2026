@@ -21,12 +21,21 @@ const AUTH = {
     sessionStorage.removeItem(this.STORAGE_KEY);
   },
 
+  urlLogin() {
+    const base = window.parent !== window ? window.parent.location : window.location;
+    return new URL("login.html", base).href;
+  },
+
+  irLogin() {
+    const url = this.urlLogin();
+    if (window.parent !== window) window.parent.location.replace(url);
+    else window.location.replace(url);
+  },
+
   // Redireciona para o login se a página exige e ainda não há chave.
   exigir() {
     if (!window.CONFIG || !CONFIG.EXIGIR_LOGIN) return;
-    if (!this.getChave()) {
-      window.location.replace("login.html");
-    }
+    if (!this.getChave()) this.irLogin();
   },
 
   // Acrescenta a chave a uma URL (objeto URL) de requisição GET.
@@ -41,7 +50,7 @@ const AUTH = {
   tratarResposta(json) {
     if (json && json.naoAutorizado) {
       this.limpar();
-      window.location.replace("login.html");
+      this.irLogin();
       return false;
     }
     return true;
@@ -49,12 +58,11 @@ const AUTH = {
 
   sair() {
     this.limpar();
-    window.location.replace("login.html");
+    this.irLogin();
   },
 };
 
-// Liga automaticamente qualquer botão de logout (#btnSair) presente na página.
-document.addEventListener("DOMContentLoaded", function () {
-  const btn = document.getElementById("btnSair");
-  if (btn) btn.addEventListener("click", () => AUTH.sair());
+// Liga o botão de logout (#btnSair), injetado pela sidebar em layout.js.
+document.addEventListener("click", function (e) {
+  if (e.target.closest("#btnSair")) AUTH.sair();
 });

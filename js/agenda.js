@@ -1,28 +1,6 @@
 // Agenda — calendário vanilla (JS puro) + lista de próximas atividades.
 
-AUTH.exigir();
-
-const ui = {
-  status: document.getElementById("status"),
-  statusModal: document.getElementById("statusModal"),
-  form: document.getElementById("formEvento"),
-  btnSalvar: document.getElementById("btnSalvarEvento"),
-  btnNova: document.getElementById("btnNova"),
-  diaInteiro: document.getElementById("evDiaInteiro"),
-  miniCal: document.getElementById("miniCalendario"),
-  btnSelMes: document.getElementById("btnSelMes"),
-  btnSelAno: document.getElementById("btnSelAno"),
-  picker: document.getElementById("pickerPeriodo"),
-  pickerTitulo: document.getElementById("pickerPeriodoTitulo"),
-  pickerCorpo: document.getElementById("pickerPeriodoCorpo"),
-  pickerFechar: document.getElementById("pickerFechar"),
-  pickerBackdrop: document.getElementById("pickerBackdrop"),
-  lista: document.getElementById("listaEventos"),
-  tituloLista: document.getElementById("tituloLista"),
-  btnLimpar: document.getElementById("btnLimparFiltro"),
-  btnMesAnt: document.getElementById("btnMesAnt"),
-  btnMesProx: document.getElementById("btnMesProx"),
-};
+let ui = {};
 
 // Semana começa na segunda-feira (col 5 = sábado, col 6 = domingo).
 const DIAS_SEM = ["S", "T", "Q", "Q", "S", "S", "D"];
@@ -293,80 +271,112 @@ function abrirNovoEvento(data) {
   modalEvento.show();
 }
 
-ui.form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!AgendaAPI.configValida()) return;
+function montarUi() {
+  ui = {
+    status: document.getElementById("status"),
+    statusModal: document.getElementById("statusModal"),
+    form: document.getElementById("formEvento"),
+    btnSalvar: document.getElementById("btnSalvarEvento"),
+    btnNova: document.getElementById("btnNova"),
+    diaInteiro: document.getElementById("evDiaInteiro"),
+    miniCal: document.getElementById("miniCalendario"),
+    btnSelMes: document.getElementById("btnSelMes"),
+    btnSelAno: document.getElementById("btnSelAno"),
+    picker: document.getElementById("pickerPeriodo"),
+    pickerTitulo: document.getElementById("pickerPeriodoTitulo"),
+    pickerCorpo: document.getElementById("pickerPeriodoCorpo"),
+    pickerFechar: document.getElementById("pickerFechar"),
+    pickerBackdrop: document.getElementById("pickerBackdrop"),
+    lista: document.getElementById("listaEventos"),
+    tituloLista: document.getElementById("tituloLista"),
+    btnLimpar: document.getElementById("btnLimparFiltro"),
+    btnMesAnt: document.getElementById("btnMesAnt"),
+    btnMesProx: document.getElementById("btnMesProx"),
+  };
+}
 
-  const inicioVal = document.getElementById("evInicio").value;
-  if (!inicioVal) {
-    AgendaAPI.alerta(ui.statusModal, "Informe o início.", "erro");
-    return;
-  }
+function initAgenda() {
+  montarUi();
+  if (!ui.miniCal) return;
 
-  AgendaAPI.alerta(ui.statusModal, "Salvando...", "carregando");
-  ui.btnSalvar.disabled = true;
+  const modalEl = document.getElementById("modalEvento");
+  modalEvento = modalEl ? new bootstrap.Modal(modalEl) : null;
 
-  try {
-    await AgendaAPI.criar({
-      titulo: document.getElementById("evTitulo").value.trim(),
-      inicio: new Date(inicioVal).toISOString(),
-      fim: document.getElementById("evFim").value
-        ? new Date(document.getElementById("evFim").value).toISOString()
-        : null,
-      local: document.getElementById("evLocal").value.trim(),
-      descricao: document.getElementById("evDescricao").value.trim(),
-      diaInteiro: ui.diaInteiro.checked,
-      duracaoMin: CONFIG.AGENDA.DURACAO_PADRAO_MIN,
-      lembreteMin: document.getElementById("evLembrete").value,
-    });
+  ui.form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!AgendaAPI.configValida()) return;
 
-    modalEvento.hide();
-    AgendaAPI.alerta(ui.status, "Atividade adicionada!", "sucesso");
+    const inicioVal = document.getElementById("evInicio").value;
+    if (!inicioVal) {
+      AgendaAPI.alerta(ui.statusModal, "Informe o início.", "erro");
+      return;
+    }
+
+    AgendaAPI.alerta(ui.statusModal, "Salvando...", "carregando");
+    ui.btnSalvar.disabled = true;
+
+    try {
+      await AgendaAPI.criar({
+        titulo: document.getElementById("evTitulo").value.trim(),
+        inicio: new Date(inicioVal).toISOString(),
+        fim: document.getElementById("evFim").value
+          ? new Date(document.getElementById("evFim").value).toISOString()
+          : null,
+        local: document.getElementById("evLocal").value.trim(),
+        descricao: document.getElementById("evDescricao").value.trim(),
+        diaInteiro: ui.diaInteiro.checked,
+        duracaoMin: CONFIG.AGENDA.DURACAO_PADRAO_MIN,
+        lembreteMin: document.getElementById("evLembrete").value,
+      });
+
+      modalEvento.hide();
+      AgendaAPI.alerta(ui.status, "Atividade adicionada!", "sucesso");
+      carregarEventos();
+    } catch (err) {
+      AgendaAPI.alerta(ui.statusModal, "Erro: " + err.message, "erro");
+    } finally {
+      ui.btnSalvar.disabled = false;
+    }
+  });
+
+  ui.diaInteiro.addEventListener("change", () => {
+    document.getElementById("evFim").disabled = ui.diaInteiro.checked;
+    document.getElementById("evLembrete").disabled = ui.diaInteiro.checked;
+  });
+
+  ui.btnNova.addEventListener("click", () => abrirNovoEvento());
+  ui.btnLimpar.addEventListener("click", () => {
+    diaFiltro = null;
+    renderMiniCalendario();
+    renderLista();
+  });
+
+  ui.btnMesAnt.addEventListener("click", () => {
+    mesAtual.setMonth(mesAtual.getMonth() - 1);
+    diaFiltro = null;
     carregarEventos();
-  } catch (err) {
-    AgendaAPI.alerta(ui.statusModal, "Erro: " + err.message, "erro");
-  } finally {
-    ui.btnSalvar.disabled = false;
-  }
-});
+  });
 
-ui.diaInteiro.addEventListener("change", () => {
-  document.getElementById("evFim").disabled = ui.diaInteiro.checked;
-  document.getElementById("evLembrete").disabled = ui.diaInteiro.checked;
-});
+  ui.btnMesProx.addEventListener("click", () => {
+    mesAtual.setMonth(mesAtual.getMonth() + 1);
+    diaFiltro = null;
+    carregarEventos();
+  });
 
-ui.btnNova.addEventListener("click", () => abrirNovoEvento());
-ui.btnLimpar.addEventListener("click", () => {
-  diaFiltro = null;
-  renderMiniCalendario();
-  renderLista();
-});
+  ui.btnSelMes.addEventListener("click", abrirSeletorMes);
+  ui.btnSelAno.addEventListener("click", abrirSeletorAno);
+  ui.pickerFechar.addEventListener("click", fecharPicker);
+  ui.pickerBackdrop.addEventListener("click", fecharPicker);
 
-ui.btnMesAnt.addEventListener("click", () => {
-  mesAtual.setMonth(mesAtual.getMonth() - 1);
-  diaFiltro = null;
-  carregarEventos();
-});
-
-ui.btnMesProx.addEventListener("click", () => {
-  mesAtual.setMonth(mesAtual.getMonth() + 1);
-  diaFiltro = null;
-  carregarEventos();
-});
-
-ui.btnSelMes.addEventListener("click", abrirSeletorMes);
-ui.btnSelAno.addEventListener("click", abrirSeletorAno);
-ui.pickerFechar.addEventListener("click", fecharPicker);
-ui.pickerBackdrop.addEventListener("click", fecharPicker);
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !ui.picker.classList.contains("d-none")) {
-    fecharPicker();
-  }
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-  modalEvento = new bootstrap.Modal(document.getElementById("modalEvento"));
   atualizarTituloHeader();
   carregarEventos();
+}
+
+AUTH.exigir();
+document.addEventListener("DOMContentLoaded", initAgenda);
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && ui.picker && !ui.picker.classList.contains("d-none")) {
+    fecharPicker();
+  }
 });
