@@ -84,6 +84,12 @@ window.addEventListener("popstate", (e) => {
   carregarPagina(e.state?.p || paginaDaUrl());
 });
 
+window.addEventListener("message", (event) => {
+  if (event.data && event.data.tipo === "eleicao-nav" && event.data.pagina) {
+    carregarPagina(event.data.pagina);
+  }
+});
+
 window.addEventListener("resize", () => {
   ajustarAlturaFrame();
 });

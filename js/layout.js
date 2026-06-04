@@ -1,35 +1,46 @@
 // Sidebar esquerda — links abrem HTMLs no iframe #appFrame (principal.html).
 
 window.LAYOUT = {
-  MENU: [
-    { id: "inicio", label: "início" },
-    { id: "dashboard", label: "projeções" },
-    { id: "agenda", label: "agenda" },
-    { id: "registros", label: "registros" },
-    { id: "planilhas", label: "planilhas" },
-  ],
+  getMenu() {
+    return window.APP_MENU || [];
+  },
+
+  icone(id) {
+    return (window.APP_ICON_SVG && window.APP_ICON_SVG[id]) || "";
+  },
 
   montarSidebar(paginaAtiva) {
-    const links = this.MENU.map((item) => {
-      const active = item.id === paginaAtiva ? " active" : "";
-      const aria = item.id === paginaAtiva ? ' aria-current="page"' : "";
-      return (
-        '<a href="#" class="app-sidebar-link' +
-        active +
-        '" data-pagina="' +
-        item.id +
-        '"' +
-        aria +
-        ">" +
-        item.label +
-        "</a>"
-      );
-    }).join("");
+    const links = this.getMenu()
+      .map((item) => {
+        const active = item.id === paginaAtiva ? " active" : "";
+        const aria = item.id === paginaAtiva ? ' aria-current="page"' : "";
+        return (
+          '<a href="#" class="app-sidebar-link' +
+          active +
+          '" data-pagina="' +
+          item.id +
+          '"' +
+          aria +
+          ">" +
+          '<span class="sidebar-icone" aria-hidden="true">' +
+          this.icone(item.id) +
+          "</span>" +
+          '<span class="app-sidebar-texto">' +
+          item.label +
+          "</span>" +
+          "</a>"
+        );
+      })
+      .join("");
 
     return (
       '<div class="app-sidebar-inner">' +
       '<div class="app-sidebar-brand">' +
-      '<a href="#" class="app-sidebar-title" data-pagina="inicio">Eleição 2026</a>' +
+      '<a href="#" class="app-sidebar-title" data-pagina="inicio">' +
+      '<span class="sidebar-icone" aria-hidden="true">' +
+      this.icone("inicio") +
+      "</span>" +
+      "<span>Eleição 2026</span></a>" +
       '<span class="app-sidebar-sub">campanha Dr. Eugênio</span>' +
       "</div>" +
       '<nav class="app-sidebar-nav" aria-label="Menu principal">' +

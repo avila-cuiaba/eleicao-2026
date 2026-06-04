@@ -67,7 +67,9 @@
 }
 
 .app-sidebar-title {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: #fff;
   font-weight: 700;
   font-size: 1.1rem;
@@ -94,13 +96,42 @@
 }
 
 .app-sidebar-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 10px 14px;
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
   font-size: 0.95rem;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+.app-sidebar-texto {
+  line-height: 1.2;
+}
+
+.sidebar-icone {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: rgba(255, 255, 255, 0.82);
+  background: none;
+  border-radius: 0;
+}
+
+.sidebar-icone svg {
+  width: 20px;
+  height: 20px;
+}
+
+.app-sidebar-link:hover .sidebar-icone,
+.app-sidebar-link.active .sidebar-icone,
+.app-sidebar-title:hover .sidebar-icone {
+  color: #fff;
 }
 
 .app-sidebar-link:hover {
@@ -262,6 +293,164 @@
 .home-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 0.5rem 1rem rgba(31, 78, 140, 0.12) !important;
+}
+
+.home-atalhos {
+  text-align: center;
+}
+
+/* Atalhos: ícone + texto, sem card */
+.home-atalho {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  text-decoration: none;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  height: 100%;
+}
+
+.home-atalho:hover {
+  transform: translateY(-2px);
+  opacity: 0.92;
+}
+
+.home-atalho-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
+.home-atalho-icone svg {
+  width: 32px;
+  height: 32px;
+}
+
+.home-atalho-texto {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.home-atalho-projecoes .home-atalho-icone {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+}
+
+.home-atalho-agenda .home-atalho-icone {
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: #fff;
+}
+
+.home-atalho-registros .home-atalho-icone {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: #fff;
+}
+
+.home-atalho-planilhas .home-atalho-icone {
+  background: linear-gradient(135deg, #a855f7, #c084fc);
+  color: #fff;
+}
+
+/* KPIs: municípios à esquerda; população + eleitores à direita */
+.home-kpi-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 10px;
+  min-height: 280px;
+}
+
+.home-kpi-col-esq {
+  flex: 1.45;
+  min-width: 46%;
+  display: flex;
+  align-items: center;
+}
+
+.home-kpi-col-dir {
+  flex: 0.85;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-kpi-card .card-body {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.home-kpi-titulo {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.home-kpi-ilustra {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+}
+
+.home-kpi-ilustra svg {
+  width: 38px;
+  height: 38px;
+}
+
+.home-kpi-ilustra-municipios {
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.15), rgba(129, 140, 248, 0.08));
+  color: #6366f1;
+}
+
+.home-kpi-ilustra-populacao {
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.14), rgba(253, 164, 175, 0.08));
+  color: #f43f5e;
+}
+
+.home-kpi-ilustra-eleitores {
+  background: linear-gradient(145deg, rgba(20, 184, 166, 0.14), rgba(94, 234, 212, 0.08));
+  color: #14b8a6;
+}
+
+.home-kpi-valor {
+  font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #1e293b;
+}
+
+@media (max-width: 575.98px) {
+  .home-kpi-layout {
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .home-kpi-col-esq {
+    align-items: stretch;
+  }
+
+  .home-kpi-col-dir {
+    flex-direction: row;
+  }
+
+  .home-kpi-col-dir .home-kpi-card {
+    flex: 1;
+  }
+}
+
+.grafico-inicio {
+  height: 100%;
+  min-height: 280px;
 }
 
 .letter-spacing {
