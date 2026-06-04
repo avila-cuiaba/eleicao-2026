@@ -1129,14 +1129,48 @@
     grid-row: 2;
   }
 
+  .dashboard-kpi-votacao-titulo {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-top: 0.1rem;
+    margin-bottom: 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .dashboard-kpi-votacao-badge {
+    display: inline-block;
+    padding: 0.28rem 0.72rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #334155;
+    background: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    transform: translateY(45%);
+    position: relative;
+    z-index: 2;
+  }
+
+  .dashboard-kpi-minima,
+  .dashboard-kpi-ideal {
+    position: relative;
+    z-index: 1;
+  }
+
   .dashboard-kpi-minima {
     grid-column: 1 / span 6;
-    grid-row: 3;
+    grid-row: 4;
   }
 
   .dashboard-kpi-ideal {
     grid-column: 7 / span 6;
-    grid-row: 3;
+    grid-row: 4;
   }
 }
 
@@ -1421,7 +1455,7 @@
   }
 
   .dashboard-col-municipio {
-    width: 34%;
+    width: 50%;
   }
 
   .dashboard-col-eleitores {
@@ -1429,7 +1463,7 @@
   }
 
   .dashboard-col-2022 {
-    width: 18%;
+    width: 15%;
   }
 
   .dashboard-municipio-eleitores {
@@ -1439,7 +1473,7 @@
 
   .dashboard-col-minima,
   .dashboard-col-ideal {
-    width: 24%;
+    width: 15%;
   }
 
   .dashboard-tabela td.dashboard-col-minima,
