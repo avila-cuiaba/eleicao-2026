@@ -283,7 +283,14 @@ function ajustarFramePai() {
   if (window.parent && window.parent.ajustarAlturaFrame) {
     setTimeout(() => window.parent.ajustarAlturaFrame(), 150);
   }
+  if (chartInicio) {
+    setTimeout(() => chartInicio.resize(), 180);
+  }
 }
+
+window.addEventListener("resize", () => {
+  if (chartInicio) chartInicio.resize();
+});
 
 async function carregarInicio() {
   if (!CONFIG.WEB_APP_URL || CONFIG.WEB_APP_URL.startsWith("COLE_AQUI")) {
