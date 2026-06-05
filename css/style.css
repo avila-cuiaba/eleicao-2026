@@ -494,8 +494,7 @@ body.page-dashboard .dashboard-tabela-panel {
 .home-kpi-titulo {
   font-size: 0.72rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
   color: #64748b;
 }
 
@@ -706,6 +705,10 @@ body.page-dashboard .dashboard-tabela-panel {
   .home-kpi-col-dir .home-kpi-card {
     flex: 1;
   }
+}
+
+.page-inicio-topo {
+  margin-top: -0.25rem;
 }
 
 .grafico-inicio {

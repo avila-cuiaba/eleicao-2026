@@ -15,50 +15,257 @@ const INICIO = {
 };
 
 let chartInicio = null;
-let animTrofeuId = null;
+let animBarraId = null;
+let animFogosId = null;
+let fogosParticulas = [];
+let ultimosValoresPlanilha = null;
 const fmt = new Intl.NumberFormat("pt-BR");
 
-function pararAnimTrofeu() {
-  if (animTrofeuId) {
-    cancelAnimationFrame(animTrofeuId);
-    animTrofeuId = null;
+const FASE_DESTAQUE = {
+  AGUARDANDO: "aguardando",
+  FOGOS: "fogos",
+  PAUSA: "pausa",
+};
+
+const BARRA_DURACAO_MS = 2800;
+const FOGO_PERMANENCIA_MS = 5000;
+const FOGO_DELAY_REINICIO_MS = 10000;
+const FOGO_INTERVALO_BURST_MS = 900;
+
+function pararAnimBarra() {
+  if (animBarraId) {
+    cancelAnimationFrame(animBarraId);
+    animBarraId = null;
   }
 }
 
-function iniciarAnimTrofeu(chart) {
-  pararAnimTrofeu();
-  if (indiceAnoDestaque(chart) < 0) return;
+function pararAnimFogos() {
+  if (animFogosId) {
+    cancelAnimationFrame(animFogosId);
+    animFogosId = null;
+  }
+  fogosParticulas = [];
+}
 
-  const loop = () => {
+function pararAnimacoesGrafico() {
+  pararAnimBarra();
+  pararAnimFogos();
+}
+
+function setFaseDestaque(chart, fase) {
+  if (chart?.options?.plugins) {
+    chart.options.plugins.faseDestaque = fase;
+  }
+}
+
+function criarParticulasFogos(x, y) {
+  const cores = ["#f59e0b", "#ef4444", "#a855f7", "#14b8a6", "#f472b6", "#fbbf24", "#38bdf8"];
+  const particulas = [];
+  for (let burst = 0; burst < 4; burst++) {
+    const angBase = (burst / 4) * Math.PI * 2 + Math.random() * 0.4;
+    for (let i = 0; i < 18; i++) {
+      const ang = angBase + (i / 18) * Math.PI * 2;
+      const vel = 1.8 + Math.random() * 3.8;
+      particulas.push({
+        x,
+        y,
+        vx: Math.cos(ang) * vel,
+        vy: Math.sin(ang) * vel - 1.2,
+        life: 1,
+        decay: 0.012 + Math.random() * 0.018,
+        cor: cores[Math.floor(Math.random() * cores.length)],
+        radius: 1.5 + Math.random() * 2.5,
+      });
+    }
+  }
+  return particulas;
+}
+
+function atualizarParticulasFogos() {
+  let vivas = 0;
+  fogosParticulas.forEach((p) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.06;
+    p.life -= p.decay;
+    if (p.life > 0) vivas++;
+  });
+  return vivas > 0;
+}
+
+function desenharFogos(ctx, chart) {
+  if (!fogosParticulas.length) return;
+
+  ctx.save();
+  fogosParticulas.forEach((p) => {
+    if (p.life <= 0) return;
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.cor;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowColor = p.cor;
+    ctx.shadowBlur = 6;
+  });
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function valorFinalColuna2026(chart) {
+  const idx = indiceAnoDestaque(chart);
+  if (idx < 0) return 0;
+  const salvo = chart.config.options.plugins?.valorDestaque2026;
+  if (salvo != null) return Number(salvo) || 0;
+  return Number(chart.data.datasets[0].data[idx]) || 0;
+}
+
+function animarCrescimentoColuna2026(chart, valorFinal) {
+  pararAnimBarra();
+  setFaseDestaque(chart, FASE_DESTAQUE.AGUARDANDO);
+
+  const idx = indiceAnoDestaque(chart);
+  if (idx < 0) return;
+
+  const alvo = Number(valorFinal) || 0;
+  if (chart.options?.plugins) {
+    chart.options.plugins.valorDestaque2026 = alvo;
+  }
+  chart.data.datasets[0].data[idx] = 0;
+  chart.update("none");
+
+  const duracao = BARRA_DURACAO_MS;
+  const t0 = performance.now();
+
+  const passo = (agora) => {
     if (!chartInicio || chartInicio !== chart) {
-      pararAnimTrofeu();
+      pararAnimBarra();
       return;
     }
-    chart.draw();
-    animTrofeuId = requestAnimationFrame(loop);
+
+    const t = Math.min(1, (agora - t0) / duracao);
+    const ease = 1 - Math.pow(1 - t, 3);
+    chart.data.datasets[0].data[idx] = alvo * ease;
+    chart.update("none");
+
+    if (t < 1) {
+      animBarraId = requestAnimationFrame(passo);
+      return;
+    }
+
+    animBarraId = null;
+    chart.data.datasets[0].data[idx] = alvo;
+    chart.update("none");
+    iniciarAnimFogos(chart);
   };
-  animTrofeuId = requestAnimationFrame(loop);
+
+  animBarraId = requestAnimationFrame(passo);
+}
+
+function dispararBurstFogos(chart, idx) {
+  const bar = chart.getDatasetMeta(0)?.data[idx];
+  if (!bar) return;
+  fogosParticulas = fogosParticulas.concat(
+    criarParticulasFogos(bar.x, bar.y - 8)
+  );
+}
+
+function iniciarAnimFogos(chart) {
+  pararAnimFogos();
+
+  const idx = indiceAnoDestaque(chart);
+  if (idx < 0) return;
+
+  const bar = chart.getDatasetMeta(0)?.data[idx];
+  if (!bar) return;
+
+  fogosParticulas = [];
+  setFaseDestaque(chart, FASE_DESTAQUE.FOGOS);
+  dispararBurstFogos(chart, idx);
+
+  const t0 = performance.now();
+  let proximoBurstEm = FOGO_INTERVALO_BURST_MS;
+
+  const passo = (agora) => {
+    if (!chartInicio || chartInicio !== chart) {
+      pararAnimFogos();
+      return;
+    }
+
+    const tempo = agora - t0;
+
+    while (tempo >= proximoBurstEm && proximoBurstEm < FOGO_PERMANENCIA_MS) {
+      dispararBurstFogos(chart, idx);
+      proximoBurstEm += FOGO_INTERVALO_BURST_MS;
+    }
+
+    atualizarParticulasFogos();
+    chart.draw();
+
+    if (tempo < FOGO_PERMANENCIA_MS) {
+      animFogosId = requestAnimationFrame(passo);
+      return;
+    }
+
+    animFogosId = null;
+    fogosParticulas = [];
+    iniciarPausaReinicio(chart);
+  };
+
+  animFogosId = requestAnimationFrame(passo);
+}
+
+function iniciarPausaReinicio(chart) {
+  setFaseDestaque(chart, FASE_DESTAQUE.PAUSA);
+
+  const t0 = performance.now();
+
+  const passo = (agora) => {
+    if (!chartInicio || chartInicio !== chart) {
+      pararAnimFogos();
+      return;
+    }
+
+    chart.draw();
+
+    if (agora - t0 < FOGO_DELAY_REINICIO_MS) {
+      animFogosId = requestAnimationFrame(passo);
+      return;
+    }
+
+    animFogosId = null;
+    animarCrescimentoColuna2026(chart, valorFinalColuna2026(chart));
+  };
+
+  animFogosId = requestAnimationFrame(passo);
+}
+
+function desenharValorETrofeu2026(ctx, bar, val) {
+  const xCentro = bar.x;
+  const textoValor = fmt.format(val);
+  const trofeu = "🏆";
+
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+
+  const yValor = bar.y - 12;
+  ctx.font = "800 22px system-ui, -apple-system, Segoe UI, sans-serif";
+  ctx.fillStyle = "#1e293b";
+  ctx.fillText(textoValor, xCentro, yValor);
+
+  const alturaValor = 24;
+  const espacoTrofeuValor = 10;
+  const yTrofeu = yValor - alturaValor - espacoTrofeuValor;
+  ctx.font = "32px system-ui, emoji, Segoe UI Emoji, sans-serif";
+  ctx.fillText(trofeu, xCentro, yTrofeu);
+  ctx.restore();
 }
 
 function indiceAnoDestaque(chart) {
   const alvo = chart.config.options.plugins?.anoDestaque || INICIO.ANO_DESTAQUE;
   const labels = chart.data.labels || [];
   return labels.findIndex((l) => String(l).trim() === alvo);
-}
-
-function desenharRetanguloArredondado(ctx, x, y, w, h, r) {
-  const raio = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + raio, y);
-  ctx.lineTo(x + w - raio, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + raio);
-  ctx.lineTo(x + w, y + h - raio);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - raio, y + h);
-  ctx.lineTo(x + raio, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - raio);
-  ctx.lineTo(x, y + raio);
-  ctx.quadraticCurveTo(x, y, x + raio, y);
-  ctx.closePath();
 }
 
 const pluginValoresAcima = {
@@ -78,8 +285,17 @@ const pluginValoresAcima = {
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
 
+    const fase = chart.config.options.plugins?.faseDestaque;
+
     barMeta.data.forEach((bar, i) => {
-      if (i === idxDestaque) return;
+      if (
+        i === idxDestaque &&
+        (fase === FASE_DESTAQUE.AGUARDANDO ||
+          fase === FASE_DESTAQUE.FOGOS ||
+          fase === FASE_DESTAQUE.PAUSA)
+      ) {
+        return;
+      }
       const val = valores[i];
       if (val == null) return;
       const texto = fmt.format(val) + sufixo;
@@ -92,6 +308,7 @@ const pluginValoresAcima = {
 const pluginDestaqueVitoria2026 = {
   id: "destaqueVitoria2026",
   afterDatasetsDraw(chart) {
+    const fase = chart.config.options.plugins?.faseDestaque;
     const idx = indiceAnoDestaque(chart);
     if (idx < 0) return;
 
@@ -99,53 +316,18 @@ const pluginDestaqueVitoria2026 = {
     const bar = barMeta?.data[idx];
     if (!bar) return;
 
-    const val = chart.data.datasets[0].data[idx];
-    if (val == null) return;
-
     const { ctx } = chart;
-    const textoValor = fmt.format(val);
-    const trofeu = "🏆";
-    const xCentro = bar.x;
 
-    const padX = 10;
-    const badgeAltura = 22;
-    const gapBarra = 10;
-    const alturaBarra = bar.height || 0;
+    if (fase === FASE_DESTAQUE.FOGOS) {
+      desenharFogos(ctx, chart);
+    }
 
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    const blink = 0.5 + 0.5 * Math.sin(performance.now() / 380);
-    const yTrofeu = bar.y + alturaBarra * 0.3;
-    ctx.font = "36px system-ui, emoji, Segoe UI Emoji, sans-serif";
-    ctx.fillStyle = "#ffffff";
-    ctx.shadowColor = "rgba(15, 118, 110, 0.5)";
-    ctx.shadowBlur = 6;
-    ctx.globalAlpha = blink;
-    ctx.fillText(trofeu, xCentro, yTrofeu);
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
-
-    ctx.font = "700 12px system-ui, -apple-system, Segoe UI, sans-serif";
-    const valorLargura = ctx.measureText(textoValor).width;
-    const badgeLargura = valorLargura + padX * 2;
-    const yBadge = bar.y - gapBarra - badgeAltura;
-
-    ctx.fillStyle = "rgba(94, 234, 212, 0.5)";
-    desenharRetanguloArredondado(
-      ctx,
-      xCentro - badgeLargura / 2,
-      yBadge,
-      badgeLargura,
-      badgeAltura,
-      10
-    );
-    ctx.fill();
-
-    ctx.fillStyle = "#0f766e";
-    ctx.fillText(textoValor, xCentro, yBadge + badgeAltura / 2);
-    ctx.restore();
+    if (fase === FASE_DESTAQUE.FOGOS || fase === FASE_DESTAQUE.PAUSA) {
+      const val = chart.data.datasets[0].data[idx];
+      if (val != null) {
+        desenharValorETrofeu2026(ctx, bar, val);
+      }
+    }
   },
 };
 
@@ -250,15 +432,20 @@ function coresBarras(ctx, chartArea, qtd) {
   });
 }
 
-function montarGraficoVotos(rotulos, dados) {
+function montarGraficoVotos(rotulos, dados, animarColuna2026) {
   const canvas = document.getElementById("graficoInicioVotos");
   if (!canvas) return;
 
-  pararAnimTrofeu();
+  pararAnimacoesGrafico();
   if (chartInicio) chartInicio.destroy();
 
   const maxVotos = Math.max(...dados, 0);
   const idx2026 = rotulos.findIndex((r) => r === INICIO.ANO_DESTAQUE);
+  const deveAnimar = animarColuna2026 && idx2026 >= 0;
+  const dadosExibidos = [...dados];
+  const valorFinal2026 = idx2026 >= 0 ? dados[idx2026] : 0;
+
+  if (deveAnimar) dadosExibidos[idx2026] = 0;
 
   chartInicio = new Chart(canvas, {
     type: "bar",
@@ -267,7 +454,7 @@ function montarGraficoVotos(rotulos, dados) {
       datasets: [
         {
           label: "Votos",
-          data: dados,
+          data: dadosExibidos,
           backgroundColor(context) {
             const { chart } = context;
             const { ctx, chartArea } = chart;
@@ -284,9 +471,13 @@ function montarGraficoVotos(rotulos, dados) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: idx2026 >= 0 ? 40 : 28 } },
+      layout: { padding: { top: idx2026 >= 0 ? 68 : 28 } },
+      animation: false,
       plugins: {
         anoDestaque: INICIO.ANO_DESTAQUE,
+        faseDestaque: deveAnimar ? FASE_DESTAQUE.AGUARDANDO : null,
+        valorDestaque2026: valorFinal2026,
+        loopAnimacaoGrafico: deveAnimar,
         valoresAcimaSufixo: "",
         legend: { display: false },
         tooltip: {
@@ -329,12 +520,14 @@ function montarGraficoVotos(rotulos, dados) {
     },
   });
 
-  if (idx2026 >= 0) iniciarAnimTrofeu(chartInicio);
+  if (deveAnimar) {
+    animarCrescimentoColuna2026(chartInicio, valorFinal2026);
+  }
 }
 
-function montarGraficos(valores) {
+function montarGraficos(valores, animarColuna2026) {
   const { rotulos, dados } = extrairDadosVotos(valores);
-  montarGraficoVotos(rotulos, dados);
+  montarGraficoVotos(rotulos, dados, animarColuna2026 !== false);
 }
 
 function ajustarFramePai() {
@@ -350,13 +543,16 @@ window.addEventListener("resize", () => {
   if (chartInicio) chartInicio.resize();
 });
 
-window.addEventListener("beforeunload", pararAnimTrofeu);
+window.addEventListener("beforeunload", pararAnimacoesGrafico);
 
-async function carregarInicio() {
+async function carregarInicio(animarGrafico) {
   if (!CONFIG.WEB_APP_URL || CONFIG.WEB_APP_URL.startsWith("COLE_AQUI")) {
     mostrarStatus("Configure a URL do Web App em js/config.js.", "erro");
     return;
   }
+
+  const btn = document.getElementById("btnAtualizarInicio");
+  if (btn) btn.disabled = true;
 
   mostrarStatus("Carregando dados...", "carregando");
 
@@ -369,15 +565,23 @@ async function carregarInicio() {
     const valores = json.valores || [];
     if (!valores.length) throw new Error("Planilha mapa-voto sem dados.");
 
+    ultimosValoresPlanilha = valores;
     preencherKpis(valores);
-    montarGraficos(valores);
+    montarGraficos(valores, animarGrafico !== false);
     mostrarStatus("", null);
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
   } finally {
+    if (btn) btn.disabled = false;
     ajustarFramePai();
   }
 }
 
+function initInicio() {
+  const btn = document.getElementById("btnAtualizarInicio");
+  btn?.addEventListener("click", () => carregarInicio(true));
+  carregarInicio(true);
+}
+
 AUTH.exigir();
-document.addEventListener("DOMContentLoaded", carregarInicio);
+document.addEventListener("DOMContentLoaded", initInicio);
