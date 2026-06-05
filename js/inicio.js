@@ -16,21 +16,18 @@ const INICIO = {
 
 let chartInicio = null;
 let animBarraId = null;
-let animFogosId = null;
-let fogosParticulas = [];
+let animCicloId = null;
 let ultimosValoresPlanilha = null;
 const fmt = new Intl.NumberFormat("pt-BR");
 
 const FASE_DESTAQUE = {
   AGUARDANDO: "aguardando",
-  FOGOS: "fogos",
-  PAUSA: "pausa",
+  OBJETIVO: "objetivo",
 };
 
 const BARRA_DURACAO_MS = 2800;
-const FOGO_PERMANENCIA_MS = 5000;
-const FOGO_DELAY_REINICIO_MS = 10000;
-const FOGO_INTERVALO_BURST_MS = 900;
+const OBJETIVO_EXIBICAO_MS = 10000;
+const OBJETIVO_PISCAR_MS = 5000;
 
 function pararAnimBarra() {
   if (animBarraId) {
@@ -39,77 +36,22 @@ function pararAnimBarra() {
   }
 }
 
-function pararAnimFogos() {
-  if (animFogosId) {
-    cancelAnimationFrame(animFogosId);
-    animFogosId = null;
+function pararAnimCiclo() {
+  if (animCicloId) {
+    cancelAnimationFrame(animCicloId);
+    animCicloId = null;
   }
-  fogosParticulas = [];
 }
 
 function pararAnimacoesGrafico() {
   pararAnimBarra();
-  pararAnimFogos();
+  pararAnimCiclo();
 }
 
 function setFaseDestaque(chart, fase) {
   if (chart?.options?.plugins) {
     chart.options.plugins.faseDestaque = fase;
   }
-}
-
-function criarParticulasFogos(x, y) {
-  const cores = ["#f59e0b", "#ef4444", "#a855f7", "#14b8a6", "#f472b6", "#fbbf24", "#38bdf8"];
-  const particulas = [];
-  for (let burst = 0; burst < 4; burst++) {
-    const angBase = (burst / 4) * Math.PI * 2 + Math.random() * 0.4;
-    for (let i = 0; i < 18; i++) {
-      const ang = angBase + (i / 18) * Math.PI * 2;
-      const vel = 1.8 + Math.random() * 3.8;
-      particulas.push({
-        x,
-        y,
-        vx: Math.cos(ang) * vel,
-        vy: Math.sin(ang) * vel - 1.2,
-        life: 1,
-        decay: 0.012 + Math.random() * 0.018,
-        cor: cores[Math.floor(Math.random() * cores.length)],
-        radius: 1.5 + Math.random() * 2.5,
-      });
-    }
-  }
-  return particulas;
-}
-
-function atualizarParticulasFogos() {
-  let vivas = 0;
-  fogosParticulas.forEach((p) => {
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.06;
-    p.life -= p.decay;
-    if (p.life > 0) vivas++;
-  });
-  return vivas > 0;
-}
-
-function desenharFogos(ctx, chart) {
-  if (!fogosParticulas.length) return;
-
-  ctx.save();
-  fogosParticulas.forEach((p) => {
-    if (p.life <= 0) return;
-    ctx.globalAlpha = Math.max(0, p.life);
-    ctx.fillStyle = p.cor;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowColor = p.cor;
-    ctx.shadowBlur = 6;
-  });
-  ctx.shadowBlur = 0;
-  ctx.globalAlpha = 1;
-  ctx.restore();
 }
 
 function valorFinalColuna2026(chart) {
@@ -156,110 +98,68 @@ function animarCrescimentoColuna2026(chart, valorFinal) {
     animBarraId = null;
     chart.data.datasets[0].data[idx] = alvo;
     chart.update("none");
-    iniciarAnimFogos(chart);
+    iniciarExibicaoObjetivo(chart);
   };
 
   animBarraId = requestAnimationFrame(passo);
 }
 
-function dispararBurstFogos(chart, idx) {
-  const bar = chart.getDatasetMeta(0)?.data[idx];
-  if (!bar) return;
-  fogosParticulas = fogosParticulas.concat(
-    criarParticulasFogos(bar.x, bar.y - 8)
-  );
-}
-
-function iniciarAnimFogos(chart) {
-  pararAnimFogos();
-
-  const idx = indiceAnoDestaque(chart);
-  if (idx < 0) return;
-
-  const bar = chart.getDatasetMeta(0)?.data[idx];
-  if (!bar) return;
-
-  fogosParticulas = [];
-  setFaseDestaque(chart, FASE_DESTAQUE.FOGOS);
-  dispararBurstFogos(chart, idx);
+function iniciarExibicaoObjetivo(chart) {
+  pararAnimCiclo();
+  setFaseDestaque(chart, FASE_DESTAQUE.OBJETIVO);
 
   const t0 = performance.now();
-  let proximoBurstEm = FOGO_INTERVALO_BURST_MS;
+  if (chart.options?.plugins) {
+    chart.options.plugins.objetivoInicioEm = t0;
+  }
 
   const passo = (agora) => {
     if (!chartInicio || chartInicio !== chart) {
-      pararAnimFogos();
-      return;
-    }
-
-    const tempo = agora - t0;
-
-    while (tempo >= proximoBurstEm && proximoBurstEm < FOGO_PERMANENCIA_MS) {
-      dispararBurstFogos(chart, idx);
-      proximoBurstEm += FOGO_INTERVALO_BURST_MS;
-    }
-
-    atualizarParticulasFogos();
-    chart.draw();
-
-    if (tempo < FOGO_PERMANENCIA_MS) {
-      animFogosId = requestAnimationFrame(passo);
-      return;
-    }
-
-    animFogosId = null;
-    fogosParticulas = [];
-    iniciarPausaReinicio(chart);
-  };
-
-  animFogosId = requestAnimationFrame(passo);
-}
-
-function iniciarPausaReinicio(chart) {
-  setFaseDestaque(chart, FASE_DESTAQUE.PAUSA);
-
-  const t0 = performance.now();
-
-  const passo = (agora) => {
-    if (!chartInicio || chartInicio !== chart) {
-      pararAnimFogos();
+      pararAnimCiclo();
       return;
     }
 
     chart.draw();
 
-    if (agora - t0 < FOGO_DELAY_REINICIO_MS) {
-      animFogosId = requestAnimationFrame(passo);
+    if (agora - t0 < OBJETIVO_EXIBICAO_MS) {
+      animCicloId = requestAnimationFrame(passo);
       return;
     }
 
-    animFogosId = null;
+    animCicloId = null;
     animarCrescimentoColuna2026(chart, valorFinalColuna2026(chart));
   };
 
-  animFogosId = requestAnimationFrame(passo);
+  animCicloId = requestAnimationFrame(passo);
 }
 
-function desenharValorETrofeu2026(ctx, bar, val) {
-  const xCentro = bar.x;
+function desenharValorObjetivo2026(ctx, bar, val, tempoDesdeInicio) {
   const textoValor = fmt.format(val);
-  const trofeu = "🏆";
+  const emoji = "🎯";
+  const gapBarra = 4;
+  const yValor = bar.y - gapBarra;
+  const gapEmojiValor = 4;
+  const alturaValor = 22;
+  const fonteValor = "800 22px system-ui, -apple-system, Segoe UI, sans-serif";
+  const fonteEmoji = "36px system-ui, emoji, Segoe UI Emoji, sans-serif";
 
   ctx.save();
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
 
-  const gapBarra = 4;
-  const yValor = bar.y - gapBarra;
-  ctx.font = "800 22px system-ui, -apple-system, Segoe UI, sans-serif";
-  ctx.fillStyle = "#1e293b";
-  ctx.fillText(textoValor, xCentro, yValor);
+  const yEmoji = yValor - alturaValor - gapEmojiValor;
+  ctx.font = fonteEmoji;
+  ctx.fillText(emoji, bar.x, yEmoji);
 
-  const alturaValor = 20;
-  const espacoTrofeuValor = 2;
-  const yTrofeu = yValor - alturaValor - espacoTrofeuValor;
-  ctx.font = "32px system-ui, emoji, Segoe UI Emoji, sans-serif";
-  ctx.fillText(trofeu, xCentro, yTrofeu);
+  let alphaValor = 1;
+  if (tempoDesdeInicio < OBJETIVO_PISCAR_MS) {
+    alphaValor = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(performance.now() / 300));
+  }
+
+  ctx.font = fonteValor;
+  ctx.fillStyle = "#1e293b";
+  ctx.globalAlpha = alphaValor;
+  ctx.fillText(textoValor, bar.x, yValor);
   ctx.restore();
 }
 
@@ -291,9 +191,7 @@ const pluginValoresAcima = {
     barMeta.data.forEach((bar, i) => {
       if (
         i === idxDestaque &&
-        (fase === FASE_DESTAQUE.AGUARDANDO ||
-          fase === FASE_DESTAQUE.FOGOS ||
-          fase === FASE_DESTAQUE.PAUSA)
+        (fase === FASE_DESTAQUE.AGUARDANDO || fase === FASE_DESTAQUE.OBJETIVO)
       ) {
         return;
       }
@@ -306,29 +204,24 @@ const pluginValoresAcima = {
   },
 };
 
-const pluginDestaqueVitoria2026 = {
-  id: "destaqueVitoria2026",
+const pluginDestaqueObjetivo2026 = {
+  id: "destaqueObjetivo2026",
   afterDatasetsDraw(chart) {
     const fase = chart.config.options.plugins?.faseDestaque;
+    if (fase !== FASE_DESTAQUE.OBJETIVO) return;
+
     const idx = indiceAnoDestaque(chart);
     if (idx < 0) return;
 
-    const barMeta = chart.getDatasetMeta(0);
-    const bar = barMeta?.data[idx];
+    const bar = chart.getDatasetMeta(0)?.data[idx];
     if (!bar) return;
 
-    const { ctx } = chart;
+    const val = chart.data.datasets[0].data[idx];
+    if (val == null) return;
 
-    if (fase === FASE_DESTAQUE.FOGOS) {
-      desenharFogos(ctx, chart);
-    }
-
-    if (fase === FASE_DESTAQUE.FOGOS || fase === FASE_DESTAQUE.PAUSA) {
-      const val = chart.data.datasets[0].data[idx];
-      if (val != null) {
-        desenharValorETrofeu2026(ctx, bar, val);
-      }
-    }
+    const inicioEm = chart.config.options.plugins?.objetivoInicioEm ?? performance.now();
+    const tempo = performance.now() - inicioEm;
+    desenharValorObjetivo2026(chart.ctx, bar, val, tempo);
   },
 };
 
@@ -468,11 +361,11 @@ function montarGraficoVotos(rotulos, dados, animarColuna2026) {
         },
       ],
     },
-    plugins: [pluginValoresAcima, pluginDestaqueVitoria2026],
+    plugins: [pluginValoresAcima, pluginDestaqueObjetivo2026],
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: idx2026 >= 0 ? 52 : 28 } },
+      layout: { padding: { top: idx2026 >= 0 ? 58 : 28 } },
       animation: false,
       plugins: {
         anoDestaque: INICIO.ANO_DESTAQUE,
