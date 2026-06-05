@@ -9,7 +9,7 @@ const INICIO = {
   CORES_GRAFICO: [
     { base: "#6366f1", clara: "#a5b4fc" },
     { base: "#1f4e8c", clara: "#93c5fd" },
-    { base: "#14b8a6", clara: "#5eead4" },
+    { base: "#1a6f85", clara: "#7ec8e3" },
   ],
   ANO_DESTAQUE: "2026",
 };
@@ -249,13 +249,14 @@ function desenharValorETrofeu2026(ctx, bar, val) {
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
 
-  const yValor = bar.y - 12;
+  const gapBarra = 4;
+  const yValor = bar.y - gapBarra;
   ctx.font = "800 22px system-ui, -apple-system, Segoe UI, sans-serif";
   ctx.fillStyle = "#1e293b";
   ctx.fillText(textoValor, xCentro, yValor);
 
-  const alturaValor = 24;
-  const espacoTrofeuValor = 10;
+  const alturaValor = 20;
+  const espacoTrofeuValor = 2;
   const yTrofeu = yValor - alturaValor - espacoTrofeuValor;
   ctx.font = "32px system-ui, emoji, Segoe UI Emoji, sans-serif";
   ctx.fillText(trofeu, xCentro, yTrofeu);
@@ -471,7 +472,7 @@ function montarGraficoVotos(rotulos, dados, animarColuna2026) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: idx2026 >= 0 ? 68 : 28 } },
+      layout: { padding: { top: idx2026 >= 0 ? 52 : 28 } },
       animation: false,
       plugins: {
         anoDestaque: INICIO.ANO_DESTAQUE,
