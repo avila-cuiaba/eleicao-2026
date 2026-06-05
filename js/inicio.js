@@ -301,6 +301,134 @@ function escapeHtml(texto) {
     .replace(/"/g, "&quot;");
 }
 
+function normalizarChave(texto) {
+  return String(texto ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function colsVisiveisTabela() {
+  return window.matchMedia("(min-width: 992px)").matches ? 8 : 5;
+}
+
+function indiceCorRegiao(regiaoNorm) {
+  const ordem = CONFIG.DASHBOARD?.ORDEM_REGIOES || [];
+  const i = ordem.indexOf(regiaoNorm);
+  return i === -1 ? 0 : i % 5;
+}
+
+function lerLinhaRegiao(valores, linha1) {
+  const cols = CONFIG.REGISTROS.COLUNAS;
+  return {
+    regiao: String(celula(valores, linha1, cols.REGIAO) ?? "").trim(),
+    municipios: parseNumero(celula(valores, linha1, cols.MUNICIPIOS)),
+    habitantes: parseNumero(celula(valores, linha1, cols.HABITANTES)),
+    eleitores: parseNumero(celula(valores, linha1, cols.ELEITORES)),
+    votos2018: parseNumero(celula(valores, linha1, cols.VOTOS_2018)),
+    votos2022: parseNumero(celula(valores, linha1, cols.VOTOS_2022)),
+    minima: parseNumero(celula(valores, linha1, cols.MINIMA)),
+    ideal: parseNumero(celula(valores, linha1, cols.IDEAL)),
+  };
+}
+
+function extrairLinhasRegiao(valores) {
+  const tab = CONFIG.REGISTROS.TABELA;
+  const itens = [];
+
+  for (let linha = tab.dataInicio; linha <= tab.dataFim; linha++) {
+    const item = lerLinhaRegiao(valores, linha);
+    if (!item.regiao) continue;
+    if (normalizarChave(item.regiao) === "regiao") continue;
+    itens.push({
+      ...item,
+      regiaoNorm: normalizarChave(item.regiao),
+    });
+  }
+
+  return itens;
+}
+
+function renderizarCelulasRegiao(r, opts) {
+  const corIdx = indiceCorRegiao(r.regiaoNorm);
+  const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
+  const mun = fmt.format(r.municipios);
+  const hab = fmt.format(r.habitantes);
+  const eleit = fmt.format(r.eleitores);
+  const v18 = fmt.format(r.votos2018);
+  const v22 = fmt.format(r.votos2022);
+  const min = fmt.format(r.minima);
+  const ideal = fmt.format(r.ideal);
+  const rotuloRegiao = opts?.total ? "total" : escapeHtml(r.regiao);
+
+  return `
+    <td class="registros-col-regiao">
+      <span class="registros-regiao-celula">
+        ${
+          opts?.total
+            ? `<span class="registros-regiao-nome">${rotuloRegiao}</span>`
+            : `<span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
+               <span class="registros-regiao-nome">${rotuloRegiao}</span>`
+        }
+      </span>
+    </td>
+    <td class="text-end registros-col-municipios-mobile registros-only-mobile">${mun}</td>
+    <td class="text-end registros-col-grupo-demografia registros-only-mobile">
+      <span class="registros-celula-stack registros-celula-stack-end">
+        <span class="registros-stack-linha">${hab}</span>
+        <span class="registros-stack-linha">${eleit}</span>
+      </span>
+    </td>
+    <td class="text-end registros-col-municipios registros-only-desktop">${mun}</td>
+    <td class="text-end registros-col-habitantes registros-only-desktop">${hab}</td>
+    <td class="text-end registros-col-eleitores registros-only-desktop">${eleit}</td>
+    <td class="text-end registros-col-grupo-votos registros-only-mobile">
+      <span class="registros-celula-stack registros-celula-stack-end">
+        <span class="registros-stack-linha">${v18}</span>
+        <span class="registros-stack-linha">${v22}</span>
+      </span>
+    </td>
+    <td class="text-end registros-col-v2018 registros-only-desktop">${v18}</td>
+    <td class="text-end registros-col-v2022 registros-only-desktop">${v22}</td>
+    <td class="text-end registros-col-grupo-meta registros-only-mobile">
+      <span class="registros-celula-stack registros-celula-stack-end">
+        <span class="registros-stack-linha registros-val-minima">${min}</span>
+        <span class="registros-stack-linha registros-val-ideal">${ideal}</span>
+      </span>
+    </td>
+    <td class="text-end registros-col-minima registros-only-desktop">${min}</td>
+    <td class="text-end registros-col-ideal registros-only-desktop">${ideal}</td>`;
+}
+
+function renderizarTotalRegiao(valores) {
+  const total = lerLinhaRegiao(valores, CONFIG.REGISTROS.TABELA.totalRow);
+  total.regiaoNorm = "total";
+  return `<tr class="registros-linha-total">${renderizarCelulasRegiao(total, { total: true })}</tr>`;
+}
+
+function montarTabelaRegiao(valores) {
+  const corpo = document.getElementById("corpoTabela");
+  const rodape = document.getElementById("rodapeTabela");
+  const vazio = document.getElementById("vazioTabelaRegiao");
+  if (!corpo) return;
+
+  const linhas = extrairLinhasRegiao(valores);
+  if (vazio) vazio.hidden = true;
+
+  if (!linhas.length) {
+    corpo.innerHTML =
+      `<tr><td colspan="${colsVisiveisTabela()}" class="text-center text-secondary py-4">Nenhum registro na planilha.</td></tr>`;
+    if (rodape) rodape.innerHTML = "";
+    notificarAlturaFrame();
+    return;
+  }
+
+  corpo.innerHTML = linhas.map((r) => `<tr>${renderizarCelulasRegiao(r)}</tr>`).join("");
+  if (rodape) rodape.innerHTML = renderizarTotalRegiao(valores);
+  notificarAlturaFrame();
+}
+
 function extrairDadosVotos(valores) {
   const rotulos = [];
   const dados = [];
@@ -459,9 +587,17 @@ async function carregarInicio(animarGrafico) {
     ultimosValoresPlanilha = valores;
     preencherKpis(valores);
     montarGraficos(valores, animarGrafico !== false);
+    montarTabelaRegiao(valores);
     mostrarStatus("", null);
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
+    const corpo = document.getElementById("corpoTabela");
+    if (corpo) {
+      corpo.innerHTML =
+        `<tr><td colspan="${colsVisiveisTabela()}" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>`;
+      const rodape = document.getElementById("rodapeTabela");
+      if (rodape) rodape.innerHTML = "";
+    }
   } finally {
     ajustarFramePai();
   }

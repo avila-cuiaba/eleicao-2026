@@ -35,8 +35,14 @@
 }
 
 /* Layout com sidebar à esquerda */
+html {
+  height: 100%;
+}
+
 .app-shell {
-  min-height: 100vh;
+  min-height: 100%;
+  min-height: 100dvh;
+  height: 100%;
 }
 
 .app-sidebar {
@@ -128,6 +134,49 @@
   height: 20px;
 }
 
+.app-icone--svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-header-title,
+[data-titulo-pagina] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.app-header-title .app-titulo-icone,
+[data-titulo-pagina] .app-titulo-icone {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.app-header-title .app-titulo-icone {
+  color: var(--brand);
+}
+
+[data-titulo-pagina] .app-titulo-icone {
+  color: currentColor;
+}
+
+.app-header-title .app-titulo-icone svg {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+[data-titulo-pagina] .app-titulo-icone svg {
+  width: 1em;
+  height: 1em;
+}
+
+.app-header-title .app-titulo-texto,
+[data-titulo-pagina] .app-titulo-texto {
+  line-height: 1.2;
+}
+
 .app-sidebar-link:hover .sidebar-icone,
 .app-sidebar-link.active .sidebar-icone,
 .app-sidebar-title:hover .sidebar-icone {
@@ -159,13 +208,16 @@
 }
 
 .app-content {
-  min-height: 100vh;
+  min-height: 100%;
+  min-height: 100dvh;
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
 
 .app-header {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -239,17 +291,10 @@
 .app-frame {
   display: block;
   width: 100%;
-  min-height: 480px;
+  flex: 1 1 auto;
+  min-height: 0;
   border: none;
   background: #f8f9fa;
-}
-
-body[data-pagina="dashboard"] .app-frame,
-body[data-pagina="pessoal-visao-geral"] .app-frame,
-body[data-pagina="pessoal-apoiadores"] .app-frame {
-  flex: 1 1 auto;
-  min-height: 400px;
-  height: auto;
 }
 
 .app-sidebar-group {
@@ -354,7 +399,8 @@ html.apoiadores-page {
   height: 100%;
 }
 
-body.page-apoiadores {
+body.page-apoiadores,
+body.page-parcerias {
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -362,7 +408,8 @@ body.page-apoiadores {
   flex-direction: column;
 }
 
-body.page-apoiadores .page-frame-content {
+body.page-apoiadores .page-frame-content,
+body.page-parcerias .page-frame-content {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -372,11 +419,14 @@ body.page-apoiadores .page-frame-content {
 }
 
 body.page-apoiadores .dashboard-kpis-wrap,
-body.page-apoiadores #status:not(.d-none) {
+body.page-apoiadores #status:not(.d-none),
+body.page-parcerias .dashboard-kpis-wrap,
+body.page-parcerias #status:not(.d-none) {
   flex-shrink: 0;
 }
 
-body.page-apoiadores .apoiadores-tabela-card {
+body.page-apoiadores .apoiadores-tabela-card,
+body.page-parcerias .apoiadores-tabela-card {
   flex: 1 1 0%;
   display: flex;
   flex-direction: column;
@@ -385,7 +435,9 @@ body.page-apoiadores .apoiadores-tabela-card {
 }
 
 body.page-apoiadores .apoiadores-tabela-card > .card-body,
-body.page-apoiadores .apoiadores-tabela-card .dashboard-tabela-panel {
+body.page-apoiadores .apoiadores-tabela-card .dashboard-tabela-panel,
+body.page-parcerias .apoiadores-tabela-card > .card-body,
+body.page-parcerias .apoiadores-tabela-card .dashboard-tabela-panel {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -654,6 +706,9 @@ body.page-apoiadores .apoiadores-tabela-card .dashboard-tabela-panel {
 
 .page-frame-body {
   margin: 0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 html.dashboard-page {
@@ -749,6 +804,8 @@ body.page-dashboard .dashboard-tabela-panel {
 
 .page-frame-content {
   position: relative;
+  flex: 1 1 auto;
+  min-height: 100%;
   padding: 16px;
 }
 
@@ -785,6 +842,7 @@ body.page-dashboard .dashboard-tabela-panel {
 }
 
 .app-footer {
+  flex-shrink: 0;
   padding: 16px 20px;
   border-top: 1px solid #e9ecef;
   background: #fff;
@@ -2555,6 +2613,179 @@ body.page-pessoal .dashboard-tabela-panel {
   .pessoal-celula-num {
     font-size: 0.65rem;
     white-space: nowrap;
+  }
+}
+
+/* Registros — tabela completa (desktop) / 5 colunas no mobile */
+.registros-tabela-card .card-body,
+.registros-tabela-wrap {
+  width: 100%;
+}
+
+.registros-tabela {
+  width: 100%;
+  font-size: 0.88rem;
+  table-layout: fixed;
+}
+
+.registros-tabela th {
+  font-size: 0.78rem;
+  text-transform: lowercase;
+  vertical-align: bottom;
+}
+
+.registros-tabela td {
+  vertical-align: middle;
+}
+
+.registros-only-mobile {
+  display: none !important;
+}
+
+.registros-only-desktop {
+  display: table-cell;
+}
+
+@media (min-width: 992px) {
+  .registros-only-mobile {
+    display: none !important;
+  }
+
+  .registros-only-desktop {
+    display: table-cell !important;
+  }
+
+  .registros-tabela th {
+    white-space: nowrap;
+  }
+
+  .registros-tabela .registros-col-regiao {
+    width: 18%;
+  }
+
+  .registros-tabela .registros-col-municipios,
+  .registros-tabela .registros-col-habitantes,
+  .registros-tabela .registros-col-eleitores,
+  .registros-tabela .registros-col-v2018,
+  .registros-tabela .registros-col-v2022,
+  .registros-tabela .registros-col-minima,
+  .registros-tabela .registros-col-ideal {
+    width: calc(82% / 7);
+  }
+}
+
+.registros-th-stack,
+.registros-celula-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  line-height: 1.2;
+}
+
+.registros-th-stack-end,
+.registros-celula-stack-end {
+  align-items: flex-end;
+}
+
+.registros-th-sub {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.registros-stack-principal {
+  font-weight: 600;
+  font-size: 0.82rem;
+  word-break: break-word;
+}
+
+.registros-stack-sub,
+.registros-stack-linha {
+  font-size: 0.72rem;
+  color: #475569;
+}
+
+.registros-stack-linha {
+  font-variant-numeric: tabular-nums;
+}
+
+.registros-val-minima {
+  color: #7a5c1a;
+  font-weight: 600;
+}
+
+.registros-val-ideal {
+  color: #145a32;
+  font-weight: 600;
+}
+
+.registros-regiao-celula {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.registros-regiao-nome {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.registros-linha-total td {
+  border-top: 2px solid rgba(100, 116, 139, 0.35);
+}
+
+@media (max-width: 991.98px) {
+  .registros-only-mobile {
+    display: table-cell !important;
+  }
+
+  .registros-only-desktop {
+    display: none !important;
+  }
+
+  .registros-tabela-wrap {
+    overflow-x: hidden;
+  }
+
+  .registros-tabela th {
+    white-space: normal;
+    font-size: 0.65rem;
+    line-height: 1.15;
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
+  }
+
+  .registros-tabela td {
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
+  }
+
+  .registros-tabela .registros-col-regiao {
+    width: 24%;
+  }
+
+  .registros-tabela .registros-col-municipios-mobile {
+    width: 16%;
+  }
+
+  .registros-tabela .registros-col-grupo-demografia {
+    width: 12%;
+  }
+
+  .registros-tabela .registros-col-grupo-votos,
+  .registros-tabela .registros-col-grupo-meta {
+    width: 24%;
+  }
+
+  .registros-regiao-nome {
+    font-size: 0.68rem;
+  }
+
+  .registros-stack-linha {
+    font-size: 0.68rem;
+    word-break: break-word;
   }
 }
 

@@ -2,61 +2,72 @@
 
 const PAGINAS = {
   inicio: {
-    titulo: "Início",
+    titulo: "início",
     subtitulo: "painel da campanha",
     arquivo: "pages/inicio.html",
     atualizar: true,
   },
   "micro-regiao": {
-    titulo: "Micro-região",
+    titulo: "região",
     subtitulo: "municípios, habitantes e eleitores por região",
     arquivo: "pages/micro-regiao.html",
     atualizar: true,
   },
   dashboard: {
-    titulo: "Projeções",
+    titulo: "votação",
     subtitulo: "gráficos e tabelas de votação",
     arquivo: "pages/dashboard.html",
     atualizar: true,
   },
   "pessoal-visao-geral": {
-    titulo: "Pessoal",
+    titulo: "pessoal",
     subtitulo: "visão geral — equipe por município",
     arquivo: "pages/pessoal.html",
     atualizar: true,
     menuGrupo: "pessoal",
   },
   "pessoal-apoiadores": {
-    titulo: "Pessoal",
+    titulo: "pessoal",
     subtitulo: "apoiadores — contratos",
     arquivo: "pages/apoiadores.html",
     atualizar: true,
     menuGrupo: "pessoal",
   },
+  "pessoal-parcerias": {
+    titulo: "pessoal",
+    subtitulo: "parceria — contratos",
+    arquivo: "pages/parcerias.html",
+    atualizar: true,
+    menuGrupo: "pessoal",
+  },
   logistica: {
-    titulo: "Logística",
+    titulo: "logística",
     subtitulo: "operações e deslocamentos",
     arquivo: "pages/logistica.html",
   },
   orcamento: {
-    titulo: "Orçamento",
+    titulo: "orçamento",
     subtitulo: "planejamento financeiro da campanha",
     arquivo: "pages/orcamento.html",
   },
   agenda: {
-    titulo: "Agenda",
+    titulo: "agenda",
     subtitulo: "próximas atividades",
     arquivo: "pages/agenda.html",
     atualizar: true,
   },
-  registros: {
-    titulo: "Registros",
-    subtitulo: "contatos e observações",
-    arquivo: "pages/registros.html",
-    atualizar: true,
+  entregas: {
+    titulo: "entregas",
+    subtitulo: "materiais e distribuição",
+    arquivo: "pages/entregas.html",
+  },
+  pautas: {
+    titulo: "pautas",
+    subtitulo: "temas e compromissos",
+    arquivo: "pages/pautas.html",
   },
   planilhas: {
-    titulo: "Planilhas",
+    titulo: "planilhas",
     subtitulo: "diagnóstico do Google Sheets",
     arquivo: "pages/planilhas.html",
     atualizar: true,
@@ -73,12 +84,22 @@ function paginaDaUrl() {
   return resolverPagina(p);
 }
 
+function iconeIdPagina(id) {
+  const cfg = PAGINAS[id];
+  if (cfg?.menuGrupo) return cfg.menuGrupo;
+  return window.APP_ICONE ? APP_ICONE.idPagina(id) : id;
+}
+
 function atualizarCabecalho(id) {
   const cfg = PAGINAS[id] || PAGINAS.inicio;
   const titulo = document.getElementById("appHeaderTitulo");
   const sub = document.getElementById("appHeaderSub");
   const btnAtualizar = document.getElementById("btnAtualizarShell");
-  if (titulo) titulo.textContent = cfg.titulo;
+  if (titulo) {
+    const iconId = iconeIdPagina(id);
+    titulo.innerHTML =
+      window.APP_ICONE ? APP_ICONE.tituloComIcone(iconId, cfg.titulo) : cfg.titulo;
+  }
   if (sub) sub.textContent = cfg.subtitulo;
   if (btnAtualizar) btnAtualizar.hidden = !cfg.atualizar;
   document.title = cfg.titulo + " | Eleição 2026";
@@ -124,35 +145,43 @@ window.carregarPagina = function (id) {
 
 function ajustarAlturaFrame() {
   const frame = document.getElementById("appFrame");
-  if (!frame) return;
+  const main = document.querySelector(".app-main-frame");
+  if (!frame || !main) return;
 
   try {
     const doc = frame.contentDocument || frame.contentWindow.document;
-    const main = document.querySelector(".app-main-frame");
-    const areaMain = main ? main.clientHeight : 0;
     const preencheViewport =
       doc.body?.classList.contains("page-dashboard") ||
       doc.body?.classList.contains("page-pessoal") ||
-      doc.body?.classList.contains("page-apoiadores");
+      doc.body?.classList.contains("page-apoiadores") ||
+      doc.body?.classList.contains("page-parcerias");
+
+    frame.style.flex = "1 1 auto";
+    frame.style.minHeight = "0";
 
     if (preencheViewport) {
       frame.style.height = "";
-      frame.style.minHeight = "400px";
       return;
     }
 
-    frame.style.minHeight = "";
-
+    const areaMain = main.clientHeight;
     const docAltura = Math.max(
-      doc.body.scrollHeight,
-      doc.documentElement.scrollHeight,
-      doc.body.offsetHeight,
-      doc.documentElement.offsetHeight
+      doc.body?.scrollHeight || 0,
+      doc.documentElement?.scrollHeight || 0,
+      doc.body?.offsetHeight || 0,
+      doc.documentElement?.offsetHeight || 0
     );
-    const altura = Math.max(docAltura, areaMain, 400);
-    frame.style.height = altura + "px";
+
+    if (docAltura > areaMain) {
+      frame.style.flex = "0 0 auto";
+      frame.style.height = docAltura + "px";
+    } else {
+      frame.style.height = "";
+    }
   } catch (e) {
-    frame.style.height = "70vh";
+    frame.style.flex = "1 1 auto";
+    frame.style.height = "";
+    frame.style.minHeight = "0";
   }
 }
 

@@ -32,7 +32,7 @@
 
           <div class="card-body">
 
-            <h2 class="h6 text-secondary mb-3">votação</h2>
+            <h2 class="h6 text-secondary mb-3" data-titulo-pagina="dashboard" data-titulo-label="votação">votação</h2>
 
             <div class="grafico-wrapper grafico-inicio">
 
@@ -138,6 +138,55 @@
 
     </div>
 
+    <section class="card shadow-sm border-0 registros-tabela-card mb-4">
+      <div class="card-body p-0">
+        <div class="table-responsive registros-tabela-wrap">
+          <table id="tabelaRegistros" class="table table-hover align-middle mb-0 registros-tabela">
+            <thead class="table-light">
+              <tr>
+                <th scope="col" class="registros-col-regiao">região</th>
+                <th scope="col" class="text-end registros-col-municipios-mobile registros-only-mobile">municípios</th>
+                <th scope="col" class="text-end registros-col-grupo-demografia registros-only-mobile">
+                  <span class="registros-th-stack registros-th-stack-end">
+                    <span>habitantes</span>
+                    <span>eleitores</span>
+                  </span>
+                </th>
+                <th scope="col" class="text-end registros-col-municipios registros-only-desktop">municípios</th>
+                <th scope="col" class="text-end registros-col-habitantes registros-only-desktop">habitantes</th>
+                <th scope="col" class="text-end registros-col-eleitores registros-only-desktop">eleitores</th>
+                <th scope="col" class="text-end registros-col-grupo-votos registros-only-mobile">
+                  <span class="registros-th-stack registros-th-stack-end">
+                    <span>votos 2018</span>
+                    <span>votos 2022</span>
+                  </span>
+                </th>
+                <th scope="col" class="text-end registros-col-v2018 registros-only-desktop">votos 2018</th>
+                <th scope="col" class="text-end registros-col-v2022 registros-only-desktop">votos 2022</th>
+                <th scope="col" class="text-end registros-col-grupo-meta registros-only-mobile">
+                  <span class="registros-th-stack registros-th-stack-end">
+                    <span>votação mínima</span>
+                    <span>votação ideal</span>
+                  </span>
+                </th>
+                <th scope="col" class="text-end registros-col-minima registros-only-desktop">votação mínima</th>
+                <th scope="col" class="text-end registros-col-ideal registros-only-desktop">votação ideal</th>
+              </tr>
+            </thead>
+            <tbody id="corpoTabela">
+              <tr>
+                <td colspan="8" class="text-center text-secondary py-4">Carregando...</td>
+              </tr>
+            </tbody>
+            <tfoot id="rodapeTabela" class="table-light fw-semibold"></tfoot>
+          </table>
+        </div>
+        <p id="vazioTabelaRegiao" class="text-secondary text-center py-4 mb-0" hidden>
+          Nenhum registro encontrado.
+        </p>
+      </div>
+    </section>
+
     <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
       <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
       <span class="visually-hidden">Carregando</span>
@@ -154,6 +203,8 @@
   <script src="../js/config.js"></script>
 
   <script src="../js/auth.js"></script>
+
+  <script src="../js/icons.js"></script>
 
   <script src="../js/page-loader.js"></script>
 

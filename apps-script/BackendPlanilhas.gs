@@ -47,6 +47,11 @@ function criarCadastroPlanilhas() {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1856813297,
   };
+  // Aba parcerias: liderança, município, parceria-lider, parceria-30, parceria-45, parceria-customizado.
+  p.parcerias = {
+    id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
+    gid: 1242262181,
+  };
   p["pessoal-municipio-aba1"] = p["pessoal-municipio"];
   p["pessoal-municipio-aba2"] = p.apoiadores;
   p.municipios = {

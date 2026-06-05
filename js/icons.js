@@ -1,4 +1,4 @@
-// Ícones e menu compartilhados (página início + sidebar).
+// Ícones e menu compartilhados (sidebar + cabeçalho dos formulários).
 
 window.APP_ICON_SVG = {
   inicio:
@@ -7,7 +7,8 @@ window.APP_ICON_SVG = {
     "</svg>",
   "micro-regiao":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
-    '<path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>' +
+    '<path d="M12 22s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11z"/>' +
+    '<circle cx="12" cy="11" r="2.5"/>' +
     "</svg>",
   dashboard:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
@@ -26,16 +27,22 @@ window.APP_ICON_SVG = {
     "</svg>",
   orcamento:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
-    '<rect x="2" y="6" width="20" height="14" rx="2"/>' +
-    '<path d="M2 10h20M6 14h.01M10 14h4"/>' +
+    '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' +
     "</svg>",
   agenda:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
     '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>' +
     "</svg>",
-  registros:
+  entregas:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
-    '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/>' +
+    '<path d="M16.5 9.4 7.55 4.24"/>' +
+    '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>' +
+    '<path d="M3.27 6.96 12 12.01 20.73 6.96M12 22.08V12"/>' +
+    "</svg>",
+  pautas:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
+    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
+    '<path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/>' +
     "</svg>",
   planilhas:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
@@ -50,19 +57,75 @@ window.APP_ICON_SVG = {
 
 window.APP_MENU = [
   { id: "inicio", label: "início" },
-  { id: "micro-regiao", label: "micro-região" },
-  { id: "dashboard", label: "projeções" },
+  { id: "micro-regiao", label: "região" },
+  { id: "dashboard", label: "votação" },
   {
     id: "pessoal",
     label: "pessoal",
     filhos: [
       { id: "pessoal-visao-geral", label: "visão geral" },
       { id: "pessoal-apoiadores", label: "apoiadores" },
+      { id: "pessoal-parcerias", label: "parceria" },
     ],
   },
   { id: "logistica", label: "logística" },
   { id: "orcamento", label: "orçamento" },
   { id: "agenda", label: "agenda" },
-  { id: "registros", label: "registros" },
+  { id: "entregas", label: "entregas" },
+  { id: "pautas", label: "pautas" },
   { id: "planilhas", label: "planilhas" },
 ];
+
+window.APP_ICONE = {
+  idPagina(paginaId) {
+    if (
+      paginaId === "pessoal-visao-geral" ||
+      paginaId === "pessoal-apoiadores" ||
+      paginaId === "pessoal-parcerias"
+    ) {
+      return "pessoal";
+    }
+    return paginaId;
+  },
+
+  html(id) {
+    const svg = window.APP_ICON_SVG[id];
+    if (svg) {
+      return '<span class="app-icone app-icone--svg" aria-hidden="true">' + svg + "</span>";
+    }
+    return "";
+  },
+
+  tituloComIcone(id, texto) {
+    const label = texto != null ? String(texto) : "";
+    const svg = window.APP_ICON_SVG[id];
+    if (svg) {
+      return (
+        '<span class="app-titulo-icone" aria-hidden="true">' +
+        svg +
+        '</span><span class="app-titulo-texto">' +
+        label +
+        "</span>"
+      );
+    }
+    return label;
+  },
+
+  aplicarTitulos() {
+    document.querySelectorAll("[data-titulo-pagina]").forEach((el) => {
+      const id = el.getAttribute("data-titulo-pagina");
+      const label = el.getAttribute("data-titulo-label") || el.textContent.trim();
+      el.innerHTML = this.tituloComIcone(id, label);
+    });
+  },
+};
+
+function initTitulosComIcone() {
+  if (window.APP_ICONE) APP_ICONE.aplicarTitulos();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initTitulosComIcone);
+} else {
+  initTitulosComIcone();
+}

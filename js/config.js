@@ -20,7 +20,7 @@ const CONFIG = {
 
   // Chave da planilha (deve existir em PLANILHAS no BackendPlanilhas.gs).
   // Opções: mapa-voto, votacao, municipios, cadastro-colaboradores,
-  //         pessoal-municipio, apoiadores.
+  //         pessoal-municipio, apoiadores, parcerias.
   PLANILHA: "mapa-voto",
 
   // Planilhas cadastradas (usado pela página de verificação).
@@ -32,11 +32,13 @@ const CONFIG = {
     { chave: "cadastro-colaboradores", titulo: "Cadastro colaboradores" },
     { chave: "pessoal-municipio", titulo: "Pessoal — Município" },
     { chave: "apoiadores", titulo: "Pessoal — Apoiadores" },
+    { chave: "parcerias", titulo: "Pessoal — Parcerias" },
   ],
 
   PESSOAL: {
     PLANILHA: "pessoal-municipio",
     PLANILHA_APOIADORES: "apoiadores",
+    PLANILHA_PARCERIAS: "parcerias",
     ABA: "",
     LINHA_INICIO_DADOS: 2,
     ORDEM_REGIOES: [
@@ -66,6 +68,17 @@ const CONFIG = {
         APOIADOR_30: 3,           // D
         APOIADOR_45: 4,           // E
         APOIADOR_CUSTOMIZADO: 5,  // F — antes: apoiador-livre
+      },
+    },
+    PARCERIAS: {
+      LINHA_INICIO_DADOS: 2,
+      COLUNAS: {
+        LIDERANCA: 0,
+        MUNICIPIO: 1,
+        PARCERIA_LIDER: 2,
+        PARCERIA_30: 3,
+        PARCERIA_45: 4,
+        PARCERIA_CUSTOMIZADO: 5,
       },
     },
   },
@@ -118,6 +131,29 @@ const CONFIG = {
       VOTOS_2022: 7,  // H
       MINIMA: 8,      // I
       IDEAL: 9,       // J
+    },
+  },
+
+  // Registros → planilha mapa-voto, tabela REGIÃO (linhas 1–7). PRIORIDADE ignorada.
+  REGISTROS: {
+    PLANILHA: "mapa-voto",
+    ABA: "",
+    COLUNAS: {
+      REGIAO: 0,       // A
+      MUNICIPIOS: 1,   // B
+      HABITANTES: 2,   // C
+      ELEITORES: 3,    // D
+      VOTOS_2018: 4,   // E
+      VOTOS_2022: 5,   // F
+      MINIMA: 6,       // G
+      IDEAL: 7,        // H
+    },
+    TABELA: {
+      titulo: "Região",
+      headerRow: 1,
+      totalRow: 2,
+      dataInicio: 3,
+      dataFim: 7,
     },
   },
 };

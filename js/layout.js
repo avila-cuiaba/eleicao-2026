@@ -6,7 +6,7 @@ window.LAYOUT = {
   },
 
   icone(id) {
-    return (window.APP_ICON_SVG && window.APP_ICON_SVG[id]) || "";
+    return (window.APP_ICONE && APP_ICONE.html(id)) || "";
   },
 
   grupoDaPagina(paginaId) {
