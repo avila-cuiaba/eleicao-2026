@@ -174,7 +174,6 @@ async function verificarTodas() {
     return;
   }
 
-  ui.btnVerificar.disabled = true;
   ui.lista.innerHTML = "";
 
   const cadastro = await chavesNoServidor();
@@ -205,18 +204,17 @@ async function verificarTodas() {
     `${ok} de ${total} planilha(s) responderam com sucesso.`,
     ok === total ? "sucesso" : "erro"
   );
-  ui.btnVerificar.disabled = false;
 }
+
+window.atualizarPagina = verificarTodas;
 
 function initPlanilhas() {
   ui = {
     status: document.getElementById("status"),
     lista: document.getElementById("lista"),
-    btnVerificar: document.getElementById("btnVerificar"),
   };
   if (!ui.lista) return;
 
-  ui.btnVerificar.addEventListener("click", verificarTodas);
   verificarTodas();
 }
 

@@ -159,7 +159,6 @@ function renderizarModalMunicipios(lista) {
 function initMicroRegiao() {
   const els = {
     status: document.getElementById("status"),
-    btnAtualizar: document.getElementById("btnAtualizar"),
     corpo: document.getElementById("corpoTabela"),
     vazio: document.getElementById("vazio"),
     modalTitulo: document.getElementById("modalMunicipiosTitulo"),
@@ -168,7 +167,7 @@ function initMicroRegiao() {
     modalStatus: document.getElementById("modalMunicipiosStatus"),
   };
 
-  if (!els.btnAtualizar || !els.corpo) return;
+  if (!els.corpo) return;
 
   const modalEl = document.getElementById("modalMunicipios");
   modalMunicipios = modalEl ? new bootstrap.Modal(modalEl) : null;
@@ -243,7 +242,6 @@ function initMicroRegiao() {
     }
 
     mostrarStatus("Carregando micro-regiões...", "carregando");
-    els.btnAtualizar.disabled = true;
     await new Promise((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(resolve))
     );
@@ -265,7 +263,6 @@ function initMicroRegiao() {
     } catch (e) {
       mostrarStatus("Erro ao carregar: " + e.message, "erro");
     } finally {
-      els.btnAtualizar.disabled = false;
       if (window.parent && window.parent.ajustarAlturaFrame) {
         setTimeout(() => window.parent.ajustarAlturaFrame(), 120);
       }
@@ -273,7 +270,7 @@ function initMicroRegiao() {
   }
 
   registrarCliquesLinha();
-  els.btnAtualizar.addEventListener("click", carregarDados);
+  window.atualizarPagina = carregarDados;
   carregarDados();
 }
 

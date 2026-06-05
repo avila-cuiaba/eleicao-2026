@@ -372,6 +372,8 @@ function initAgenda() {
   carregarEventos();
 }
 
+window.atualizarPagina = carregarEventos;
+
 AUTH.exigir();
 document.addEventListener("DOMContentLoaded", initAgenda);
 

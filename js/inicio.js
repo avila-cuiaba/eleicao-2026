@@ -445,9 +445,6 @@ async function carregarInicio(animarGrafico) {
     return;
   }
 
-  const btn = document.getElementById("btnAtualizarInicio");
-  if (btn) btn.disabled = true;
-
   mostrarStatus("Carregando dados...", "carregando");
 
   try {
@@ -466,14 +463,13 @@ async function carregarInicio(animarGrafico) {
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
   } finally {
-    if (btn) btn.disabled = false;
     ajustarFramePai();
   }
 }
 
+window.atualizarPagina = () => carregarInicio(true);
+
 function initInicio() {
-  const btn = document.getElementById("btnAtualizarInicio");
-  btn?.addEventListener("click", () => carregarInicio(true));
   carregarInicio(true);
 }
 

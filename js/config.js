@@ -20,7 +20,7 @@ const CONFIG = {
 
   // Chave da planilha (deve existir em PLANILHAS no BackendPlanilhas.gs).
   // Opções: mapa-voto, votacao, municipios, cadastro-colaboradores,
-  //         pessoal-municipio-aba1, pessoal-municipio-aba2.
+  //         pessoal-municipio, apoiadores.
   PLANILHA: "mapa-voto",
 
   // Planilhas cadastradas (usado pela página de verificação).
@@ -30,14 +30,44 @@ const CONFIG = {
     { chave: "votacao", titulo: "Votação (projeções)" },
     { chave: "municipios", titulo: "Municípios (micro-região)" },
     { chave: "cadastro-colaboradores", titulo: "Cadastro colaboradores" },
-    { chave: "pessoal-municipio-aba1", titulo: "Pessoal — Município (aba 1)" },
-    { chave: "pessoal-municipio-aba2", titulo: "Pessoal — Município (aba 2)" },
+    { chave: "pessoal-municipio", titulo: "Pessoal — Município" },
+    { chave: "apoiadores", titulo: "Pessoal — Apoiadores" },
   ],
 
-  // Página pessoal (quando implementada).
   PESSOAL: {
-    MUNICIPIO_ABA1: "pessoal-municipio-aba1",
-    MUNICIPIO_ABA2: "pessoal-municipio-aba2",
+    PLANILHA: "pessoal-municipio",
+    PLANILHA_APOIADORES: "apoiadores",
+    ABA: "",
+    LINHA_INICIO_DADOS: 2,
+    ORDEM_REGIOES: [
+      "alto araguaia",
+      "medio araguaia",
+      "norte araguaia",
+      "baixada cuiabana",
+      "mt",
+    ],
+    COLUNAS: {
+      MUNICIPIO: 1,           // B
+      REGIAO: 2,              // C
+      IDEAL: 5,               // F — meta votação
+      PREFEITO: 6,            // G
+      VEREADOR: 7,            // H
+      AGENTE_POLITICO: 8,     // I
+      ASSESSOR: 9,            // J
+      APOIADORES: 10,         // K — contratos
+    },
+    APOIADORES: {
+      LINHA_INICIO_DADOS: 2,
+      // Índices padrão (0-based) quando o cabeçalho não bater por nome.
+      COLUNAS: {
+        LIDERANCA: 0,             // A
+        MUNICIPIO: 1,             // B
+        APOIADOR_LIDER: 2,        // C — antes: coluna liderança duplicada
+        APOIADOR_30: 3,           // D
+        APOIADOR_45: 4,           // E
+        APOIADOR_CUSTOMIZADO: 5,  // F — antes: apoiador-livre
+      },
+    },
   },
 
   // Nome da aba (sheet) consultada/gravada. Vazio = primeira aba (gid=0).

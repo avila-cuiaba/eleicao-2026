@@ -92,6 +92,14 @@ function notificarAlturaFrame() {
 
 window.notificarAlturaFrame = notificarAlturaFrame;
 
+window.addEventListener("message", (event) => {
+  if (event.source !== window.parent) return;
+  if (event.data?.tipo !== "eleicao-atualizar") return;
+  if (typeof window.atualizarPagina === "function") {
+    window.atualizarPagina();
+  }
+});
+
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => PageLoader.init());
 } else {

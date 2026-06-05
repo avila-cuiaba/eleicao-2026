@@ -37,14 +37,18 @@ function criarCadastroPlanilhas() {
     id: "1uWHTfEsNJzdXC0uXxM3yIcQW8BIfpiBWha6wNlQpS9I",
     gid: 1492182435,
   };
-  p["pessoal-municipio-aba1"] = {
+  // Planilha pessoal (equipe por município + apoiadores).
+  p["pessoal-municipio"] = {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1105165439,
   };
-  p["pessoal-municipio-aba2"] = {
+  // Aba apoiadores: liderança, município, apoiador-lider, apoiador-30, apoiador-45, apoiador-customizado.
+  p.apoiadores = {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1856813297,
   };
+  p["pessoal-municipio-aba1"] = p["pessoal-municipio"];
+  p["pessoal-municipio-aba2"] = p.apoiadores;
   p.municipios = {
     id: "18YWhOfiMa3jM2BnM3pnFeo7q3GSBB3X1uoQADEXs-Jc",
     gid: 0,
@@ -53,9 +57,8 @@ function criarCadastroPlanilhas() {
   // Aliases (nomes antigos — compatibilidade).
   p["planilha-2"] = p.votacao;
   p["planilha-3"] = p["cadastro-colaboradores"];
-  p["planilha-4-aba1"] = p["pessoal-municipio-aba1"];
-  p["planilha-4-aba2"] = p["pessoal-municipio-aba2"];
-  p["pessoal-municipio"] = p["pessoal-municipio-aba1"];
+  p["planilha-4-aba1"] = p["pessoal-municipio"];
+  p["planilha-4-aba2"] = p.apoiadores;
   p["micro-municipios"] = p.municipios;
 
   return p;

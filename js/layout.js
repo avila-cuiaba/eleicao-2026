@@ -9,27 +9,91 @@ window.LAYOUT = {
     return (window.APP_ICON_SVG && window.APP_ICON_SVG[id]) || "";
   },
 
+  grupoDaPagina(paginaId) {
+    for (const item of this.getMenu()) {
+      if (item.filhos?.some((f) => f.id === paginaId)) return item.id;
+    }
+    return null;
+  },
+
+  paginaEstaAtiva(itemId, paginaAtiva) {
+    return itemId === paginaAtiva;
+  },
+
+  grupoEstaAtivo(grupoId, paginaAtiva) {
+    const item = this.getMenu().find((m) => m.id === grupoId);
+    if (!item?.filhos) return grupoId === paginaAtiva;
+    return item.filhos.some((f) => f.id === paginaAtiva);
+  },
+
+  renderLink(item, paginaAtiva) {
+    const active = this.paginaEstaAtiva(item.id, paginaAtiva) ? " active" : "";
+    const aria = this.paginaEstaAtiva(item.id, paginaAtiva) ? ' aria-current="page"' : "";
+    return (
+      '<a href="#" class="app-sidebar-link' +
+      active +
+      '" data-pagina="' +
+      item.id +
+      '"' +
+      aria +
+      ">" +
+      '<span class="sidebar-icone" aria-hidden="true">' +
+      this.icone(item.id) +
+      "</span>" +
+      '<span class="app-sidebar-texto">' +
+      item.label +
+      "</span>" +
+      "</a>"
+    );
+  },
+
+  renderSublink(item, paginaAtiva) {
+    const active = this.paginaEstaAtiva(item.id, paginaAtiva) ? " active" : "";
+    const aria = this.paginaEstaAtiva(item.id, paginaAtiva) ? ' aria-current="page"' : "";
+    return (
+      '<a href="#" class="app-sidebar-link app-sidebar-sublink' +
+      active +
+      '" data-pagina="' +
+      item.id +
+      '"' +
+      aria +
+      ">" +
+      '<span class="app-sidebar-texto">' +
+      item.label +
+      "</span>" +
+      "</a>"
+    );
+  },
+
+  renderGrupo(item, paginaAtiva) {
+    const aberto = this.grupoEstaAtivo(item.id, paginaAtiva);
+    const sublinks = item.filhos.map((f) => this.renderSublink(f, paginaAtiva)).join("");
+    return (
+      '<div class="app-sidebar-group' +
+      (aberto ? " is-open has-active" : "") +
+      '" data-grupo="' +
+      item.id +
+      '">' +
+      '<div class="app-sidebar-group-head">' +
+      '<span class="sidebar-icone" aria-hidden="true">' +
+      this.icone(item.id) +
+      "</span>" +
+      '<span class="app-sidebar-texto">' +
+      item.label +
+      "</span>" +
+      "</div>" +
+      '<div class="app-sidebar-subnav">' +
+      sublinks +
+      "</div>" +
+      "</div>"
+    );
+  },
+
   montarSidebar(paginaAtiva) {
     const links = this.getMenu()
       .map((item) => {
-        const active = item.id === paginaAtiva ? " active" : "";
-        const aria = item.id === paginaAtiva ? ' aria-current="page"' : "";
-        return (
-          '<a href="#" class="app-sidebar-link' +
-          active +
-          '" data-pagina="' +
-          item.id +
-          '"' +
-          aria +
-          ">" +
-          '<span class="sidebar-icone" aria-hidden="true">' +
-          this.icone(item.id) +
-          "</span>" +
-          '<span class="app-sidebar-texto">' +
-          item.label +
-          "</span>" +
-          "</a>"
-        );
+        if (item.filhos?.length) return this.renderGrupo(item, paginaAtiva);
+        return this.renderLink(item, paginaAtiva);
       })
       .join("");
 
@@ -55,12 +119,20 @@ window.LAYOUT = {
 
   atualizarMenu(paginaAtiva) {
     document.body.setAttribute("data-pagina", paginaAtiva);
+
     document.querySelectorAll(".app-sidebar-link, .app-sidebar-title[data-pagina]").forEach((link) => {
       const id = link.getAttribute("data-pagina");
       const ativo = id === paginaAtiva;
       link.classList.toggle("active", ativo);
       if (ativo) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
+    });
+
+    document.querySelectorAll(".app-sidebar-group").forEach((group) => {
+      const grupoId = group.getAttribute("data-grupo");
+      const ativo = this.grupoEstaAtivo(grupoId, paginaAtiva);
+      group.classList.toggle("is-open", ativo);
+      group.classList.toggle("has-active", ativo);
     });
   },
 

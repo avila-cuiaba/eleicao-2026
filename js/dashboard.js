@@ -277,7 +277,6 @@ async function carregarDashboard() {
   }
 
   mostrarStatus("Carregando dados...", "carregando");
-  el.btnAtualizar.disabled = true;
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   try {
@@ -297,15 +296,15 @@ async function carregarDashboard() {
     el.corpoTabela.innerHTML =
       '<tr><td colspan="5" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>';
   } finally {
-    el.btnAtualizar.disabled = false;
     notificarAlturaFrame();
   }
 }
 
+window.atualizarPagina = carregarDashboard;
+
 function initDashboard() {
   el = {
     status: document.getElementById("status"),
-    btnAtualizar: document.getElementById("btnAtualizar"),
     filtroRegioes: document.getElementById("filtroRegioes"),
     corpoTabela: document.getElementById("corpoTabela"),
     thTotal2022: document.getElementById("thTotal2022"),
@@ -319,7 +318,6 @@ function initDashboard() {
   };
   if (!el.corpoTabela) return;
 
-  el.btnAtualizar.addEventListener("click", carregarDashboard);
   window.addEventListener("resize", alinharColunasTabela);
   requestAnimationFrame(() => notificarAlturaFrame());
   carregarDashboard();

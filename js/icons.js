@@ -52,7 +52,14 @@ window.APP_MENU = [
   { id: "inicio", label: "início" },
   { id: "micro-regiao", label: "micro-região" },
   { id: "dashboard", label: "projeções" },
-  { id: "pessoal", label: "pessoal" },
+  {
+    id: "pessoal",
+    label: "pessoal",
+    filhos: [
+      { id: "pessoal-visao-geral", label: "visão geral" },
+      { id: "pessoal-apoiadores", label: "apoiadores" },
+    ],
+  },
   { id: "logistica", label: "logística" },
   { id: "orcamento", label: "orçamento" },
   { id: "agenda", label: "agenda" },

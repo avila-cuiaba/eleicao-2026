@@ -9,18 +9,9 @@
 </head>
 <body class="bg-light page-frame-body">
   <div class="page-frame-content">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <div>
-        <h1 class="h4 mb-0">Verificação de planilhas</h1>
-        <p class="text-secondary small mb-0">diagnóstico de conexão com o Google Sheets</p>
-        <p class="text-secondary small mb-0 mt-1">
-          Se aparecer «planilha não cadastrada», atualize o código no Apps Script e publique uma
-          <strong>nova versão</strong> do Web App (<code>Implantar → Gerenciar implantações</code>).
-        </p>
-      </div>
-      <button type="button" id="btnVerificar" class="btn btn-sm btn-primary">
-        Verificar todas
-      </button>
+    <div class="alert alert-secondary small mb-3" role="note">
+      Se aparecer «planilha não cadastrada», atualize o código no Apps Script e publique uma
+      <strong>nova versão</strong> do Web App (<code>Implantar → Gerenciar implantações</code>).
     </div>
 
     <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
