@@ -21,28 +21,47 @@
 // ===================== PLANILHAS =====================
 
 // Planilhas/abas permitidas (chave curta -> { id, gid }).
-const PLANILHAS = {
-  "mapa-voto": {
+// Após alterar: Implantar > Gerenciar implantações > Editar > Nova versão.
+function criarCadastroPlanilhas() {
+  const p = {};
+
+  p["mapa-voto"] = {
     id: "1taZumjanEoFXxRO7RArrDY5DDjR8rzzYQxT5w6CxEeU",
     gid: 0,
-  },
-  "planilha-2": {
+  };
+  p.votacao = {
     id: "1tFJ54zDjwvzqvPwwfSH0OpgxkGygSXkF4pSqIhtImOE",
     gid: 0,
-  },
-  "planilha-3": {
+  };
+  p["cadastro-colaboradores"] = {
     id: "1uWHTfEsNJzdXC0uXxM3yIcQW8BIfpiBWha6wNlQpS9I",
     gid: 1492182435,
-  },
-  "planilha-4-aba1": {
+  };
+  p["pessoal-municipio-aba1"] = {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1105165439,
-  },
-  "planilha-4-aba2": {
+  };
+  p["pessoal-municipio-aba2"] = {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1856813297,
-  },
-};
+  };
+  p.municipios = {
+    id: "18YWhOfiMa3jM2BnM3pnFeo7q3GSBB3X1uoQADEXs-Jc",
+    gid: 0,
+  };
+
+  // Aliases (nomes antigos — compatibilidade).
+  p["planilha-2"] = p.votacao;
+  p["planilha-3"] = p["cadastro-colaboradores"];
+  p["planilha-4-aba1"] = p["pessoal-municipio-aba1"];
+  p["planilha-4-aba2"] = p["pessoal-municipio-aba2"];
+  p["pessoal-municipio"] = p["pessoal-municipio-aba1"];
+  p["micro-municipios"] = p.municipios;
+
+  return p;
+}
+
+const PLANILHAS = criarCadastroPlanilhas();
 
 const PLANILHA_PADRAO = "mapa-voto";
 const ABA_PADRAO = "";
@@ -88,6 +107,9 @@ function doGet(e) {
 
     const recurso = p.recurso || "planilha";
     if (recurso === "login") return responder({ ok: true });
+    if (recurso === "planilhas-cadastro") {
+      return responder({ ok: true, chaves: Object.keys(PLANILHAS).sort() });
+    }
     if (recurso === "agenda") return doGetAgenda(p);
     return doGetPlanilha(p);
   } catch (erro) {

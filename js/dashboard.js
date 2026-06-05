@@ -1,4 +1,4 @@
-// Dashboard: municípios da planilha-2 filtrados por micro-região (coluna C).
+// Dashboard: municípios da planilha "votacao" filtrados por micro-região (coluna C).
 
 const fmt = new Intl.NumberFormat("pt-BR");
 const cfg = CONFIG.DASHBOARD;

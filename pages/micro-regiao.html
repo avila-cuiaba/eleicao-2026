@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Micro-região</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="bg-light page-frame-body">
+  <div class="page-frame-content">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <h1 class="h4 mb-0">Micro-região</h1>
+        <p class="text-secondary small mb-0">municípios, habitantes e eleitores por região</p>
+      </div>
+    </div>
+
+    <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
+
+    <section class="card shadow-sm">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 class="h5 card-title mb-0">lista</h2>
+          <button type="button" id="btnAtualizar" class="btn-icone-atualizar" aria-label="Atualizar" title="Atualizar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true">
+              <path d="M1 4v6h6M23 20v-6h-6"/>
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+            </svg>
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table id="tabelaMicroRegiao" class="table table-striped table-hover align-middle mb-0 micro-regiao-tabela">
+            <colgroup>
+              <col class="micro-col-regiao" />
+              <col class="micro-col-num" />
+              <col class="micro-col-num" />
+              <col class="micro-col-num" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">região</th>
+                <th scope="col" class="text-end">municípios</th>
+                <th scope="col" class="text-end">habitantes</th>
+                <th scope="col" class="text-end">eleitores</th>
+              </tr>
+            </thead>
+            <tbody id="corpoTabela"></tbody>
+          </table>
+          <p id="vazio" class="text-secondary text-center py-3 mb-0" hidden>
+            Nenhuma micro-região encontrada.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
+      <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
+      <span class="visually-hidden">Carregando</span>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalMunicipios" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title h5 mb-0" id="modalMunicipiosTitulo">municípios</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div id="modalMunicipiosStatus" class="alert d-none m-3 mb-0" role="status"></div>
+          <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0 micro-regiao-modal-tabela">
+              <thead>
+                <tr>
+                  <th scope="col">município</th>
+                  <th scope="col" class="text-end">habitantes</th>
+                  <th scope="col" class="text-end">eleitores</th>
+                </tr>
+              </thead>
+              <tbody id="modalMunicipiosCorpo"></tbody>
+            </table>
+          </div>
+          <p id="modalMunicipiosVazio" class="text-secondary text-center py-4 mb-0" hidden>
+            Nenhum município encontrado para esta região.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/page-loader.js"></script>
+  <script src="../js/micro-regiao.js"></script>
+</body>
+</html>

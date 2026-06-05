@@ -24,6 +24,32 @@ function urlPlanilha(chave) {
   return url.toString();
 }
 
+function urlCadastroPlanilhas() {
+  const url = new URL(CONFIG.WEB_APP_URL);
+  url.searchParams.set("recurso", "planilhas-cadastro");
+  AUTH.aplicarNaUrl(url);
+  return url.toString();
+}
+
+async function chavesNoServidor() {
+  try {
+    const resp = await fetch(urlCadastroPlanilhas(), { method: "GET" });
+    const json = await resp.json();
+    if (!AUTH.tratarResposta(json)) return null;
+    if (!json.ok) return null;
+    if (!Array.isArray(json.chaves)) return null;
+    return json.chaves;
+  } catch {
+    return null;
+  }
+}
+
+function chavesFaltandoNoServidor(esperadas, noServidor) {
+  if (noServidor === null) return [];
+  const set = new Set(noServidor);
+  return esperadas.filter((p) => !set.has(p.chave)).map((p) => p.chave);
+}
+
 function escapar(txt) {
   const div = document.createElement("div");
   div.textContent = txt == null ? "" : String(txt);
@@ -123,7 +149,12 @@ async function testar(p, card) {
     return true;
   } catch (e) {
     setBadge(card, "ERRO", "text-bg-danger");
-    card.querySelector(".card-planilha-info").textContent = e.message;
+    let msg = e.message;
+    if (/não cadastrada/i.test(msg)) {
+      msg +=
+        " — republicar o Web App com apps-script/BackendPlanilhas.gs atualizado (nova versão da implantação).";
+    }
+    card.querySelector(".card-planilha-info").textContent = msg;
     return false;
   }
 }
@@ -145,7 +176,19 @@ async function verificarTodas() {
 
   ui.btnVerificar.disabled = true;
   ui.lista.innerHTML = "";
-  mostrarStatus("Verificando planilhas...", "carregando");
+
+  const cadastro = await chavesNoServidor();
+  const faltando = chavesFaltandoNoServidor(planilhas, cadastro);
+  if (faltando.length) {
+    mostrarStatus(
+      "O Web App publicado não reconhece: " +
+        faltando.join(", ") +
+        ". Cole o BackendPlanilhas.gs no Apps Script e implante uma nova versão.",
+      "erro"
+    );
+  } else {
+    mostrarStatus("Verificando planilhas...", "carregando");
+  }
 
   const cards = planilhas.map((p) => {
     const card = criarCard(p);

@@ -2,7 +2,15 @@
 
 const PAGINAS = {
   inicio: { titulo: "Início", subtitulo: "painel da campanha", arquivo: "pages/inicio.html" },
+  "micro-regiao": {
+    titulo: "Micro-região",
+    subtitulo: "municípios, habitantes e eleitores por região",
+    arquivo: "pages/micro-regiao.html",
+  },
   dashboard: { titulo: "Projeções", subtitulo: "gráficos e tabelas de votação", arquivo: "pages/dashboard.html" },
+  pessoal: { titulo: "Pessoal", subtitulo: "equipe e colaboradores", arquivo: "pages/pessoal.html" },
+  logistica: { titulo: "Logística", subtitulo: "operações e deslocamentos", arquivo: "pages/logistica.html" },
+  orcamento: { titulo: "Orçamento", subtitulo: "planejamento financeiro da campanha", arquivo: "pages/orcamento.html" },
   agenda: { titulo: "Agenda", subtitulo: "próximas atividades", arquivo: "pages/agenda.html" },
   registros: { titulo: "Registros", subtitulo: "contatos e observações", arquivo: "pages/registros.html" },
   planilhas: { titulo: "Planilhas", subtitulo: "diagnóstico do Google Sheets", arquivo: "pages/planilhas.html" },

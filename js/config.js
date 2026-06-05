@@ -19,26 +19,58 @@ const CONFIG = {
   },
 
   // Chave da planilha (deve existir em PLANILHAS no BackendPlanilhas.gs).
-  // Opções atuais: "mapa-voto", "planilha-2", "planilha-3",
-  //                "planilha-4-aba1", "planilha-4-aba2".
+  // Opções: mapa-voto, votacao, municipios, cadastro-colaboradores,
+  //         pessoal-municipio-aba1, pessoal-municipio-aba2.
   PLANILHA: "mapa-voto",
 
   // Planilhas cadastradas (usado pela página de verificação).
   // A "chave" deve ser idêntica à do BackendPlanilhas.gs.
   PLANILHAS_DISPONIVEIS: [
     { chave: "mapa-voto", titulo: "Mapa Voto" },
-    { chave: "planilha-2", titulo: "Planilha 2" },
-    { chave: "planilha-3", titulo: "Planilha 3" },
-    { chave: "planilha-4-aba1", titulo: "Planilha 4 - Aba 1" },
-    { chave: "planilha-4-aba2", titulo: "Planilha 4 - Aba 2" },
+    { chave: "votacao", titulo: "Votação (projeções)" },
+    { chave: "municipios", titulo: "Municípios (micro-região)" },
+    { chave: "cadastro-colaboradores", titulo: "Cadastro colaboradores" },
+    { chave: "pessoal-municipio-aba1", titulo: "Pessoal — Município (aba 1)" },
+    { chave: "pessoal-municipio-aba2", titulo: "Pessoal — Município (aba 2)" },
   ],
+
+  // Página pessoal (quando implementada).
+  PESSOAL: {
+    MUNICIPIO_ABA1: "pessoal-municipio-aba1",
+    MUNICIPIO_ABA2: "pessoal-municipio-aba2",
+  },
 
   // Nome da aba (sheet) consultada/gravada. Vazio = primeira aba (gid=0).
   ABA: "",
 
-  // Dashboard (planilha de municípios — id 1tFJ54zDjwvzqvPwwfSH0OpgxkGygSXkF4pSqIhtImOE).
+  // Dashboard → planilha "votacao" (id 1tFJ54zDjwvzqvPwwfSH0OpgxkGygSXkF4pSqIhtImOE).
+  // Micro-regiões resumo → "mapa-voto"; modal municípios → "municipios".
+  MICRO_REGIAO: {
+    PLANILHA: "mapa-voto",
+    ABA: "",
+    LINHA_INICIO_DADOS: 3,
+    LINHA_FIM_DADOS: 7,
+    COLUNAS: {
+      REGIAO: 0,        // A
+      MUNICIPIOS: 1,    // B
+      HABITANTES: 2,    // C
+      ELEITORES: 3,     // D
+    },
+    MUNICIPIOS: {
+      PLANILHA: "municipios",
+      ABA: "",
+      LINHA_INICIO_DADOS: 2,
+      COLUNAS: {
+        MUNICIPIO: 1,   // B
+        REGIAO: 2,      // C
+        HABITANTES: 4,  // E
+        ELEITORES: 5,   // F
+      },
+    },
+  },
+
   DASHBOARD: {
-    PLANILHA: "planilha-2",
+    PLANILHA: "votacao",
     ABA: "",
     LINHA_INICIO_DADOS: 2,
     ORDEM_REGIOES: [
