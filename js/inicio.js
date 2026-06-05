@@ -11,60 +11,63 @@ const INICIO = {
     { base: "#1f4e8c", clara: "#93c5fd" },
     { base: "#14b8a6", clara: "#5eead4" },
   ],
+  ANO_DESTAQUE: "2026",
 };
 
 let chartInicio = null;
+let animTrofeuId = null;
 const fmt = new Intl.NumberFormat("pt-BR");
-const fmtPct = new Intl.NumberFormat("pt-BR", {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
 
-const pluginPercentuaisEntreBarras = {
-  id: "percentuaisEntreBarras",
-  afterDatasetsDraw(chart) {
-    const barMeta = chart.getDatasetMeta(0);
-    if (!barMeta || barMeta.data.length < 2) return;
+function pararAnimTrofeu() {
+  if (animTrofeuId) {
+    cancelAnimationFrame(animTrofeuId);
+    animTrofeuId = null;
+  }
+}
 
-    const yScale = chart.scales.y;
-    if (!yScale) return;
+function iniciarAnimTrofeu(chart) {
+  pararAnimTrofeu();
+  if (indiceAnoDestaque(chart) < 0) return;
 
-    const yValor = chart.config.options.plugins?.percentualEntreBarrasY ?? 7500;
-    const y = yScale.getPixelForValue(yValor);
-    const { ctx } = chart;
-    const valores = chart.data.datasets[0].data;
-
-    ctx.save();
-    ctx.font = "600 12px system-ui, -apple-system, Segoe UI, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    for (let i = 0; i < barMeta.data.length - 1; i++) {
-      const anterior = valores[i];
-      const proximo = valores[i + 1];
-      if (anterior == null || proximo == null || !anterior) continue;
-
-      const pct = ((proximo - anterior) / anterior) * 100;
-      const barA = barMeta.data[i];
-      const barB = barMeta.data[i + 1];
-      if (!barA || !barB) continue;
-
-      const x = (barA.x + barB.x) / 2;
-      const sinal = pct >= 0 ? "+" : "";
-      const texto = sinal + fmtPct.format(pct) + "%";
-
-      ctx.fillStyle = pct >= 0 ? "#059669" : "#dc2626";
-      ctx.fillText(texto, x, y);
+  const loop = () => {
+    if (!chartInicio || chartInicio !== chart) {
+      pararAnimTrofeu();
+      return;
     }
-    ctx.restore();
-  },
-};
+    chart.draw();
+    animTrofeuId = requestAnimationFrame(loop);
+  };
+  animTrofeuId = requestAnimationFrame(loop);
+}
+
+function indiceAnoDestaque(chart) {
+  const alvo = chart.config.options.plugins?.anoDestaque || INICIO.ANO_DESTAQUE;
+  const labels = chart.data.labels || [];
+  return labels.findIndex((l) => String(l).trim() === alvo);
+}
+
+function desenharRetanguloArredondado(ctx, x, y, w, h, r) {
+  const raio = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + raio, y);
+  ctx.lineTo(x + w - raio, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + raio);
+  ctx.lineTo(x + w, y + h - raio);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - raio, y + h);
+  ctx.lineTo(x + raio, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - raio);
+  ctx.lineTo(x, y + raio);
+  ctx.quadraticCurveTo(x, y, x + raio, y);
+  ctx.closePath();
+}
+
 const pluginValoresAcima = {
   id: "valoresAcima",
   afterDatasetsDraw(chart) {
     const barMeta = chart.getDatasetMeta(0);
     if (!barMeta || !barMeta.data.length) return;
 
+    const idxDestaque = indiceAnoDestaque(chart);
     const { ctx, data } = chart;
     const valores = data.datasets[0].data;
     const sufixo = chart.config.options.plugins?.valoresAcimaSufixo || "";
@@ -76,17 +79,72 @@ const pluginValoresAcima = {
     ctx.textBaseline = "bottom";
 
     barMeta.data.forEach((bar, i) => {
+      if (i === idxDestaque) return;
       const val = valores[i];
       if (val == null) return;
-      let texto;
-      if (sufixo === "%") {
-        const sinal = val >= 0 ? "+" : "";
-        texto = sinal + fmtPct.format(val) + sufixo;
-      } else {
-        texto = fmt.format(val);
-      }
+      const texto = fmt.format(val) + sufixo;
       ctx.fillText(texto, bar.x, bar.y - 10);
     });
+    ctx.restore();
+  },
+};
+
+const pluginDestaqueVitoria2026 = {
+  id: "destaqueVitoria2026",
+  afterDatasetsDraw(chart) {
+    const idx = indiceAnoDestaque(chart);
+    if (idx < 0) return;
+
+    const barMeta = chart.getDatasetMeta(0);
+    const bar = barMeta?.data[idx];
+    if (!bar) return;
+
+    const val = chart.data.datasets[0].data[idx];
+    if (val == null) return;
+
+    const { ctx } = chart;
+    const textoValor = fmt.format(val);
+    const trofeu = "🏆";
+    const xCentro = bar.x;
+
+    const padX = 10;
+    const badgeAltura = 22;
+    const gapBarra = 10;
+    const alturaBarra = bar.height || 0;
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const blink = 0.5 + 0.5 * Math.sin(performance.now() / 380);
+    const yTrofeu = bar.y + alturaBarra * 0.3;
+    ctx.font = "36px system-ui, emoji, Segoe UI Emoji, sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "rgba(15, 118, 110, 0.5)";
+    ctx.shadowBlur = 6;
+    ctx.globalAlpha = blink;
+    ctx.fillText(trofeu, xCentro, yTrofeu);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+
+    ctx.font = "700 12px system-ui, -apple-system, Segoe UI, sans-serif";
+    const valorLargura = ctx.measureText(textoValor).width;
+    const badgeLargura = valorLargura + padX * 2;
+    const yBadge = bar.y - gapBarra - badgeAltura;
+
+    ctx.fillStyle = "rgba(94, 234, 212, 0.5)";
+    desenharRetanguloArredondado(
+      ctx,
+      xCentro - badgeLargura / 2,
+      yBadge,
+      badgeLargura,
+      badgeAltura,
+      10
+    );
+    ctx.fill();
+
+    ctx.fillStyle = "#0f766e";
+    ctx.fillText(textoValor, xCentro, yBadge + badgeAltura / 2);
     ctx.restore();
   },
 };
@@ -196,9 +254,11 @@ function montarGraficoVotos(rotulos, dados) {
   const canvas = document.getElementById("graficoInicioVotos");
   if (!canvas) return;
 
+  pararAnimTrofeu();
   if (chartInicio) chartInicio.destroy();
 
   const maxVotos = Math.max(...dados, 0);
+  const idx2026 = rotulos.findIndex((r) => r === INICIO.ANO_DESTAQUE);
 
   chartInicio = new Chart(canvas, {
     type: "bar",
@@ -220,14 +280,14 @@ function montarGraficoVotos(rotulos, dados) {
         },
       ],
     },
-    plugins: [pluginValoresAcima, pluginPercentuaisEntreBarras],
+    plugins: [pluginValoresAcima, pluginDestaqueVitoria2026],
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 28 } },
+      layout: { padding: { top: idx2026 >= 0 ? 40 : 28 } },
       plugins: {
+        anoDestaque: INICIO.ANO_DESTAQUE,
         valoresAcimaSufixo: "",
-        percentualEntreBarrasY: 7500,
         legend: { display: false },
         tooltip: {
           backgroundColor: "#1e293b",
@@ -268,6 +328,8 @@ function montarGraficoVotos(rotulos, dados) {
       },
     },
   });
+
+  if (idx2026 >= 0) iniciarAnimTrofeu(chartInicio);
 }
 
 function montarGraficos(valores) {
@@ -287,6 +349,8 @@ function ajustarFramePai() {
 window.addEventListener("resize", () => {
   if (chartInicio) chartInicio.resize();
 });
+
+window.addEventListener("beforeunload", pararAnimTrofeu);
 
 async function carregarInicio() {
   if (!CONFIG.WEB_APP_URL || CONFIG.WEB_APP_URL.startsWith("COLE_AQUI")) {
