@@ -2,7 +2,10 @@
 
 const INICIO = {
   PLANILHA: "mapa-voto",
-  KPI: { municipios: { linha: 2, col: 1 }, populacao: { linha: 2, col: 2 }, eleitores: { linha: 2, col: 3 } },
+  KPI: {
+    populacao: { linha: 2, col: 2 },
+    eleitores: { linha: 2, col: 3 },
+  },
   SUBDIVISOES: { linhaInicio: 3, linhaFim: 7, colNome: 0, colQtd: 1 },
   GRAFICO_COLS: [4, 5, 7],
   ANOS_GRAFICO: ["2018", "2022", "2026"],
@@ -12,9 +15,18 @@ const INICIO = {
     { base: "#1a6f85", clara: "#7ec8e3" },
   ],
   ANO_DESTAQUE: "2026",
+  CORES_REGIAO: ["#f97316", "#3b82f6", "#14b8a6", "#a855f7", "#e11d48"],
+  META_GRUPOS: {
+    araguaia: ["alto araguaia", "medio araguaia", "norte araguaia"],
+    mt: ["mt", "baixada cuiabana"],
+  },
+  META_GRUPOS_CORES: ["#14b8a6", "#6366f1"],
+  META_GRUPOS_ROTULOS: ["araguaia", "MT"],
 };
 
 let chartInicio = null;
+let chartMetaGrupos = null;
+let chartMetaRegioes = null;
 let animBarraId = null;
 let animCicloId = null;
 let ultimosValoresPlanilha = null;
@@ -46,6 +58,17 @@ function pararAnimCiclo() {
 function pararAnimacoesGrafico() {
   pararAnimBarra();
   pararAnimCiclo();
+}
+
+function destruirGraficosMeta() {
+  if (chartMetaGrupos) {
+    chartMetaGrupos.destroy();
+    chartMetaGrupos = null;
+  }
+  if (chartMetaRegioes) {
+    chartMetaRegioes.destroy();
+    chartMetaRegioes = null;
+  }
 }
 
 function setFaseDestaque(chart, fase) {
@@ -204,6 +227,53 @@ const pluginValoresAcima = {
   },
 };
 
+function percentualCrescimento(anterior, atual) {
+  if (!anterior) return null;
+  return ((atual - anterior) / anterior) * 100;
+}
+
+function formatarPercentualCrescimento(pct) {
+  if (pct == null || !Number.isFinite(pct)) return "";
+  const sinal = pct > 0 ? "+" : "";
+  return sinal + pct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+}
+
+const pluginCrescimentoBarras = {
+  id: "crescimentoBarras",
+  afterDatasetsDraw(chart) {
+    const barMeta = chart.getDatasetMeta(0);
+    const yScale = chart.scales.y;
+    if (!barMeta?.data || barMeta.data.length < 2 || !yScale?.ticks?.length) return;
+
+    const ticks = yScale.ticks;
+    if (ticks.length < 2) return;
+    const yLinha = yScale.getPixelForValue(ticks[1].value);
+
+    const valoresFinais = chart.config.options.plugins?.valoresFinaisVotos || chart.data.datasets[0].data;
+    const ctx = chart.ctx;
+
+    ctx.save();
+    ctx.font = "700 11px system-ui, -apple-system, Segoe UI, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    for (let i = 0; i < barMeta.data.length - 1; i++) {
+      const barA = barMeta.data[i];
+      const barB = barMeta.data[i + 1];
+      if (!barA || !barB) continue;
+
+      const pct = percentualCrescimento(valoresFinais[i], valoresFinais[i + 1]);
+      if (pct == null) continue;
+
+      const x = (barA.x + barB.x) / 2;
+      ctx.fillStyle = pct >= 0 ? "#15803d" : "#b91c1c";
+      ctx.fillText(formatarPercentualCrescimento(pct), x, yLinha);
+    }
+
+    ctx.restore();
+  },
+};
+
 const pluginDestaqueObjetivo2026 = {
   id: "destaqueObjetivo2026",
   afterDatasetsDraw(chart) {
@@ -254,43 +324,123 @@ function mostrarStatus(msg, tipo) {
 
 function preencherKpis(valores) {
   const k = INICIO.KPI;
-  document.getElementById("kpiMunicipios").textContent = fmt.format(
-    parseNumero(celula(valores, k.municipios.linha, k.municipios.col))
-  );
   document.getElementById("kpiPopulacao").textContent = fmt.format(
     parseNumero(celula(valores, k.populacao.linha, k.populacao.col))
   );
   document.getElementById("kpiEleitores").textContent = fmt.format(
     parseNumero(celula(valores, k.eleitores.linha, k.eleitores.col))
   );
-  preencherSubdivisoesMunicipios(valores);
 }
 
-function preencherSubdivisoesMunicipios(valores) {
-  const lista = document.getElementById("listaSubdivisoesMunicipios");
-  if (!lista) return;
+function textoPreenchidoPessoal(v) {
+  return String(v ?? "").trim() !== "";
+}
 
-  const { linhaInicio, linhaFim, colNome, colQtd } = INICIO.SUBDIVISOES;
+function valorApoiadoresPessoal(val) {
+  const n = parseNumero(val);
+  if (n > 0) return n;
+  return textoPreenchidoPessoal(val) ? 1 : 0;
+}
+
+function normalizarMunicipioPessoal(texto) {
+  return String(texto ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function contagemApoiadoresInicio(valores) {
+  const mapa = new Map();
+  const cfgP = CONFIG.PESSOAL;
+  if (!valores?.length) return mapa;
+
+  const colMun = cfgP.APOIADORES.COLUNAS.MUNICIPIO;
+  for (let linha = cfgP.APOIADORES.LINHA_INICIO_DADOS; linha <= valores.length; linha++) {
+    const municipio = String(celula(valores, linha, colMun) ?? "").trim();
+    if (!municipio) continue;
+    const chave = normalizarMunicipioPessoal(municipio);
+    mapa.set(chave, (mapa.get(chave) || 0) + 1);
+  }
+  return mapa;
+}
+
+function totalColunaEquipe(itens, campo) {
+  return itens.reduce((acc, r) => {
+    const raw = r[campo];
+    const n = parseNumero(raw);
+    if (n > 0) return acc + n;
+    if (textoPreenchidoPessoal(raw)) return acc + 1;
+    return acc;
+  }, 0);
+}
+
+function extrairEquipePorMunicipio(valoresMunicipio, contagemApoiadores) {
+  const cfgP = CONFIG.PESSOAL;
+  const cols = cfgP.COLUNAS;
   const itens = [];
 
-  for (let linha = linhaInicio; linha <= linhaFim; linha++) {
-    const nome = String(celula(valores, linha, colNome) ?? "").trim();
-    const qtd = parseNumero(celula(valores, linha, colQtd));
-    if (!nome && qtd === 0) continue;
-    itens.push({ nome: nome || "—", qtd });
+  for (let linha = cfgP.LINHA_INICIO_DADOS; linha <= valoresMunicipio.length; linha++) {
+    const municipio = String(celula(valoresMunicipio, linha, cols.MUNICIPIO) ?? "").trim();
+    if (!municipio) continue;
+
+    const municipioNorm = normalizarMunicipioPessoal(municipio);
+    let apoiadores = valorApoiadoresPessoal(celula(valoresMunicipio, linha, cols.APOIADORES));
+    if (!apoiadores && contagemApoiadores.has(municipioNorm)) {
+      apoiadores = contagemApoiadores.get(municipioNorm);
+    }
+
+    itens.push({
+      prefeito: celula(valoresMunicipio, linha, cols.PREFEITO),
+      vereador: celula(valoresMunicipio, linha, cols.VEREADOR),
+      agentePolitico: celula(valoresMunicipio, linha, cols.AGENTE_POLITICO),
+      assessor: celula(valoresMunicipio, linha, cols.ASSESSOR),
+      apoiadores,
+    });
   }
 
-  lista.innerHTML = itens.length
-    ? itens
-        .map(
-          (item, i) =>
-            `<li class="home-kpi-subdivisao home-kpi-subdivisao--${i % 5}">
-              <span class="home-kpi-subdivisao-nome">${escapeHtml(item.nome)}</span>
-              <span class="badge rounded-pill home-kpi-subdivisao-badge">${fmt.format(item.qtd)}</span>
-            </li>`
-        )
-        .join("")
-    : '<li class="home-kpi-subdivisao home-kpi-subdivisao-vazio text-muted">Sem subdivisões</li>';
+  return itens;
+}
+
+function totalEquipeCampanha(valoresMunicipio, valoresApoiadores) {
+  const contagem = contagemApoiadoresInicio(valoresApoiadores || []);
+  const itens = extrairEquipePorMunicipio(valoresMunicipio, contagem);
+
+  return (
+    totalColunaEquipe(itens, "prefeito") +
+    totalColunaEquipe(itens, "vereador") +
+    totalColunaEquipe(itens, "agentePolitico") +
+    totalColunaEquipe(itens, "assessor") +
+    itens.reduce((acc, r) => acc + r.apoiadores, 0)
+  );
+}
+
+function urlConsultaPlanilha(planilha) {
+  const url = new URL(CONFIG.WEB_APP_URL);
+  url.searchParams.set("planilha", planilha);
+  if (CONFIG.ABA) url.searchParams.set("aba", CONFIG.ABA);
+  AUTH.aplicarNaUrl(url);
+  return url.toString();
+}
+
+async function fetchPlanilhaInicio(planilha) {
+  const resp = await fetch(urlConsultaPlanilha(planilha), { method: "GET" });
+  const json = await resp.json();
+  if (!AUTH.tratarResposta(json)) return null;
+  if (!json.ok) throw new Error(json.erro || "Falha ao consultar " + planilha + ".");
+  return json.valores || [];
+}
+
+function preencherKpiEquipe(valoresMunicipio, valoresApoiadores) {
+  const elKpi = document.getElementById("kpiEquipe");
+  if (!elKpi) return;
+
+  if (!valoresMunicipio?.length) {
+    elKpi.textContent = "—";
+    return;
+  }
+
+  elKpi.textContent = fmt.format(totalEquipeCampanha(valoresMunicipio, valoresApoiadores));
 }
 
 function escapeHtml(texto) {
@@ -360,20 +510,22 @@ function renderizarCelulasRegiao(r, opts) {
   const v22 = fmt.format(r.votos2022);
   const min = fmt.format(r.minima);
   const ideal = fmt.format(r.ideal);
-  const rotuloRegiao = opts?.total ? "total" : escapeHtml(r.regiao);
+  const rotuloRegiao = escapeHtml(r.regiao);
 
   return `
     <td class="registros-col-regiao">
-      <span class="registros-regiao-celula">
-        ${
-          opts?.total
-            ? `<span class="registros-regiao-nome">${rotuloRegiao}</span>`
-            : `<span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
-               <span class="registros-regiao-nome">${rotuloRegiao}</span>`
-        }
-      </span>
+      ${
+        opts?.total
+          ? ""
+          : `<span class="registros-regiao-celula">
+               <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
+               <span class="registros-regiao-nome">${rotuloRegiao}</span>
+             </span>`
+      }
     </td>
-    <td class="text-end registros-col-municipios-mobile registros-only-mobile">${mun}</td>
+    <td class="text-end registros-col-municipios-mobile registros-only-mobile">
+      <span class="registros-stack-linha">${mun}</span>
+    </td>
     <td class="text-end registros-col-grupo-demografia registros-only-mobile">
       <span class="registros-celula-stack registros-celula-stack-end">
         <span class="registros-stack-linha">${hab}</span>
@@ -489,28 +641,22 @@ function montarGraficoVotos(rotulos, dados, animarColuna2026) {
         },
       ],
     },
-    plugins: [pluginValoresAcima, pluginDestaqueObjetivo2026],
+    plugins: [pluginValoresAcima, pluginCrescimentoBarras, pluginDestaqueObjetivo2026],
     options: {
       responsive: true,
       maintainAspectRatio: false,
       layout: { padding: { top: idx2026 >= 0 ? 58 : 28 } },
       animation: false,
+      interaction: { mode: null },
       plugins: {
         anoDestaque: INICIO.ANO_DESTAQUE,
         faseDestaque: deveAnimar ? FASE_DESTAQUE.AGUARDANDO : null,
         valorDestaque2026: valorFinal2026,
+        valoresFinaisVotos: dados,
         loopAnimacaoGrafico: deveAnimar,
         valoresAcimaSufixo: "",
         legend: { display: false },
-        tooltip: {
-          backgroundColor: "#1e293b",
-          padding: 10,
-          cornerRadius: 8,
-          callbacks: {
-            title: (items) => (items[0] ? "Ano " + items[0].label : ""),
-            label: (c) => fmt.format(c.parsed.y) + " votos",
-          },
-        },
+        tooltip: { enabled: false },
       },
       datasets: {
         bar: {
@@ -552,6 +698,125 @@ function montarGraficos(valores, animarColuna2026) {
   montarGraficoVotos(rotulos, dados, animarColuna2026 !== false);
 }
 
+function mapaMetaPorRegiao(valores) {
+  const mapa = new Map();
+  extrairLinhasRegiao(valores).forEach((r) => {
+    mapa.set(r.regiaoNorm, { rotulo: r.regiao, ideal: r.ideal });
+  });
+  return mapa;
+}
+
+function somarMetaRegioes(mapa, chavesNorm) {
+  return chavesNorm.reduce((acc, chave) => acc + (mapa.get(chave)?.ideal || 0), 0);
+}
+
+function dadosGraficoMetaGrupos(valores) {
+  const mapa = mapaMetaPorRegiao(valores);
+  return {
+    rotulos: INICIO.META_GRUPOS_ROTULOS,
+    dados: [
+      somarMetaRegioes(mapa, INICIO.META_GRUPOS.araguaia),
+      somarMetaRegioes(mapa, INICIO.META_GRUPOS.mt),
+    ],
+    cores: INICIO.META_GRUPOS_CORES,
+  };
+}
+
+function dadosGraficoMetaRegioes(valores) {
+  const mapa = mapaMetaPorRegiao(valores);
+  const ordem = CONFIG.DASHBOARD?.ORDEM_REGIOES || [];
+  const rotulos = [];
+  const dados = [];
+  const cores = [];
+
+  ordem.forEach((norm, i) => {
+    const item = mapa.get(norm);
+    if (!item) return;
+    rotulos.push(item.rotulo || norm);
+    dados.push(item.ideal);
+    cores.push(INICIO.CORES_REGIAO[i % INICIO.CORES_REGIAO.length]);
+  });
+
+  return { rotulos, dados, cores };
+}
+
+function opcoesGraficoPizzaMeta() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: {
+          font: { size: 10, weight: "600" },
+          boxWidth: 10,
+          padding: 8,
+        },
+      },
+      tooltip: {
+        backgroundColor: "#1e293b",
+        padding: 10,
+        cornerRadius: 8,
+        callbacks: {
+          label: (ctx) => ` ${ctx.label}: ${fmt.format(ctx.parsed)}`,
+        },
+      },
+    },
+  };
+}
+
+function montarGraficoPizzaMeta(canvasId, refAtual, dados) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+
+  if (refAtual) refAtual.destroy();
+
+  const total = dados.dados.reduce((a, b) => a + b, 0);
+  if (!total) {
+    return new Chart(canvas, {
+      type: "pie",
+      data: {
+        labels: ["sem dados"],
+        datasets: [{ data: [1], backgroundColor: ["#e2e8f0"], borderWidth: 0 }],
+      },
+      options: {
+        ...opcoesGraficoPizzaMeta(),
+        plugins: { ...opcoesGraficoPizzaMeta().plugins, legend: { display: false } },
+      },
+    });
+  }
+
+  return new Chart(canvas, {
+    type: "pie",
+    data: {
+      labels: dados.rotulos,
+      datasets: [
+        {
+          data: dados.dados,
+          backgroundColor: dados.cores,
+          borderWidth: 2,
+          borderColor: "#ffffff",
+        },
+      ],
+    },
+    options: opcoesGraficoPizzaMeta(),
+  });
+}
+
+function montarGraficosMeta(valores) {
+  destruirGraficosMeta();
+  chartMetaGrupos = montarGraficoPizzaMeta(
+    "graficoMetaGrupos",
+    chartMetaGrupos,
+    dadosGraficoMetaGrupos(valores)
+  );
+  chartMetaRegioes = montarGraficoPizzaMeta(
+    "graficoMetaRegioes",
+    chartMetaRegioes,
+    dadosGraficoMetaRegioes(valores)
+  );
+}
+
 function ajustarFramePai() {
   if (window.parent && window.parent.ajustarAlturaFrame) {
     setTimeout(() => window.parent.ajustarAlturaFrame(), 150);
@@ -559,13 +824,20 @@ function ajustarFramePai() {
   if (chartInicio) {
     setTimeout(() => chartInicio.resize(), 180);
   }
+  if (chartMetaGrupos) setTimeout(() => chartMetaGrupos.resize(), 200);
+  if (chartMetaRegioes) setTimeout(() => chartMetaRegioes.resize(), 200);
 }
 
 window.addEventListener("resize", () => {
   if (chartInicio) chartInicio.resize();
+  if (chartMetaGrupos) chartMetaGrupos.resize();
+  if (chartMetaRegioes) chartMetaRegioes.resize();
 });
 
-window.addEventListener("beforeunload", pararAnimacoesGrafico);
+window.addEventListener("beforeunload", () => {
+  pararAnimacoesGrafico();
+  destruirGraficosMeta();
+});
 
 async function carregarInicio(animarGrafico) {
   if (!CONFIG.WEB_APP_URL || CONFIG.WEB_APP_URL.startsWith("COLE_AQUI")) {
@@ -576,17 +848,24 @@ async function carregarInicio(animarGrafico) {
   mostrarStatus("Carregando dados...", "carregando");
 
   try {
-    const resp = await fetch(urlConsulta(), { method: "GET" });
-    const json = await resp.json();
-    if (!AUTH.tratarResposta(json)) return;
-    if (!json.ok) throw new Error(json.erro || "Falha ao consultar mapa-voto.");
+    const cfgP = CONFIG.PESSOAL;
+    const [jsonMapa, valoresPessoal, valoresApoiadores] = await Promise.all([
+      fetch(urlConsulta(), { method: "GET" }).then((r) => r.json()),
+      fetchPlanilhaInicio(cfgP.PLANILHA).catch(() => []),
+      fetchPlanilhaInicio(cfgP.PLANILHA_APOIADORES).catch(() => []),
+    ]);
 
-    const valores = json.valores || [];
+    if (!AUTH.tratarResposta(jsonMapa)) return;
+    if (!jsonMapa.ok) throw new Error(jsonMapa.erro || "Falha ao consultar mapa-voto.");
+
+    const valores = jsonMapa.valores || [];
     if (!valores.length) throw new Error("Planilha mapa-voto sem dados.");
 
     ultimosValoresPlanilha = valores;
     preencherKpis(valores);
+    preencherKpiEquipe(valoresPessoal, valoresApoiadores);
     montarGraficos(valores, animarGrafico !== false);
+    montarGraficosMeta(valores);
     montarTabelaRegiao(valores);
     mostrarStatus("", null);
   } catch (e) {

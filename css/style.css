@@ -952,11 +952,38 @@ body.page-dashboard .dashboard-tabela-panel {
   color: #fff;
 }
 
-/* KPIs: população + eleitores empilhados; municípios em coluna separada */
+/* KPIs: grade 2×2 (população, eleitores, votação mínima, meta) */
 .home-kpi-col-dir {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.home-kpi-col-dir .home-kpi-card {
+  min-height: 0;
+}
+
+.home-kpi-col-dir .home-kpi-ilustra {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+}
+
+.home-kpi-col-dir .home-kpi-ilustra svg {
+  width: 30px;
+  height: 30px;
+}
+
+.home-kpi-col-dir .home-kpi-valor {
+  font-size: clamp(0.85rem, 2.2vw, 1.15rem);
+}
+
+.home-kpi-col-dir .home-kpi-titulo {
+  font-size: 0.65rem;
+  line-height: 1.2;
 }
 
 .home-kpi-card .card-body {
@@ -1000,6 +1027,25 @@ body.page-dashboard .dashboard-tabela-panel {
   color: #14b8a6;
 }
 
+.home-kpi-ilustra-equipe {
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.16), rgba(129, 140, 248, 0.08));
+  color: #6366f1;
+}
+
+.home-kpi-ilustra-orcamento {
+  background: linear-gradient(145deg, rgba(22, 78, 99, 0.14), rgba(56, 189, 248, 0.08));
+  color: #0e7490;
+}
+
+.home-kpi-valor-equipe {
+  color: #4338ca;
+}
+
+.home-kpi-valor-orcamento {
+  color: #0e7490;
+  font-size: clamp(1.35rem, 3.5vw, 1.75rem);
+}
+
 .home-kpi-valor {
   font-size: clamp(1.1rem, 3.5vw, 1.5rem);
   font-weight: 700;
@@ -1009,6 +1055,33 @@ body.page-dashboard .dashboard-tabela-panel {
 
 .home-kpi-municipios-card {
   background: linear-gradient(160deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.home-meta-pizza-wrap {
+  background: linear-gradient(160deg, #ffffff 0%, #f8fafc 100%);
+  min-height: 100%;
+}
+
+.home-meta-pizza-card {
+  background: #fff;
+}
+
+.home-meta-pizza-card .card-body {
+  min-height: 0;
+}
+
+.home-meta-pizza-chart {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  flex: 1;
+  min-height: 120px;
+}
+
+@media (min-width: 992px) {
+  .home-meta-pizza-chart {
+    height: 200px;
+  }
 }
 
 .home-kpi-municipios-body {
@@ -1171,12 +1244,14 @@ body.page-dashboard .dashboard-tabela-panel {
 }
 
 @media (max-width: 575.98px) {
-  .home-kpi-col-dir {
-    flex-direction: row;
+  .home-kpi-col-dir .home-kpi-ilustra {
+    width: 44px;
+    height: 44px;
   }
 
-  .home-kpi-col-dir .home-kpi-card {
-    flex: 1;
+  .home-kpi-col-dir .home-kpi-ilustra svg {
+    width: 26px;
+    height: 26px;
   }
 }
 
@@ -2763,20 +2838,28 @@ body.page-pessoal .dashboard-tabela-panel {
   }
 
   .registros-tabela .registros-col-regiao {
-    width: 24%;
+    width: 26%;
   }
 
   .registros-tabela .registros-col-municipios-mobile {
-    width: 16%;
+    width: 19%;
   }
 
   .registros-tabela .registros-col-grupo-demografia {
-    width: 12%;
+    width: 16%;
   }
 
-  .registros-tabela .registros-col-grupo-votos,
+  .registros-tabela .registros-col-grupo-votos {
+    width: 17%;
+  }
+
   .registros-tabela .registros-col-grupo-meta {
-    width: 24%;
+    width: 22%;
+  }
+
+  .registros-tabela .registros-col-municipios-mobile .registros-stack-linha {
+    font-size: 0.68rem;
+    font-weight: inherit;
   }
 
   .registros-regiao-nome {
