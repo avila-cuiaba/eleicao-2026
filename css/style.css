@@ -2269,6 +2269,46 @@ th.dashboard-col-eleitores.dashboard-th-desktop-only {
   font-variant-numeric: tabular-nums;
 }
 
+.micro-regiao-modal-footer {
+  justify-content: center;
+}
+
+.micro-regiao-modal-badge {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+  border: 1px solid transparent;
+  color: #1e293b;
+}
+
+.micro-regiao-modal-cor--0 {
+  background: rgba(249, 115, 22, 0.16);
+  border-color: rgba(249, 115, 22, 0.22);
+}
+
+.micro-regiao-modal-cor--1 {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.micro-regiao-modal-cor--2 {
+  background: rgba(20, 184, 166, 0.16);
+  border-color: rgba(20, 184, 166, 0.2);
+}
+
+.micro-regiao-modal-cor--3 {
+  background: rgba(168, 85, 247, 0.16);
+  border-color: rgba(168, 85, 247, 0.2);
+}
+
+.micro-regiao-modal-cor--4 {
+  background: rgba(225, 29, 72, 0.16);
+  border-color: rgba(225, 29, 72, 0.2);
+}
+
 @media (max-width: 575.98px) {
   .micro-regiao-tabela th,
   .micro-regiao-tabela td {

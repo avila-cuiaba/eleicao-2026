@@ -201,7 +201,11 @@ function initMicroRegiao() {
       .sort((a, b) => a.municipio.localeCompare(b.municipio, "pt-BR"));
 
     if (els.modalTitulo) {
-      els.modalTitulo.textContent = "municípios — " + regiaoNome;
+      const cor = indiceCorRegiao(regiaoNorm);
+      els.modalTitulo.innerHTML =
+        `<span class="micro-regiao-modal-badge micro-regiao-modal-cor--${cor}"></span>`;
+      const badge = els.modalTitulo.querySelector(".micro-regiao-modal-badge");
+      if (badge) badge.textContent = regiaoNome;
     }
 
     if (els.modalStatus) {

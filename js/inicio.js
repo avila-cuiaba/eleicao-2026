@@ -150,6 +150,13 @@ function iniciarExibicaoObjetivo(chart) {
   animCicloId = requestAnimationFrame(passo);
 }
 
+function alphaPiscarObjetivo(tempoDesdeInicio) {
+  if (tempoDesdeInicio < OBJETIVO_PISCAR_MS) {
+    return 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(performance.now() / 300));
+  }
+  return 1;
+}
+
 function desenharValorObjetivo2026(ctx, bar, val, tempoDesdeInicio) {
   const textoValor = fmt.format(val);
   const emoji = "🎯";
@@ -168,14 +175,9 @@ function desenharValorObjetivo2026(ctx, bar, val, tempoDesdeInicio) {
   ctx.font = fonteEmoji;
   ctx.fillText(emoji, bar.x, yEmoji);
 
-  let alphaValor = 1;
-  if (tempoDesdeInicio < OBJETIVO_PISCAR_MS) {
-    alphaValor = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(performance.now() / 300));
-  }
-
   ctx.font = fonteValor;
   ctx.fillStyle = "#1e293b";
-  ctx.globalAlpha = alphaValor;
+  ctx.globalAlpha = alphaPiscarObjetivo(tempoDesdeInicio);
   ctx.fillText(textoValor, bar.x, yValor);
   ctx.restore();
 }
@@ -232,6 +234,17 @@ function formatarPercentualCrescimento(pct) {
   return sinal + pct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
 }
 
+function desenharPercentualCrescimento(ctx, x, y, pct, alpha = 1) {
+  ctx.save();
+  ctx.font = "700 14px system-ui, -apple-system, Segoe UI, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillStyle = pct >= 0 ? "#15803d" : "#b91c1c";
+  ctx.globalAlpha = alpha;
+  ctx.fillText(formatarPercentualCrescimento(pct), x, y);
+  ctx.restore();
+}
+
 const pluginCrescimentoBarras = {
   id: "crescimentoBarras",
   afterDatasetsDraw(chart) {
@@ -242,16 +255,13 @@ const pluginCrescimentoBarras = {
     const ticks = yScale.ticks;
     if (ticks.length < 2) return;
     const yLinha = yScale.getPixelForValue(ticks[1].value);
+    const yPct = yLinha - 7;
 
     const valoresFinais = chart.config.options.plugins?.valoresFinaisVotos || chart.data.datasets[0].data;
+    const idxDestaque = indiceAnoDestaque(chart);
+    const fase = chart.config.options.plugins?.faseDestaque;
+    const loopAnimacao = chart.config.options.plugins?.loopAnimacaoGrafico;
     const ctx = chart.ctx;
-
-    const offsetAcimaLinha = 7;
-
-    ctx.save();
-    ctx.font = "700 14px system-ui, -apple-system, Segoe UI, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
 
     for (let i = 0; i < barMeta.data.length - 1; i++) {
       const barA = barMeta.data[i];
@@ -262,11 +272,20 @@ const pluginCrescimentoBarras = {
       if (pct == null) continue;
 
       const x = (barA.x + barB.x) / 2;
-      ctx.fillStyle = pct >= 0 ? "#15803d" : "#b91c1c";
-      ctx.fillText(formatarPercentualCrescimento(pct), x, yLinha - offsetAcimaLinha);
-    }
+      const isPar2022a2026 = idxDestaque >= 1 && i === idxDestaque - 1;
 
-    ctx.restore();
+      if (isPar2022a2026 && loopAnimacao) {
+        if (fase === FASE_DESTAQUE.AGUARDANDO) continue;
+        if (fase === FASE_DESTAQUE.OBJETIVO) {
+          const inicioEm = chart.config.options.plugins?.objetivoInicioEm ?? performance.now();
+          const alpha = alphaPiscarObjetivo(performance.now() - inicioEm);
+          desenharPercentualCrescimento(ctx, x, yPct, pct, alpha);
+          continue;
+        }
+      }
+
+      desenharPercentualCrescimento(ctx, x, yPct, pct);
+    }
   },
 };
 
