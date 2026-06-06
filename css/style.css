@@ -236,6 +236,24 @@ html {
   min-width: 0;
 }
 
+.btn-menu-toggle {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--brand);
+  --bs-btn-border-color: var(--brand-dark);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--brand-dark);
+  --bs-btn-hover-border-color: var(--brand-dark);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--brand-dark);
+  --bs-btn-active-border-color: var(--brand-dark);
+  --bs-btn-focus-shadow-rgb: 31, 78, 140;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0.35rem 0.55rem;
+  min-width: 2.25rem;
+  box-shadow: 0 1px 4px rgba(22, 58, 105, 0.25);
+}
+
 .app-header-title {
   color: var(--brand);
   font-weight: 700;
@@ -991,6 +1009,86 @@ body.page-dashboard .dashboard-tabela-panel {
   padding-right: 10px;
 }
 
+.home-kpi-card-populacao {
+  background: linear-gradient(155deg, #fff1f2 0%, #ffe4e6 50%, #fecdd3 100%);
+  border: 1px solid rgba(244, 63, 94, 0.14) !important;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.1) !important;
+}
+
+.home-kpi-card-populacao .home-kpi-titulo {
+  color: #be123c;
+}
+
+.home-kpi-card-populacao .home-kpi-valor {
+  color: #9f1239;
+}
+
+.home-kpi-card-populacao .home-kpi-ilustra-populacao {
+  background: linear-gradient(145deg, #fb7185, #e11d48);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+}
+
+.home-kpi-card-eleitores {
+  background: linear-gradient(155deg, #f0fdfa 0%, #ccfbf1 50%, #99f6e4 100%);
+  border: 1px solid rgba(20, 184, 166, 0.16) !important;
+  box-shadow: 0 4px 14px rgba(20, 184, 166, 0.1) !important;
+}
+
+.home-kpi-card-eleitores .home-kpi-titulo {
+  color: #0f766e;
+}
+
+.home-kpi-card-eleitores .home-kpi-valor {
+  color: #115e59;
+}
+
+.home-kpi-card-eleitores .home-kpi-ilustra-eleitores {
+  background: linear-gradient(145deg, #2dd4bf, #0d9488);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+.home-kpi-card-equipe {
+  background: linear-gradient(155deg, #eef2ff 0%, #e0e7ff 50%, #c7d2fe 100%);
+  border: 1px solid rgba(99, 102, 241, 0.16) !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.1) !important;
+}
+
+.home-kpi-card-equipe .home-kpi-titulo {
+  color: #4338ca;
+}
+
+.home-kpi-card-equipe .home-kpi-valor-equipe {
+  color: #3730a3;
+}
+
+.home-kpi-card-equipe .home-kpi-ilustra-equipe {
+  background: linear-gradient(145deg, #818cf8, #4f46e5);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.home-kpi-card-orcamento {
+  background: linear-gradient(155deg, #ecfeff 0%, #cffafe 50%, #a5f3fc 100%);
+  border: 1px solid rgba(14, 116, 144, 0.16) !important;
+  box-shadow: 0 4px 14px rgba(14, 116, 144, 0.1) !important;
+}
+
+.home-kpi-card-orcamento .home-kpi-titulo {
+  color: #0e7490;
+}
+
+.home-kpi-card-orcamento .home-kpi-valor-orcamento {
+  color: #155e75;
+}
+
+.home-kpi-card-orcamento .home-kpi-ilustra-orcamento {
+  background: linear-gradient(145deg, #22d3ee, #0891b2);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+}
+
 .home-kpi-titulo {
   font-size: 0.72rem;
   font-weight: 600;
@@ -1057,9 +1155,26 @@ body.page-dashboard .dashboard-tabela-panel {
   background: linear-gradient(160deg, #ffffff 0%, #f8fafc 100%);
 }
 
+.home-votacao-card {
+  background: linear-gradient(155deg, #eef2ff 0%, #f8fafc 48%, #ecfeff 100%);
+  border: 1px solid rgba(99, 102, 241, 0.12) !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.08) !important;
+}
+
+.home-votacao-titulo {
+  color: #4338ca;
+  font-weight: 600;
+}
+
 .home-meta-pizza-wrap {
-  background: linear-gradient(160deg, #ffffff 0%, #f8fafc 100%);
+  background: linear-gradient(155deg, #fff7ed 0%, #f8fafc 50%, #eff6ff 100%);
+  border: 1px solid rgba(249, 115, 22, 0.1) !important;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.08) !important;
   min-height: 100%;
+}
+
+.home-meta-pizza-wrap .home-kpi-titulo {
+  color: #c2410c;
 }
 
 .home-meta-pizza-layout {
@@ -2779,7 +2894,7 @@ body.page-pessoal .dashboard-tabela-panel {
   }
 }
 
-/* Registros — tabela completa (desktop) / 5 colunas no mobile */
+/* Registros — tabela completa (desktop) / 4 colunas no mobile */
 .registros-tabela-card .card-body,
 .registros-tabela-wrap {
   width: 100%;
@@ -2889,10 +3004,29 @@ body.page-pessoal .dashboard-tabela-panel {
   min-width: 0;
 }
 
+.registros-regiao-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
 .registros-regiao-nome {
   font-size: 0.72rem;
   line-height: 1.25;
   word-break: break-word;
+}
+
+.registros-regiao-mun {
+  font-size: 0.62rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+
+.registros-th-regiao-mobile {
+  gap: 0.08rem;
 }
 
 .registros-linha-total td {
@@ -2925,33 +3059,29 @@ body.page-pessoal .dashboard-tabela-panel {
     padding-right: 0.3rem;
   }
 
+  /* Mobile: 4 colunas — região+municípios | demografia | votos | meta */
   .registros-tabela .registros-col-regiao {
-    width: 26%;
-  }
-
-  .registros-tabela .registros-col-municipios-mobile {
-    width: 19%;
+    width: 30%;
   }
 
   .registros-tabela .registros-col-grupo-demografia {
-    width: 16%;
+    width: 20%;
   }
 
   .registros-tabela .registros-col-grupo-votos {
-    width: 17%;
-  }
-
-  .registros-tabela .registros-col-grupo-meta {
     width: 22%;
   }
 
-  .registros-tabela .registros-col-municipios-mobile .registros-stack-linha {
-    font-size: 0.68rem;
-    font-weight: inherit;
+  .registros-tabela .registros-col-grupo-meta {
+    width: 28%;
   }
 
   .registros-regiao-nome {
     font-size: 0.68rem;
+  }
+
+  .registros-regiao-mun {
+    font-size: 0.58rem;
   }
 
   .registros-stack-linha {

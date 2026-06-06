@@ -33,6 +33,7 @@ const fmt = new Intl.NumberFormat("pt-BR");
 const FASE_DESTAQUE = {
   AGUARDANDO: "aguardando",
   OBJETIVO: "objetivo",
+  FIXO: "fixo",
 };
 
 const BARRA_DURACAO_MS = 2800;
@@ -144,10 +145,16 @@ function iniciarExibicaoObjetivo(chart) {
     }
 
     animCicloId = null;
-    animarCrescimentoColuna2026(chart, valorFinalColuna2026(chart));
+    finalizarAnimacaoObjetivo(chart);
   };
 
   animCicloId = requestAnimationFrame(passo);
+}
+
+function finalizarAnimacaoObjetivo(chart) {
+  pararAnimCiclo();
+  setFaseDestaque(chart, FASE_DESTAQUE.FIXO);
+  chart.update();
 }
 
 function alphaPiscarObjetivo(tempoDesdeInicio) {
@@ -210,7 +217,9 @@ const pluginValoresAcima = {
     barMeta.data.forEach((bar, i) => {
       if (
         i === idxDestaque &&
-        (fase === FASE_DESTAQUE.AGUARDANDO || fase === FASE_DESTAQUE.OBJETIVO)
+        (fase === FASE_DESTAQUE.AGUARDANDO ||
+          fase === FASE_DESTAQUE.OBJETIVO ||
+          fase === FASE_DESTAQUE.FIXO)
       ) {
         return;
       }
@@ -293,7 +302,7 @@ const pluginDestaqueObjetivo2026 = {
   id: "destaqueObjetivo2026",
   afterDatasetsDraw(chart) {
     const fase = chart.config.options.plugins?.faseDestaque;
-    if (fase !== FASE_DESTAQUE.OBJETIVO) return;
+    if (fase !== FASE_DESTAQUE.OBJETIVO && fase !== FASE_DESTAQUE.FIXO) return;
 
     const idx = indiceAnoDestaque(chart);
     if (idx < 0) return;
@@ -304,8 +313,10 @@ const pluginDestaqueObjetivo2026 = {
     const val = chart.data.datasets[0].data[idx];
     if (val == null) return;
 
-    const inicioEm = chart.config.options.plugins?.objetivoInicioEm ?? performance.now();
-    const tempo = performance.now() - inicioEm;
+    const tempo =
+      fase === FASE_DESTAQUE.FIXO
+        ? OBJETIVO_PISCAR_MS
+        : performance.now() - (chart.config.options.plugins?.objetivoInicioEm ?? performance.now());
     desenharValorObjetivo2026(chart.ctx, bar, val, tempo);
   },
 };
@@ -475,7 +486,7 @@ function normalizarChave(texto) {
 }
 
 function colsVisiveisTabela() {
-  return window.matchMedia("(min-width: 992px)").matches ? 8 : 5;
+  return window.matchMedia("(min-width: 992px)").matches ? 8 : 4;
 }
 
 function indiceCorRegiao(regiaoNorm) {
@@ -527,19 +538,19 @@ function renderizarCelulasRegiao(r, opts) {
   const ideal = fmt.format(r.ideal);
   const rotuloRegiao = escapeHtml(r.regiao);
 
+  const celulaRegiao = opts?.total
+    ? `<span class="registros-regiao-stack registros-only-mobile"><span class="registros-regiao-mun">${mun}</span></span>`
+    : `<span class="registros-regiao-celula">
+         <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
+         <span class="registros-regiao-stack">
+           <span class="registros-regiao-nome">${rotuloRegiao}</span>
+           <span class="registros-regiao-mun registros-only-mobile">${mun}</span>
+         </span>
+       </span>`;
+
   return `
     <td class="registros-col-regiao">
-      ${
-        opts?.total
-          ? ""
-          : `<span class="registros-regiao-celula">
-               <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
-               <span class="registros-regiao-nome">${rotuloRegiao}</span>
-             </span>`
-      }
-    </td>
-    <td class="text-end registros-col-municipios-mobile registros-only-mobile">
-      <span class="registros-stack-linha">${mun}</span>
+      ${celulaRegiao}
     </td>
     <td class="text-end registros-col-grupo-demografia registros-only-mobile">
       <span class="registros-celula-stack registros-celula-stack-end">
