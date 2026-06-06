@@ -1156,9 +1156,9 @@ body.page-dashboard .dashboard-tabela-panel {
 }
 
 .home-votacao-card {
-  background: linear-gradient(155deg, #eef2ff 0%, #f8fafc 48%, #ecfeff 100%);
-  border: 1px solid rgba(99, 102, 241, 0.12) !important;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.08) !important;
+  background: linear-gradient(155deg, #dbeafe 0%, #e0e7ff 48%, #a5f3fc 100%);
+  border: 1px solid rgba(99, 102, 241, 0.22) !important;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.16) !important;
 }
 
 .home-votacao-titulo {
@@ -1167,9 +1167,9 @@ body.page-dashboard .dashboard-tabela-panel {
 }
 
 .home-meta-pizza-wrap {
-  background: linear-gradient(155deg, #fff7ed 0%, #f8fafc 50%, #eff6ff 100%);
-  border: 1px solid rgba(249, 115, 22, 0.1) !important;
-  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.08) !important;
+  background: linear-gradient(155deg, #fed7aa 0%, #ffedd5 50%, #bfdbfe 100%);
+  border: 1px solid rgba(249, 115, 22, 0.2) !important;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.14) !important;
   min-height: 100%;
 }
 
