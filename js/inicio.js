@@ -16,16 +16,14 @@ const INICIO = {
   ],
   ANO_DESTAQUE: "2026",
   CORES_REGIAO: ["#f97316", "#3b82f6", "#14b8a6", "#a855f7", "#e11d48"],
-  META_GRUPOS: {
-    araguaia: ["alto araguaia", "medio araguaia", "norte araguaia"],
-    mt: ["mt", "baixada cuiabana"],
+  META_PIZZA: {
+    OPACIDADE: 0.52,
+    RAIO: ["32%", "80%"],
+    COR_VALOR: "#334155",
   },
-  META_GRUPOS_CORES: ["#14b8a6", "#6366f1"],
-  META_GRUPOS_ROTULOS: ["araguaia", "MT"],
 };
 
 let chartInicio = null;
-let chartMetaGrupos = null;
 let chartMetaRegioes = null;
 let animBarraId = null;
 let animCicloId = null;
@@ -61,12 +59,8 @@ function pararAnimacoesGrafico() {
 }
 
 function destruirGraficosMeta() {
-  if (chartMetaGrupos) {
-    chartMetaGrupos.destroy();
-    chartMetaGrupos = null;
-  }
   if (chartMetaRegioes) {
-    chartMetaRegioes.destroy();
+    chartMetaRegioes.dispose();
     chartMetaRegioes = null;
   }
 }
@@ -252,10 +246,12 @@ const pluginCrescimentoBarras = {
     const valoresFinais = chart.config.options.plugins?.valoresFinaisVotos || chart.data.datasets[0].data;
     const ctx = chart.ctx;
 
+    const offsetAcimaLinha = 7;
+
     ctx.save();
-    ctx.font = "700 11px system-ui, -apple-system, Segoe UI, sans-serif";
+    ctx.font = "700 14px system-ui, -apple-system, Segoe UI, sans-serif";
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.textBaseline = "bottom";
 
     for (let i = 0; i < barMeta.data.length - 1; i++) {
       const barA = barMeta.data[i];
@@ -267,7 +263,7 @@ const pluginCrescimentoBarras = {
 
       const x = (barA.x + barB.x) / 2;
       ctx.fillStyle = pct >= 0 ? "#15803d" : "#b91c1c";
-      ctx.fillText(formatarPercentualCrescimento(pct), x, yLinha);
+      ctx.fillText(formatarPercentualCrescimento(pct), x, yLinha - offsetAcimaLinha);
     }
 
     ctx.restore();
@@ -706,20 +702,18 @@ function mapaMetaPorRegiao(valores) {
   return mapa;
 }
 
-function somarMetaRegioes(mapa, chavesNorm) {
-  return chavesNorm.reduce((acc, chave) => acc + (mapa.get(chave)?.ideal || 0), 0);
+function corRegiaoComOpacidade(hex, alpha) {
+  const h = String(hex).replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function dadosGraficoMetaGrupos(valores) {
-  const mapa = mapaMetaPorRegiao(valores);
-  return {
-    rotulos: INICIO.META_GRUPOS_ROTULOS,
-    dados: [
-      somarMetaRegioes(mapa, INICIO.META_GRUPOS.araguaia),
-      somarMetaRegioes(mapa, INICIO.META_GRUPOS.mt),
-    ],
-    cores: INICIO.META_GRUPOS_CORES,
-  };
+function isRegiaoMt(norm, rotulo) {
+  if (norm === "mt") return true;
+  const t = normalizarChave(rotulo);
+  return t === "mt" || t === "mato grosso";
 }
 
 function dadosGraficoMetaRegioes(valores) {
@@ -728,93 +722,147 @@ function dadosGraficoMetaRegioes(valores) {
   const rotulos = [];
   const dados = [];
   const cores = [];
+  const coresBase = [];
+  const normas = [];
 
   ordem.forEach((norm, i) => {
     const item = mapa.get(norm);
     if (!item) return;
+    const cor = INICIO.CORES_REGIAO[i % INICIO.CORES_REGIAO.length];
     rotulos.push(item.rotulo || norm);
     dados.push(item.ideal);
-    cores.push(INICIO.CORES_REGIAO[i % INICIO.CORES_REGIAO.length]);
+    coresBase.push(cor);
+    cores.push(corRegiaoComOpacidade(cor, INICIO.META_PIZZA.OPACIDADE));
+    normas.push(norm);
   });
 
-  return { rotulos, dados, cores };
+  return { rotulos, dados, cores, coresBase, normas };
 }
 
-function opcoesGraficoPizzaMeta() {
+function preencherLegendaMetaRegioes(dados) {
+  const el = document.getElementById("legendaMetaRegioes");
+  if (!el) return;
+
+  if (!dados.rotulos.length) {
+    el.innerHTML = "";
+    return;
+  }
+
+  el.innerHTML = dados.rotulos
+    .map(
+      (rotulo, i) => `
+    <li class="home-meta-pizza-legenda-item">
+      <span class="home-meta-pizza-legenda-cor" style="background:${escapeHtml(dados.cores[i])}"></span>
+      <span class="home-meta-pizza-legenda-texto">${escapeHtml(rotulo)}</span>
+    </li>`
+    )
+    .join("");
+}
+
+function opcoesGraficoMetaEcharts(dados) {
+  const seriesData = dados.rotulos.map((nome, i) => {
+    const valor = dados.dados[i];
+    const mt = isRegiaoMt(dados.normas[i], nome);
+    const corFatia = dados.cores[i];
+
+    return {
+      name: nome,
+      value: valor,
+      itemStyle: {
+        color: corFatia,
+        borderRadius: 8,
+        borderColor: "#ffffff",
+        borderWidth: 2,
+        shadowBlur: 10,
+        shadowColor: "rgba(15, 23, 42, 0.14)",
+        shadowOffsetY: 2,
+      },
+      label: {
+        show: valor != null,
+        position: mt ? "outside" : "inside",
+        formatter: () => fmt.format(valor),
+        color: INICIO.META_PIZZA.COR_VALOR,
+        fontWeight: 700,
+        fontSize: mt ? 10 : 11,
+        fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif",
+      },
+      labelLine: mt
+        ? {
+            show: true,
+            length: 10,
+            length2: 14,
+            lineStyle: { color: corFatia, width: 1.5 },
+          }
+        : { show: false },
+    };
+  });
+
   return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "bottom",
-        labels: {
-          font: { size: 10, weight: "600" },
-          boxWidth: 10,
-          padding: 8,
+    animation: true,
+    animationDuration: 900,
+    animationEasing: "cubicOut",
+    tooltip: { show: false },
+    series: [
+      {
+        type: "pie",
+        radius: INICIO.META_PIZZA.RAIO,
+        center: ["50%", "50%"],
+        avoidLabelOverlap: true,
+        minAngle: 4,
+        padAngle: 2,
+        emphasis: {
+          scale: true,
+          scaleSize: 8,
+          itemStyle: {
+            shadowBlur: 16,
+            shadowColor: "rgba(15, 23, 42, 0.2)",
+          },
         },
+        data: seriesData,
       },
-      tooltip: {
-        backgroundColor: "#1e293b",
-        padding: 10,
-        cornerRadius: 8,
-        callbacks: {
-          label: (ctx) => ` ${ctx.label}: ${fmt.format(ctx.parsed)}`,
-        },
-      },
-    },
+    ],
   };
 }
 
-function montarGraficoPizzaMeta(canvasId, refAtual, dados) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return null;
+function montarGraficoMetaRegioes(dados) {
+  const el = document.getElementById("graficoMetaRegioes");
+  if (!el || typeof echarts === "undefined") return null;
 
-  if (refAtual) refAtual.destroy();
-
-  const total = dados.dados.reduce((a, b) => a + b, 0);
-  if (!total) {
-    return new Chart(canvas, {
-      type: "pie",
-      data: {
-        labels: ["sem dados"],
-        datasets: [{ data: [1], backgroundColor: ["#e2e8f0"], borderWidth: 0 }],
-      },
-      options: {
-        ...opcoesGraficoPizzaMeta(),
-        plugins: { ...opcoesGraficoPizzaMeta().plugins, legend: { display: false } },
-      },
-    });
+  if (chartMetaRegioes) {
+    chartMetaRegioes.dispose();
+    chartMetaRegioes = null;
   }
 
-  return new Chart(canvas, {
-    type: "pie",
-    data: {
-      labels: dados.rotulos,
-      datasets: [
+  const total = dados.dados.reduce((a, b) => a + b, 0);
+  preencherLegendaMetaRegioes(dados);
+  chartMetaRegioes = echarts.init(el, null, { renderer: "canvas" });
+
+  if (!total) {
+    preencherLegendaMetaRegioes({ rotulos: [], coresBase: [] });
+    chartMetaRegioes.setOption({
+      animation: false,
+      tooltip: { show: false },
+      series: [
         {
-          data: dados.dados,
-          backgroundColor: dados.cores,
-          borderWidth: 2,
-          borderColor: "#ffffff",
+          type: "pie",
+          radius: INICIO.META_PIZZA.RAIO,
+          silent: true,
+          label: { show: false },
+          labelLine: { show: false },
+          data: [{ value: 1, name: "sem dados", itemStyle: { color: "#e2e8f0", borderWidth: 0 } }],
         },
       ],
-    },
-    options: opcoesGraficoPizzaMeta(),
-  });
+    });
+    return chartMetaRegioes;
+  }
+
+  chartMetaRegioes.setOption(opcoesGraficoMetaEcharts(dados));
+  return chartMetaRegioes;
 }
 
 function montarGraficosMeta(valores) {
   destruirGraficosMeta();
-  chartMetaGrupos = montarGraficoPizzaMeta(
-    "graficoMetaGrupos",
-    chartMetaGrupos,
-    dadosGraficoMetaGrupos(valores)
-  );
-  chartMetaRegioes = montarGraficoPizzaMeta(
-    "graficoMetaRegioes",
-    chartMetaRegioes,
-    dadosGraficoMetaRegioes(valores)
-  );
+  montarGraficoMetaRegioes(dadosGraficoMetaRegioes(valores));
 }
 
 function ajustarFramePai() {
@@ -824,13 +872,11 @@ function ajustarFramePai() {
   if (chartInicio) {
     setTimeout(() => chartInicio.resize(), 180);
   }
-  if (chartMetaGrupos) setTimeout(() => chartMetaGrupos.resize(), 200);
   if (chartMetaRegioes) setTimeout(() => chartMetaRegioes.resize(), 200);
 }
 
 window.addEventListener("resize", () => {
   if (chartInicio) chartInicio.resize();
-  if (chartMetaGrupos) chartMetaGrupos.resize();
   if (chartMetaRegioes) chartMetaRegioes.resize();
 });
 
