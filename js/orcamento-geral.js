@@ -5,7 +5,8 @@ const fmtMoeda = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 2,
 });
 const cfg = CONFIG.ORCAMENTO_GERAL;
-const COLS_TABELA = 4;
+const COLS_TABELA = 5;
+const COR_GRAFICO_PAGAMENTO = "#0891b2";
 
 let el = {};
 let chartComparativo = null;
@@ -245,7 +246,7 @@ function opcoesGrafico(totais) {
       {
         name: rotulosGrafico.pagamento,
         type: "bar",
-        itemStyle: { color: "#0891b2", borderRadius: [4, 4, 0, 0] },
+        itemStyle: { color: COR_GRAFICO_PAGAMENTO, borderRadius: [4, 4, 0, 0] },
         data: [g.agrupadas.pagamento, g.estratificadas.pagamento],
       },
     ],
@@ -264,12 +265,49 @@ function renderizarGrafico(totais) {
   chartComparativo.setOption(opcoesGrafico(totais));
 }
 
+function calcularPercentualPago(orcNum, pagNum) {
+  if (!orcNum || orcNum <= 0) return null;
+  return Math.min(100, Math.max(0, (pagNum / orcNum) * 100));
+}
+
+function htmlBarraProgressoPago(orcNum, pagNum) {
+  const pct = calcularPercentualPago(orcNum, pagNum);
+  if (pct == null) return "";
+  const pctInt = Math.round(pct);
+  return `<div class="orcamento-geral-progress-pago" role="progressbar" aria-valuenow="${pctInt}" aria-valuemin="0" aria-valuemax="100" title="${pctInt}% pago">
+    <div class="orcamento-geral-progress-pago-track" aria-hidden="true">
+      <div class="orcamento-geral-progress-pago-fill" style="width:${pctInt}%;background-color:${COR_GRAFICO_PAGAMENTO}"></div>
+    </div>
+  </div>`;
+}
+
+function htmlCelulaAPagar(r) {
+  return `<div class="orcamento-geral-celula-apagar">
+    <span class="orcamento-tabela-celula-direita orcamento-geral-valor-apagar">${exibirMoeda(r.aPagar)}</span>
+    ${htmlBarraProgressoPago(r.orcNum, r.pagNum)}
+  </div>`;
+}
+
 function renderizarLinha(r) {
-  return `<tr>
-    <td class="orcamento-geral-col-item">${exibirTexto(r.item)}</td>
-    <td class="text-end orcamento-geral-col-num">${exibirMoeda(r.orcamento)}</td>
-    <td class="text-end orcamento-geral-col-num">${exibirMoeda(r.pagamento)}</td>
-    <td class="text-end orcamento-geral-col-num orcamento-geral-a-pagar">${exibirMoeda(r.aPagar)}</td>
+  const tipoLinha = r.estratificada
+    ? "orcamento-geral-linha-estratificada"
+    : "orcamento-geral-linha-agrupada";
+
+  const itemHtml = r.estratificada
+    ? `<span class="orcamento-geral-badge orcamento-geral-badge-estratificada">${exibirTexto(r.item)}</span>`
+    : `<span class="orcamento-geral-col-item-inner">${exibirTexto(r.item)}</span>`;
+
+  return `<tr class="${tipoLinha}">
+    <td class="orcamento-geral-col-item">${itemHtml}</td>
+    <td class="text-end orcamento-geral-col-num orcamento-geral-col-orcamento orcamento-tabela-desktop-col">${exibirMoeda(r.orcamento)}</td>
+    <td class="text-end orcamento-geral-col-num orcamento-tabela-desktop-col">${exibirMoeda(r.pagamento)}</td>
+    <td class="text-end orcamento-tabela-stack-col">
+      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">
+        <span class="orcamento-tabela-stack-valor orcamento-tabela-stack-valor--orcamento">${exibirMoeda(r.orcamento)}</span>
+        <span class="orcamento-tabela-stack-valor orcamento-tabela-stack-valor--pagamento">${exibirMoeda(r.pagamento)}</span>
+      </div>
+    </td>
+    <td class="orcamento-geral-col-apagar orcamento-geral-a-pagar">${htmlCelulaAPagar(r)}</td>
   </tr>`;
 }
 

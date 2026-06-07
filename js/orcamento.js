@@ -6,7 +6,7 @@ const fmtMoeda = new Intl.NumberFormat("pt-BR", {
 });
 const cfg = CONFIG.ORCAMENTO;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
-const COLS_TABELA = 6;
+const COLS_TABELA = 8;
 
 const CAMPOS_NUMERICOS = [
   { prop: "pessoal", rotulo: "pessoal" },
@@ -364,10 +364,14 @@ function renderizarLinha(r) {
 
   const colsNum = CAMPOS_NUMERICOS.map(
     (c) =>
-      `<td class="text-end orcamento-col-${c.prop === "diaD" ? "diad" : c.prop} apoiadores-celula-num">${exibirMoeda(r[c.prop])}</td>`
+      `<td class="text-end orcamento-col-${c.prop === "diaD" ? "diad" : c.prop} apoiadores-celula-num orcamento-tabela-desktop-col">${exibirMoeda(r[c.prop])}</td>`
   ).join("");
 
   const total = totalLinha(r);
+  const stackPessoal = `<span class="orcamento-tabela-stack-valor">${exibirMoeda(r.pessoal)}</span>
+        <span class="orcamento-tabela-stack-valor">${exibirMoeda(r.combustivel)}</span>`;
+  const stackDiversos = `<span class="orcamento-tabela-stack-valor">${exibirMoeda(r.diversos)}</span>
+        <span class="orcamento-tabela-stack-valor">${exibirMoeda(r.diaD)}</span>`;
 
   return `<tr>
     <td class="orcamento-col-municipio">
@@ -375,11 +379,24 @@ function renderizarLinha(r) {
         <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
         <span class="dashboard-municipio-texto">
           <span class="dashboard-municipio-nome">${municipioHtml}</span>
+          <span class="orcamento-municipio-total-mobile orcamento-total-badge">${fmtMoeda.format(total)}</span>
         </span>
       </span>
     </td>
     ${colsNum}
-    <td class="text-end orcamento-col-total apoiadores-celula-num orcamento-celula-total">${fmtMoeda.format(total)}</td>
+    <td class="text-end orcamento-col-total apoiadores-celula-num orcamento-tabela-desktop-col">
+      <span class="orcamento-tabela-celula-direita">${fmtMoeda.format(total)}</span>
+    </td>
+    <td class="text-end orcamento-col-stack-pessoal orcamento-tabela-stack-col">
+      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">
+        ${stackPessoal}
+      </div>
+    </td>
+    <td class="text-end orcamento-col-stack-diversos orcamento-tabela-stack-col">
+      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">
+        ${stackDiversos}
+      </div>
+    </td>
   </tr>`;
 }
 

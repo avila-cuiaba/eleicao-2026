@@ -42,21 +42,43 @@
       <div class="card-body p-0 dashboard-tabela-panel">
         <div class="dashboard-tabela-head table-light">
           <table class="table mb-0 orcamento-geral-tabela">
+            <colgroup>
+              <col class="orcamento-geral-col-item" />
+              <col class="orcamento-geral-col-num orcamento-tabela-desktop-col" />
+              <col class="orcamento-geral-col-num orcamento-tabela-desktop-col" />
+              <col class="orcamento-tabela-stack-col" />
+              <col class="orcamento-geral-col-apagar" />
+            </colgroup>
             <thead>
               <tr>
                 <th scope="col" class="orcamento-geral-col-item">item despesa</th>
-                <th scope="col" class="text-end orcamento-geral-col-num">orçamento</th>
-                <th scope="col" class="text-end orcamento-geral-col-num">pagamento</th>
-                <th scope="col" class="text-end orcamento-geral-col-num">a pagar</th>
+                <th scope="col" class="text-end orcamento-geral-col-num orcamento-tabela-desktop-col">orçamento</th>
+                <th scope="col" class="text-end orcamento-geral-col-num orcamento-tabela-desktop-col">pagamento</th>
+                <th scope="col" class="text-end orcamento-tabela-stack-col">
+                  <div class="orcamento-tabela-stack-head" aria-hidden="true">
+                    <span>orçamento</span>
+                    <span>pagamento</span>
+                  </div>
+                </th>
+                <th scope="col" class="orcamento-geral-col-apagar">
+                  <span class="orcamento-tabela-celula-direita">a pagar</span>
+                </th>
               </tr>
             </thead>
           </table>
         </div>
         <div class="dashboard-tabela-body-scroll">
           <table class="table table-hover mb-0 orcamento-geral-tabela">
+            <colgroup>
+              <col class="orcamento-geral-col-item" />
+              <col class="orcamento-geral-col-num orcamento-tabela-desktop-col" />
+              <col class="orcamento-geral-col-num orcamento-tabela-desktop-col" />
+              <col class="orcamento-tabela-stack-col" />
+              <col class="orcamento-geral-col-apagar" />
+            </colgroup>
             <tbody id="corpoOrcamentoGeral">
               <tr>
-                <td colspan="4" class="text-center text-secondary py-4">carregando...</td>
+                <td colspan="5" class="text-center text-secondary py-4">carregando...</td>
               </tr>
             </tbody>
           </table>

@@ -107,7 +107,7 @@
     <div class="card shadow-sm border-0 dashboard-tabela-card apoiadores-tabela-card orcamento-tabela-card">
       <div class="card-body p-0 dashboard-tabela-panel">
         <div class="dashboard-tabela-head table-light">
-          <table class="table mb-0 apoiadores-tabela orcamento-tabela">
+          <table class="table mb-0 orcamento-estratificado-tabela">
             <colgroup>
               <col class="orcamento-col-municipio" />
               <col class="orcamento-col-pessoal" />
@@ -115,46 +115,62 @@
               <col class="orcamento-col-diversos" />
               <col class="orcamento-col-diad" />
               <col class="orcamento-col-total" />
+              <col class="orcamento-col-stack-pessoal" />
+              <col class="orcamento-col-stack-diversos" />
             </colgroup>
             <thead>
-              <tr class="apoiadores-thead-row1">
-                <th scope="col" rowspan="2" class="orcamento-col-municipio apoiadores-th-ident dashboard-th-base">
-                  <div class="apoiadores-th-ident-inner">
-                    <span class="apoiadores-th-titulo">município</span>
-                    <label class="apoiadores-busca-campo" for="buscaMunicipio">
-                      <span class="visually-hidden">buscar município</span>
-                      <span class="apoiadores-busca-inner">
-                        <span class="apoiadores-busca-icone" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <circle cx="11" cy="11" r="7" />
-                            <path d="M20 20l-3.5-3.5" />
-                          </svg>
+              <tr>
+                <th scope="col" class="orcamento-col-municipio">
+                  <div class="orcamento-estratificado-th-municipio">
+                    <div class="orcamento-estratificado-th-linha-topo">
+                      <span class="orcamento-estratificado-th-titulo">município</span>
+                      <label class="orcamento-estratificado-busca" for="buscaMunicipio">
+                        <span class="visually-hidden">buscar município</span>
+                        <span class="apoiadores-busca-inner">
+                          <span class="apoiadores-busca-icone" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <circle cx="11" cy="11" r="7" />
+                              <path d="M20 20l-3.5-3.5" />
+                            </svg>
+                          </span>
+                          <input
+                            type="search"
+                            id="buscaMunicipio"
+                            class="form-control form-control-sm apoiadores-busca-input"
+                            placeholder="município"
+                            autocomplete="off"
+                          />
                         </span>
-                        <input
-                          type="search"
-                          id="buscaMunicipio"
-                          class="form-control form-control-sm apoiadores-busca-input"
-                          placeholder="município"
-                          autocomplete="off"
-                        />
-                      </span>
-                    </label>
+                      </label>
+                    </div>
+                    <span class="orcamento-estratificado-th-sub orcamento-estratificado-th-total-mobile">total</span>
                   </div>
                 </th>
-                <th scope="col" colspan="5" class="text-center dashboard-th-votacao apoiadores-th-grupo apoiadores-col-separador"><strong>orçamento</strong></th>
-              </tr>
-              <tr class="apoiadores-thead-cols">
-                <th scope="col" class="text-end orcamento-col-pessoal apoiadores-col-separador">pessoal</th>
-                <th scope="col" class="text-end orcamento-col-combustivel">combustível</th>
-                <th scope="col" class="text-end orcamento-col-diversos">diversos</th>
-                <th scope="col" class="text-end orcamento-col-diad orcamento-th-diad">dia D</th>
-                <th scope="col" class="text-end orcamento-col-total">total</th>
+                <th scope="col" class="text-end orcamento-col-pessoal orcamento-tabela-desktop-col">pessoal</th>
+                <th scope="col" class="text-end orcamento-col-combustivel orcamento-tabela-desktop-col">combustível</th>
+                <th scope="col" class="text-end orcamento-col-diversos orcamento-tabela-desktop-col">diversos</th>
+                <th scope="col" class="text-end orcamento-col-diad orcamento-th-diad orcamento-tabela-desktop-col">dia D</th>
+                <th scope="col" class="text-end orcamento-col-total orcamento-tabela-desktop-col">
+                  <span class="orcamento-tabela-celula-direita">total</span>
+                </th>
+                <th scope="col" class="text-end orcamento-col-stack-pessoal orcamento-tabela-stack-col">
+                  <div class="orcamento-tabela-stack-head" aria-hidden="true">
+                    <span>pessoal</span>
+                    <span>combustível</span>
+                  </div>
+                </th>
+                <th scope="col" class="text-end orcamento-col-stack-diversos orcamento-tabela-stack-col">
+                  <div class="orcamento-tabela-stack-head" aria-hidden="true">
+                    <span>diversos</span>
+                    <span class="orcamento-th-diad">dia D</span>
+                  </div>
+                </th>
               </tr>
             </thead>
           </table>
         </div>
         <div class="dashboard-tabela-body-scroll">
-          <table class="table table-hover mb-0 apoiadores-tabela orcamento-tabela">
+          <table class="table table-hover mb-0 orcamento-estratificado-tabela">
             <colgroup>
               <col class="orcamento-col-municipio" />
               <col class="orcamento-col-pessoal" />
@@ -162,10 +178,12 @@
               <col class="orcamento-col-diversos" />
               <col class="orcamento-col-diad" />
               <col class="orcamento-col-total" />
+              <col class="orcamento-col-stack-pessoal" />
+              <col class="orcamento-col-stack-diversos" />
             </colgroup>
             <tbody id="corpoOrcamento">
               <tr>
-                <td colspan="6" class="text-center text-secondary py-4">carregando...</td>
+                <td colspan="8" class="text-center text-secondary py-4">carregando...</td>
               </tr>
             </tbody>
           </table>
