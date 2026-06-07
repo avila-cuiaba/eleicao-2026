@@ -24,9 +24,40 @@ function setCarregando(ativo) {
   if (ativo) limparErro();
 }
 
+function iniciarAnimacoesLogin() {
+  const brand = document.querySelector(".login-brand");
+  if (!brand) return;
+
+  brand.classList.remove("login-anim-play", "login-anim-done", "login-anim-skip");
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    brand.classList.add("login-anim-skip");
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      brand.classList.add("login-anim-play");
+    });
+  });
+
+  window.setTimeout(() => {
+    brand.classList.add("login-anim-done");
+  }, 2400);
+}
+
 // Se já está logado, vai direto para a home.
 if (AUTH.getChave()) {
   window.location.replace("principal.html?p=inicio");
+} else {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", iniciarAnimacoesLogin);
+  } else {
+    iniciarAnimacoesLogin();
+  }
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted) iniciarAnimacoesLogin();
+  });
 }
 
 lg.form.addEventListener("submit", async (e) => {

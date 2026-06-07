@@ -4550,7 +4550,7 @@ body.page-pessoal .dashboard-tabela-panel {
   width: 6.5rem;
   height: 5.25rem;
   margin: 0 auto 1.1rem;
-  animation: login-cluster-breathe 3s ease-in-out 1.85s infinite;
+  transform: translateZ(0);
 }
 
 .login-icon {
@@ -4563,7 +4563,9 @@ body.page-pessoal .dashboard-tabela-panel {
   background: rgba(31, 78, 140, 0.08);
   box-shadow: 0 4px 14px rgba(31, 78, 140, 0.1);
   opacity: 0;
-  will-change: transform, opacity;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .login-icon-mover {
@@ -4572,13 +4574,12 @@ body.page-pessoal .dashboard-tabela-panel {
   justify-content: center;
   width: 100%;
   height: 100%;
-  will-change: transform;
+  transform: translateZ(0);
 }
 
 .login-icon svg {
   width: 1.15rem;
   height: 1.15rem;
-  will-change: transform;
 }
 
 /* 1º cadeado — surge no centro */
@@ -4590,17 +4591,11 @@ body.page-pessoal .dashboard-tabela-panel {
   background: linear-gradient(155deg, #eef4fb 0%, #dbe8f8 55%, #c5daf2 100%);
   border: 1px solid rgba(31, 78, 140, 0.14);
   box-shadow: 0 8px 22px rgba(31, 78, 140, 0.2);
-  animation: login-enter-lock 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.login-icon--lock .login-icon-mover {
-  animation: login-float-centro-inner 2.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) 0.75s infinite;
 }
 
 .login-icon--lock svg {
   width: 1.55rem;
   height: 1.55rem;
-  animation: login-lock-balanco 2.5s ease-in-out 0.75s infinite;
 }
 
 /* 2º chave — desliza do canto inferior direito */
@@ -4612,15 +4607,6 @@ body.page-pessoal .dashboard-tabela-panel {
   color: #92400e;
   background: rgba(146, 64, 14, 0.12);
   box-shadow: 0 6px 18px rgba(146, 64, 14, 0.16);
-  animation: login-enter-key 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.6s forwards;
-}
-
-.login-icon--key .login-icon-mover {
-  animation: login-float-dir-inner 2s ease-in-out 1.3s infinite;
-}
-
-.login-icon--key svg {
-  animation: login-key-giro 2s ease-in-out 1.3s infinite;
 }
 
 /* 3º credenciais (escudo) — desliza do canto inferior esquerdo */
@@ -4632,31 +4618,117 @@ body.page-pessoal .dashboard-tabela-panel {
   color: #1a6f85;
   background: rgba(26, 111, 133, 0.12);
   box-shadow: 0 6px 18px rgba(26, 111, 133, 0.18);
+}
+
+.login-brand:not(.login-anim-play):not(.login-anim-skip):not(.login-anim-done) h1,
+.login-brand:not(.login-anim-play):not(.login-anim-skip):not(.login-anim-done) .login-subtitulo,
+.login-brand:not(.login-anim-play):not(.login-anim-skip):not(.login-anim-done) .login-card {
+  opacity: 0;
+}
+
+.login-brand.login-anim-play .login-icon-cluster {
+  -webkit-animation: login-cluster-breathe 3s ease-in-out 1.85s infinite;
+  animation: login-cluster-breathe 3s ease-in-out 1.85s infinite;
+}
+
+.login-brand.login-anim-play .login-icon--lock {
+  -webkit-animation: login-enter-lock 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: login-enter-lock 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.login-brand.login-anim-play .login-icon--lock .login-icon-mover {
+  -webkit-animation: login-float-centro-inner 2.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) 0.75s infinite;
+  animation: login-float-centro-inner 2.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) 0.75s infinite;
+}
+
+.login-brand.login-anim-play .login-icon--lock svg {
+  -webkit-animation: login-lock-balanco 2.5s ease-in-out 0.75s infinite;
+  animation: login-lock-balanco 2.5s ease-in-out 0.75s infinite;
+}
+
+.login-brand.login-anim-play .login-icon--key {
+  -webkit-animation: login-enter-key 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.6s forwards;
+  animation: login-enter-key 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.6s forwards;
+}
+
+.login-brand.login-anim-play .login-icon--key .login-icon-mover {
+  -webkit-animation: login-float-dir-inner 2s ease-in-out 1.3s infinite;
+  animation: login-float-dir-inner 2s ease-in-out 1.3s infinite;
+}
+
+.login-brand.login-anim-play .login-icon--key svg {
+  -webkit-animation: login-key-giro 2s ease-in-out 1.3s infinite;
+  animation: login-key-giro 2s ease-in-out 1.3s infinite;
+}
+
+.login-brand.login-anim-play .login-icon--shield {
+  -webkit-animation: login-enter-shield 0.7s cubic-bezier(0.22, 1, 0.36, 1) 1.15s forwards;
   animation: login-enter-shield 0.7s cubic-bezier(0.22, 1, 0.36, 1) 1.15s forwards;
 }
 
-.login-icon--shield .login-icon-mover {
+.login-brand.login-anim-play .login-icon--shield .login-icon-mover {
+  -webkit-animation: login-float-esq-inner 2.2s ease-in-out 1.85s infinite;
   animation: login-float-esq-inner 2.2s ease-in-out 1.85s infinite;
 }
 
-.login-icon--shield svg {
+.login-brand.login-anim-play .login-icon--shield svg {
+  -webkit-animation: login-shield-pulse 2.2s ease-in-out 1.85s infinite;
   animation: login-shield-pulse 2.2s ease-in-out 1.85s infinite;
 }
 
-.login-brand h1 {
+.login-brand.login-anim-play h1 {
+  -webkit-animation: login-fade-up 0.55s ease 1.45s both;
   animation: login-fade-up 0.55s ease 1.45s both;
+}
+
+.login-brand.login-anim-play .login-subtitulo {
+  -webkit-animation: login-fade-up 0.55s ease 1.6s both;
+  animation: login-fade-up 0.55s ease 1.6s both;
+}
+
+.login-brand.login-anim-play .login-card {
+  -webkit-animation: login-fade-up 0.55s ease 1.75s both;
+  animation: login-fade-up 0.55s ease 1.75s both;
+}
+
+.login-brand.login-anim-skip .login-icon,
+.login-brand.login-anim-done .login-icon {
+  opacity: 1;
+}
+
+.login-brand.login-anim-skip .login-icon--lock,
+.login-brand.login-anim-done .login-icon--lock {
+  transform: translate3d(-50%, 0, 0) scale(1);
+}
+
+.login-brand.login-anim-skip .login-icon--key,
+.login-brand.login-anim-done .login-icon--key {
+  transform: translate3d(0, 0, 0) rotate(16deg) scale(1);
+}
+
+.login-brand.login-anim-skip .login-icon--shield,
+.login-brand.login-anim-done .login-icon--shield {
+  transform: translate3d(0, 0, 0) rotate(-14deg) scale(1);
+}
+
+.login-brand.login-anim-skip h1,
+.login-brand.login-anim-skip .login-subtitulo,
+.login-brand.login-anim-skip .login-card,
+.login-brand.login-anim-done h1,
+.login-brand.login-anim-done .login-subtitulo,
+.login-brand.login-anim-done .login-card {
+  opacity: 1;
+  transform: none;
 }
 
 .login-subtitulo {
   font-size: 0.92rem;
   letter-spacing: 0.02em;
-  animation: login-fade-up 0.55s ease 1.6s both;
 }
 
 .login-card {
   border-radius: 14px;
   overflow: hidden;
-  animation: login-fade-up 0.55s ease 1.75s both;
 }
 
 .login-label {
@@ -4781,62 +4853,126 @@ body.page-pessoal .dashboard-tabela-panel {
   }
 }
 
-@keyframes login-enter-lock {
+@-webkit-keyframes login-enter-lock {
   0% {
     opacity: 0;
-    transform: translateX(-50%) scale(0.2);
-    filter: blur(8px);
+    -webkit-transform: translate3d(-50%, 0, 0) scale(0.2);
+    transform: translate3d(-50%, 0, 0) scale(0.2);
   }
   55% {
     opacity: 1;
-    transform: translateX(-50%) scale(1.14);
-    filter: blur(0);
+    -webkit-transform: translate3d(-50%, 0, 0) scale(1.14);
+    transform: translate3d(-50%, 0, 0) scale(1.14);
   }
   100% {
     opacity: 1;
-    transform: translateX(-50%) scale(1);
-    filter: blur(0);
+    -webkit-transform: translate3d(-50%, 0, 0) scale(1);
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+}
+
+@keyframes login-enter-lock {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 0, 0) scale(0.2);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1.14);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+}
+
+@-webkit-keyframes login-enter-key {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate3d(4.5rem, 4rem, 0) rotate(55deg) scale(0.3);
+    transform: translate3d(4.5rem, 4rem, 0) rotate(55deg) scale(0.3);
+  }
+  70% {
+    opacity: 1;
+    -webkit-transform: translate3d(-0.2rem, -0.15rem, 0) rotate(8deg) scale(1.08);
+    transform: translate3d(-0.2rem, -0.15rem, 0) rotate(8deg) scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    -webkit-transform: translate3d(0, 0, 0) rotate(16deg) scale(1);
+    transform: translate3d(0, 0, 0) rotate(16deg) scale(1);
   }
 }
 
 @keyframes login-enter-key {
   0% {
     opacity: 0;
-    transform: translate(4.5rem, 4rem) rotate(55deg) scale(0.3);
+    transform: translate3d(4.5rem, 4rem, 0) rotate(55deg) scale(0.3);
   }
   70% {
     opacity: 1;
-    transform: translate(-0.2rem, -0.15rem) rotate(8deg) scale(1.08);
+    transform: translate3d(-0.2rem, -0.15rem, 0) rotate(8deg) scale(1.08);
   }
   100% {
     opacity: 1;
-    transform: translate(0, 0) rotate(16deg) scale(1);
+    transform: translate3d(0, 0, 0) rotate(16deg) scale(1);
+  }
+}
+
+@-webkit-keyframes login-enter-shield {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate3d(-4.5rem, 4rem, 0) rotate(-55deg) scale(0.3);
+    transform: translate3d(-4.5rem, 4rem, 0) rotate(-55deg) scale(0.3);
+  }
+  70% {
+    opacity: 1;
+    -webkit-transform: translate3d(0.2rem, -0.15rem, 0) rotate(-6deg) scale(1.08);
+    transform: translate3d(0.2rem, -0.15rem, 0) rotate(-6deg) scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    -webkit-transform: translate3d(0, 0, 0) rotate(-14deg) scale(1);
+    transform: translate3d(0, 0, 0) rotate(-14deg) scale(1);
   }
 }
 
 @keyframes login-enter-shield {
   0% {
     opacity: 0;
-    transform: translate(-4.5rem, 4rem) rotate(-55deg) scale(0.3);
+    transform: translate3d(-4.5rem, 4rem, 0) rotate(-55deg) scale(0.3);
   }
   70% {
     opacity: 1;
-    transform: translate(0.2rem, -0.15rem) rotate(-6deg) scale(1.08);
+    transform: translate3d(0.2rem, -0.15rem, 0) rotate(-6deg) scale(1.08);
   }
   100% {
     opacity: 1;
-    transform: translate(0, 0) rotate(-14deg) scale(1);
+    transform: translate3d(0, 0, 0) rotate(-14deg) scale(1);
+  }
+}
+
+@-webkit-keyframes login-fade-up {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate3d(0, 12px, 0);
+    transform: translate3d(0, 12px, 0);
+  }
+  100% {
+    opacity: 1;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes login-fade-up {
   0% {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translate3d(0, 12px, 0);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -4944,23 +5080,16 @@ body.page-pessoal .dashboard-tabela-panel {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-icon-cluster,
-  .login-icon,
-  .login-icon-mover,
-  .login-icon svg,
-  .login-brand h1,
-  .login-subtitulo,
-  .login-card,
+  .login-brand.login-anim-play .login-icon-cluster,
+  .login-brand.login-anim-play .login-icon,
+  .login-brand.login-anim-play .login-icon-mover,
+  .login-brand.login-anim-play .login-icon svg,
+  .login-brand.login-anim-play h1,
+  .login-brand.login-anim-play .login-subtitulo,
+  .login-brand.login-anim-play .login-card,
   .login-input-group:focus-within .login-input-icon svg {
+    -webkit-animation: none !important;
     animation: none !important;
-  }
-
-  .login-icon {
-    opacity: 1;
-  }
-
-  .login-icon--lock {
-    transform: translateX(-50%);
   }
 }
 
