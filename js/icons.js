@@ -75,6 +75,7 @@ window.APP_MENU = [
     filhos: [
       { id: "orcamento-geral", label: "geral" },
       { id: "orcamento-estratificado", label: "estratificado" },
+      { id: "orcamento-desembolso", label: "desembolso" },
     ],
   },
   { id: "agenda", label: "agenda" },
@@ -92,7 +93,11 @@ window.APP_ICONE = {
     ) {
       return "pessoal";
     }
-    if (paginaId === "orcamento-geral" || paginaId === "orcamento-estratificado") {
+    if (
+      paginaId === "orcamento-geral" ||
+      paginaId === "orcamento-estratificado" ||
+      paginaId === "orcamento-desembolso"
+    ) {
       return "orcamento";
     }
     return paginaId;

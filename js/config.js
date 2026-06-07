@@ -34,7 +34,28 @@ const CONFIG = {
     { chave: "apoiadores", titulo: "Pessoal — Apoiadores" },
     { chave: "parcerias", titulo: "Pessoal — Parcerias" },
     { chave: "orcamento", titulo: "Orçamento" },
+    { chave: "orcamento-geral", titulo: "Orçamento — Geral" },
   ],
+
+  ORCAMENTO_GERAL: {
+    PLANILHA: "orcamento-geral",
+    ABA: "",
+    LINHA_CABECALHO: 1,
+    LINHA_INICIO_DADOS: 2,
+    // Linhas 1-based estratificadas (C2–C5 nos cards).
+    LINHAS_ESTRATIFICADAS: [2, 3, 4, 5],
+    COLUNAS: {
+      ITEM: 0,         // A — item despesa
+      VALOR_B: 1,        // B
+      ORCAMENTO: 2,      // C — orçamento
+      PAGAMENTO: 7,      // H — pagamento
+    },
+    CAMPOS: {
+      ITEM: { aliases: ["item despesa", "item", "despesa"] },
+      ORCAMENTO: { aliases: ["orcamento", "orçamento"] },
+      PAGAMENTO: { aliases: ["pagamento"] },
+    },
+  },
 
   ORCAMENTO: {
     PLANILHA: "orcamento",

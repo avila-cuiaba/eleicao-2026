@@ -52,10 +52,15 @@ function criarCadastroPlanilhas() {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1242262181,
   };
-  // Aba orçamento: municipios, contratos-distribuidos-apoiadores, orcamento-combustivel, orcamento-diversos, orcamento-diaD.
+  // Aba orçamento estratificado (por município).
   p.orcamento = {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1105165439,
+  };
+  // Orçamento geral: item despesa, orçamento, pagamento.
+  p["orcamento-geral"] = {
+    id: "1CsSofzZpuEx61r9VnMa9AcTq-QLk-LL3pAeujOwvEXE",
+    gid: 0,
   };
   p["pessoal-municipio-aba1"] = p["pessoal-municipio"];
   p["pessoal-municipio-aba2"] = p.apoiadores;

@@ -29,6 +29,10 @@ let animBarraId = null;
 let animCicloId = null;
 let ultimosValoresPlanilha = null;
 const fmt = new Intl.NumberFormat("pt-BR");
+const fmtMoeda = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 const FASE_DESTAQUE = {
   AGUARDANDO: "aguardando",
@@ -467,6 +471,61 @@ function preencherKpiEquipe(valoresMunicipio, valoresApoiadores) {
   }
 
   elKpi.textContent = fmt.format(totalEquipeCampanha(valoresMunicipio, valoresApoiadores));
+}
+
+function indicesOrcamentoGeral(cabecalho) {
+  const cfg = CONFIG.ORCAMENTO_GERAL;
+  const cols = cfg.COLUNAS;
+  const normalizados = (cabecalho || []).map((h) => normalizarChave(h));
+  const indices = {
+    orcamento: cols.ORCAMENTO,
+  };
+
+  Object.entries(cfg.CAMPOS || {}).forEach(([prop, campo]) => {
+    const idx = normalizados.findIndex((n) =>
+      campo.aliases.some((alias) => normalizarChave(alias) === n)
+    );
+    if (idx !== -1 && prop === "ORCAMENTO") indices.orcamento = idx;
+  });
+
+  return indices;
+}
+
+function totalOrcamentoGeral(valores) {
+  const cfg = CONFIG.ORCAMENTO_GERAL;
+  if (!valores?.length) return 0;
+
+  const cabecalho = valores[cfg.LINHA_CABECALHO - 1] || valores[0];
+  const indices = indicesOrcamentoGeral(cabecalho);
+  const linhasEstrat = cfg.LINHAS_ESTRATIFICADAS || [];
+
+  let estratificadas = 0;
+  linhasEstrat.forEach((linha1) => {
+    const linha = valores[linha1 - 1];
+    if (linha) estratificadas += parseNumero(linha[indices.orcamento]);
+  });
+
+  let agrupadas = 0;
+  for (let linha1 = cfg.LINHA_INICIO_DADOS; linha1 <= valores.length; linha1++) {
+    if (linhasEstrat.includes(linha1)) continue;
+    const linha = valores[linha1 - 1];
+    if (!linha) continue;
+    agrupadas += parseNumero(linha[indices.orcamento]);
+  }
+
+  return agrupadas + estratificadas;
+}
+
+function preencherKpiOrcamento(valoresOrcamentoGeral) {
+  const elKpi = document.getElementById("kpiOrcamento");
+  if (!elKpi) return;
+
+  if (!valoresOrcamentoGeral?.length) {
+    elKpi.textContent = "—";
+    return;
+  }
+
+  elKpi.textContent = fmtMoeda.format(totalOrcamentoGeral(valoresOrcamentoGeral));
 }
 
 function escapeHtml(texto) {
@@ -925,10 +984,11 @@ async function carregarInicio(animarGrafico) {
 
   try {
     const cfgP = CONFIG.PESSOAL;
-    const [jsonMapa, valoresPessoal, valoresApoiadores] = await Promise.all([
+    const [jsonMapa, valoresPessoal, valoresApoiadores, valoresOrcamentoGeral] = await Promise.all([
       fetch(urlConsulta(), { method: "GET" }).then((r) => r.json()),
       fetchPlanilhaInicio(cfgP.PLANILHA).catch(() => []),
       fetchPlanilhaInicio(cfgP.PLANILHA_APOIADORES).catch(() => []),
+      fetchPlanilhaInicio(CONFIG.ORCAMENTO_GERAL.PLANILHA).catch(() => []),
     ]);
 
     if (!AUTH.tratarResposta(jsonMapa)) return;
@@ -940,6 +1000,7 @@ async function carregarInicio(animarGrafico) {
     ultimosValoresPlanilha = valores;
     preencherKpis(valores);
     preencherKpiEquipe(valoresPessoal, valoresApoiadores);
+    preencherKpiOrcamento(valoresOrcamentoGeral);
     montarGraficos(valores, animarGrafico !== false);
     montarGraficosMeta(valores);
     montarTabelaRegiao(valores);
