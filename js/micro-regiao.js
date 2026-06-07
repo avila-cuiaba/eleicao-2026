@@ -6,7 +6,27 @@ const cfgMun = cfg.MUNICIPIOS;
 
 let municipios = [];
 let modalMunicipios = null;
+let linhasTabela = [];
+let corpoTabela = null;
 const popoverTabela = PopoverTabela.criar();
+
+function popoverMicroRegiaoHabilitado() {
+  return window.matchMedia("(min-width: 992px) and (hover: hover) and (pointer: fine)").matches;
+}
+
+function aplicarPopoversMicroRegiao() {
+  popoverTabela.destruir();
+  if (!corpoTabela || !linhasTabela.length || !popoverMicroRegiaoHabilitado()) return;
+
+  popoverTabela.inicializar({
+    corpo: corpoTabela,
+    seletorLinha: "tr.micro-regiao-linha-popover",
+    linhas: linhasTabela,
+    htmlConteudo: htmlPopoverMicroRegiao,
+    trigger: "hover focus",
+    fecharAoClicarFora: false,
+  });
+}
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -181,6 +201,9 @@ function initMicroRegiao() {
 
   if (!els.corpo) return;
 
+  corpoTabela = els.corpo;
+  window.addEventListener("resize", aplicarPopoversMicroRegiao);
+
   const modalEl = document.getElementById("modalMunicipios");
   modalMunicipios = modalEl ? new bootstrap.Modal(modalEl) : null;
 
@@ -194,6 +217,7 @@ function initMicroRegiao() {
 
   function renderizarTabela(itens) {
     popoverTabela.destruir();
+    linhasTabela = [];
     els.corpo.innerHTML = "";
 
     if (!itens.length) {
@@ -203,15 +227,9 @@ function initMicroRegiao() {
     els.vazio.hidden = true;
 
     const ordenados = [...itens].sort(ordenarRegioes);
+    linhasTabela = ordenados;
     els.corpo.innerHTML = ordenados.map(renderizarLinha).join("");
-    popoverTabela.inicializar({
-      corpo: els.corpo,
-      seletorLinha: "tr.micro-regiao-linha-popover",
-      linhas: ordenados,
-      htmlConteudo: htmlPopoverMicroRegiao,
-      trigger: "hover focus",
-      fecharAoClicarFora: false,
-    });
+    aplicarPopoversMicroRegiao();
   }
 
   function abrirModalRegiao(regiaoNorm, regiaoNome) {
