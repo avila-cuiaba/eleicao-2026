@@ -14,6 +14,7 @@ const CAMPOS_PRAZO = [
 ];
 
 let el = {};
+let popoversTabela = [];
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -199,6 +200,71 @@ function atualizarKpis(totais) {
   el.kpi45.textContent = fmtMoeda.format(totais.kpi45);
 }
 
+function triggerPopoverTabela() {
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    ? "hover focus"
+    : "click";
+}
+
+function htmlPopoverPrazo(prazo, rotulo, valor) {
+  const exibicao = exibirMoeda(valor) || "—";
+  return `<div class="orcamento-desembolso-popover-subitem">
+    <span class="orcamento-desembolso-popover-rotulo orcamento-geral-popover-rotulo--com-marcador">
+      <span class="orcamento-geral-popover-marcador orcamento-desembolso-popover-marcador--${prazo}" aria-hidden="true"></span>
+      ${rotulo}
+    </span>
+    <span class="orcamento-geral-popover-valor">${exibicao}</span>
+  </div>`;
+}
+
+function htmlPopoverConteudo(r) {
+  const item = exibirTexto(r.item) || "—";
+  const orc = exibirMoeda(r.orcamento) || "—";
+
+  return `<div class="orcamento-desembolso-popover-corpo">
+    <div class="orcamento-desembolso-popover-titulo">${item}</div>
+    <div class="orcamento-geral-popover-item">
+      <span class="orcamento-geral-popover-rotulo orcamento-geral-popover-rotulo--com-marcador">
+        <span class="orcamento-geral-popover-marcador orcamento-desembolso-popover-marcador--orcamento" aria-hidden="true"></span>
+        orçamento
+      </span>
+      <span class="orcamento-geral-popover-valor">${orc}</span>
+    </div>
+    <div class="orcamento-desembolso-popover-secao">desembolso</div>
+    ${htmlPopoverPrazo("5", "5 dias", r.dias5)}
+    ${htmlPopoverPrazo("15", "15 dias", r.dias15)}
+    ${htmlPopoverPrazo("30", "30 dias", r.dias30)}
+    ${htmlPopoverPrazo("45", "45 dias", r.dias45)}
+  </div>`;
+}
+
+function destruirPopoversTabela() {
+  popoversTabela.forEach((p) => p.dispose());
+  popoversTabela = [];
+}
+
+function inicializarPopoversTabela(linhas) {
+  destruirPopoversTabela();
+  if (!el.corpo || typeof bootstrap === "undefined") return;
+
+  const linhasEl = el.corpo.querySelectorAll("tr.orcamento-desembolso-linha-popover");
+  linhasEl.forEach((tr, idx) => {
+    const r = linhas[idx];
+    if (!r) return;
+
+    const pop = new bootstrap.Popover(tr, {
+      trigger: triggerPopoverTabela(),
+      html: true,
+      sanitize: false,
+      placement: "auto",
+      container: "body",
+      customClass: "orcamento-geral-popover-bs",
+      content: htmlPopoverConteudo(r),
+    });
+    popoversTabela.push(pop);
+  });
+}
+
 function valorPrazoStack(prazo, valor) {
   if (!celulaPreenchida(valor)) {
     return `<span class="orcamento-desembolso-stack-valor-linha orcamento-desembolso-stack-valor-linha--vazio"></span>`;
@@ -220,7 +286,7 @@ function renderizarLinha(r) {
   const stackPrazoB = `${valorPrazoStack("15", r.dias15)}
         ${valorPrazoStack("45", r.dias45)}`;
 
-  return `<tr>
+  return `<tr class="orcamento-desembolso-linha-popover" tabindex="0" aria-label="detalhes da despesa">
     <td class="orcamento-desembolso-col-item orcamento-tabela-desktop-col">
       <span class="orcamento-desembolso-col-item-inner">${exibirTexto(r.item)}</span>
     </td>
@@ -248,6 +314,7 @@ function renderizarLinha(r) {
 function renderizarTabela(linhas) {
   if (!linhas.length) {
     limparKpis();
+    destruirPopoversTabela();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum registro na planilha.</td></tr>`;
     return;
@@ -256,6 +323,7 @@ function renderizarTabela(linhas) {
   const totais = calcularTotais(linhas);
   atualizarKpis(totais);
   el.corpo.innerHTML = linhas.map(renderizarLinha).join("");
+  inicializarPopoversTabela(linhas);
 }
 
 function alinharColunasTabela() {
@@ -308,6 +376,7 @@ async function carregarDesembolso() {
     limparStatus();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
+    destruirPopoversTabela();
     el.corpo.innerHTML = "";
     limparKpis();
   } finally {
