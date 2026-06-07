@@ -7,15 +7,21 @@ const lg = {
   status: document.getElementById("status"),
 };
 
-function status(msg, tipo) {
+function mostrarErro(msg) {
   lg.status.textContent = msg;
-  lg.status.className =
-    "alert " +
-    (tipo === "erro"
-      ? "alert-danger"
-      : tipo === "carregando"
-      ? "alert-info"
-      : "d-none");
+  lg.status.className = "alert alert-danger";
+}
+
+function limparErro() {
+  lg.status.textContent = "";
+  lg.status.className = "alert d-none";
+}
+
+function setCarregando(ativo) {
+  lg.btn.disabled = ativo;
+  lg.btn.classList.toggle("is-loading", ativo);
+  lg.btn.setAttribute("aria-busy", ativo ? "true" : "false");
+  if (ativo) limparErro();
 }
 
 // Se já está logado, vai direto para a home.
@@ -27,13 +33,12 @@ lg.form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   if (!CONFIG.WEB_APP_URL || CONFIG.WEB_APP_URL.startsWith("COLE_AQUI")) {
-    status("Configure a URL do Web App em js/config.js.", "erro");
+    mostrarErro("Configure a URL do Web App em js/config.js.");
     return;
   }
 
   const chave = lg.chave.value;
-  status("Verificando...", "carregando");
-  lg.btn.disabled = true;
+  setCarregando(true);
 
   try {
     const url = new URL(CONFIG.WEB_APP_URL);
@@ -45,13 +50,15 @@ lg.form.addEventListener("submit", async (e) => {
 
     if (json.ok) {
       AUTH.setChave(chave);
+      lg.btn.classList.add("is-success");
       window.location.replace("principal.html?p=inicio");
-    } else {
-      status("Chave inválida. Tente novamente.", "erro");
+      return;
     }
+
+    mostrarErro("Chave inválida. Tente novamente.");
   } catch (err) {
-    status("Erro ao verificar: " + err.message, "erro");
+    mostrarErro("Erro ao verificar: " + err.message);
   } finally {
-    lg.btn.disabled = false;
+    if (!AUTH.getChave()) setCarregando(false);
   }
 });

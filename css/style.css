@@ -4529,3 +4529,243 @@ body.page-pessoal .dashboard-tabela-panel {
   }
 }
 
+/* —— Login (acesso restrito) —— */
+.login-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-page > .container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-icon-cluster {
+  position: relative;
+  width: 5.5rem;
+  height: 4.25rem;
+  margin: 0 auto 1rem;
+}
+
+.login-icon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--brand);
+  background: rgba(31, 78, 140, 0.08);
+  box-shadow: 0 4px 14px rgba(31, 78, 140, 0.1);
+}
+
+.login-icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.login-icon--lock {
+  left: 50%;
+  top: 0.35rem;
+  width: 3.1rem;
+  height: 3.1rem;
+  transform: translateX(-50%);
+  background: linear-gradient(155deg, #eef4fb 0%, #dbe8f8 55%, #c5daf2 100%);
+  border: 1px solid rgba(31, 78, 140, 0.14);
+  animation: login-float-centro 4s ease-in-out infinite;
+}
+
+.login-icon--lock svg {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.login-icon--shield {
+  left: 0;
+  bottom: 0;
+  width: 2.15rem;
+  height: 2.15rem;
+  color: #1a6f85;
+  background: rgba(26, 111, 133, 0.1);
+  animation: login-float-esq 4.5s ease-in-out infinite;
+}
+
+.login-icon--key {
+  right: 0;
+  bottom: 0.15rem;
+  width: 2.15rem;
+  height: 2.15rem;
+  color: #92400e;
+  background: rgba(146, 64, 14, 0.1);
+  animation: login-float-dir 4.2s ease-in-out -0.6s infinite;
+}
+
+.login-subtitulo {
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+}
+
+.login-card {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.login-label {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.login-input-group .login-input-icon {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+  padding-left: 0.85rem;
+  padding-right: 0.65rem;
+}
+
+.login-input-group .login-input-icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.login-input-group .login-input {
+  border-color: #e2e8f0;
+}
+
+.login-input-group .login-input:focus {
+  border-color: rgba(31, 78, 140, 0.45);
+  box-shadow: 0 0 0 0.2rem rgba(31, 78, 140, 0.12);
+}
+
+.login-btn {
+  position: relative;
+  min-height: 2.65rem;
+  border-radius: 10px;
+  font-weight: 600;
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.login-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(31, 78, 140, 0.22);
+}
+
+.login-btn-estado {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.login-btn-estado--carregando {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(0.92);
+  pointer-events: none;
+}
+
+.login-btn.is-loading .login-btn-estado--padrao {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+.login-btn.is-loading .login-btn-estado--carregando {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.login-btn.is-success {
+  background: var(--cor-ideal) !important;
+  border-color: var(--cor-ideal) !important;
+}
+
+.login-btn-icone svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  display: block;
+}
+
+.login-btn-spinner {
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: login-spin 0.7s linear infinite;
+}
+
+.login-btn-pontos {
+  display: inline-flex;
+  gap: 0.05rem;
+  margin-left: 0.05rem;
+}
+
+.login-btn-pontos span {
+  animation: login-dot-pulse 0.9s ease-in-out infinite;
+}
+
+.login-btn-pontos span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.login-btn-pontos span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes login-float-centro {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+@keyframes login-float-esq {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(0deg);
+  }
+}
+
+@keyframes login-float-dir {
+  0%,
+  100% {
+    transform: translateY(0) rotate(6deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(0deg);
+  }
+}
+
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes login-dot-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
