@@ -65,6 +65,7 @@ window.APP_MENU = [
     filhos: [
       { id: "pessoal-visao-geral", label: "visão geral" },
       { id: "pessoal-apoiadores", label: "apoiadores" },
+      { id: "pessoal-contratos", label: "contratos" },
       { id: "pessoal-parcerias", label: "parceria" },
     ],
   },
@@ -89,6 +90,7 @@ window.APP_ICONE = {
     if (
       paginaId === "pessoal-visao-geral" ||
       paginaId === "pessoal-apoiadores" ||
+      paginaId === "pessoal-contratos" ||
       paginaId === "pessoal-parcerias"
     ) {
       return "pessoal";

@@ -2,7 +2,18 @@
 
 window.LAYOUT = {
   getMenu() {
-    return window.APP_MENU || [];
+    const menu = window.APP_MENU || [];
+    if (window.AUTH && typeof AUTH.filtrarMenu === "function") {
+      return AUTH.filtrarMenu(menu);
+    }
+    return menu;
+  },
+
+  paginaInicialMenu() {
+    if (window.AUTH && typeof AUTH.paginaInicial === "function") {
+      return AUTH.paginaInicial();
+    }
+    return "inicio";
   },
 
   icone(id) {
@@ -100,7 +111,9 @@ window.LAYOUT = {
     return (
       '<div class="app-sidebar-inner">' +
       '<div class="app-sidebar-brand">' +
-      '<a href="#" class="app-sidebar-title" data-pagina="inicio">' +
+      '<a href="#" class="app-sidebar-title" data-pagina="' +
+      this.paginaInicialMenu() +
+      '">' +
       '<span class="sidebar-icone" aria-hidden="true">' +
       this.icone("inicio") +
       "</span>" +
@@ -144,13 +157,27 @@ window.LAYOUT = {
     document.body.classList.toggle("sidebar-open");
   },
 
+  remontarSidebar(paginaAtiva) {
+    const sidebar = document.getElementById("appSidebar");
+    const pagina = paginaAtiva || document.body.getAttribute("data-pagina") || "inicio";
+    if (sidebar) sidebar.innerHTML = this.montarSidebar(pagina);
+    if (window.AUTH && AUTH.getPerfil()) {
+      document.body.setAttribute("data-perfil", AUTH.getPerfil());
+    }
+  },
+
   init() {
     const sidebar = document.getElementById("appSidebar");
     const backdrop = document.getElementById("sidebarBackdrop");
     const toggle = document.getElementById("btnMenuToggle");
-    const pagina = document.body.getAttribute("data-pagina") || "inicio";
 
-    if (sidebar) sidebar.innerHTML = this.montarSidebar(pagina);
+    if (this._inicializado) {
+      this.remontarSidebar();
+      return;
+    }
+    this._inicializado = true;
+
+    this.remontarSidebar();
 
     toggle?.addEventListener("click", () => this.alternarSidebar());
     backdrop?.addEventListener("click", () => this.fecharSidebar());
@@ -173,9 +200,3 @@ window.LAYOUT = {
     });
   },
 };
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => LAYOUT.init());
-} else {
-  LAYOUT.init();
-}

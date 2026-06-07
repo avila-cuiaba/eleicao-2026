@@ -33,6 +33,13 @@ const PAGINAS = {
     atualizar: true,
     menuGrupo: "pessoal",
   },
+  "pessoal-contratos": {
+    titulo: "pessoal",
+    subtitulo: "contratos",
+    arquivo: "pages/contratos.html",
+    atualizar: true,
+    menuGrupo: "pessoal",
+  },
   "pessoal-parcerias": {
     titulo: "pessoal",
     subtitulo: "parceria — contratos",
@@ -76,6 +83,7 @@ const PAGINAS = {
     titulo: "entregas",
     subtitulo: "materiais e distribuição",
     arquivo: "pages/entregas.html",
+    atualizar: true,
   },
   pautas: {
     titulo: "pautas",
@@ -93,7 +101,11 @@ const PAGINAS = {
 function resolverPagina(id) {
   if (id === "pessoal") return "pessoal-visao-geral";
   if (id === "orcamento") return "orcamento-estratificado";
-  return id && PAGINAS[id] ? id : "inicio";
+  const resolved = id && PAGINAS[id] ? id : "inicio";
+  if (AUTH.getChave() && !AUTH.podeAcessarPagina(resolved)) {
+    return AUTH.paginaInicial();
+  }
+  return resolved;
 }
 
 function paginaDaUrl() {
@@ -143,6 +155,9 @@ function executarAtualizarShell() {
 // Chamado pelo menu lateral e pelos links dentro do iframe (parent.carregarPagina).
 window.carregarPagina = function (id) {
   id = resolverPagina(id);
+  if (AUTH.getChave() && !AUTH.podeAcessarPagina(id)) {
+    id = AUTH.paginaInicial();
+  }
   const cfg = PAGINAS[id] || PAGINAS.inicio;
   const frame = document.getElementById("appFrame");
   if (!frame) return;
@@ -220,8 +235,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const cfg = PAGINAS[id];
   const frame = document.getElementById("appFrame");
 
-  if (frame && id !== "inicio") {
-    frame.src = cfg.arquivo;
+  if (window.LAYOUT) {
+    LAYOUT.init();
+  }
+
+  if (frame) {
+    const padraoInicio = !new URLSearchParams(window.location.search).get("p") && id === "inicio";
+    if (!padraoInicio || id !== "inicio") {
+      frame.src = cfg.arquivo;
+    }
   }
 
   document.body.setAttribute("data-pagina", id);

@@ -138,11 +138,16 @@ async function testar(p, card) {
     const colunas = linhas ? valores[0].length : 0;
 
     setBadge(card, "OK", "text-bg-success");
+    const meta = json.meta || {};
+    const abaInfo =
+      meta.aba != null
+        ? ` · aba: ${meta.aba}` + (meta.gid != null ? ` (gid ${meta.gid})` : "")
+        : "";
     card.querySelector(
       ".card-planilha-info"
     ).textContent = `${fmtNum.format(linhas)} linhas × ${fmtNum.format(
       colunas
-    )} colunas · ${ms} ms`;
+    )} colunas · ${ms} ms${abaInfo}`;
     card.querySelector(".card-planilha-preview").innerHTML = montarPreview(
       valores
     );

@@ -8,8 +8,8 @@ const CONFIG = {
   // URL do Web App do Google Apps Script (preencher depois de publicar)
   WEB_APP_URL: "https://script.google.com/macros/s/AKfycbznvDEewPSR0YG_CUlAfTXtrNzCWlsy2ZUGpasW4rb98P_MfsZZphVxagG-_v0QCg/exec",
 
-  // Exigir login (chave de acesso) nas páginas. A senha em si fica no
-  // Apps Script (Propriedade SENHA_ACESSO), nunca aqui no repositório.
+  // Exigir login (chave de acesso) nas páginas. As senhas ficam no
+  // Apps Script (Propriedades SENHA_ACESSO_*), nunca aqui no repositório.
   EXIGIR_LOGIN: true,
 
   // Parâmetros padrão da agenda (criação de eventos).
@@ -36,7 +36,178 @@ const CONFIG = {
     { chave: "orcamento", titulo: "Orçamento" },
     { chave: "orcamento-geral", titulo: "Orçamento — Geral" },
     { chave: "orcamento-desembolso", titulo: "Orçamento — Desembolso" },
+    { chave: "entregas", titulo: "Entregas" },
+    { chave: "contratos", titulo: "Contratos" },
   ],
+
+  ENTREGAS: {
+    PLANILHA: "entregas",
+    ABA: "",
+    LINHA_INICIO_DADOS: 2,
+    REGIAO_MT: "mt-estadual",
+    REGIOES_EXCLUIDAS: ["baixada cuiabana", "mt"],
+    COLUNA_MUNICIPIO: ["municipio", "município", "cidade"],
+    COLUNA_ANO: ["ano", "year", "exercicio", "exercício"],
+    COLUNA_AREA: ["area", "área"],
+    COLUNA_OBJETO: ["objeto"],
+    COLUNA_VALOR: ["valor", "valor total", "valor entrega"],
+  },
+
+  CONTRATOS: {
+    PLANILHA: "contratos",
+    // Vazio = aba resolvida no backend por gid (1492182435 — dados dos colaboradores).
+    // A aba auditoria-contratos é só para log; não usar aqui.
+    ABA: "",
+    LINHA_INICIO_DADOS: 2,
+    // Cabeçalhos atuais da planilha cadastro-colaboradores (kebab-case).
+    COLUNA_NOME: [
+      "nome-completo",
+      "nome completo",
+      "nome",
+      "colaborador",
+      "funcionario",
+      "funcionário",
+    ],
+    COLUNA_NOME_MAE: ["nome-mae", "nome mae", "nome mãe", "mae", "mãe"],
+    COLUNA_CPF: ["cpf"],
+    COLUNA_MUNICIPIO: ["municipio", "município", "cidade"],
+    COLUNA_VINCULO: [
+      "vinculado-coordenador",
+      "vinculado coordenador",
+      "vinculo",
+      "vínculo",
+      "vinculacao",
+      "vinculação",
+    ],
+    // Fallback por índice (A=0) quando o cabeçalho não bater com os aliases.
+    INDICES: {
+      NOME: 0,
+      NOME_MAE: 1,
+      CPF: 2,
+      TITULO_ELEITOR: 3,
+      MUNICIPIO: 4,
+      VINCULO: 7,
+      BOLSA_FAMILIA: 8,
+      LANCAMENTO_SISTEMA: 9,
+      CHAVE_PIX: 10,
+    },
+    ROTULOS: {
+      NOME: "nome completo",
+      NOME_MAE: "nome mãe",
+      CPF: "CPF",
+      MUNICIPIO: "município",
+      VINCULO: "coordenador",
+    },
+    CAMPOS_FORMULARIO: [
+      {
+        id: "nome",
+        aliases: ["nome-completo", "nome completo", "nome", "colaborador"],
+        rotulo: "nome",
+        indice: 0,
+        largura: 12,
+      },
+      {
+        id: "cpf",
+        aliases: ["cpf"],
+        rotulo: "CPF",
+        rotuloUpper: true,
+        tipo: "cpf",
+        indice: 2,
+        largura: 6,
+        grupo: "documentos",
+      },
+      {
+        id: "titulo-eleitor",
+        aliases: ["titulo-eleitor", "titulo eleitor", "título de eleitor", "titulo de eleitor"],
+        rotulo: "título de eleitor",
+        indice: 3,
+        largura: 6,
+        grupo: "documentos",
+      },
+      {
+        id: "nome-mae",
+        aliases: ["nome-mae", "nome mae", "nome mãe", "mae", "mãe"],
+        rotulo: "nome mãe",
+        indice: 1,
+        largura: 12,
+      },
+      {
+        id: "municipio",
+        aliases: ["municipio", "município", "cidade"],
+        rotulo: "município",
+        tipo: "select",
+        origem: "municipios",
+        indice: 4,
+        largura: 12,
+      },
+      {
+        id: "coordenador",
+        aliases: [
+          "vinculado-coordenador",
+          "vinculado coordenador",
+          "vinculo",
+          "vínculo",
+        ],
+        rotulo: "coordenador",
+        tipo: "select",
+        origem: "liderancas",
+        indice: 7,
+        largura: 12,
+      },
+      {
+        id: "bolsa-familia",
+        aliases: [
+          "recebe-bolsa-familia",
+          "recebe-bolsa-família",
+          "recebe bolsa familia",
+          "recebe bolsa família",
+          "bolsa familia",
+          "bolsa família",
+          "bolsa-familia",
+        ],
+        rotulo: "bolsa família",
+        tipo: "checkbox",
+        indice: 8,
+        largura: 6,
+        grupo: "opcoes",
+      },
+      {
+        id: "lancar-sistema",
+        aliases: [
+          "lancamento-sistema",
+          "lancamento sistema",
+          "lançamento sistema",
+          "lançar sistema",
+        ],
+        rotulo: "lançar sistema",
+        tipo: "checkbox",
+        indice: 9,
+        largura: 6,
+        grupo: "opcoes",
+      },
+      {
+        id: "chave-pix",
+        aliases: ["chave-pix", "chave pix", "pix"],
+        rotulo: "chave pix",
+        indice: 10,
+        largura: 12,
+      },
+    ],
+    COLUNA_BUSCA: [
+      "nome-completo",
+      "nome completo",
+      "nome",
+      "colaborador",
+      "nome-mae",
+      "nome mãe",
+      "cpf",
+      "município",
+      "municipio",
+      "vinculado-coordenador",
+      "vinculo",
+      "vínculo",
+    ],
+  },
 
   DESEMBOLSO: {
     PLANILHA: "orcamento-desembolso",

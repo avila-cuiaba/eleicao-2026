@@ -8,56 +8,18 @@ const lg = {
 };
 
 function mostrarErro(msg) {
-  lg.status.textContent = msg;
-  lg.status.className = "alert alert-danger";
-}
-
-function limparErro() {
-  lg.status.textContent = "";
-  lg.status.className = "alert d-none";
+  AppToast.show(msg, "danger");
 }
 
 function setCarregando(ativo) {
   lg.btn.disabled = ativo;
   lg.btn.classList.toggle("is-loading", ativo);
   lg.btn.setAttribute("aria-busy", ativo ? "true" : "false");
-  if (ativo) limparErro();
 }
 
-function iniciarAnimacoesLogin() {
-  const brand = document.querySelector(".login-brand");
-  if (!brand) return;
-
-  brand.classList.remove("login-anim-play", "login-anim-done", "login-anim-skip");
-
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    brand.classList.add("login-anim-skip");
-    return;
-  }
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      brand.classList.add("login-anim-play");
-    });
-  });
-
-  window.setTimeout(() => {
-    brand.classList.add("login-anim-done");
-  }, 2400);
-}
-
-// Se já está logado, vai direto para a home.
-if (AUTH.getChave()) {
-  window.location.replace("principal.html?p=inicio");
-} else {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", iniciarAnimacoesLogin);
-  } else {
-    iniciarAnimacoesLogin();
-  }
-  window.addEventListener("pageshow", (e) => {
-    if (e.persisted) iniciarAnimacoesLogin();
-  });
+// Se já está logado (com perfil), vai para a página inicial do perfil.
+if (AUTH.getChave() && AUTH.getPerfil()) {
+  window.location.replace("principal.html?p=" + AUTH.paginaInicial());
 }
 
 lg.form.addEventListener("submit", async (e) => {
@@ -80,13 +42,13 @@ lg.form.addEventListener("submit", async (e) => {
     const json = await resp.json();
 
     if (json.ok) {
-      AUTH.setChave(chave);
+      AUTH.setSessao(chave, json.perfil || "master", json.usuario || "");
       lg.btn.classList.add("is-success");
-      window.location.replace("principal.html?p=inicio");
+      window.location.replace("principal.html?p=" + AUTH.paginaInicial());
       return;
     }
 
-    mostrarErro("Chave inválida. Tente novamente.");
+    mostrarErro("chave inválida");
   } catch (err) {
     mostrarErro("Erro ao verificar: " + err.message);
   } finally {

@@ -1,9 +1,24 @@
-// Controle de acesso (Opção A): a "chave" digitada no login é guardada na
-// sessão do navegador e enviada em todas as requisições ao Web App.
-// A validação real é feita no backend (Apps Script) contra a SENHA_ACESSO.
+// Controle de acesso: a chave digitada no login fica na sessão e é enviada
+// em todas as requisições ao Web App. A validação real é no Apps Script.
 
 const AUTH = {
   STORAGE_KEY: "eleicao_chave",
+  STORAGE_PERFIL: "eleicao_perfil",
+  STORAGE_USUARIO: "eleicao_usuario",
+
+  PERFIS: {
+    contratos: {
+      paginaInicial: "pessoal-contratos",
+      paginas: ["pessoal-contratos"],
+    },
+    campanha: {
+      paginaInicial: "inicio",
+      paginasExcluidas: ["pessoal-contratos"],
+    },
+    master: {
+      paginaInicial: "inicio",
+    },
+  },
 
   getChave() {
     try {
@@ -13,12 +28,66 @@ const AUTH = {
     }
   },
 
+  getPerfil() {
+    try {
+      return sessionStorage.getItem(this.STORAGE_PERFIL) || "";
+    } catch (e) {
+      return "";
+    }
+  },
+
+  getUsuario() {
+    try {
+      return sessionStorage.getItem(this.STORAGE_USUARIO) || "";
+    } catch (e) {
+      return "";
+    }
+  },
+
+  setSessao(chave, perfil, usuario) {
+    sessionStorage.setItem(this.STORAGE_KEY, chave);
+    sessionStorage.setItem(this.STORAGE_PERFIL, perfil || "master");
+    sessionStorage.setItem(this.STORAGE_USUARIO, usuario || "");
+  },
+
   setChave(valor) {
     sessionStorage.setItem(this.STORAGE_KEY, valor);
   },
 
   limpar() {
     sessionStorage.removeItem(this.STORAGE_KEY);
+    sessionStorage.removeItem(this.STORAGE_PERFIL);
+    sessionStorage.removeItem(this.STORAGE_USUARIO);
+  },
+
+  perfilAtivo() {
+    return this.getPerfil() || "master";
+  },
+
+  paginaInicial() {
+    const cfg = this.PERFIS[this.perfilAtivo()];
+    return cfg?.paginaInicial || "inicio";
+  },
+
+  podeAcessarPagina(paginaId) {
+    const cfg = this.PERFIS[this.perfilAtivo()];
+    if (!cfg) return true;
+    if (cfg.paginas) return cfg.paginas.includes(paginaId);
+    if (cfg.paginasExcluidas) return !cfg.paginasExcluidas.includes(paginaId);
+    return true;
+  },
+
+  filtrarMenu(menu) {
+    return (menu || [])
+      .map((item) => {
+        if (item.filhos?.length) {
+          const filhos = item.filhos.filter((f) => this.podeAcessarPagina(f.id));
+          if (!filhos.length) return null;
+          return Object.assign({}, item, { filhos: filhos });
+        }
+        return this.podeAcessarPagina(item.id) ? item : null;
+      })
+      .filter(Boolean);
   },
 
   urlLogin() {
@@ -32,21 +101,20 @@ const AUTH = {
     else window.location.replace(url);
   },
 
-  // Redireciona para o login se a página exige e ainda não há chave.
   exigir() {
     if (!window.CONFIG || !CONFIG.EXIGIR_LOGIN) return;
-    if (!this.getChave()) this.irLogin();
+    if (!this.getChave() || !this.getPerfil()) {
+      this.limpar();
+      this.irLogin();
+    }
   },
 
-  // Acrescenta a chave a uma URL (objeto URL) de requisição GET.
   aplicarNaUrl(url) {
     const chave = this.getChave();
     if (chave) url.searchParams.set("chave", chave);
     return url;
   },
 
-  // Verifica a resposta do backend: se for "não autorizado", desloga.
-  // Retorna true se pode prosseguir, false se redirecionou para login.
   tratarResposta(json) {
     if (json && json.naoAutorizado) {
       this.limpar();
@@ -62,7 +130,8 @@ const AUTH = {
   },
 };
 
-// Liga o botão de logout (#btnSair), injetado pela sidebar em layout.js.
+window.AUTH = AUTH;
+
 document.addEventListener("click", function (e) {
   if (e.target.closest("#btnSair")) AUTH.sair();
 });
