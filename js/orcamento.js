@@ -1,23 +1,45 @@
-// Página parcerias: planilha parcerias (A município, B parceria, C apoiadores, D valor).
+// Página orçamento: planilha orcamento (município + colunas de orçamento).
 
-const fmt = new Intl.NumberFormat("pt-BR");
 const fmtMoeda = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
-const cfg = CONFIG.PESSOAL;
-const cfgPar = cfg.PARCERIAS;
+const cfg = CONFIG.ORCAMENTO;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
-const COLS_TABELA = 4;
+const COLS_TABELA = 6;
+
+const CAMPOS_NUMERICOS = [
+  { prop: "pessoal", rotulo: "pessoal" },
+  { prop: "combustivel", rotulo: "combustível" },
+  { prop: "diversos", rotulo: "diversos" },
+  { prop: "diaD", rotulo: "dia D" },
+];
 
 const CAMPOS_PLANILHA = [
-  { prop: "municipio", chave: "MUNICIPIO", aliases: ["municipio", "município"] },
-  { prop: "parceria", chave: "PARCERIA", aliases: ["parceria"] },
-  { prop: "apoiadores", chave: "APOIADORES", aliases: ["apoiadores", "apoiador"] },
+  { prop: "municipio", chave: "MUNICIPIO", aliases: ["municipio", "município", "municipios", "municípios"] },
   {
-    prop: "valorParceria",
-    chave: "VALOR_PARCERIA",
-    aliases: ["valor parceria", "valor-parceria", "valor", "orcamento", "orçamento"],
+    prop: "pessoal",
+    chave: "PESSOAL",
+    aliases: [
+      "contratos-distribuidos-apoiadores",
+      "contratos distribuidos apoiadores",
+      "pessoal",
+    ],
+  },
+  {
+    prop: "combustivel",
+    chave: "COMBUSTIVEL",
+    aliases: ["orcamento-combustivel", "orcamento combustivel", "combustivel", "combustível"],
+  },
+  {
+    prop: "diversos",
+    chave: "DIVERSOS",
+    aliases: ["orcamento-diversos", "orcamento diversos", "diversos"],
+  },
+  {
+    prop: "diaD",
+    chave: "DIA_D",
+    aliases: ["orcamento-diad", "orcamento-dia d", "orcamento dia d", "dia d", "diad"],
   },
 ];
 
@@ -115,8 +137,8 @@ function resolverIndices(cabecalho) {
     let idx = normalizados.findIndex((n) =>
       campo.aliases.some((alias) => normalizarChave(alias) === n)
     );
-    if (idx === -1 && cfgPar.COLUNAS[campo.chave] != null) {
-      idx = cfgPar.COLUNAS[campo.chave];
+    if (idx === -1 && cfg.COLUNAS[campo.chave] != null) {
+      idx = cfg.COLUNAS[campo.chave];
     }
     indices[campo.prop] = idx;
   });
@@ -127,19 +149,6 @@ function resolverIndices(cabecalho) {
 function valorCampo(linha, idx) {
   if (idx == null || idx < 0) return "";
   return linha[idx];
-}
-
-function exibirTexto(val) {
-  const s = String(val ?? "").trim();
-  return s ? escapeHtml(s) : "";
-}
-
-function exibirNumero(val) {
-  const s = String(val ?? "").trim();
-  if (!s) return "";
-  const n = parseNumero(val);
-  if (n > 0 || s === "0") return fmt.format(n);
-  return escapeHtml(s);
 }
 
 function exibirMoeda(val) {
@@ -199,7 +208,7 @@ function montarFiltros(listaRegioes) {
   }
 
   listaRegioes.forEach((reg) => {
-    const id = "par-regiao-" + reg.norm.replace(/[^a-z0-9]+/g, "-");
+    const id = "orc-regiao-" + reg.norm.replace(/[^a-z0-9]+/g, "-");
     const label = document.createElement("label");
     label.className = "dashboard-filtro-item dashboard-filtro-cor--" + indiceCorRegiao(reg.norm);
     label.innerHTML =
@@ -213,8 +222,8 @@ function montarFiltros(listaRegioes) {
   });
 }
 
-function termoBuscaParceria() {
-  return normalizarChave(el.buscaParceria?.value);
+function termoBuscaMunicipio() {
+  return normalizarChave(el.buscaMunicipio?.value);
 }
 
 function linhasFiltradas() {
@@ -222,7 +231,7 @@ function linhasFiltradas() {
   if (!selecionadas.length) return [];
 
   const todasMarcadas = selecionadas.length === regioes.length;
-  const termo = termoBuscaParceria();
+  const termo = termoBuscaMunicipio();
 
   return linhas.filter((item) => {
     if (item.regiaoNorm) {
@@ -231,16 +240,12 @@ function linhasFiltradas() {
       return false;
     }
 
-    if (termo && !normalizarChave(item.parceria).includes(termo)) return false;
+    if (termo && !normalizarChave(item.municipio).includes(termo)) return false;
     return true;
   });
 }
 
 function ordenarLinhas(a, b) {
-  const pa = String(a.parceria ?? "").trim();
-  const pb = String(b.parceria ?? "").trim();
-  const cmp = pa.localeCompare(pb, "pt-BR", { sensitivity: "base" });
-  if (cmp !== 0) return cmp;
   return String(a.municipio ?? "").localeCompare(String(b.municipio ?? ""), "pt-BR", {
     sensitivity: "base",
   });
@@ -256,7 +261,7 @@ function extrairLinhas(valores) {
   const indices = resolverIndices(valores[0]);
   const itens = [];
 
-  for (let i = cfgPar.LINHA_INICIO_DADOS - 1; i < valores.length; i++) {
+  for (let i = cfg.LINHA_INICIO_DADOS - 1; i < valores.length; i++) {
     const linha = valores[i];
     if (!linha) continue;
 
@@ -265,9 +270,10 @@ function extrairLinhas(valores) {
 
     const item = {
       municipio,
-      parceria: valorCampo(linha, indices.parceria),
-      apoiadores: valorCampo(linha, indices.apoiadores),
-      valorParceria: valorCampo(linha, indices.valorParceria),
+      pessoal: valorCampo(linha, indices.pessoal),
+      combustivel: valorCampo(linha, indices.combustivel),
+      diversos: valorCampo(linha, indices.diversos),
+      diaD: valorCampo(linha, indices.diaD),
       regiao: info?.regiao || "",
       regiaoNorm: info?.regiaoNorm || "",
     };
@@ -280,76 +286,53 @@ function extrairLinhas(valores) {
   return itens;
 }
 
-function quantidadeMunicipiosDistinct(filtradas) {
-  const set = new Set();
-  filtradas.forEach((r) => {
-    const chave = normalizarChave(r.municipio);
-    if (chave) set.add(chave);
-  });
-  return set.size;
-}
-
 function somarNumerico(filtradas, prop) {
   return filtradas.reduce((acc, r) => acc + parseNumero(r[prop]), 0);
 }
 
+function totalLinha(item) {
+  return CAMPOS_NUMERICOS.reduce((acc, c) => acc + parseNumero(item[c.prop]), 0);
+}
+
+function somarTotalGeral(filtradas) {
+  return filtradas.reduce((acc, r) => acc + totalLinha(r), 0);
+}
+
 function atualizarKpis(filtradas) {
-  el.kpiParcerias.textContent = fmt.format(filtradas.length);
-  el.kpiMunicipios.textContent = fmt.format(quantidadeMunicipiosDistinct(filtradas));
-  el.kpiApoiadores.textContent = fmt.format(somarNumerico(filtradas, "apoiadores"));
-  el.kpiOrcamento.textContent = fmtMoeda.format(somarNumerico(filtradas, "valorParceria"));
+  el.kpiPessoal.textContent = fmtMoeda.format(somarNumerico(filtradas, "pessoal"));
+  el.kpiCombustivel.textContent = fmtMoeda.format(somarNumerico(filtradas, "combustivel"));
+  el.kpiDiversos.textContent = fmtMoeda.format(somarNumerico(filtradas, "diversos"));
+  el.kpiDiaD.textContent = fmtMoeda.format(somarNumerico(filtradas, "diaD"));
+  el.kpiTotal.textContent = fmtMoeda.format(somarTotalGeral(filtradas));
 }
 
 function limparKpis() {
   const vazio = "—";
-  el.kpiParcerias.textContent = vazio;
-  el.kpiMunicipios.textContent = vazio;
-  el.kpiApoiadores.textContent = vazio;
-  el.kpiOrcamento.textContent = vazio;
+  el.kpiPessoal.textContent = vazio;
+  el.kpiCombustivel.textContent = vazio;
+  el.kpiDiversos.textContent = vazio;
+  el.kpiDiaD.textContent = vazio;
+  el.kpiTotal.textContent = vazio;
 }
 
 function zerarKpis() {
-  el.kpiParcerias.textContent = fmt.format(0);
-  el.kpiMunicipios.textContent = fmt.format(0);
-  el.kpiApoiadores.textContent = fmt.format(0);
-  el.kpiOrcamento.textContent = fmtMoeda.format(0);
+  el.kpiPessoal.textContent = fmtMoeda.format(0);
+  el.kpiCombustivel.textContent = fmtMoeda.format(0);
+  el.kpiDiversos.textContent = fmtMoeda.format(0);
+  el.kpiDiaD.textContent = fmtMoeda.format(0);
+  el.kpiTotal.textContent = fmtMoeda.format(0);
 }
 
-function largurasColunasParcerias() {
-  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
-  if (mobile) {
-    return {
-      "apoiadores-col-ident": "40%",
-      "apoiadores-col-municipio": "0",
-      "apoiadores-col-lider": "30%",
-      "apoiadores-col-30": "30%",
-    };
-  }
-  return {
-    "apoiadores-col-ident": "26%",
-    "apoiadores-col-municipio": "26%",
-    "apoiadores-col-lider": "24%",
-    "apoiadores-col-30": "24%",
-  };
-}
-
-function sincronizarLargurasColunasParcerias(headTable, bodyTable) {
-  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
-  const larguras = largurasColunasParcerias();
+function sincronizarLargurasColunasOrcamento(headTable, bodyTable) {
   [headTable, bodyTable].forEach((table) => {
     table.querySelectorAll("colgroup col").forEach((col) => {
-      const cls = Array.from(col.classList).find((c) => c.startsWith("apoiadores-col-"));
-      if (mobile && cls && larguras[cls] != null) {
-        col.style.width = larguras[cls];
-      } else {
-        col.style.width = "";
-      }
+      col.style.width = "";
     });
   });
 }
 
 function alinharColunasTabela() {
-  const panel = document.querySelector(".parcerias-tabela-card .dashboard-tabela-panel");
+  const panel = document.querySelector(".orcamento-tabela-card .dashboard-tabela-panel");
   const headWrap = panel?.querySelector(".dashboard-tabela-head");
   const bodyScroll = panel?.querySelector(".dashboard-tabela-body-scroll");
   const headTable = headWrap?.querySelector("table");
@@ -363,7 +346,7 @@ function alinharColunasTabela() {
   const barra = bodyScroll.offsetWidth - bodyScroll.clientWidth;
   headWrap.style.paddingRight = barra > 0 ? barra + "px" : "0px";
 
-  sincronizarLargurasColunasParcerias(headTable, bodyTable);
+  sincronizarLargurasColunasOrcamento(headTable, bodyTable);
 }
 
 function aposRenderTabela() {
@@ -378,25 +361,16 @@ function renderizarLinha(r) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
   const municipioHtml = escapeHtml(r.municipio);
-  const parceriaHtml = exibirTexto(r.parceria);
-  const municipioSub = r.municipio
-    ? `<span class="apoiadores-sub-municipio">${municipioHtml}</span>`
-    : "";
+
+  const colsNum = CAMPOS_NUMERICOS.map(
+    (c) =>
+      `<td class="text-end orcamento-col-${c.prop === "diaD" ? "diad" : c.prop} apoiadores-celula-num">${exibirMoeda(r[c.prop])}</td>`
+  ).join("");
+
+  const total = totalLinha(r);
 
   return `<tr>
-    <td class="apoiadores-col-ident">
-      <span class="apoiadores-celula-desktop apoiadores-celula-texto">${parceriaHtml}</span>
-      <span class="apoiadores-celula-mobile">
-        <span class="dashboard-municipio-celula">
-          <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
-          <span class="dashboard-municipio-texto">
-            <span class="dashboard-municipio-nome">${parceriaHtml || municipioHtml}</span>
-            ${municipioSub}
-          </span>
-        </span>
-      </span>
-    </td>
-    <td class="apoiadores-col-municipio">
+    <td class="orcamento-col-municipio">
       <span class="dashboard-municipio-celula">
         <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
         <span class="dashboard-municipio-texto">
@@ -404,8 +378,8 @@ function renderizarLinha(r) {
         </span>
       </span>
     </td>
-    <td class="text-end apoiadores-col-lider apoiadores-celula-num">${exibirNumero(r.apoiadores)}</td>
-    <td class="text-end apoiadores-col-30 apoiadores-celula-num">${exibirMoeda(r.valorParceria)}</td>
+    ${colsNum}
+    <td class="text-end orcamento-col-total apoiadores-celula-num orcamento-celula-total">${fmtMoeda.format(total)}</td>
   </tr>`;
 }
 
@@ -434,7 +408,7 @@ function renderizarTabela() {
   if (!filtradas.length) {
     zerarKpis();
     el.corpo.innerHTML =
-      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhuma parceria para os filtros selecionados.</td></tr>`;
+      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum município para os filtros selecionados.</td></tr>`;
     aposRenderTabela();
     return;
   }
@@ -444,34 +418,34 @@ function renderizarTabela() {
   aposRenderTabela();
 }
 
-function montar(valoresParcerias) {
-  linhas = extrairLinhas(valoresParcerias);
+function montar(valoresOrcamento) {
+  linhas = extrairLinhas(valoresOrcamento);
   montarFiltros(extrairRegioes(linhas));
   renderizarTabela();
 }
 
-async function carregarParcerias() {
+async function carregarOrcamento() {
   if (!configValida()) {
     mostrarStatus("Configure a URL do Web App em js/config.js.", "erro");
     return;
   }
 
-  mostrarStatus("Carregando parcerias...", "carregando");
+  mostrarStatus("Carregando orçamento...", "carregando");
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   try {
-    const [valoresParcerias, valoresMunicipios] = await Promise.all([
-      fetchPlanilha(cfg.PLANILHA_PARCERIAS),
+    const [valoresOrcamento, valoresMunicipios] = await Promise.all([
+      fetchPlanilha(cfg.PLANILHA),
       fetchPlanilha(cfgMun.PLANILHA).catch(() => []),
     ]);
 
-    if (valoresParcerias === null) {
+    if (valoresOrcamento === null) {
       limparStatus();
       return;
     }
 
     mapaMunicipioRegiao = montarMapaMunicipios(valoresMunicipios || []);
-    montar(valoresParcerias);
+    montar(valoresOrcamento);
     limparStatus();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
@@ -482,27 +456,28 @@ async function carregarParcerias() {
   }
 }
 
-window.atualizarPagina = carregarParcerias;
+window.atualizarPagina = carregarOrcamento;
 
-function initParcerias() {
+function initOrcamento() {
   el = {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
-    buscaParceria: document.getElementById("buscaParceria"),
-    corpo: document.getElementById("corpoParcerias"),
+    buscaMunicipio: document.getElementById("buscaMunicipio"),
+    corpo: document.getElementById("corpoOrcamento"),
     vazio: document.getElementById("vazio"),
-    kpiParcerias: document.getElementById("kpiParcerias"),
-    kpiMunicipios: document.getElementById("kpiMunicipios"),
-    kpiApoiadores: document.getElementById("kpiApoiadores"),
-    kpiOrcamento: document.getElementById("kpiOrcamento"),
+    kpiPessoal: document.getElementById("kpiPessoal"),
+    kpiCombustivel: document.getElementById("kpiCombustivel"),
+    kpiDiversos: document.getElementById("kpiDiversos"),
+    kpiDiaD: document.getElementById("kpiDiaD"),
+    kpiTotal: document.getElementById("kpiTotal"),
   };
   if (!el.corpo || !el.filtroRegioes) return;
 
-  el.buscaParceria?.addEventListener("input", renderizarTabela);
+  el.buscaMunicipio?.addEventListener("input", renderizarTabela);
   window.addEventListener("resize", alinharColunasTabela);
   alinharColunasTabela();
-  carregarParcerias();
+  carregarOrcamento();
 }
 
 AUTH.exigir();
-document.addEventListener("DOMContentLoaded", initParcerias);
+document.addEventListener("DOMContentLoaded", initOrcamento);

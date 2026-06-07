@@ -20,7 +20,7 @@ const CONFIG = {
 
   // Chave da planilha (deve existir em PLANILHAS no BackendPlanilhas.gs).
   // Opções: mapa-voto, votacao, municipios, cadastro-colaboradores,
-  //         pessoal-municipio, apoiadores, parcerias.
+  //         pessoal-municipio, apoiadores, parcerias, orcamento.
   PLANILHA: "mapa-voto",
 
   // Planilhas cadastradas (usado pela página de verificação).
@@ -33,7 +33,28 @@ const CONFIG = {
     { chave: "pessoal-municipio", titulo: "Pessoal — Município" },
     { chave: "apoiadores", titulo: "Pessoal — Apoiadores" },
     { chave: "parcerias", titulo: "Pessoal — Parcerias" },
+    { chave: "orcamento", titulo: "Orçamento" },
   ],
+
+  ORCAMENTO: {
+    PLANILHA: "orcamento",
+    ABA: "",
+    LINHA_INICIO_DADOS: 2,
+    ORDEM_REGIOES: [
+      "alto araguaia",
+      "medio araguaia",
+      "norte araguaia",
+      "baixada cuiabana",
+      "mt",
+    ],
+    COLUNAS: {
+      MUNICIPIO: 0,       // A — municipios
+      PESSOAL: 1,         // B — contratos-distribuidos-apoiadores
+      COMBUSTIVEL: 2,     // C — orcamento-combustivel
+      DIVERSOS: 3,        // D — orcamento-diversos
+      DIA_D: 4,           // E — orcamento-diaD
+    },
+  },
 
   PESSOAL: {
     PLANILHA: "pessoal-municipio",
@@ -73,12 +94,10 @@ const CONFIG = {
     PARCERIAS: {
       LINHA_INICIO_DADOS: 2,
       COLUNAS: {
-        LIDERANCA: 0,
-        MUNICIPIO: 1,
-        PARCERIA_LIDER: 2,
-        PARCERIA_30: 3,
-        PARCERIA_45: 4,
-        PARCERIA_CUSTOMIZADO: 5,
+        MUNICIPIO: 0,         // A
+        PARCERIA: 1,          // B
+        APOIADORES: 2,        // C
+        VALOR_PARCERIA: 3,    // D
       },
     },
   },

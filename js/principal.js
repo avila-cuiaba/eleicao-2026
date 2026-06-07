@@ -45,10 +45,18 @@ const PAGINAS = {
     subtitulo: "operações e deslocamentos",
     arquivo: "pages/logistica.html",
   },
-  orcamento: {
+  "orcamento-geral": {
     titulo: "orçamento",
-    subtitulo: "planejamento financeiro da campanha",
+    subtitulo: "geral — planejamento financeiro",
+    arquivo: "pages/orcamento-geral.html",
+    menuGrupo: "orcamento",
+  },
+  "orcamento-estratificado": {
+    titulo: "orçamento",
+    subtitulo: "estratificado — orçamento por município",
     arquivo: "pages/orcamento.html",
+    atualizar: true,
+    menuGrupo: "orcamento",
   },
   agenda: {
     titulo: "agenda",
@@ -76,6 +84,7 @@ const PAGINAS = {
 
 function resolverPagina(id) {
   if (id === "pessoal") return "pessoal-visao-geral";
+  if (id === "orcamento") return "orcamento-estratificado";
   return id && PAGINAS[id] ? id : "inicio";
 }
 
@@ -154,7 +163,8 @@ function ajustarAlturaFrame() {
       doc.body?.classList.contains("page-dashboard") ||
       doc.body?.classList.contains("page-pessoal") ||
       doc.body?.classList.contains("page-apoiadores") ||
-      doc.body?.classList.contains("page-parcerias");
+      doc.body?.classList.contains("page-parcerias") ||
+      doc.body?.classList.contains("page-orcamento");
 
     frame.style.flex = "1 1 auto";
     frame.style.minHeight = "0";

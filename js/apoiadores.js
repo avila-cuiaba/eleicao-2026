@@ -423,7 +423,7 @@ function renderizarTabela() {
   if (!selecionadas.length) {
     zerarKpis();
     el.corpo.innerHTML =
-      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Selecione ao menos uma micro-região.</td></tr>`;
+      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">selecione ao menos uma micro-região</td></tr>`;
     aposRenderTabela();
     return;
   }

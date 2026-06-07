@@ -69,7 +69,14 @@ window.APP_MENU = [
     ],
   },
   { id: "logistica", label: "logística" },
-  { id: "orcamento", label: "orçamento" },
+  {
+    id: "orcamento",
+    label: "orçamento",
+    filhos: [
+      { id: "orcamento-geral", label: "geral" },
+      { id: "orcamento-estratificado", label: "estratificado" },
+    ],
+  },
   { id: "agenda", label: "agenda" },
   { id: "entregas", label: "entregas" },
   { id: "pautas", label: "pautas" },
@@ -84,6 +91,9 @@ window.APP_ICONE = {
       paginaId === "pessoal-parcerias"
     ) {
       return "pessoal";
+    }
+    if (paginaId === "orcamento-geral" || paginaId === "orcamento-estratificado") {
+      return "orcamento";
     }
     return paginaId;
   },

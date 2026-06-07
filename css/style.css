@@ -390,6 +390,105 @@ html {
   .apoiadores-kpi-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
+
+  .parcerias-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.apoiadores-tabela.parcerias-tabela col.apoiadores-col-lider,
+.apoiadores-tabela.parcerias-tabela col.apoiadores-col-30 {
+  width: 24%;
+}
+
+.apoiadores-tabela.orcamento-tabela col.orcamento-col-municipio {
+  width: 20%;
+}
+
+.apoiadores-tabela.orcamento-tabela col.orcamento-col-pessoal,
+.apoiadores-tabela.orcamento-tabela col.orcamento-col-combustivel,
+.apoiadores-tabela.orcamento-tabela col.orcamento-col-diversos,
+.apoiadores-tabela.orcamento-tabela col.orcamento-col-diad,
+.apoiadores-tabela.orcamento-tabela col.orcamento-col-total {
+  width: 16%;
+}
+
+.orcamento-celula-total {
+  font-weight: 600;
+}
+
+.orcamento-kpi-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.orcamento-kpi-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.25rem;
+}
+
+.orcamento-kpi-layout .dashboard-kpi-rotulo,
+.orcamento-kpi-layout .dashboard-kpi-valor {
+  text-align: center;
+  width: 100%;
+}
+
+.orcamento-kpi-ilustra {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.orcamento-kpi-ilustra svg {
+  width: 20px;
+  height: 20px;
+}
+
+.orcamento-kpi-ilustra-total {
+  background: linear-gradient(145deg, #22d3ee, #0891b2);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(8, 145, 178, 0.28);
+}
+
+.orcamento-kpi-ilustra-pessoal {
+  background: linear-gradient(145deg, #3b82f6, #1f4e8c);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(31, 78, 140, 0.28);
+}
+
+.orcamento-kpi-ilustra-combustivel {
+  background: linear-gradient(145deg, #818cf8, #4f46e5);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(79, 70, 229, 0.28);
+}
+
+.orcamento-kpi-ilustra-diversos {
+  background: linear-gradient(145deg, #60a5fa, #2563eb);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.28);
+}
+
+.orcamento-kpi-ilustra-diad {
+  background: linear-gradient(145deg, #2dd4bf, #0f766e);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(15, 118, 110, 0.28);
+}
+
+.orcamento-kpi-row-total {
+  margin-bottom: 0;
+}
+
+.orcamento-kpi-row-detalhe {
+  margin-bottom: 0;
 }
 
 .apoiadores-kpi-total .dashboard-kpi-card {
@@ -413,12 +512,14 @@ html {
 }
 
 /* Página apoiadores — layout espelhado do dashboard/pessoal */
-html.apoiadores-page {
+html.apoiadores-page,
+html.orcamento-page {
   height: 100%;
 }
 
 body.page-apoiadores,
-body.page-parcerias {
+body.page-parcerias,
+body.page-orcamento {
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -427,7 +528,8 @@ body.page-parcerias {
 }
 
 body.page-apoiadores .page-frame-content,
-body.page-parcerias .page-frame-content {
+body.page-parcerias .page-frame-content,
+body.page-orcamento .page-frame-content {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -439,12 +541,17 @@ body.page-parcerias .page-frame-content {
 body.page-apoiadores .dashboard-kpis-wrap,
 body.page-apoiadores #status:not(.d-none),
 body.page-parcerias .dashboard-kpis-wrap,
-body.page-parcerias #status:not(.d-none) {
+body.page-parcerias #status:not(.d-none),
+body.page-orcamento .dashboard-kpis-wrap,
+body.page-orcamento #status:not(.d-none) {
   flex-shrink: 0;
 }
 
 body.page-apoiadores .apoiadores-tabela-card,
-body.page-parcerias .apoiadores-tabela-card {
+body.page-parcerias .apoiadores-tabela-card,
+body.page-parcerias .parcerias-tabela-card,
+body.page-orcamento .apoiadores-tabela-card,
+body.page-orcamento .orcamento-tabela-card {
   flex: 1 1 0%;
   display: flex;
   flex-direction: column;
@@ -455,7 +562,13 @@ body.page-parcerias .apoiadores-tabela-card {
 body.page-apoiadores .apoiadores-tabela-card > .card-body,
 body.page-apoiadores .apoiadores-tabela-card .dashboard-tabela-panel,
 body.page-parcerias .apoiadores-tabela-card > .card-body,
-body.page-parcerias .apoiadores-tabela-card .dashboard-tabela-panel {
+body.page-parcerias .apoiadores-tabela-card .dashboard-tabela-panel,
+body.page-parcerias .parcerias-tabela-card > .card-body,
+body.page-parcerias .parcerias-tabela-card .dashboard-tabela-panel,
+body.page-orcamento .apoiadores-tabela-card > .card-body,
+body.page-orcamento .apoiadores-tabela-card .dashboard-tabela-panel,
+body.page-orcamento .orcamento-tabela-card > .card-body,
+body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -542,6 +655,10 @@ body.page-parcerias .apoiadores-tabela-card .dashboard-tabela-panel {
   white-space: nowrap;
   font-size: 0.82rem;
   text-transform: lowercase;
+}
+
+.apoiadores-tabela th.orcamento-th-diad {
+  text-transform: none;
 }
 
 .apoiadores-tabela td {
@@ -713,10 +830,43 @@ body.page-parcerias .apoiadores-tabela-card .dashboard-tabela-panel {
     font-size: 0.65rem;
     white-space: nowrap;
   }
+
+  .apoiadores-tabela.parcerias-tabela col.apoiadores-col-lider,
+  .apoiadores-tabela.parcerias-tabela col.apoiadores-col-30 {
+    width: 30% !important;
+  }
+
+  .apoiadores-tabela.orcamento-tabela col.orcamento-col-municipio {
+    width: 28% !important;
+  }
+
+  .apoiadores-tabela.orcamento-tabela col.orcamento-col-pessoal {
+    width: 18% !important;
+  }
+
+  .apoiadores-tabela.orcamento-tabela col.orcamento-col-combustivel,
+  .apoiadores-tabela.orcamento-tabela col.orcamento-col-diversos,
+  .apoiadores-tabela.orcamento-tabela col.orcamento-col-diad {
+    width: 12% !important;
+  }
+
+  .apoiadores-tabela.orcamento-tabela col.orcamento-col-total {
+    width: 18% !important;
+  }
 }
 
 @media (max-width: 575.98px) {
   body.page-apoiadores .page-frame-content {
+    padding-left: 1.15rem;
+    padding-right: 1.15rem;
+  }
+
+  body.page-parcerias .page-frame-content {
+    padding-left: 1.15rem;
+    padding-right: 1.15rem;
+  }
+
+  body.page-orcamento .page-frame-content {
     padding-left: 1.15rem;
     padding-right: 1.15rem;
   }

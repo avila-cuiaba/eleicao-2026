@@ -1,16 +1,179 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="orcamento-page">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>orçamento</title>
+  <title>Orçamento</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
-<body class="bg-light page-frame-body">
+<body class="bg-light page-frame-body page-orcamento page-apoiadores">
   <div class="page-frame-content">
-    <div class="alert alert-secondary mb-0" role="status">
-      Conteúdo em desenvolvimento.
+    <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
+
+    <div class="card shadow-sm border-0 mb-3 dashboard-kpis-wrap apoiadores-kpi-wrap">
+      <div class="card-body py-3">
+        <div class="row g-2 g-sm-3 align-items-start apoiadores-micro-row">
+          <div class="col-5 col-lg-4">
+            <div id="filtroRegioes" class="dashboard-filtro-regioes" role="group" aria-label="Filtrar por região"></div>
+          </div>
+          <div class="col-7 col-lg-8">
+            <div class="orcamento-kpi-layout">
+              <div class="row g-2 g-sm-3 justify-content-center orcamento-kpi-row-total">
+                <div class="col-12 col-sm-4">
+                  <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-45">
+                    <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                      <div class="dashboard-kpi-rotulo">total</div>
+                      <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-total" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                      </div>
+                      <strong id="kpiTotal" class="dashboard-kpi-valor">—</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row g-2 g-sm-3 orcamento-kpi-row-detalhe">
+                <div class="col-6 col-sm-3">
+                  <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-total">
+                    <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                      <div class="dashboard-kpi-rotulo">pessoal</div>
+                      <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-pessoal" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                          <circle cx="9" cy="7" r="4"/>
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                      </div>
+                      <strong id="kpiPessoal" class="dashboard-kpi-valor">—</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                  <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-lider">
+                    <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                      <div class="dashboard-kpi-rotulo">combustível</div>
+                      <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-combustivel" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <path d="M3 22V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/>
+                          <path d="M3 22h10"/>
+                          <path d="M14 10h2a2 2 0 0 1 2 2v2"/>
+                          <path d="M18 14v8"/>
+                          <path d="M18 22h2"/>
+                          <path d="M7 10h4"/>
+                        </svg>
+                      </div>
+                      <strong id="kpiCombustivel" class="dashboard-kpi-valor">—</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                  <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-30">
+                    <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                      <div class="dashboard-kpi-rotulo">diversos</div>
+                      <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-diversos" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                          <path d="M3.27 6.96 12 12.01 20.73 6.96M12 22.08V12"/>
+                        </svg>
+                      </div>
+                      <strong id="kpiDiversos" class="dashboard-kpi-valor">—</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                  <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-custom">
+                    <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                      <div class="dashboard-kpi-rotulo">dia D</div>
+                      <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-diad" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <rect x="3" y="4" width="18" height="18" rx="2"/>
+                          <path d="M16 2v4M8 2v4M3 10h18"/>
+                          <path d="M8 14h.01M12 14h.01M16 14h.01M12 18h4"/>
+                        </svg>
+                      </div>
+                      <strong id="kpiDiaD" class="dashboard-kpi-valor">—</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 dashboard-tabela-card apoiadores-tabela-card orcamento-tabela-card">
+      <div class="card-body p-0 dashboard-tabela-panel">
+        <div class="dashboard-tabela-head table-light">
+          <table class="table mb-0 apoiadores-tabela orcamento-tabela">
+            <colgroup>
+              <col class="orcamento-col-municipio" />
+              <col class="orcamento-col-pessoal" />
+              <col class="orcamento-col-combustivel" />
+              <col class="orcamento-col-diversos" />
+              <col class="orcamento-col-diad" />
+              <col class="orcamento-col-total" />
+            </colgroup>
+            <thead>
+              <tr class="apoiadores-thead-row1">
+                <th scope="col" rowspan="2" class="orcamento-col-municipio apoiadores-th-ident dashboard-th-base">
+                  <div class="apoiadores-th-ident-inner">
+                    <span class="apoiadores-th-titulo">município</span>
+                    <label class="apoiadores-busca-campo" for="buscaMunicipio">
+                      <span class="visually-hidden">buscar município</span>
+                      <span class="apoiadores-busca-inner">
+                        <span class="apoiadores-busca-icone" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7" />
+                            <path d="M20 20l-3.5-3.5" />
+                          </svg>
+                        </span>
+                        <input
+                          type="search"
+                          id="buscaMunicipio"
+                          class="form-control form-control-sm apoiadores-busca-input"
+                          placeholder="município"
+                          autocomplete="off"
+                        />
+                      </span>
+                    </label>
+                  </div>
+                </th>
+                <th scope="col" colspan="5" class="text-center dashboard-th-votacao apoiadores-th-grupo apoiadores-col-separador"><strong>orçamento</strong></th>
+              </tr>
+              <tr class="apoiadores-thead-cols">
+                <th scope="col" class="text-end orcamento-col-pessoal apoiadores-col-separador">pessoal</th>
+                <th scope="col" class="text-end orcamento-col-combustivel">combustível</th>
+                <th scope="col" class="text-end orcamento-col-diversos">diversos</th>
+                <th scope="col" class="text-end orcamento-col-diad orcamento-th-diad">dia D</th>
+                <th scope="col" class="text-end orcamento-col-total">total</th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        <div class="dashboard-tabela-body-scroll">
+          <table class="table table-hover mb-0 apoiadores-tabela orcamento-tabela">
+            <colgroup>
+              <col class="orcamento-col-municipio" />
+              <col class="orcamento-col-pessoal" />
+              <col class="orcamento-col-combustivel" />
+              <col class="orcamento-col-diversos" />
+              <col class="orcamento-col-diad" />
+              <col class="orcamento-col-total" />
+            </colgroup>
+            <tbody id="corpoOrcamento">
+              <tr>
+                <td colspan="6" class="text-center text-secondary py-4">carregando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="vazio" class="text-secondary text-center py-4 mb-0" hidden>
+          Nenhum município encontrado.
+        </p>
+      </div>
     </div>
 
     <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
@@ -22,7 +185,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/auth.js"></script>
-  <script src="../js/icons.js"></script>
   <script src="../js/page-loader.js"></script>
+  <script src="../js/orcamento.js"></script>
 </body>
 </html>

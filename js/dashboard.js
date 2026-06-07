@@ -168,10 +168,6 @@ function atualizarResumo(filtrados) {
   el.kpiEleitores.textContent = fmt.format(totais.eleitores);
   el.kpiMinima.textContent = fmt.format(totais.minima);
   el.kpiIdeal.textContent = fmt.format(totais.ideal);
-
-  if (el.thTotal2022) el.thTotal2022.textContent = fmt.format(totais.votos2022);
-  if (el.thTotalMinima) el.thTotalMinima.textContent = fmt.format(totais.minima);
-  if (el.thTotalIdeal) el.thTotalIdeal.textContent = fmt.format(totais.ideal);
 }
 
 function limparResumo() {
@@ -180,9 +176,6 @@ function limparResumo() {
   el.kpiEleitores.textContent = "—";
   el.kpiMinima.textContent = "—";
   el.kpiIdeal.textContent = "—";
-  if (el.thTotal2022) el.thTotal2022.textContent = "—";
-  if (el.thTotalMinima) el.thTotalMinima.textContent = "—";
-  if (el.thTotalIdeal) el.thTotalIdeal.textContent = "—";
 }
 
 function alinharColunasTabela() {
@@ -223,7 +216,7 @@ function renderizarTabela() {
   if (!selecionadas.length) {
     limparResumo();
     el.corpoTabela.innerHTML =
-      '<tr><td colspan="5" class="text-center text-secondary py-4">Selecione ao menos uma micro-região.</td></tr>';
+      '<tr><td colspan="5" class="text-center text-secondary py-4">selecione ao menos uma micro-região</td></tr>';
     aposRenderTabela();
     return;
   }
@@ -307,9 +300,6 @@ function initDashboard() {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
     corpoTabela: document.getElementById("corpoTabela"),
-    thTotal2022: document.getElementById("thTotal2022"),
-    thTotalMinima: document.getElementById("thTotalMinima"),
-    thTotalIdeal: document.getElementById("thTotalIdeal"),
     kpiMunicipios: document.getElementById("kpiMunicipios"),
     kpiPopulacao: document.getElementById("kpiPopulacao"),
     kpiEleitores: document.getElementById("kpiEleitores"),

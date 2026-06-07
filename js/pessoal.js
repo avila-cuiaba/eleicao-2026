@@ -329,7 +329,7 @@ function renderizarTabela() {
   if (!selecionadas.length) {
     limparResumo();
     el.corpoTabela.innerHTML =
-      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Selecione ao menos uma micro-região.</td></tr>`;
+      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">selecione ao menos uma micro-região</td></tr>`;
     aposRenderTabela();
     return;
   }
@@ -347,9 +347,6 @@ function renderizarTabela() {
     .map((r) => {
       const corIdx = indiceCorRegiao(r.regiaoNorm);
       const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
-      const idealHtml = r.ideal
-        ? `<span class="pessoal-badge-ideal">${fmt.format(r.ideal)}</span>`
-        : "";
 
       return `<tr>
         <td class="pessoal-col-municipio">
@@ -357,7 +354,6 @@ function renderizarTabela() {
             <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
             <span class="dashboard-municipio-texto">
               <span class="dashboard-municipio-nome">${escapeHtml(r.municipio)}</span>
-              ${idealHtml}
             </span>
           </span>
         </td>
