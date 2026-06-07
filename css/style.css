@@ -742,43 +742,43 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
 }
 
 .orcamento-geral-kpi-card.orcamento-geral-kpi-agrupadas {
-  background: linear-gradient(155deg, #eff6ff 0%, #dbeafe 55%, #bfdbfe 100%) !important;
-  border: 1px solid rgba(31, 78, 140, 0.22) !important;
-  border-left: 4px solid #1f4e8c !important;
-  box-shadow: 0 4px 14px rgba(31, 78, 140, 0.14) !important;
+  background: linear-gradient(155deg, #faf6f1 0%, #e8dcc8 55%, #d4b896 100%) !important;
+  border: 1px solid rgba(146, 64, 14, 0.22) !important;
+  border-left: 4px solid #a16207 !important;
+  box-shadow: 0 4px 14px rgba(146, 64, 14, 0.14) !important;
 }
 
 .orcamento-geral-kpi-card.orcamento-geral-kpi-agrupadas .dashboard-kpi-rotulo {
-  color: #1e40af;
+  color: #78350f;
   font-weight: 700;
 }
 
 .orcamento-geral-kpi-card.orcamento-geral-kpi-agrupadas .dashboard-kpi-valor {
-  color: #1f4e8c;
+  color: #92400e;
 }
 
 .orcamento-geral-kpi-card.orcamento-geral-kpi-estratificadas {
-  background: linear-gradient(155deg, #f5f3ff 0%, #ede9fe 55%, #ddd6fe 100%) !important;
-  border: 1px solid rgba(124, 58, 237, 0.22) !important;
-  border-left: 4px solid #7c3aed !important;
-  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.14) !important;
+  background: linear-gradient(155deg, #fff7ed 0%, #fed7aa 55%, #fdba74 100%) !important;
+  border: 1px solid rgba(234, 88, 12, 0.26) !important;
+  border-left: 4px solid #ea580c !important;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.15) !important;
 }
 
 .orcamento-geral-kpi-card.orcamento-geral-kpi-estratificadas .dashboard-kpi-rotulo {
-  color: #6d28d9;
+  color: #c2410c;
   font-weight: 700;
 }
 
 .orcamento-geral-kpi-card.orcamento-geral-kpi-estratificadas .dashboard-kpi-valor {
-  color: #5b21b6;
+  color: #ea580c;
 }
 
 .orcamento-geral-tabela tbody tr.orcamento-geral-linha-agrupada > td:first-child {
-  border-left: 4px solid #1f4e8c;
+  border-left: 4px solid #a16207;
 }
 
 .orcamento-geral-tabela tbody tr.orcamento-geral-linha-estratificada > td:first-child {
-  border-left: 4px solid #7c3aed;
+  border-left: 4px solid #ea580c;
 }
 
 .orcamento-geral-tabela.table-hover tbody tr:hover {
@@ -816,8 +816,16 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
   text-transform: none;
 }
 
+.orcamento-geral-grafico-card {
+  background: linear-gradient(145deg, #f6faf6 0%, #e5efe5 48%, #d4e2d4 100%) !important;
+  border: 1px solid rgba(61, 90, 61, 0.22) !important;
+  box-shadow: 0 4px 16px rgba(61, 90, 61, 0.1) !important;
+}
+
 .orcamento-geral-grafico-card .dashboard-kpi-rotulo {
   text-transform: lowercase;
+  color: #3f5a3f;
+  font-weight: 700;
 }
 
 .orcamento-geral-grafico {
@@ -865,7 +873,7 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
 .orcamento-geral-progress-pago-track {
   height: 0.38rem;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.28);
+  background: rgba(248, 113, 113, 0.22);
   overflow: hidden;
 }
 
@@ -873,6 +881,8 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
   height: 100%;
   border-radius: 999px;
   min-width: 0;
+  background-color: #0891b2;
+  transition: width 0.2s ease;
 }
 
 .orcamento-geral-tabela td {
@@ -970,15 +980,15 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
   }
 
   .orcamento-geral-tabela col.orcamento-geral-col-item {
-    width: 40% !important;
+    width: 36% !important;
   }
 
   .orcamento-geral-tabela col.orcamento-tabela-stack-col {
-    width: 30% !important;
+    width: 32% !important;
   }
 
   .orcamento-geral-tabela col.orcamento-geral-col-apagar {
-    width: 30% !important;
+    width: 32% !important;
   }
 
   .orcamento-estratificado-tabela col.orcamento-col-municipio {

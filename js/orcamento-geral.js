@@ -6,6 +6,7 @@ const fmtMoeda = new Intl.NumberFormat("pt-BR", {
 });
 const cfg = CONFIG.ORCAMENTO_GERAL;
 const COLS_TABELA = 5;
+const COR_GRAFICO_ORCAMENTO = "#f87171";
 const COR_GRAFICO_PAGAMENTO = "#0891b2";
 
 let el = {};
@@ -114,6 +115,13 @@ function exibirTexto(val) {
   return s ? escapeHtml(s) : "";
 }
 
+function rotuloGraficoOrcamento(texto) {
+  const t = String(texto ?? "").trim();
+  if (!t) return "orçamento";
+  if (normalizarChave(t) === normalizarChave("orçamento inicial")) return "orçamento";
+  return t;
+}
+
 function somarColuna(linhas, prop) {
   return linhas.reduce((acc, r) => acc + parseNumero(r[prop]), 0);
 }
@@ -128,7 +136,7 @@ function extrairDados(valores) {
   const linhas = [];
 
   rotulosGrafico = {
-    orcamento: String(cabecalho[indices.orcamento] ?? "orçamento").trim() || "orçamento",
+    orcamento: rotuloGraficoOrcamento(cabecalho[indices.orcamento]),
     pagamento: String(cabecalho[indices.pagamento] ?? "pagamento").trim() || "pagamento",
   };
 
@@ -240,7 +248,7 @@ function opcoesGrafico(totais) {
         name: rotulosGrafico.orcamento,
         type: "bar",
         barGap: 0,
-        itemStyle: { color: "#1f4e8c", borderRadius: [4, 4, 0, 0] },
+        itemStyle: { color: COR_GRAFICO_ORCAMENTO, borderRadius: [4, 4, 0, 0] },
         data: [g.agrupadas.orcamento, g.estratificadas.orcamento],
       },
       {
@@ -276,7 +284,7 @@ function htmlBarraProgressoPago(orcNum, pagNum) {
   const pctInt = Math.round(pct);
   return `<div class="orcamento-geral-progress-pago" role="progressbar" aria-valuenow="${pctInt}" aria-valuemin="0" aria-valuemax="100" title="${pctInt}% pago">
     <div class="orcamento-geral-progress-pago-track" aria-hidden="true">
-      <div class="orcamento-geral-progress-pago-fill" style="width:${pctInt}%;background-color:${COR_GRAFICO_PAGAMENTO}"></div>
+      <div class="orcamento-geral-progress-pago-fill" style="width:${pctInt}%"></div>
     </div>
   </div>`;
 }
@@ -293,9 +301,7 @@ function renderizarLinha(r) {
     ? "orcamento-geral-linha-estratificada"
     : "orcamento-geral-linha-agrupada";
 
-  const itemHtml = r.estratificada
-    ? `<span class="orcamento-geral-badge orcamento-geral-badge-estratificada">${exibirTexto(r.item)}</span>`
-    : `<span class="orcamento-geral-col-item-inner">${exibirTexto(r.item)}</span>`;
+  const itemHtml = `<span class="orcamento-geral-col-item-inner">${exibirTexto(r.item)}</span>`;
 
   return `<tr class="${tipoLinha}">
     <td class="orcamento-geral-col-item">${itemHtml}</td>
