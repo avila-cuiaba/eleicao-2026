@@ -104,6 +104,9 @@ const PLANILHAS = criarCadastroPlanilhas();
 const PLANILHA_PADRAO = "mapa-voto";
 const ABA_PADRAO = "";
 const CABECALHOS = ["data", "nome", "cidade", "observacao"];
+// Google Doc "modelo-contrato" (renomear no Drive não altera o ID).
+const CONTRATO_TEMPLATE_DOC_ID = "1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s";
+const CONTRATO_TEMPLATE_NOME = "modelo-contrato";
 
 // ===================== AGENDA =====================
 
@@ -425,6 +428,323 @@ function usuarioDaRequisicao(corpo) {
   return auth.ok ? "" : "desconhecido";
 }
 
+function cpfSomenteDigitos(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function cpfValido(valor) {
+  const cpf = cpfSomenteDigitos(valor);
+  if (cpf.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+
+  let soma = 0;
+  for (let i = 0; i < 9; i++) soma += Number(cpf.charAt(i)) * (10 - i);
+  let resto = (soma * 10) % 11;
+  if (resto === 10) resto = 0;
+  if (resto !== Number(cpf.charAt(9))) return false;
+
+  soma = 0;
+  for (let j = 0; j < 10; j++) soma += Number(cpf.charAt(j)) * (11 - j);
+  resto = (soma * 10) % 11;
+  if (resto === 10) resto = 0;
+  return resto === Number(cpf.charAt(10));
+}
+
+function indiceColunaCabecalho(cabecalhos, aliases) {
+  const lista = (aliases || []).map(function (a) {
+    return normalizarChavePlanilha(a);
+  });
+  for (let i = 0; i < cabecalhos.length; i++) {
+    if (lista.indexOf(normalizarChavePlanilha(cabecalhos[i])) !== -1) return i;
+  }
+  return -1;
+}
+
+function validarCpfContratos(dados, sheet, cabecalhos, numLinhaIgnorar) {
+  const idxCpf = indiceColunaCabecalho(cabecalhos, ["cpf"]);
+  if (idxCpf === -1) return;
+
+  let cpfInformado = "";
+  for (let i = 0; i < cabecalhos.length; i++) {
+    const col = cabecalhos[i];
+    if (normalizarChavePlanilha(col) !== "cpf") continue;
+    const val = valorDadosColuna(dados, col);
+    if (val !== undefined) cpfInformado = val;
+    break;
+  }
+
+  const cpfNorm = cpfSomenteDigitos(cpfInformado);
+  if (!cpfNorm) throw new Error("CPF é obrigatório.");
+  if (!cpfValido(cpfNorm)) throw new Error("CPF inválido.");
+
+  const ultimaLinha = sheet.getLastRow();
+  if (ultimaLinha < 2) return;
+
+  const valores = sheet.getRange(2, 1, ultimaLinha - 1, cabecalhos.length).getValues();
+  for (let linha = 0; linha < valores.length; linha++) {
+    const numLinha = linha + 2;
+    if (numLinhaIgnorar && numLinha === numLinhaIgnorar) continue;
+    const cpfExistente = cpfSomenteDigitos(valores[linha][idxCpf]);
+    if (cpfExistente && cpfExistente === cpfNorm) {
+      throw new Error("CPF já cadastrado na linha " + numLinha + ".");
+    }
+  }
+}
+
+function escaparRegexDocs(texto) {
+  return String(texto || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function valorRegistroContrato(registro, chaves) {
+  for (let i = 0; i < chaves.length; i++) {
+    const chave = chaves[i];
+    if (registro[chave] != null && String(registro[chave]).trim() !== "") {
+      return String(registro[chave]).trim();
+    }
+  }
+
+  const lista = (chaves || []).map(function (a) {
+    return normalizarChavePlanilha(a);
+  });
+  const chavesRegistro = Object.keys(registro);
+  for (let j = 0; j < chavesRegistro.length; j++) {
+    const k = chavesRegistro[j];
+    if (k === "_linha") continue;
+    if (lista.indexOf(normalizarChavePlanilha(k)) === -1) continue;
+    const s = String(registro[k] ?? "").trim();
+    if (s) return s;
+  }
+  return "";
+}
+
+function formatarCpfContrato(valor) {
+  let digitos = String(valor ?? "").replace(/\D/g, "");
+  if (!digitos) return "";
+  if (digitos.length < 11) digitos = digitos.padStart(11, "0");
+  digitos = digitos.slice(0, 11);
+  if (digitos.length !== 11) return String(valor ?? "").trim();
+  return (
+    digitos.slice(0, 3) +
+    "." +
+    digitos.slice(3, 6) +
+    "." +
+    digitos.slice(6, 9) +
+    "-" +
+    digitos.slice(9)
+  );
+}
+
+function camposMarcadoresContrato() {
+  return [
+    { id: "nome-completo", aliases: ["nome-completo", "nome completo", "nome"] },
+    { id: "nome-mae", aliases: ["nome-mae", "nome mae", "nome mãe"] },
+    { id: "nome-pai", aliases: ["nome-pai", "nome pai"] },
+    { id: "cpf", aliases: ["cpf"], formatar: formatarCpfContrato },
+    {
+      id: "titulo-eleitor",
+      aliases: ["titulo-eleitor", "titulo eleitor", "título de eleitor"],
+    },
+    { id: "municipio", aliases: ["municipio", "município"] },
+    {
+      id: "vinculado-coordenador",
+      aliases: [
+        "vinculado-coordenador",
+        "vinculado coordenador",
+        "vinculo",
+        "vínculo",
+      ],
+    },
+    {
+      id: "coordenador",
+      aliases: [
+        "vinculado-coordenador",
+        "vinculado coordenador",
+        "vinculo",
+        "vínculo",
+      ],
+    },
+    { id: "tipo-contrato", aliases: ["tipo-contrato", "tipo contrato"] },
+    {
+      id: "recebe-bolsa-familia",
+      aliases: ["recebe-bolsa-familia", "recebe bolsa familia"],
+    },
+    { id: "lancamento-sistema", aliases: ["lancamento-sistema", "lancamento sistema"] },
+    { id: "chave-pix", aliases: ["chave-pix", "chave pix", "pix"] },
+  ];
+}
+
+function montarMapaSubstituicoesContrato(registro) {
+  const mapa = {};
+  const campos = camposMarcadoresContrato();
+
+  campos.forEach(function (campo) {
+    let valor = valorRegistroContrato(registro, campo.aliases);
+    if (campo.formatar) valor = campo.formatar(valor);
+    mapa[campo.id] = valor;
+  });
+
+  Object.keys(registro).forEach(function (chave) {
+    if (chave === "_linha") return;
+    const norm = normalizarChavePlanilha(chave);
+    if (norm === "cpf") {
+      mapa.cpf = formatarCpfContrato(registro[chave]);
+      return;
+    }
+    if (mapa[norm.replace(/ /g, "-")] == null) {
+      mapa[norm.replace(/ /g, "-")] = String(registro[chave] ?? "").trim();
+    }
+  });
+
+  return mapa;
+}
+
+function regexMarcadorCampo(idCampo) {
+  const nome = escaparRegexDocs(idCampo);
+  return (
+    "\\{\\{\\s*" +
+    nome +
+    "\\s*\\}\\}" +
+    "|\\{\\s*\\{\\s*" +
+    nome +
+    "\\s*\\}\\s*\\}" +
+    "|<<\\s*" +
+    nome +
+    "\\s*>>"
+  );
+}
+
+function partesSubstituiveisDocumento(doc) {
+  const partes = [];
+  if (doc.getBody()) partes.push(doc.getBody());
+  try {
+    const cab = doc.getHeader();
+    if (cab) partes.push(cab);
+  } catch (e1) {}
+  try {
+    const rod = doc.getFooter();
+    if (rod) partes.push(rod);
+  } catch (e2) {}
+  return partes;
+}
+
+function substituirMarcadoresDocumento(doc, mapa) {
+  const partes = partesSubstituiveisDocumento(doc);
+  const campos = camposMarcadoresContrato();
+
+  campos.forEach(function (campo) {
+    const valor = mapa[campo.id] != null ? String(mapa[campo.id]) : "";
+    const regex = regexMarcadorCampo(campo.id);
+    partes.forEach(function (parte) {
+      parte.replaceText(regex, valor);
+    });
+    partes.forEach(function (parte) {
+      parte.replaceText(escaparRegexDocs("{{" + campo.id + "}}"), valor);
+      parte.replaceText(escaparRegexDocs("{ {" + campo.id + "} }"), valor);
+      parte.replaceText(escaparRegexDocs("{{ " + campo.id + " }}"), valor);
+    });
+  });
+
+  Object.keys(registroAliasesExtras(mapa)).forEach(function (marcador) {
+    const valor = mapa[marcador];
+    partes.forEach(function (parte) {
+      parte.replaceText(escaparRegexDocs("{{" + marcador + "}}"), valor);
+    });
+  });
+}
+
+function registroAliasesExtras(mapa) {
+  const ids = {};
+  camposMarcadoresContrato().forEach(function (c) {
+    ids[c.id] = true;
+  });
+  const extras = {};
+  Object.keys(mapa).forEach(function (k) {
+    if (!ids[k]) extras[k] = mapa[k];
+  });
+  return extras;
+}
+
+/**
+ * Localiza o Google Doc modelo do contrato.
+ * 1) Por ID (CONTRATO_TEMPLATE_DOC_ID)
+ * 2) Por nome no Drive (CONTRATO_TEMPLATE_NOME = "modelo-contrato")
+ */
+function obterArquivoModeloContrato() {
+  if (CONTRATO_TEMPLATE_DOC_ID) {
+    try {
+      const porId = DriveApp.getFileById(CONTRATO_TEMPLATE_DOC_ID);
+      if (porId && porId.getMimeType() === MimeType.GOOGLE_DOCS) {
+        return porId;
+      }
+    } catch (erroId) {
+      Logger.log("Modelo por ID indisponível: " + erroId);
+    }
+  }
+
+  const busca = DriveApp.getFilesByName(CONTRATO_TEMPLATE_NOME);
+  while (busca.hasNext()) {
+    const arquivo = busca.next();
+    if (arquivo.getMimeType() === MimeType.GOOGLE_DOCS) {
+      return arquivo;
+    }
+  }
+
+  throw new Error(
+    "Modelo de contrato não encontrado. Confira no Drive o Google Doc \"" +
+      CONTRATO_TEMPLATE_NOME +
+      "\" (ou o ID em CONTRATO_TEMPLATE_DOC_ID) e compartilhe com a conta do Apps Script."
+  );
+}
+
+function gerarPdfContratoDeRegistro(registro) {
+  const modelo = obterArquivoModeloContrato();
+  const nomeBase =
+    valorRegistroContrato(registro, ["nome-completo", "nome completo", "nome"]) ||
+    "colaborador";
+
+  const copia = modelo.makeCopy("Contrato - " + nomeBase);
+  const doc = DocumentApp.openById(copia.getId());
+  substituirMarcadoresDocumento(doc, montarMapaSubstituicoesContrato(registro));
+  doc.saveAndClose();
+
+  const pdfBlob = copia.getAs(MimeType.PDF).setName("Contrato - " + nomeBase + ".pdf");
+  const pdfFile = DriveApp.createFile(pdfBlob);
+  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  copia.setTrashed(true);
+
+  return {
+    url: pdfFile.getUrl(),
+    downloadUrl: "https://drive.google.com/uc?export=download&id=" + pdfFile.getId(),
+    nome: pdfFile.getName(),
+    modeloId: modelo.getId(),
+    modeloNome: modelo.getName(),
+  };
+}
+
+function imprimirContratoPdf(corpo) {
+  const planilha = corpo.planilha || "contratos";
+  const nomeAba = corpo.aba || ABA_PADRAO;
+  const numLinha = Number(corpo.linha);
+  let registro = corpo.dados || {};
+
+  if (numLinha >= 2) {
+    const sheet = obterSheet(planilha, nomeAba);
+    const ultimaColuna = sheet.getLastColumn();
+    const cabecalhos = sheet.getRange(1, 1, 1, ultimaColuna).getValues()[0];
+    const existente = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
+    registro = linhaParaObjeto(cabecalhos, existente);
+  }
+
+  const pdf = gerarPdfContratoDeRegistro(registro);
+  return responder({
+    ok: true,
+    url: pdf.url,
+    downloadUrl: pdf.downloadUrl,
+    nome: pdf.nome,
+    modelo: pdf.modeloNome,
+  });
+}
+
 function valorDadosColuna(dados, col) {
   if (!dados || typeof dados !== "object") return undefined;
   if (Object.prototype.hasOwnProperty.call(dados, col)) return dados[col];
@@ -454,6 +774,10 @@ function doPostPlanilha(corpo) {
     ultimaColuna > 0
       ? sheet.getRange(1, 1, 1, ultimaColuna).getValues()[0]
       : CABECALHOS.slice();
+
+  if (acao === "imprimir-contrato") {
+    return imprimirContratoPdf(corpo);
+  }
 
   const auditar = deveAuditarContratos(planilha);
   const origemAuditoria = corpo.origem || (corpo.auditoria && corpo.auditoria.origem) || "web-app";
@@ -488,6 +812,9 @@ function doPostPlanilha(corpo) {
     if (!numLinha || numLinha < 2) {
       throw new Error("Linha inválida para atualizar.");
     }
+    if (deveAuditarContratos(planilha)) {
+      validarCpfContratos(dados, sheet, cabecalhos, numLinha);
+    }
     const existente = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
     const antes = linhaParaObjeto(cabecalhos, existente);
     const novaLinha = cabecalhos.map(function (col, i) {
@@ -509,6 +836,10 @@ function doPostPlanilha(corpo) {
       );
     }
     return responder({ ok: true, linha: numLinha });
+  }
+
+  if (deveAuditarContratos(planilha)) {
+    validarCpfContratos(dados, sheet, cabecalhos, null);
   }
 
   const agora = Utilities.formatDate(
@@ -686,21 +1017,54 @@ function atualizarEventoAgenda(corpo) {
 // ===================== UTIL / AUTORIZAÇÃO MANUAL =====================
 
 /**
- * Rode esta função no editor (Executar) para conceder TODAS as permissões
- * de uma vez (Planilhas + Agenda) e testar o acesso à agenda.
- * Veja o resultado em "Registro de execução" (Logs).
+ * Testa só a impressão (Drive + Docs). Rode no editor ANTES de usar o Web App.
+ * Veja o link do PDF em: Exibir > Registros de execução.
+ */
+function testarImpressaoContrato() {
+  const registroTeste = {
+    "nome-completo": "Teste Autorização",
+    cpf: "123.456.789-09",
+    municipio: "Teste",
+    "vinculado-coordenador": "Coordenador Teste",
+    "tipo-contrato": "apoiador 30 dias",
+  };
+
+  const pdf = gerarPdfContratoDeRegistro(registroTeste);
+  Logger.log("OK — modelo: " + pdf.modeloNome + " (id " + pdf.modeloId + ")");
+  Logger.log("PDF: " + pdf.url);
+  Logger.log("Download: " + pdf.downloadUrl);
+  return pdf;
+}
+
+/**
+ * Autoriza apenas Drive + Docs + modelo-contrato.
+ * Use se o erro for só na impressão.
+ */
+function autorizarImpressaoContrato() {
+  const modelo = obterArquivoModeloContrato();
+  Logger.log("Modelo encontrado: " + modelo.getName() + " | id: " + modelo.getId());
+  DocumentApp.openById(modelo.getId());
+  DriveApp.createFile("autorizacao-impressao-teste.txt", "ok", MimeType.PLAIN_TEXT).setTrashed(true);
+  Logger.log("Drive + Docs autorizados. Rode testarImpressaoContrato() em seguida.");
+}
+
+/**
+ * Rode no editor para conceder Planilhas + Drive + Docs + Agenda.
+ * Guia completo: apps-script/AUTORIZAR-IMPRESSAO.md
  */
 function autorizar() {
-  // Toca na planilha padrão (pede permissão do Sheets).
   SpreadsheetApp.openById(PLANILHAS[PLANILHA_PADRAO].id);
+  SpreadsheetApp.openById(PLANILHAS.contratos.id);
+  autorizarImpressaoContrato();
 
-  // Toca em cada agenda cadastrada (pede permissão do Calendar).
   Object.keys(AGENDAS).forEach(function (key) {
     const cfg = AGENDAS[key];
     if (!cfg.id) return;
     const cal = CalendarApp.getCalendarById(cfg.id);
     if (cal) Logger.log("Agenda OK (" + key + "): " + cal.getName());
   });
+
+  Logger.log("Concluído. Se a impressão falhar no site, republique o Web App (nova versão).");
 }
 
 function responder(obj) {

@@ -5489,6 +5489,20 @@ body.page-pessoal .dashboard-tabela-panel {
   word-break: break-word;
 }
 
+.contratos-stack-coord {
+  display: block;
+  font-weight: 600;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.contratos-stack-mun {
+  display: block;
+  font-size: 0.72rem;
+  color: #64748b;
+  word-break: break-word;
+}
+
 .crud-acoes-icones {
   display: inline-flex;
   align-items: center;
@@ -5526,7 +5540,21 @@ body.page-pessoal .dashboard-tabela-panel {
   background: rgba(220, 38, 38, 0.08);
 }
 
+.crud-acao-icone--imprimir:hover {
+  color: #0f766e;
+  background: rgba(15, 118, 110, 0.08);
+}
+
 @media (max-width: 991.98px) {
+  .contratos-tabela .crud-acao-icone--imprimir {
+    color: #0f766e;
+    background: rgba(15, 118, 110, 0.1);
+  }
+
+  .contratos-tabela .crud-acao-icone--imprimir:hover {
+    background: rgba(15, 118, 110, 0.18);
+  }
+
   .contratos-tabela .crud-acao-icone--editar {
     color: #1f4e8c;
     background: rgba(31, 78, 140, 0.1);
@@ -5587,15 +5615,11 @@ body.page-pessoal .dashboard-tabela-panel {
   }
 
   .contratos-tabela .contratos-col-nome-cpf.contratos-tabela-mobile-col {
-    width: 40%;
+    width: 38%;
   }
 
-  .contratos-tabela .contratos-col-municipio.contratos-tabela-mobile-col {
-    width: 25%;
-  }
-
-  .contratos-tabela .contratos-col-vinculo.contratos-tabela-mobile-col {
-    width: 20%;
+  .contratos-tabela .contratos-col-coord-mun.contratos-tabela-mobile-col {
+    width: 47%;
   }
 
   .contratos-tabela .contratos-col-acoes.contratos-tabela-mobile-col {
@@ -5614,6 +5638,10 @@ body.page-pessoal .dashboard-tabela-panel {
   .crud-tabela th,
   .crud-tabela td {
     white-space: normal;
+  }
+
+  .contratos-tabela .crud-col-acoes {
+    min-width: 9.5rem;
   }
 
   .crud-col-acoes {

@@ -13,6 +13,11 @@ const ICONE_EXCLUIR =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
   '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>' +
   "</svg>";
+const ICONE_IMPRIMIR =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+  '<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>' +
+  '<path d="M6 14h12v8H6z"/>' +
+  "</svg>";
 
 let el = {};
 let colunas = [];
@@ -298,8 +303,49 @@ function atualizarPainelTabela() {
   renderizarTabela();
 }
 
+function cpfSomenteDigitos(valor) {
+  return String(valor ?? "").replace(/\D/g, "");
+}
+
+function cpfValido(valor) {
+  const cpf = cpfSomenteDigitos(valor);
+  if (cpf.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+
+  let soma = 0;
+  for (let i = 0; i < 9; i++) soma += Number(cpf[i]) * (10 - i);
+  let resto = (soma * 10) % 11;
+  if (resto === 10) resto = 0;
+  if (resto !== Number(cpf[9])) return false;
+
+  soma = 0;
+  for (let j = 0; j < 10; j++) soma += Number(cpf[j]) * (11 - j);
+  resto = (soma * 10) % 11;
+  if (resto === 10) resto = 0;
+  return resto === Number(cpf[10]);
+}
+
+function cpfDuplicado(cpf, linhaIgnorar) {
+  if (!colunaCpf) return false;
+  const alvo = cpfSomenteDigitos(cpf);
+  if (!alvo) return false;
+  return linhas.some((item) => {
+    if (linhaIgnorar && item._linha === linhaIgnorar) return false;
+    return cpfSomenteDigitos(valorItem(item, colunaCpf)) === alvo;
+  });
+}
+
+function validarCpfFormulario(cpf, linhaIgnorar) {
+  const digitos = cpfSomenteDigitos(cpf);
+  if (!digitos) return "informe o CPF.";
+  if (digitos.length !== 11) return "CPF deve ter 11 dígitos.";
+  if (!cpfValido(digitos)) return "CPF inválido.";
+  if (cpfDuplicado(digitos, linhaIgnorar)) return "este CPF já está cadastrado.";
+  return "";
+}
+
 function formatarCpf(valor) {
-  const digitos = String(valor ?? "").replace(/\D/g, "").slice(0, 11);
+  const digitos = cpfSomenteDigitos(valor).slice(0, 11);
   if (digitos.length <= 3) return digitos;
   if (digitos.length <= 6) return digitos.slice(0, 3) + "." + digitos.slice(3);
   if (digitos.length <= 9) {
@@ -405,6 +451,7 @@ function municipioSelecionadoNoForm(dados) {
 }
 
 function opcoesCampoSelect(campo, dados) {
+  if (campo.origem === "tipo-contrato") return cfg.OPCOES_TIPO_CONTRATO || [];
   if (campo.origem === "municipios") return listaMunicipiosForm;
   if (campo.origem === "liderancas") {
     const municipio = municipioSelecionadoNoForm(dados);
@@ -662,6 +709,15 @@ async function salvarFormulario(evento) {
   const dados = lerFormulario();
   const acao = modoEdicao ? "atualizar" : "inserir";
 
+  const campoCpf = resolverCamposFormulario().find((c) => c.tipo === "cpf");
+  const cpfValor = campoCpf ? dados[chaveGravacao(campoCpf.coluna)] : "";
+  const erroCpf = validarCpfFormulario(cpfValor, modoEdicao);
+  if (erroCpf) {
+    AppToast.show(erroCpf, "erro");
+    document.getElementById("campo-cpf")?.focus();
+    return;
+  }
+
   setSalvandoModal(true);
 
   try {
@@ -721,6 +777,7 @@ function criarTdHtml(html, classes) {
 
 function htmlAcoesDesktop() {
   return (
+    '<button type="button" class="btn btn-sm btn-outline-secondary crud-btn-acao" data-acao="imprimir">imprimir</button> ' +
     '<button type="button" class="btn btn-sm btn-outline-primary crud-btn-acao" data-acao="editar">editar</button> ' +
     '<button type="button" class="btn btn-sm btn-outline-danger crud-btn-acao" data-acao="excluir">excluir</button>'
   );
@@ -729,6 +786,9 @@ function htmlAcoesDesktop() {
 function htmlAcoesMobile() {
   return (
     '<div class="crud-acoes-icones">' +
+    '<button type="button" class="crud-acao-icone crud-acao-icone--imprimir" data-acao="imprimir" aria-label="imprimir contrato">' +
+    ICONE_IMPRIMIR +
+    "</button>" +
     '<button type="button" class="crud-acao-icone crud-acao-icone--editar" data-acao="editar" aria-label="editar">' +
     ICONE_EDITAR +
     "</button>" +
@@ -739,7 +799,41 @@ function htmlAcoesMobile() {
   );
 }
 
+function montarDadosImpressao(item) {
+  const dados = {};
+  colunas.forEach((col) => {
+    const chave = col.chavePlanilha != null && String(col.chavePlanilha).trim() !== ""
+      ? col.chavePlanilha
+      : col.chave;
+    dados[chave] = item[col.chave] != null ? item[col.chave] : "";
+  });
+  return dados;
+}
+
+async function imprimirContrato(item) {
+  mostrarStatus("Gerando PDF do contrato...", "carregando");
+  try {
+    const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
+      acao: "imprimir-contrato",
+      linha: item._linha,
+      dados: montarDadosImpressao(item),
+      aba: cfg.ABA,
+      origem: "pessoal-contratos",
+    });
+    if (!json) return;
+    const url = json.downloadUrl || json.url;
+    if (!url) throw new Error("PDF não gerado.");
+    window.open(url, "_blank", "noopener,noreferrer");
+    AppToast.show("contrato gerado para impressão", "sucesso");
+  } catch (e) {
+    AppToast.show("Erro ao imprimir: " + e.message, "erro");
+  } finally {
+    limparStatus();
+  }
+}
+
 function vincularAcoes(container, item) {
+  container.querySelector('[data-acao="imprimir"]')?.addEventListener("click", () => imprimirContrato(item));
   container.querySelector('[data-acao="editar"]')?.addEventListener("click", () => abrirEditar(item));
   container.querySelector('[data-acao="excluir"]')?.addEventListener("click", () => confirmarExcluir(item));
 }
@@ -760,10 +854,10 @@ function montarCabecalhoTabela() {
   );
   trDesktop.appendChild(criarTh(rotuloTabela("CPF"), "contratos-col-cpf contratos-tabela-desktop-col"));
   trDesktop.appendChild(
-    criarTh(rotuloTabela("MUNICIPIO"), "contratos-col-municipio contratos-tabela-desktop-col")
+    criarTh(rotuloTabela("VINCULO"), "contratos-col-vinculo contratos-tabela-desktop-col")
   );
   trDesktop.appendChild(
-    criarTh(rotuloTabela("VINCULO"), "contratos-col-vinculo contratos-tabela-desktop-col")
+    criarTh(rotuloTabela("MUNICIPIO"), "contratos-col-municipio contratos-tabela-desktop-col")
   );
   trDesktop.appendChild(
     criarTh("ações", "crud-col-acoes text-end contratos-col-acoes contratos-tabela-desktop-col")
@@ -777,12 +871,14 @@ function montarCabecalhoTabela() {
     "</div>";
   trMobile.appendChild(thStack);
 
-  trMobile.appendChild(
-    criarTh(rotuloTabela("MUNICIPIO"), "contratos-col-municipio contratos-tabela-mobile-col")
-  );
-  trMobile.appendChild(
-    criarTh(rotuloTabela("VINCULO"), "contratos-col-vinculo contratos-tabela-mobile-col")
-  );
+  const thCoordMun = criarTh("", "contratos-col-coord-mun contratos-tabela-mobile-col");
+  thCoordMun.innerHTML =
+    '<div class="contratos-th-stack-head">' +
+    `<span>${escapeHtml(rotuloTabela("VINCULO"))}</span>` +
+    `<span>${escapeHtml(rotuloTabela("MUNICIPIO"))}</span>` +
+    "</div>";
+  trMobile.appendChild(thCoordMun);
+
   trMobile.appendChild(
     criarTh("ações", "text-end contratos-col-acoes contratos-tabela-mobile-col")
   );
@@ -808,14 +904,14 @@ function criarLinhaTabela(item) {
   );
   tr.appendChild(
     criarTdHtml(
-      exibirValor(valorItem(item, colunaMunicipio)),
-      "contratos-col-municipio contratos-tabela-desktop-col"
+      exibirValor(valorItem(item, colunaVinculo)),
+      "contratos-col-vinculo contratos-tabela-desktop-col"
     )
   );
   tr.appendChild(
     criarTdHtml(
-      exibirValor(valorItem(item, colunaVinculo)),
-      "contratos-col-vinculo contratos-tabela-desktop-col"
+      exibirValor(valorItem(item, colunaMunicipio)),
+      "contratos-col-municipio contratos-tabela-desktop-col"
     )
   );
 
@@ -834,18 +930,13 @@ function criarLinhaTabela(item) {
     "</div>";
   tr.appendChild(tdStack);
 
-  tr.appendChild(
-    criarTdHtml(
-      exibirValor(valorItem(item, colunaMunicipio)),
-      "contratos-col-municipio contratos-tabela-mobile-col"
-    )
-  );
-  tr.appendChild(
-    criarTdHtml(
-      exibirValor(valorItem(item, colunaVinculo)),
-      "contratos-col-vinculo contratos-tabela-mobile-col"
-    )
-  );
+  const tdCoordMun = criarTdHtml("", "contratos-col-coord-mun contratos-tabela-mobile-col");
+  tdCoordMun.innerHTML =
+    '<div class="contratos-celula-stack">' +
+    `<span class="contratos-stack-coord">${exibirValor(valorItem(item, colunaVinculo))}</span>` +
+    `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
+    "</div>";
+  tr.appendChild(tdCoordMun);
 
   const tdAcoesMobile = criarTdHtml(
     htmlAcoesMobile(),
