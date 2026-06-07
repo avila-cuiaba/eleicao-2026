@@ -818,8 +818,82 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
   --bs-table-color-state: var(--bs-table-hover-color, inherit);
 }
 
-.orcamento-geral-tabela tbody tr.orcamento-geral-linha-popover {
+.orcamento-geral-tabela tbody tr.orcamento-geral-linha-popover,
+.orcamento-desembolso-tabela tbody tr.orcamento-desembolso-linha-popover,
+.orcamento-estratificado-tabela tbody tr.orcamento-estratificado-linha-popover,
+.apoiadores-tabela tbody tr.apoiadores-linha-popover,
+.pessoal-tabela tbody tr.pessoal-linha-popover,
+.dashboard-tabela tbody tr.dashboard-linha-popover,
+.registros-tabela tbody tr.registros-linha-popover {
   cursor: help;
+}
+
+.popover-marcador--orc-pessoal {
+  background: #db2777;
+}
+
+.popover-marcador--orc-combustivel {
+  background: #ea580c;
+}
+
+.popover-marcador--orc-diversos {
+  background: #7c3aed;
+}
+
+.popover-marcador--orc-diad {
+  background: #dc2626;
+}
+
+.popover-marcador--apoiador-lider {
+  background: #4f46e5;
+}
+
+.popover-marcador--apoiador-30 {
+  background: #1f4e8c;
+}
+
+.popover-marcador--apoiador-45 {
+  background: #1a6f85;
+}
+
+.popover-marcador--apoiador-custom {
+  background: #0f766e;
+}
+
+.popover-marcador--pessoal-prefeito {
+  background: #6366f1;
+}
+
+.popover-marcador--pessoal-vereador {
+  background: #1f4e8c;
+}
+
+.popover-marcador--pessoal-agente {
+  background: #1a6f85;
+}
+
+.popover-marcador--pessoal-assessor {
+  background: #64748b;
+}
+
+.popover-marcador--pessoal-apoiadores {
+  background: #0f766e;
+}
+
+.popover-marcador--dashboard-minima {
+  background: #caa14a;
+}
+
+.popover-marcador--dashboard-ideal {
+  background: #1b7a43;
+}
+
+.popover-marcador--registros-minima {
+  background: #7a5c1a;
+}
+
+.popover-marcador--registros-ideal {
+  background: #145a32;
 }
 
 .orcamento-geral-popover-corpo {

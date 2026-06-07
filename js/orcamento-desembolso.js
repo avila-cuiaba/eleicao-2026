@@ -15,6 +15,7 @@ const CAMPOS_PRAZO = [
 
 let el = {};
 let popoversTabela = [];
+let handlerCliqueForaPopover = null;
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -238,7 +239,20 @@ function htmlPopoverConteudo(r) {
   </div>`;
 }
 
+function fecharOutrosPopovers(trAtivo) {
+  popoversTabela.forEach((p) => {
+    if (p._element !== trAtivo) p.hide();
+  });
+}
+
+function removerCliqueForaPopover() {
+  if (!handlerCliqueForaPopover) return;
+  document.removeEventListener("click", handlerCliqueForaPopover, true);
+  handlerCliqueForaPopover = null;
+}
+
 function destruirPopoversTabela() {
+  removerCliqueForaPopover();
   popoversTabela.forEach((p) => p.dispose());
   popoversTabela = [];
 }
@@ -261,8 +275,19 @@ function inicializarPopoversTabela(linhas) {
       customClass: "orcamento-geral-popover-bs",
       content: htmlPopoverConteudo(r),
     });
+
+    tr.addEventListener("show.bs.popover", () => fecharOutrosPopovers(tr));
     popoversTabela.push(pop);
   });
+
+  handlerCliqueForaPopover = (e) => {
+    const emLinha = e.target.closest("tr.orcamento-desembolso-linha-popover");
+    const emPopover = e.target.closest(".popover.orcamento-geral-popover-bs");
+    if (!emLinha && !emPopover) {
+      popoversTabela.forEach((p) => p.hide());
+    }
+  };
+  document.addEventListener("click", handlerCliqueForaPopover, true);
 }
 
 function valorPrazoStack(prazo, valor) {

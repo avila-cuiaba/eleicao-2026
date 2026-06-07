@@ -23,6 +23,7 @@ let el = {};
 let linhas = [];
 let regioes = [];
 let mapaMunicipioRegiao = new Map();
+const popoverTabela = PopoverTabela.criar();
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -369,6 +370,31 @@ function aposRenderTabela() {
   });
 }
 
+function valorPopoverCelula(val) {
+  return exibirCelula(val) || "—";
+}
+
+function tituloPopoverApoiador(r) {
+  return exibirTexto(r.lideranca) || escapeHtml(r.municipio) || "—";
+}
+
+function htmlPopoverApoiador(r) {
+  return PopoverTabela.corpo(
+    tituloPopoverApoiador(r),
+    [
+      PopoverTabela.item("município", escapeHtml(r.municipio) || "—"),
+      PopoverTabela.item("lider", valorPopoverCelula(r.apoiadorLider), "popover-marcador--apoiador-lider"),
+      PopoverTabela.item("30 dias", valorPopoverCelula(r.apoiador30), "popover-marcador--apoiador-30"),
+      PopoverTabela.item("45 dias", valorPopoverCelula(r.apoiador45), "popover-marcador--apoiador-45"),
+      PopoverTabela.item(
+        "customizado",
+        valorPopoverCelula(r.apoiadorCustomizado),
+        "popover-marcador--apoiador-custom"
+      ),
+    ].join("")
+  );
+}
+
 function renderizarLinha(r) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
@@ -378,7 +404,7 @@ function renderizarLinha(r) {
     ? `<span class="apoiadores-sub-municipio">${municipioHtml}</span>`
     : "";
 
-  return `<tr>
+  return `<tr class="apoiadores-linha-popover" tabindex="0" aria-label="detalhes do apoiador">
     <td class="apoiadores-col-ident">
       <span class="apoiadores-celula-desktop apoiadores-celula-texto">${liderancaHtml}</span>
       <span class="apoiadores-celula-mobile">
@@ -414,6 +440,7 @@ function renderizarTabela() {
 
   if (!linhas.length) {
     limparKpis();
+    popoverTabela.destruir();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum registro na planilha.</td></tr>`;
     aposRenderTabela();
@@ -422,6 +449,7 @@ function renderizarTabela() {
 
   if (!selecionadas.length) {
     zerarKpis();
+    popoverTabela.destruir();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">selecione ao menos uma micro-região</td></tr>`;
     aposRenderTabela();
@@ -430,6 +458,7 @@ function renderizarTabela() {
 
   if (!filtradas.length) {
     zerarKpis();
+    popoverTabela.destruir();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum apoiador para os filtros selecionados.</td></tr>`;
     aposRenderTabela();
@@ -438,6 +467,12 @@ function renderizarTabela() {
 
   atualizarKpis(filtradas);
   el.corpo.innerHTML = filtradas.map(renderizarLinha).join("");
+  popoverTabela.inicializar({
+    corpo: el.corpo,
+    seletorLinha: "tr.apoiadores-linha-popover",
+    linhas: filtradas,
+    htmlConteudo: htmlPopoverApoiador,
+  });
   aposRenderTabela();
 }
 
@@ -472,6 +507,7 @@ async function carregarApoiadores() {
     limparStatus();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
+    popoverTabela.destruir();
     el.corpo.innerHTML = "";
     el.vazio.hidden = true;
   } finally {

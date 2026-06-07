@@ -28,6 +28,7 @@ let chartMetaRegioes = null;
 let animBarraId = null;
 let animCicloId = null;
 let ultimosValoresPlanilha = null;
+const popoverTabela = PopoverTabela.criar();
 const fmt = new Intl.NumberFormat("pt-BR");
 const fmtMoeda = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 2,
@@ -585,6 +586,29 @@ function extrairLinhasRegiao(valores) {
   return itens;
 }
 
+function htmlPopoverRegiao(r) {
+  return PopoverTabela.corpo(
+    escapeHtml(r.regiao),
+    [
+      PopoverTabela.item("municípios", fmt.format(r.municipios)),
+      PopoverTabela.item("habitantes", fmt.format(r.habitantes)),
+      PopoverTabela.item("eleitores", fmt.format(r.eleitores)),
+      PopoverTabela.item("votos 2018", fmt.format(r.votos2018)),
+      PopoverTabela.item("votos 2022", fmt.format(r.votos2022)),
+      PopoverTabela.item(
+        "votação mínima",
+        fmt.format(r.minima),
+        "popover-marcador--registros-minima"
+      ),
+      PopoverTabela.item(
+        "meta votação",
+        fmt.format(r.ideal),
+        "popover-marcador--registros-ideal"
+      ),
+    ].join("")
+  );
+}
+
 function renderizarCelulasRegiao(r, opts) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
@@ -654,6 +678,7 @@ function montarTabelaRegiao(valores) {
   if (vazio) vazio.hidden = true;
 
   if (!linhas.length) {
+    popoverTabela.destruir();
     corpo.innerHTML =
       `<tr><td colspan="${colsVisiveisTabela()}" class="text-center text-secondary py-4">Nenhum registro na planilha.</td></tr>`;
     if (rodape) rodape.innerHTML = "";
@@ -661,7 +686,18 @@ function montarTabelaRegiao(valores) {
     return;
   }
 
-  corpo.innerHTML = linhas.map((r) => `<tr>${renderizarCelulasRegiao(r)}</tr>`).join("");
+  corpo.innerHTML = linhas
+    .map(
+      (r) =>
+        `<tr class="registros-linha-popover" tabindex="0" aria-label="detalhes da região">${renderizarCelulasRegiao(r)}</tr>`
+    )
+    .join("");
+  popoverTabela.inicializar({
+    corpo,
+    seletorLinha: "tr.registros-linha-popover",
+    linhas,
+    htmlConteudo: htmlPopoverRegiao,
+  });
   if (rodape) rodape.innerHTML = renderizarTotalRegiao(valores);
   notificarAlturaFrame();
 }
@@ -1007,6 +1043,7 @@ async function carregarInicio(animarGrafico) {
     mostrarStatus("", null);
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
+    popoverTabela.destruir();
     const corpo = document.getElementById("corpoTabela");
     if (corpo) {
       corpo.innerHTML =

@@ -6,6 +6,7 @@ const cfg = CONFIG.PESSOAL;
 let el = {};
 let registros = [];
 let regioes = [];
+const popoverTabela = PopoverTabela.criar();
 
 const COLS_TABELA = 7;
 
@@ -314,12 +315,61 @@ function aposRenderTabela() {
   });
 }
 
+function valorPopoverPessoal(val) {
+  return exibirCelulaPessoal(val) || "—";
+}
+
+function htmlPopoverPessoal(r) {
+  return PopoverTabela.corpo(
+    escapeHtml(r.municipio),
+    [
+      PopoverTabela.item("meta votação", exibirNumero(r.ideal) || "—"),
+      PopoverTabela.item("prefeito", valorPopoverPessoal(r.prefeito), "popover-marcador--pessoal-prefeito"),
+      PopoverTabela.item("vereador", valorPopoverPessoal(r.vereador), "popover-marcador--pessoal-vereador"),
+      PopoverTabela.item(
+        "agente-político",
+        valorPopoverPessoal(r.agentePolitico),
+        "popover-marcador--pessoal-agente"
+      ),
+      PopoverTabela.item("assessor", valorPopoverPessoal(r.assessor), "popover-marcador--pessoal-assessor"),
+      PopoverTabela.item(
+        "apoiadores",
+        exibirApoiadores(r) || "—",
+        "popover-marcador--pessoal-apoiadores"
+      ),
+    ].join("")
+  );
+}
+
+function renderizarLinhaPessoal(r) {
+  const corIdx = indiceCorRegiao(r.regiaoNorm);
+  const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
+
+  return `<tr class="pessoal-linha-popover" tabindex="0" aria-label="detalhes do município">
+    <td class="pessoal-col-municipio">
+      <span class="dashboard-municipio-celula">
+        <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
+        <span class="dashboard-municipio-texto">
+          <span class="dashboard-municipio-nome">${escapeHtml(r.municipio)}</span>
+        </span>
+      </span>
+    </td>
+    <td class="text-end pessoal-col-ideal pessoal-col-lg-only">${exibirNumero(r.ideal)}</td>
+    <td class="text-end pessoal-col-prefeito pessoal-celula-num">${exibirCelulaPessoal(r.prefeito)}</td>
+    <td class="text-end pessoal-col-vereador pessoal-celula-num">${exibirCelulaPessoal(r.vereador)}</td>
+    <td class="text-end pessoal-col-agente pessoal-celula-num">${exibirCelulaPessoal(r.agentePolitico)}</td>
+    <td class="text-end pessoal-col-assessor pessoal-col-lg-only pessoal-celula-num">${exibirCelulaPessoal(r.assessor)}</td>
+    <td class="text-end pessoal-col-apoiadores">${exibirApoiadores(r)}</td>
+  </tr>`;
+}
+
 function renderizarTabela() {
   const selecionadas = regioesSelecionadas();
   const filtrados = registrosFiltrados();
 
   if (!registros.length) {
     limparResumo();
+    popoverTabela.destruir();
     el.corpoTabela.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum município na planilha.</td></tr>`;
     aposRenderTabela();
@@ -328,6 +378,7 @@ function renderizarTabela() {
 
   if (!selecionadas.length) {
     limparResumo();
+    popoverTabela.destruir();
     el.corpoTabela.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">selecione ao menos uma micro-região</td></tr>`;
     aposRenderTabela();
@@ -337,36 +388,20 @@ function renderizarTabela() {
   atualizarResumo(filtrados);
 
   if (!filtrados.length) {
+    popoverTabela.destruir();
     el.corpoTabela.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum município para os filtros selecionados.</td></tr>`;
     aposRenderTabela();
     return;
   }
 
-  el.corpoTabela.innerHTML = filtrados
-    .map((r) => {
-      const corIdx = indiceCorRegiao(r.regiaoNorm);
-      const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
-
-      return `<tr>
-        <td class="pessoal-col-municipio">
-          <span class="dashboard-municipio-celula">
-            <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
-            <span class="dashboard-municipio-texto">
-              <span class="dashboard-municipio-nome">${escapeHtml(r.municipio)}</span>
-            </span>
-          </span>
-        </td>
-        <td class="text-end pessoal-col-ideal pessoal-col-lg-only">${exibirNumero(r.ideal)}</td>
-        <td class="text-end pessoal-col-prefeito pessoal-celula-num">${exibirCelulaPessoal(r.prefeito)}</td>
-        <td class="text-end pessoal-col-vereador pessoal-celula-num">${exibirCelulaPessoal(r.vereador)}</td>
-        <td class="text-end pessoal-col-agente pessoal-celula-num">${exibirCelulaPessoal(r.agentePolitico)}</td>
-        <td class="text-end pessoal-col-assessor pessoal-col-lg-only pessoal-celula-num">${exibirCelulaPessoal(r.assessor)}</td>
-        <td class="text-end pessoal-col-apoiadores">${exibirApoiadores(r)}</td>
-      </tr>`;
-    })
-    .join("");
-
+  el.corpoTabela.innerHTML = filtrados.map(renderizarLinhaPessoal).join("");
+  popoverTabela.inicializar({
+    corpo: el.corpoTabela,
+    seletorLinha: "tr.pessoal-linha-popover",
+    linhas: filtrados,
+    htmlConteudo: htmlPopoverPessoal,
+  });
   aposRenderTabela();
 }
 
@@ -410,6 +445,7 @@ async function carregarPessoal() {
     aposRenderTabela();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
+    popoverTabela.destruir();
     el.corpoTabela.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>`;
   } finally {

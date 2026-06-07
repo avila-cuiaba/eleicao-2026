@@ -6,6 +6,7 @@ const cfgMun = cfg.MUNICIPIOS;
 
 let municipios = [];
 let modalMunicipios = null;
+const popoverTabela = PopoverTabela.criar();
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -118,13 +119,24 @@ function indiceCorRegiao(regiaoNorm) {
   return i === -1 ? 0 : i % 5;
 }
 
+function htmlPopoverMicroRegiao(item) {
+  return PopoverTabela.corpo(
+    escapeHtml(item.regiao),
+    [
+      PopoverTabela.item("municípios", fmt.format(item.municipios)),
+      PopoverTabela.item("habitantes", fmt.format(item.habitantes)),
+      PopoverTabela.item("eleitores", fmt.format(item.eleitores)),
+    ].join("")
+  );
+}
+
 function renderizarLinha(item) {
   const cor = indiceCorRegiao(item.regiaoNorm);
   const nome = escapeHtml(item.regiao);
 
   return `
     <tr
-      class="micro-regiao-linha"
+      class="micro-regiao-linha micro-regiao-linha-popover"
       role="button"
       tabindex="0"
       data-regiao-norm="${escapeHtml(item.regiaoNorm)}"
@@ -181,6 +193,7 @@ function initMicroRegiao() {
   }
 
   function renderizarTabela(itens) {
+    popoverTabela.destruir();
     els.corpo.innerHTML = "";
 
     if (!itens.length) {
@@ -191,6 +204,14 @@ function initMicroRegiao() {
 
     const ordenados = [...itens].sort(ordenarRegioes);
     els.corpo.innerHTML = ordenados.map(renderizarLinha).join("");
+    popoverTabela.inicializar({
+      corpo: els.corpo,
+      seletorLinha: "tr.micro-regiao-linha-popover",
+      linhas: ordenados,
+      htmlConteudo: htmlPopoverMicroRegiao,
+      trigger: "hover focus",
+      fecharAoClicarFora: false,
+    });
   }
 
   function abrirModalRegiao(regiaoNorm, regiaoNome) {

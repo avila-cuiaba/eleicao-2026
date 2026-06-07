@@ -6,6 +6,7 @@ const cfg = CONFIG.DASHBOARD;
 let el = {};
 let registros = [];
 let regioes = [];
+const popoverTabela = PopoverTabela.criar();
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -201,12 +202,53 @@ function aposRenderTabela() {
   });
 }
 
+function htmlPopoverDashboard(r) {
+  return PopoverTabela.corpo(
+    escapeHtml(r.municipio),
+    [
+      PopoverTabela.item("eleitores", fmt.format(r.eleitores)),
+      PopoverTabela.item("votos 2022", fmt.format(r.votos2022)),
+      PopoverTabela.item(
+        "votação mínima",
+        fmt.format(r.minima),
+        "popover-marcador--dashboard-minima"
+      ),
+      PopoverTabela.item(
+        "meta votação",
+        fmt.format(r.ideal),
+        "popover-marcador--dashboard-ideal"
+      ),
+    ].join("")
+  );
+}
+
+function renderizarLinhaDashboard(r) {
+  const corIdx = indiceCorRegiao(r.regiaoNorm);
+  const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
+  return `<tr class="dashboard-linha-popover" tabindex="0" aria-label="detalhes do município">
+    <td class="dashboard-col-municipio">
+      <span class="dashboard-municipio-celula">
+        <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
+        <span class="dashboard-municipio-texto">
+          <span class="dashboard-municipio-nome">${escapeHtml(r.municipio)}</span>
+          <span class="dashboard-municipio-eleitores text-muted">${fmt.format(r.eleitores)}</span>
+        </span>
+      </span>
+    </td>
+    <td class="text-end dashboard-col-eleitores">${fmt.format(r.eleitores)}</td>
+    <td class="text-end dashboard-col-2022">${fmt.format(r.votos2022)}</td>
+    <td class="text-end dashboard-col-minima">${fmt.format(r.minima)}</td>
+    <td class="text-end dashboard-col-ideal">${fmt.format(r.ideal)}</td>
+  </tr>`;
+}
+
 function renderizarTabela() {
   const selecionadas = regioesSelecionadas();
   const filtrados = registrosFiltrados();
 
   if (!registros.length) {
     limparResumo();
+    popoverTabela.destruir();
     el.corpoTabela.innerHTML =
       '<tr><td colspan="5" class="text-center text-secondary py-4">Nenhum município na planilha.</td></tr>';
     aposRenderTabela();
@@ -215,6 +257,7 @@ function renderizarTabela() {
 
   if (!selecionadas.length) {
     limparResumo();
+    popoverTabela.destruir();
     el.corpoTabela.innerHTML =
       '<tr><td colspan="5" class="text-center text-secondary py-4">selecione ao menos uma micro-região</td></tr>';
     aposRenderTabela();
@@ -224,36 +267,20 @@ function renderizarTabela() {
   atualizarResumo(filtrados);
 
   if (!filtrados.length) {
+    popoverTabela.destruir();
     el.corpoTabela.innerHTML =
       '<tr><td colspan="5" class="text-center text-secondary py-4">Nenhum município para os filtros selecionados.</td></tr>';
     aposRenderTabela();
     return;
   }
 
-  el.corpoTabela.innerHTML = filtrados
-    .map(
-      (r) => {
-        const corIdx = indiceCorRegiao(r.regiaoNorm);
-        const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
-        return `<tr>
-        <td class="dashboard-col-municipio">
-          <span class="dashboard-municipio-celula">
-            <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
-            <span class="dashboard-municipio-texto">
-              <span class="dashboard-municipio-nome">${escapeHtml(r.municipio)}</span>
-              <span class="dashboard-municipio-eleitores text-muted">${fmt.format(r.eleitores)}</span>
-            </span>
-          </span>
-        </td>
-        <td class="text-end dashboard-col-eleitores">${fmt.format(r.eleitores)}</td>
-        <td class="text-end dashboard-col-2022">${fmt.format(r.votos2022)}</td>
-        <td class="text-end dashboard-col-minima">${fmt.format(r.minima)}</td>
-        <td class="text-end dashboard-col-ideal">${fmt.format(r.ideal)}</td>
-      </tr>`;
-      }
-    )
-    .join("");
-
+  el.corpoTabela.innerHTML = filtrados.map(renderizarLinhaDashboard).join("");
+  popoverTabela.inicializar({
+    corpo: el.corpoTabela,
+    seletorLinha: "tr.dashboard-linha-popover",
+    linhas: filtrados,
+    htmlConteudo: htmlPopoverDashboard,
+  });
   aposRenderTabela();
 }
 
@@ -286,6 +313,7 @@ async function carregarDashboard() {
     aposRenderTabela();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
+    popoverTabela.destruir();
     el.corpoTabela.innerHTML =
       '<tr><td colspan="5" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>';
   } finally {
