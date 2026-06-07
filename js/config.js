@@ -35,7 +35,37 @@ const CONFIG = {
     { chave: "parcerias", titulo: "Pessoal — Parcerias" },
     { chave: "orcamento", titulo: "Orçamento" },
     { chave: "orcamento-geral", titulo: "Orçamento — Geral" },
+    { chave: "orcamento-desembolso", titulo: "Orçamento — Desembolso" },
   ],
+
+  DESEMBOLSO: {
+    PLANILHA: "orcamento-desembolso",
+    ABA: "",
+    LINHA_CABECALHO: 1,
+    LINHA_INICIO_DADOS: 2,
+    COLUNAS: {
+      ITEM: 1,        // B — item da despesa
+      ORCAMENTO: 2,   // C — orçamento
+      DIAS_5: 9,      // J
+      DIAS_15: 10,    // K
+      DIAS_30: 11,    // L
+      DIAS_45: 12,    // M
+    },
+    CAMPOS: {
+      ITEM: { aliases: ["item da despesa", "item despesa", "item", "despesa"] },
+      ORCAMENTO: { aliases: ["orcamento", "orçamento"] },
+      DIAS_5: { aliases: ["5 dias", "5d", "5"] },
+      DIAS_15: { aliases: ["15 dias", "15d", "15"] },
+      DIAS_30: { aliases: ["30 dias", "30d", "30"] },
+      DIAS_45: { aliases: ["45 dias", "45d", "45"] },
+    },
+    PERIODOS: [
+      { prop: "dias5", rotulo: "5 dias", kpi: "kpi5" },
+      { prop: "dias15", rotulo: "15 dias", kpi: "kpi15" },
+      { prop: "dias30", rotulo: "30 dias", kpi: "kpi30" },
+      { prop: "dias45", rotulo: "45 dias", kpi: "kpi45" },
+    ],
+  },
 
   ORCAMENTO_GERAL: {
     PLANILHA: "orcamento-geral",

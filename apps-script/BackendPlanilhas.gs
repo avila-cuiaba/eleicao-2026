@@ -57,11 +57,12 @@ function criarCadastroPlanilhas() {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1105165439,
   };
-  // Orçamento geral: item despesa, orçamento, pagamento.
+  // Orçamento geral / desembolso: mesma planilha (item, orçamento, prazos).
   p["orcamento-geral"] = {
     id: "1CsSofzZpuEx61r9VnMa9AcTq-QLk-LL3pAeujOwvEXE",
     gid: 0,
   };
+  p["orcamento-desembolso"] = p["orcamento-geral"];
   p["pessoal-municipio-aba1"] = p["pessoal-municipio"];
   p["pessoal-municipio-aba2"] = p.apoiadores;
   p.municipios = {

@@ -11,6 +11,7 @@ const COR_GRAFICO_PAGAMENTO = "#0891b2";
 
 let el = {};
 let chartComparativo = null;
+let popoversTabela = [];
 let rotulosGrafico = { orcamento: "orçamento", pagamento: "pagamento" };
 
 function configValida() {
@@ -296,6 +297,74 @@ function htmlCelulaAPagar(r) {
   </div>`;
 }
 
+function triggerPopoverTabela() {
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    ? "hover focus"
+    : "click";
+}
+
+function htmlPopoverConteudo(r) {
+  const item = exibirTexto(r.item) || "—";
+  const orc = exibirMoeda(r.orcamento) || "—";
+  const pag = exibirMoeda(r.pagamento) || "—";
+  const apagar = exibirMoeda(r.aPagar) || "—";
+
+  return `<div class="orcamento-geral-popover-corpo">
+    <div class="orcamento-geral-popover-titulo">${item}</div>
+    <div class="orcamento-geral-popover-item">
+      <span class="orcamento-geral-popover-rotulo orcamento-geral-popover-rotulo--com-marcador">
+        <span class="orcamento-geral-popover-marcador orcamento-geral-popover-marcador--orcamento" aria-hidden="true"></span>
+        orçamento
+      </span>
+      <span class="orcamento-geral-popover-valor">${orc}</span>
+    </div>
+    <div class="orcamento-geral-popover-item">
+      <span class="orcamento-geral-popover-rotulo orcamento-geral-popover-rotulo--com-marcador">
+        <span class="orcamento-geral-popover-marcador orcamento-geral-popover-marcador--pagamento" aria-hidden="true"></span>
+        pagamento
+      </span>
+      <span class="orcamento-geral-popover-valor">${pag}</span>
+    </div>
+    <div class="orcamento-geral-popover-item">
+      <span class="orcamento-geral-popover-rotulo orcamento-geral-popover-rotulo--com-marcador">
+        <span class="orcamento-geral-popover-marcador orcamento-geral-popover-marcador--apagar" aria-hidden="true"></span>
+        a pagar
+      </span>
+      <span class="orcamento-geral-popover-valor">${apagar}</span>
+    </div>
+  </div>`;
+}
+
+function destruirPopoversTabela() {
+  popoversTabela.forEach((p) => p.dispose());
+  popoversTabela = [];
+}
+
+function inicializarPopoversTabela(linhas) {
+  destruirPopoversTabela();
+  if (!el.corpo || typeof bootstrap === "undefined") return;
+
+  const linhasEl = el.corpo.querySelectorAll(
+    "tr.orcamento-geral-linha-agrupada, tr.orcamento-geral-linha-estratificada"
+  );
+
+  linhasEl.forEach((tr, idx) => {
+    const r = linhas[idx];
+    if (!r) return;
+
+    const pop = new bootstrap.Popover(tr, {
+      trigger: triggerPopoverTabela(),
+      html: true,
+      sanitize: false,
+      placement: "auto",
+      container: "body",
+      customClass: "orcamento-geral-popover-bs",
+      content: htmlPopoverConteudo(r),
+    });
+    popoversTabela.push(pop);
+  });
+}
+
 function renderizarLinha(r) {
   const tipoLinha = r.estratificada
     ? "orcamento-geral-linha-estratificada"
@@ -303,7 +372,7 @@ function renderizarLinha(r) {
 
   const itemHtml = `<span class="orcamento-geral-col-item-inner">${exibirTexto(r.item)}</span>`;
 
-  return `<tr class="${tipoLinha}">
+  return `<tr class="orcamento-geral-linha-popover ${tipoLinha}" tabindex="0" aria-label="detalhes da despesa">
     <td class="orcamento-geral-col-item">${itemHtml}</td>
     <td class="text-end orcamento-geral-col-num orcamento-geral-col-orcamento orcamento-tabela-desktop-col">${exibirMoeda(r.orcamento)}</td>
     <td class="text-end orcamento-geral-col-num orcamento-tabela-desktop-col">${exibirMoeda(r.pagamento)}</td>
@@ -320,6 +389,7 @@ function renderizarLinha(r) {
 function renderizarTabela(valores, indices, linhas) {
   if (!linhas.length) {
     limparKpis();
+    destruirPopoversTabela();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum registro na planilha.</td></tr>`;
     if (chartComparativo) {
@@ -333,6 +403,7 @@ function renderizarTabela(valores, indices, linhas) {
   atualizarKpis(totais);
   renderizarGrafico(totais);
   el.corpo.innerHTML = linhas.map(renderizarLinha).join("");
+  inicializarPopoversTabela(linhas);
 }
 
 function alinharColunasTabela() {
@@ -389,6 +460,7 @@ async function carregarOrcamentoGeral() {
     limparStatus();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
+    destruirPopoversTabela();
     el.corpo.innerHTML = "";
     limparKpis();
     if (chartComparativo) {

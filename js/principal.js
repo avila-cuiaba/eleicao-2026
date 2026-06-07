@@ -47,14 +47,14 @@ const PAGINAS = {
   },
   "orcamento-geral": {
     titulo: "orçamento",
-    subtitulo: "geral — planejamento financeiro",
+    subtitulo: "planejamento geral",
     arquivo: "pages/orcamento-geral.html",
     atualizar: true,
     menuGrupo: "orcamento",
   },
   "orcamento-estratificado": {
     titulo: "orçamento",
-    subtitulo: "estratificado — orçamento por município",
+    subtitulo: "orçamento por município",
     arquivo: "pages/orcamento.html",
     atualizar: true,
     menuGrupo: "orcamento",
@@ -63,6 +63,7 @@ const PAGINAS = {
     titulo: "orçamento",
     subtitulo: "desembolso",
     arquivo: "pages/orcamento-desembolso.html",
+    atualizar: true,
     menuGrupo: "orcamento",
   },
   agenda: {
@@ -172,7 +173,8 @@ function ajustarAlturaFrame() {
       doc.body?.classList.contains("page-apoiadores") ||
       doc.body?.classList.contains("page-parcerias") ||
       doc.body?.classList.contains("page-orcamento") ||
-      doc.body?.classList.contains("page-orcamento-geral");
+      doc.body?.classList.contains("page-orcamento-geral") ||
+      doc.body?.classList.contains("page-orcamento-desembolso");
 
     frame.style.flex = "1 1 auto";
     frame.style.minHeight = "0";
