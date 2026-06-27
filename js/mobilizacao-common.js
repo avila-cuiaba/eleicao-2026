@@ -114,11 +114,19 @@ const MobComum = {
     return null;
   },
 
+  ehOrigemSegmento(registro) {
+    const texto = String(registro?.origem ?? "").trim();
+    if (!texto) return false;
+    const k = this.normalizarChave(texto);
+    return k === "segmento" || k.includes("segment");
+  },
+
   agruparPerspectivaLocais(candidatos, registros) {
     const mapa = new Map();
     (candidatos || []).forEach((nome) => mapa.set(nome, []));
 
     (registros || []).forEach((r) => {
+      if (this.ehOrigemSegmento(r)) return;
       const local = this.classificarPerspectivaLocal(r.bairro, candidatos);
       if (!local) return;
       mapa.get(local).push(r);
@@ -147,6 +155,7 @@ const MobComum = {
     bairros.forEach((nome) => saida.push(...(mapa.get(nome) || [])));
 
     registros.forEach((r) => {
+      if (this.ehOrigemSegmento(r)) return;
       const rPolo = this.normalizarChave(r.polo);
       if (!rPolo || rPolo !== poloNorm) return;
       if (this.classificarPerspectivaLocal(r.bairro, bairros)) return;
@@ -202,7 +211,9 @@ const MobComum = {
       filtrados = this.agruparPerspectivaLocais(candidatos, registros).get(nomeLocal) || [];
     } else {
       filtrados = (registros || []).filter(
-        (r) => this.classificarPerspectivaLocal(r.bairro, [nomeLocal]) === nomeLocal
+        (r) =>
+          !this.ehOrigemSegmento(r) &&
+          this.classificarPerspectivaLocal(r.bairro, [nomeLocal]) === nomeLocal
       );
     }
     const lideres = new Map();
@@ -223,7 +234,98 @@ const MobComum = {
   },
 
   somarPerspectivaPolo(block, registros) {
-    return this.metricasPerspectiva(this.filtrarPerspectivaPolo(block, registros)).totalVotos;
+    return this.metricasPerspectiva(
+      this.filtrarPerspectivaPolo(block, registros).filter((r) => !this.ehOrigemSegmento(r))
+    ).totalVotos;
+  },
+
+  contagemPolosLocaisComVotos(dados, registros) {
+    let polos = 0;
+    let locais = 0;
+    (dados || []).forEach((block) => {
+      const candidatos = block.itens.map((i) => i.nome);
+      const regPolo = this.filtrarPerspectivaPolo(block, registros);
+      let somaPolo = 0;
+      block.itens.forEach((item) => {
+        const votos = this.detalheLocalPerspectiva(item.nome, regPolo, candidatos).votos;
+        if (votos > 0) {
+          locais++;
+          somaPolo += votos;
+        }
+      });
+      if (somaPolo > 0) polos++;
+    });
+    return { polos, locais };
+  },
+
+  resumoRegionalEstrutura(polos, registros) {
+    const lista = polos || [];
+    let polosMob = 0;
+    let locaisTotal = 0;
+    let locaisMob = 0;
+
+    lista.forEach((block) => {
+      const candidatos = block.itens.map((i) => i.nome);
+      const regPolo = this.filtrarPerspectivaPolo(block, registros);
+      locaisTotal += block.itens.length;
+      let somaPolo = 0;
+      block.itens.forEach((item) => {
+        const votos = this.detalheLocalPerspectiva(item.nome, regPolo, candidatos).votos;
+        if (votos > 0) {
+          locaisMob++;
+          somaPolo += votos;
+        }
+      });
+      if (somaPolo > 0) polosMob++;
+    });
+
+    const metricas = this.metricasPerspectivaRegional(lista, registros);
+    return {
+      polosTotal: lista.length,
+      polosMob,
+      locaisTotal,
+      locaisMob,
+      liderancas: metricas.qtdLiderancas,
+      votos: metricas.totalVotos,
+    };
+  },
+
+  somarResumosRegionais(resumos) {
+    const lista = resumos || [];
+    return lista.reduce(
+      (acc, r) => {
+        acc.polosTotal += r.polosTotal || 0;
+        acc.polosMob += r.polosMob || 0;
+        acc.locaisTotal += r.locaisTotal || 0;
+        acc.locaisMob += r.locaisMob || 0;
+        acc.liderancas += r.liderancas || 0;
+        acc.votos += r.votos || 0;
+        return acc;
+      },
+      {
+        polosTotal: 0,
+        polosMob: 0,
+        locaisTotal: 0,
+        locaisMob: 0,
+        liderancas: 0,
+        votos: 0,
+      }
+    );
+  },
+
+  metricasOrigemSegmento(registros) {
+    const apoiadores = new Set();
+    let votos = 0;
+    (registros || []).forEach((r) => {
+      if (!this.ehOrigemSegmento(r)) return;
+      const nome = String(r.lideranca ?? "").trim();
+      if (nome) apoiadores.add(this.normalizarChave(nome));
+      votos += r.votos || 0;
+    });
+    return {
+      apoiadores: apoiadores.size,
+      votos,
+    };
   },
 
   metricasPerspectivaRegional(polos, registros) {
@@ -917,6 +1019,11 @@ const MobComum = {
       cfg.INDICE_LIDERANCA
     );
     const colVotos = this.resolverColunaPerspectivaVoto(parsed.colunas, cfg);
+    const colOrigem = this.indiceColunaComFallback(
+      parsed.colunas,
+      cfg.COLUNA_ORIGEM,
+      cfg.INDICE_ORIGEM
+    );
 
     return parsed.linhas
       .filter((linha) => this.linhaTemConteudo(linha))
@@ -925,6 +1032,7 @@ const MobComum = {
         bairro: colBairro ? String(linha[colBairro] ?? "").trim() : "",
         regional: colRegional ? String(linha[colRegional] ?? "").trim() : "",
         lideranca: colLideranca ? String(linha[colLideranca] ?? "").trim() : "",
+        origem: colOrigem ? String(linha[colOrigem] ?? "").trim() : "",
         votos: colVotos ? this.parseNumero(linha[colVotos]) : 0,
         linha,
       }));

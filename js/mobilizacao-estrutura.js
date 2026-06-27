@@ -27,13 +27,8 @@ function rotuloRegional(regional) {
   return meta[regional]?.rotulo || String(regional).toLowerCase();
 }
 
-function htmlMetaRegional(metricas) {
-  return (
-  metricas.qtdLiderancas +
-    " lideranças · " +
-    MobComum.fmt.format(metricas.totalVotos) +
-    " votos"
-  );
+function htmlMetaRegionalSemVotos(metricas) {
+  return metricas.qtdLiderancas + " lideranças";
 }
 
 function htmlLiderancaClicavel(l) {
@@ -45,6 +40,90 @@ function htmlLiderancaClicavel(l) {
     "</button> (" +
     MobComum.fmt.format(l.votos) +
     ")"
+  );
+}
+
+function htmlCelulaTabelaResumo(valor) {
+  return '<td class="mob-org-resumo-tabela-num">' + MobComum.fmt.format(valor || 0) + "</td>";
+}
+
+function htmlLinhaTabelaResumo(rotulo, resumo, clsExtra) {
+  const cls = "mob-org-resumo-tabela-linha" + (clsExtra ? " " + clsExtra : "");
+  return (
+    "<tr class=\"" +
+    cls +
+    '">' +
+    '<th scope="row" class="mob-org-resumo-tabela-regiao">' +
+    MobComum.escapeHtml(rotulo) +
+    "</th>" +
+    htmlCelulaTabelaResumo(resumo.polosTotal) +
+    htmlCelulaTabelaResumo(resumo.polosMob) +
+    htmlCelulaTabelaResumo(resumo.locaisTotal) +
+    htmlCelulaTabelaResumo(resumo.locaisMob) +
+    htmlCelulaTabelaResumo(resumo.liderancas) +
+    htmlCelulaTabelaResumo(resumo.votos) +
+    "</tr>"
+  );
+}
+
+function htmlTabelaResumo(regionais, porRegional, registros) {
+  const resumos = regionais.map((reg) =>
+    MobComum.resumoRegionalEstrutura(porRegional.get(reg) || [], registros)
+  );
+  const total = MobComum.somarResumosRegionais(resumos);
+
+  const linhas = regionais
+    .map((reg, i) => htmlLinhaTabelaResumo(rotuloRegional(reg), resumos[i]))
+    .join("");
+
+  return (
+    '<div class="mob-org-resumo-tabela-wrap">' +
+    '<table class="mob-org-resumo-tabela">' +
+    "<thead>" +
+    "<tr>" +
+    '<th rowspan="2" class="mob-org-resumo-tabela-corner"></th>' +
+    '<th colspan="2" class="mob-org-resumo-tabela-grupo">polos</th>' +
+    '<th colspan="2" class="mob-org-resumo-tabela-grupo">localidades</th>' +
+    '<th rowspan="2" class="mob-org-resumo-tabela-metrica">lideranças</th>' +
+    '<th rowspan="2" class="mob-org-resumo-tabela-metrica">votos</th>' +
+    "</tr>" +
+    "<tr>" +
+    '<th class="mob-org-resumo-tabela-sub">total</th>' +
+    '<th class="mob-org-resumo-tabela-sub">ativo</th>' +
+    '<th class="mob-org-resumo-tabela-sub">total</th>' +
+    '<th class="mob-org-resumo-tabela-sub">ativo</th>' +
+    "</tr>" +
+    "</thead>" +
+    "<tbody>" +
+    linhas +
+    htmlLinhaTabelaResumo("total", total, "mob-org-resumo-tabela-linha--total") +
+    "</tbody></table></div>"
+  );
+}
+
+function htmlCardIdentificacao(regionais, porRegional, registros) {
+  const segmento = MobComum.metricasOrigemSegmento(registros);
+  const btnPersp = AUTH.ehAvilaMaster()
+    ? '<div class="mob-org-ident-acao">' +
+      '<button type="button" class="mob-estr-persp-btn mob-estr-persp-btn--externo" id="btnMobPerspectiva" aria-label="responsabilidade e perspectiva de voto" title="responsabilidade">' +
+      ICONE_PERSPECTIVA +
+      "</button></div>"
+    : "";
+
+  return (
+    '<div class="mob-org-ident">' +
+    btnPersp +
+    '<div class="mob-org-resumo-raiz">' +
+    '<div class="mob-org-resumo-municipio">' +
+    MobComum.escapeHtml(cfgResumo.TITULO || "Cuiabá") +
+    "</div>" +
+    htmlTabelaResumo(regionais, porRegional, registros) +
+    '<div class="mob-org-resumo-segmento-linha">' +
+    '<span class="mob-estr-segmento-badge mob-estr-segmento-badge--inline">' +
+    MobComum.fmt.format(segmento.apoiadores) +
+    " apoiadores · " +
+    MobComum.fmt.format(segmento.votos) +
+    " votos · origem segmento</span></div></div></div>"
   );
 }
 
@@ -218,43 +297,15 @@ function renderizarOrganograma(dados, perspectiva) {
   const extras = [...porRegional.keys()].filter((r) => !ordem.includes(r));
   const regionais = ordem.concat(extras);
 
-  const totalPolos = dados.length;
-  const totalLocais = dados.reduce((acc, d) => acc + d.itens.length, 0);
-  const metricasGeral = MobComum.metricasPerspectiva(
-    MobComum.filtrarPerspectivaPorBairros(
-      perspectivaRegistros,
-      dados.flatMap((d) => d.itens.map((i) => i.nome))
-    )
-  );
-
-  let html =
-    '<div class="mob-org-resumo-raiz">' +
-    '<span class="mob-org-resumo-municipio-linha">' +
-    '<span class="mob-org-resumo-municipio">' +
-    MobComum.escapeHtml(cfgResumo.TITULO || "Cuiabá") +
-    "</span>" +
-    (AUTH.ehAvilaMaster()
-      ? '<button type="button" class="mob-estr-persp-btn" id="btnMobPerspectiva" aria-label="responsabilidade e perspectiva de voto" title="responsabilidade">' +
-        ICONE_PERSPECTIVA +
-        "</button>"
-      : "") +
-    "</span>" +
-    '<span class="mob-org-resumo-meta">' +
-    MobComum.fmt.format(totalPolos) +
-    " polos · " +
-    MobComum.fmt.format(totalLocais) +
-    " localidades · " +
-    htmlMetaRegional(metricasGeral) +
-    "</span></div>" +
-    '<div class="mob-org-resumo-tronco" aria-hidden="true"></div>' +
-    '<div class="mob-org-resumo-regionais">';
+  let html = htmlCardIdentificacao(regionais, porRegional, perspectivaRegistros);
+  html += '<div class="mob-org-resumo-tronco" aria-hidden="true"></div>';
+  html += '<div class="mob-org-resumo-regionais">';
 
   regionais.forEach((reg) => {
     const polos = porRegional.get(reg) || [];
     const cls = classeRegional(reg);
     const cards = polos.map(montarCardPolo).join("");
-
-    const totalLocaisReg = polos.reduce((acc, p) => acc + p.itens.length, 0);
+    const resumo = MobComum.resumoRegionalEstrutura(polos, perspectivaRegistros);
     const metricasReg = MobComum.metricasPerspectivaRegional(polos, perspectivaRegistros);
 
     html +=
@@ -262,15 +313,19 @@ function renderizarOrganograma(dados, perspectiva) {
       cls +
       '">' +
       '<button type="button" class="mob-org-resumo-regiao-head mob-estr-regiao-head" aria-expanded="false">' +
+      '<div class="mob-estr-regiao-head-linha1">' +
       "<h2>" +
       MobComum.escapeHtml(rotuloRegional(reg)) +
       "</h2>" +
+      '<span class="mob-estr-regiao-votos-badge">' +
+      MobComum.fmt.format(metricasReg.totalVotos) +
+      " votos</span></div>" +
       '<span class="mob-org-resumo-regiao-qtd">' +
-      polos.length +
+      resumo.polosTotal +
       " polos · " +
-      totalLocaisReg +
+      resumo.locaisTotal +
       " locais · " +
-      htmlMetaRegional(metricasReg) +
+      htmlMetaRegionalSemVotos(metricasReg) +
       "</span>" +
       '<span class="mob-estr-card-chevron mob-estr-regiao-chevron" aria-hidden="true"></span>' +
       "</button>" +

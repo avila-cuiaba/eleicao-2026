@@ -164,11 +164,36 @@ function preencherSelect(selectEl, opcoes, valorSelecionado) {
       .join("");
 }
 
+function origemSegmentoSelecionada() {
+  const k = MobComum.normalizarChave(el.perspOrigem?.value || "");
+  return k === "segmento" || k.includes("segment");
+}
+
+function atualizarCampoBairroPorOrigem() {
+  const segmento = origemSegmentoSelecionada();
+  if (!el.perspBairro) return;
+
+  if (segmento) {
+    el.perspBairro.value = "";
+    el.perspBairro.disabled = true;
+    el.perspBairro.removeAttribute("required");
+    el.perspBairroWrap?.classList.add("mob-persp-campo--inativo");
+  } else {
+    el.perspBairro.disabled = false;
+    el.perspBairro.setAttribute("required", "required");
+    el.perspBairroWrap?.classList.remove("mob-persp-campo--inativo");
+  }
+}
+
 function montarSelectsFormulario(reg) {
   const apoiador = reg ? String(valorCampo(reg, "apoiador") ?? "").trim() : "";
-  const bairro = reg ? String(valorCampo(reg, "bairro") ?? "").trim() : "";
+  const bairro =
+    reg && !MobComum.ehOrigemSegmento({ origem: valorCampo(reg, "origem") })
+      ? String(valorCampo(reg, "bairro") ?? "").trim()
+      : "";
   preencherSelect(el.perspApoiador, opcoesApoiador, apoiador);
   preencherSelect(el.perspBairro, opcoesBairro, bairro);
+  atualizarCampoBairroPorOrigem();
 }
 
 function classePerspectiva(val) {
@@ -215,6 +240,9 @@ function htmlAcoes() {
 
 function htmlCelula(col, reg) {
   const val = valorCampo(reg, col.id);
+  if (col.id === "bairro" && MobComum.ehOrigemSegmento({ origem: valorCampo(reg, "origem") })) {
+    return '<td class="mob-persp-td">—</td>';
+  }
   if (col.tipo === "origem") {
     return '<td class="mob-persp-td mob-persp-td--origem">' + htmlOrigem(val) + "</td>";
   }
@@ -311,9 +339,10 @@ function registroPorIndice(idx) {
 
 function lerFormulario() {
   const dados = {};
+  const segmento = origemSegmentoSelecionada();
   const campos = {
     apoiador: el.perspApoiador?.value.trim() || "",
-    bairro: el.perspBairro?.value.trim() || "",
+    bairro: segmento ? "" : el.perspBairro?.value.trim() || "",
     origem: el.perspOrigem?.value.trim() || "",
     voto: el.perspVoto?.value.trim() || "",
   };
@@ -339,6 +368,7 @@ function preencherFormulario(reg) {
   }
 
   el.perspVoto.value = String(valorCampo(reg, "voto") ?? "").trim();
+  atualizarCampoBairroPorOrigem();
 }
 
 function abrirNovo() {
@@ -347,6 +377,7 @@ function abrirNovo() {
   montarSelectsFormulario(null);
   el.perspOrigem.value = "";
   el.perspVoto.value = "";
+  atualizarCampoBairroPorOrigem();
   modalRegistro.show();
 }
 
@@ -479,6 +510,7 @@ function init() {
     form: document.getElementById("formPerspectiva"),
     modalTitulo: document.getElementById("modalPerspectivaTitulo"),
     perspApoiador: document.getElementById("perspApoiador"),
+    perspBairroWrap: document.getElementById("perspBairroWrap"),
     perspBairro: document.getElementById("perspBairro"),
     perspOrigem: document.getElementById("perspOrigem"),
     perspVoto: document.getElementById("perspVoto"),
@@ -492,6 +524,7 @@ function init() {
   PageLoader.init("pageLoader");
   el.busca?.addEventListener("input", renderizarTabela);
   el.btnInserir?.addEventListener("click", abrirNovo);
+  el.perspOrigem?.addEventListener("change", atualizarCampoBairroPorOrigem);
   el.form?.addEventListener("submit", salvarFormulario);
   vincularTabela();
   carregar();
