@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="mobilizacao-page">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mobilização — Estrutura</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="bg-light page-frame-body page-mobilizacao page-mobilizacao-estrutura-resumo">
+  <div class="page-frame-content">
+    <div id="status" class="alert d-none mb-3" role="status" aria-live="polite"></div>
+
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body py-3">
+        <div id="mobOrgChart" class="mob-org-resumo" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
+      <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
+      <span class="visually-hidden">Carregando</span>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalApoiador" tabindex="-1" aria-labelledby="modalApoiadorTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content mob-estr-apoiador-modal">
+        <div class="modal-header py-2 border-0 pb-0">
+          <h5 class="modal-title fs-6 visually-hidden" id="modalApoiadorTitulo">apoiador</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body pt-2 py-3" id="modalApoiadorCorpo"></div>
+        <div class="modal-footer py-2 border-0 justify-content-center">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/page-loader.js"></script>
+  <script src="../js/planilha-api.js"></script>
+  <script src="../js/popover-tabela.js"></script>
+  <script src="../js/apoiadores-lookup.js"></script>
+  <script src="../js/mobilizacao-common.js"></script>
+  <script src="../js/mobilizacao-estrutura.js"></script>
+</body>
+</html>

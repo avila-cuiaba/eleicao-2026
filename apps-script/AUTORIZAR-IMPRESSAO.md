@@ -16,15 +16,29 @@ https://docs.google.com/document/d/1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s/
 
 1. No Google Drive, o documento deve se chamar **`modelo-contrato`** (tipo Google Docs).
 2. Renomear **não muda o ID** — o código usa o ID acima e, se falhar, busca pelo nome.
-3. Dentro do documento, use marcadores como:
-   - `{{nome-completo}}` ou `{{ nome-completo }}`
-   - `{{cpf}}` ou `{ {cpf} }` (com espaços também funciona)
-   - `{{nome-mae}}`
-   - `{{nome-pai}}`
-   - `{{municipio}}`
-   - `{{coordenador}}`
-   - `{{tipo-contrato}}`
-4. **Compartilhar** o `modelo-contrato` com o e-mail da conta que publica o Web App (veja passo 3), com permissão de **Leitor** ou **Editor**.
+3. O texto do contrato segue o modelo **`Contrato de Trabalho JOSIMEIRE.doc`** (prestação de serviço para campanha eleitoral), atualizado para **Eleição 2026**.
+4. Para aplicar o texto no Google Doc automaticamente, rode no editor Apps Script a função **`atualizarModeloContratoNoDrive`** (passo 4.4).
+5. Ou copie manualmente o conteúdo de `apps-script/modelo-contrato.txt` para o Google Doc.
+6. Marcadores dinâmicos (substituídos na impressão):
+
+   **Colaborador (planilha):**
+   - `{{nome-completo}}`, `{{cpf}}`, `{{nome-mae}}`, `{{nome-pai}}`
+   - `{{titulo-eleitor}}`, `{{municipio}}`, `{{coordenador}}`, `{{tipo-contrato}}`
+   - `{{recebe-bolsa-familia}}`, `{{lancamento-sistema}}`, `{{chave-pix}}`
+
+   **Campanha / contrato (calculados pelo backend):**
+   - `{{titulo-eleicoes}}` — ex.: ELEIÇÕES 2026
+   - `{{ano-campanha}}` — ex.: 2026
+   - `{{contratante-bloco}}` — razão social, CNPJ e representante
+   - `{{contratado-bloco}}` — nome, documentos e município do colaborador
+   - `{{objeto-servico}}`, `{{carga-horaria}}` — conforme tipo de contrato
+   - `{{valor-remuneracao}}`, `{{valor-extenso}}` — conforme tipo de contrato
+   - `{{cargo-candidato}}`, `{{data-fim-campanha}}`, `{{foro}}`
+   - `{{local-assinatura}}`, `{{data-contrato}}` — data do dia na impressão
+
+7. **Compartilhar** o `modelo-contrato` com o e-mail da conta que publica o Web App (veja passo 3), com permissão de **Leitor** ou **Editor**.
+
+Dados fixos (CNPJ, endereço, valores por tipo) ficam em **`CONTRATO_CAMPANHA`** no `BackendPlanilhas.gs`.
 
 ---
 
@@ -81,6 +95,13 @@ Faça **nesta ordem**, logado na **mesma conta** do passo 3:
 
 Rode **`autorizar`** para incluir também Planilhas e Agenda de uma vez.
 
+### 4.4 `atualizarModeloContratoNoDrive`
+
+1. Selecione **`atualizarModeloContratoNoDrive`** → **Executar**.
+2. Isso reescreve o Google Doc `modelo-contrato` com o texto padrão Eleição 2026 (cláusulas, assinaturas, marcadores).
+3. Nos logs deve aparecer a URL do modelo atualizado.
+4. Depois rode **`testarImpressaoContrato`** para validar o PDF.
+
 ---
 
 ## 5. Republicar o Web App (obrigatório)
@@ -119,18 +140,25 @@ Autorizar no editor **não atualiza** a implantação antiga sozinho.
 
 ## Marcadores suportados no modelo
 
-| Marcador | Campo da planilha |
-|----------|-------------------|
-| `{{nome-completo}}` | nome completo |
-| `{{nome-mae}}` | nome mãe |
-| `{{nome-pai}}` | nome pai |
-| `{{cpf}}` | CPF |
-| `{{titulo-eleitor}}` | título de eleitor |
-| `{{municipio}}` | município |
-| `{{coordenador}}` | coordenador |
-| `{{tipo-contrato}}` | tipo de contrato |
-| `{{recebe-bolsa-familia}}` | bolsa família |
-| `{{lancamento-sistema}}` | lançar sistema |
-| `{{chave-pix}}` | chave pix |
+| Marcador | Origem |
+|----------|--------|
+| `{{nome-completo}}` | planilha — nome completo |
+| `{{nome-mae}}` | planilha — nome mãe |
+| `{{nome-pai}}` | planilha — nome pai |
+| `{{cpf}}` | planilha — CPF (formatado) |
+| `{{titulo-eleitor}}` | planilha — título de eleitor |
+| `{{municipio}}` | planilha — município |
+| `{{coordenador}}` | planilha — coordenador |
+| `{{tipo-contrato}}` | planilha — tipo de contrato |
+| `{{contratante-bloco}}` | `CONTRATO_CAMPANHA` — razão social e representante |
+| `{{contratado-bloco}}` | montado a partir dos dados do colaborador |
+| `{{objeto-servico}}` | conforme tipo de contrato |
+| `{{carga-horaria}}` | conforme tipo de contrato |
+| `{{valor-remuneracao}}` | conforme tipo de contrato |
+| `{{valor-extenso}}` | conforme tipo de contrato |
+| `{{ano-campanha}}` | `CONTRATO_CAMPANHA.ANO` (2026) |
+| `{{data-fim-campanha}}` | fim da campanha (04/10/2026) |
+| `{{data-contrato}}` | data do dia na impressão |
+| `{{local-assinatura}}` | ex.: CUIABÁ-MT |
 
 Qualquer cabeçalho da planilha também funciona como `{{nome-da-coluna}}`.

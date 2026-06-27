@@ -38,6 +38,8 @@ const CONFIG = {
     { chave: "orcamento-desembolso", titulo: "Orçamento — Desembolso" },
     { chave: "entregas", titulo: "Entregas" },
     { chave: "contratos", titulo: "Contratos" },
+    { chave: "mobilizacao-estrutura", titulo: "Mobilização — Estrutura" },
+    { chave: "mobilizacao-perspectiva", titulo: "Mobilização — Perspectiva" },
   ],
 
   ENTREGAS: {
@@ -96,6 +98,13 @@ const CONFIG = {
     // Modelo Google Docs "modelo-contrato" — ver apps-script/AUTORIZAR-IMPRESSAO.md
     CONTRATO_TEMPLATE_DOC_ID: "1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s",
     CONTRATO_TEMPLATE_NOME: "modelo-contrato",
+    // Dados fixos da campanha (espelham CONTRATO_CAMPANHA no BackendPlanilhas.gs).
+    CAMPANHA: {
+      ANO: 2026,
+      TITULO_ELEICOES: "ELEIÇÕES 2026",
+      DATA_FIM_CAMPANHA: "04 de outubro de 2026",
+      CARGO_CANDIDATO: "DEPUTADO ESTADUAL",
+    },
     OPCOES_TIPO_CONTRATO: [
       "apoiador 30 dias",
       "apoiador 45 dias",
@@ -340,11 +349,26 @@ const CONFIG = {
       COLUNAS: {
         LIDERANCA: 0,             // A
         MUNICIPIO: 1,             // B
-        APOIADOR_LIDER: 2,        // C — antes: coluna liderança duplicada
+        APOIADOR_LIDER: 2,        // C
         APOIADOR_30: 3,           // D
         APOIADOR_45: 4,           // E
-        APOIADOR_CUSTOMIZADO: 5,  // F — antes: apoiador-livre
+        APOIADOR_CUSTOMIZADO: 5,  // F
+        DESP_PESSOAL: 9,       // J
+        DESP_COMBUSTIVEL: 10,  // K
+        DESP_DIVERSOS: 11,     // L
+        DESP_DIA_D: 12,        // M
       },
+      COLUNAS_DESPACHO: [
+        { prop: "pessoal", chave: "DESP_PESSOAL", indice: 9, aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
+        {
+          prop: "combustivel",
+          chave: "DESP_COMBUSTIVEL",
+          indice: 10,
+          aliases: ["combustivel", "combustível", "orcamento-combustivel", "orcamento combustivel"],
+        },
+        { prop: "diversos", chave: "DESP_DIVERSOS", indice: 11, aliases: ["diversos", "orcamento-diversos"] },
+        { prop: "diaD", chave: "DESP_DIA_D", indice: 12, aliases: ["dia d", "dia-d", "diad", "orcamento-diad", "orcamento dia d"] },
+      ],
     },
     PARCERIAS: {
       LINHA_INICIO_DADOS: 2,
@@ -428,6 +452,131 @@ const CONFIG = {
       totalRow: 2,
       dataInicio: 3,
       dataFim: 7,
+    },
+  },
+
+  MOBILIZACAO: {
+    // Visão hierárquica resumida (organograma).
+    ESTRUTURA: {
+      PLANILHA: "mobilizacao-estrutura",
+      ABA: "",
+      TITULO: "Cuiabá",
+      BADGE_PERSPECTIVA_ROTULO: "votos",
+      CONTEXTO_APOIADOR: {
+        MUNICIPIO: ["Cuiabá", "Cuiaba"],
+        REGIAO_MICRO: ["baixada cuiabana"],
+      },
+    },
+    // Dados da estrutura de Cuiabá (regionais, polos, bairros).
+    CUIABA: {
+      PLANILHA: "mobilizacao-estrutura",
+      ABA: "",
+      MUNICIPIO: "Cuiabá",
+      TITULO: "estrutura de mobilização",
+      SUBTITULO: "coordenação geral → mobilização → regionais → polos → bairros/localidades",
+      LINHA_INICIO_DADOS: 2,
+      EXIBICAO_PADRAO: "cards",
+      REGIONAIS: [
+        "REGIONAL NORTE",
+        "REGIONAL SUL",
+        "REGIONAL LESTE",
+        "REGIONAL OESTE",
+        "ZONA RURAL",
+      ],
+      REGIONAL_META: {
+        "REGIONAL NORTE": { cls: "norte", rotulo: "regional norte" },
+        "REGIONAL SUL": { cls: "sul", rotulo: "regional sul" },
+        "REGIONAL LESTE": { cls: "leste", rotulo: "regional leste" },
+        "REGIONAL OESTE": { cls: "oeste", rotulo: "regional oeste" },
+        "ZONA RURAL": { cls: "rural", rotulo: "zona rural" },
+      },
+      COLUNAS: {
+        REGIONAL: {
+          aliases: ["regional", "região", "regiao"],
+          indice: null,
+          preencher: true,
+        },
+        POLO: {
+          aliases: ["polo"],
+          indice: null,
+          preencher: true,
+        },
+        NUMERO: {
+          aliases: ["nr-item", "nr item", "num", "número", "numero", "n"],
+          indice: null,
+        },
+        BAIRRO: {
+          aliases: ["bairro-localidade", "bairro localidade", "bairro", "localidade"],
+          indice: null,
+        },
+        RESPONSAVEL: {
+          aliases: ["responsavel-polo", "responsavel polo", "responsável-polo", "responsavel", "responsável"],
+          indice: null,
+          preencher: true,
+        },
+      },
+      ROTULOS_CAMPO: [
+        "polo",
+        "regional",
+        "responsavel-polo",
+        "responsavel polo",
+        "mobilizacao",
+        "mobilização",
+        "bairro-localidade",
+        "bairro localidade",
+        "nr-item",
+        "nr item",
+      ],
+      LINHA_ANCORA: ["polo"],
+    },
+    PERSPECTIVA: {
+      PLANILHA: "mobilizacao-perspectiva",
+      ABA: "",
+      LINHA_INICIO_DADOS: 2,
+      ORDEM_REGIOES: [
+        "alto araguaia",
+        "medio araguaia",
+        "norte araguaia",
+        "baixada cuiabana",
+        "mt",
+        "cuiaba",
+        "cuiabá",
+      ],
+      COLUNA_REGIAO: ["regiao", "região", "micro-regiao", "polo", "polo regional"],
+      COLUNA_POLO: ["polo"],
+      COLUNA_BAIRRO: ["bairro", "bairro-localidade", "bairro localidade", "localidade"],
+      COLUNA_LIDERANCA: ["apoiador", "lideranca", "liderança", "responsavel", "responsável", "nome"],
+      COLUNA_VOTOS: ["perspectiva-voto", "perspectiva voto", "perspectiva de voto"],
+      INDICE_LIDERANCA: 0,
+      INDICE_BAIRRO: 1,
+      INDICE_ORIGEM: 2,
+      INDICE_VOTOS: 3,
+      COLUNA_MUNICIPIO: ["municipio", "município", "cidade"],
+      COLUNA_RESPONSAVEL: ["responsavel", "responsável", "nome", "lideranca", "liderança", "coordenador"],
+      COLUNA_RESPONSABILIDADE: ["responsabilidade", "papel", "funcao", "função", "cargo"],
+      COLUNA_ORIGEM: ["origem-voto", "origem voto", "origem"],
+      COLUNA_PERSPECTIVA: [
+        "perspectiva-voto",
+        "perspectiva voto",
+        "perspectiva de voto",
+        "perspectiva",
+      ],
+      // Listas do modal CRUD (mesma planilha de mobilização).
+      OPCOES_FORMULARIO: {
+        PLANILHA: "mobilizacao-perspectiva",
+        APOIADOR: {
+          ABA: "aux_apoiadores",
+          COLUNA: 0,
+          LINHA_INICIO: 1,
+          LINHA_FIM: 1000,
+        },
+        BAIRRO: {
+          ABA: "estrutura",
+          COLUNA: 5,
+          LINHA_INICIO: 2,
+          LINHA_FIM: 1000,
+        },
+      },
     },
   },
 };

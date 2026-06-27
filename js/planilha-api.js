@@ -83,11 +83,17 @@ const PlanilhaApi = {
   },
 
   async ler(planilha, aba, linhaInicio) {
+    const bruto = await this.lerValores(planilha, aba);
+    if (!bruto) return null;
+    return this.parseValores(bruto, linhaInicio);
+  },
+
+  async lerValores(planilha, aba) {
     const resp = await fetch(this.urlGet(planilha, aba), { method: "GET" });
     const json = await resp.json();
     if (!AUTH.tratarResposta(json)) return null;
     if (!json.ok) throw new Error(json.erro || "Falha ao consultar " + planilha + ".");
-    return this.parseValores(json.valores || [], linhaInicio);
+    return json.valores || [];
   },
 
   async gravar(planilha, { acao, linha, dados, aba, origem }) {

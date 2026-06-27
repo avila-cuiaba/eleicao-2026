@@ -14,6 +14,10 @@ window.APP_ICON_SVG = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
     '<path d="M4 19V5M4 19h16M8 17V9m4 8V7m4 10v-4"/>' +
     "</svg>",
+  desempenho:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
+    '<path d="M4 19V5M4 19h16M8 17V9m4 8V7m4 10v-4"/>' +
+    "</svg>",
   pessoal:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
     '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>' +
@@ -44,6 +48,13 @@ window.APP_ICON_SVG = {
     '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
     '<path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/>' +
     "</svg>",
+  mobilizacao:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
+    '<circle cx="12" cy="5" r="2"/>' +
+    '<circle cx="5" cy="19" r="2"/>' +
+    '<circle cx="19" cy="19" r="2"/>' +
+    '<path d="M12 7v4M12 11l-5 6M12 11l5 6"/>' +
+    "</svg>",
   planilhas:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
     '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>' +
@@ -58,7 +69,14 @@ window.APP_ICON_SVG = {
 window.APP_MENU = [
   { id: "inicio", label: "início" },
   { id: "micro-regiao", label: "região" },
-  { id: "dashboard", label: "votação" },
+  {
+    id: "desempenho",
+    label: "desempenho",
+    filhos: [
+      { id: "dashboard", label: "votação geral" },
+      { id: "mobilizacao-estrutura", label: "votação Cuiabá" },
+    ],
+  },
   {
     id: "pessoal",
     label: "pessoal",
@@ -101,6 +119,15 @@ window.APP_ICONE = {
       paginaId === "orcamento-desembolso"
     ) {
       return "orcamento";
+    }
+    if (paginaId === "dashboard") {
+      return "desempenho";
+    }
+    if (
+      paginaId === "mobilizacao-estrutura" ||
+      paginaId === "mobilizacao-perspectiva"
+    ) {
+      return "desempenho";
     }
     return paginaId;
   },

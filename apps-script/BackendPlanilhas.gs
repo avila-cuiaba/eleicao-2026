@@ -88,6 +88,17 @@ function criarCadastroPlanilhas() {
     id: "18YWhOfiMa3jM2BnM3pnFeo7q3GSBB3X1uoQADEXs-Jc",
     gid: 0,
   };
+  // Mobilização — estrutura de equipe e perspectiva de voto.
+  const planilhaMobilizacaoId = "1QtX67qPT4eDkQ5BBD_Xe0zhs6CAplI2_aF4h-7Q3RRc";
+  p["mobilizacao-estrutura"] = {
+    id: planilhaMobilizacaoId,
+    gid: 848441102,
+  };
+  p["mobilizacao-perspectiva"] = {
+    id: planilhaMobilizacaoId,
+    gid: 1379972691,
+  };
+  p.mobilizacao = p["mobilizacao-estrutura"];
 
   // Aliases (nomes antigos — compatibilidade).
   p["planilha-2"] = p.votacao;
@@ -107,6 +118,59 @@ const CABECALHOS = ["data", "nome", "cidade", "observacao"];
 // Google Doc "modelo-contrato" (renomear no Drive não altera o ID).
 const CONTRATO_TEMPLATE_DOC_ID = "1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s";
 const CONTRATO_TEMPLATE_NOME = "modelo-contrato";
+
+// Dados fixos da campanha Eleição 2026 — ajuste aqui se CNPJ/endereço mudar.
+const CONTRATO_CAMPANHA = {
+  ANO: 2026,
+  TITULO_ELEICOES: "ELEIÇÕES 2026",
+  CONTRATANTE_RAZAO: "ELEICAO 2026 DR. EUGENIO DE PAIVA DEPUTADO ESTADUAL",
+  CONTRATANTE_CNPJ: "47.431.376/0001-14",
+  CONTRATANTE_ENDERECO: "Rua 05, 2055, LC, na cidade de Água Boa - MT",
+  REPRESENTANTE_NOME: "REGINALDO MARTINS DEL COLLE",
+  REPRESENTANTE_CARGO: "Administrador Financeiro",
+  REPRESENTANTE_NACIONALIDADE: "brasileiro",
+  REPRESENTANTE_PROFISSAO: "Contador",
+  REPRESENTANTE_RG: "8118999 SSP/MG",
+  REPRESENTANTE_CPF: "893.843.936-49",
+  REPRESENTANTE_ENDERECO:
+    "Rua Travessa 04, s/n, Centro Sul, Nova Nazaré - MT, CEP 78638-000",
+  CARGO_CANDIDATO: "DEPUTADO ESTADUAL",
+  DATA_FIM_CAMPANHA: "04 de outubro de 2026",
+  FORO: "Cuiabá/MT",
+  LOCAL_ASSINATURA: "CUIABÁ-MT",
+  REMUNERACAO_PADRAO: {
+    valor: "600,00",
+    extenso: "SEISCENTOS REAIS",
+    horas: "04:00",
+    objeto: "CABO ELEITORAL",
+  },
+  REMUNERACAO_POR_TIPO: {
+    "apoiador 30 dias": {
+      valor: "600,00",
+      extenso: "SEISCENTOS REAIS",
+      horas: "04:00",
+      objeto: "CABO ELEITORAL",
+    },
+    "apoiador 45 dias": {
+      valor: "900,00",
+      extenso: "NOVECENTOS REAIS",
+      horas: "04:00",
+      objeto: "CABO ELEITORAL",
+    },
+    "apoiador lider": {
+      valor: "1.200,00",
+      extenso: "MIL E DUZENTOS REAIS",
+      horas: "04:00",
+      objeto: "APOIADOR LÍDER",
+    },
+    "apoiador customizado": {
+      valor: "600,00",
+      extenso: "SEISCENTOS REAIS",
+      horas: "04:00",
+      objeto: "CABO ELEITORAL",
+    },
+  },
+};
 
 // ===================== AGENDA =====================
 
@@ -534,6 +598,74 @@ function formatarCpfContrato(valor) {
   );
 }
 
+function formatarDataContrato(data) {
+  const d = data || new Date();
+  return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd/MM/yyyy");
+}
+
+function remuneracaoPorTipoContrato(tipoContrato) {
+  const chave = normalizarChavePlanilha(tipoContrato || "");
+  const mapa = CONTRATO_CAMPANHA.REMUNERACAO_POR_TIPO || {};
+  const chaves = Object.keys(mapa);
+  for (let i = 0; i < chaves.length; i++) {
+    if (normalizarChavePlanilha(chaves[i]) === chave) return mapa[chaves[i]];
+  }
+  return CONTRATO_CAMPANHA.REMUNERACAO_PADRAO;
+}
+
+function montarBlocoContratante() {
+  const c = CONTRATO_CAMPANHA;
+  return (
+    c.CONTRATANTE_RAZAO +
+    ", inscrito no CNPJ nº " +
+    c.CONTRATANTE_CNPJ +
+    ", com sede a " +
+    c.CONTRATANTE_ENDERECO +
+    ", neste ato representado pelo seu " +
+    c.REPRESENTANTE_CARGO +
+    " " +
+    c.REPRESENTANTE_NOME +
+    ", " +
+    c.REPRESENTANTE_NACIONALIDADE +
+    ", " +
+    c.REPRESENTANTE_PROFISSAO +
+    ", portador da cédula de identidade nº " +
+    c.REPRESENTANTE_RG +
+    " e cadastro de pessoa física nº " +
+    c.REPRESENTANTE_CPF +
+    ", residente e domiciliado à " +
+    c.REPRESENTANTE_ENDERECO
+  );
+}
+
+function montarBlocoContratado(registro) {
+  const nome = valorRegistroContrato(registro, [
+    "nome-completo",
+    "nome completo",
+    "nome",
+  ]);
+  const cpf = formatarCpfContrato(valorRegistroContrato(registro, ["cpf"]));
+  const titulo = valorRegistroContrato(registro, [
+    "titulo-eleitor",
+    "titulo eleitor",
+    "título de eleitor",
+  ]);
+  const municipio = valorRegistroContrato(registro, ["municipio", "município"]);
+
+  let bloco = nome || "________________________";
+  const partesDoc = [];
+  if (titulo) partesDoc.push("título de eleitor nº " + titulo);
+  if (cpf) partesDoc.push("cadastro de pessoa física nº " + cpf);
+  if (partesDoc.length === 1) {
+    bloco += ", portador(a) do " + partesDoc[0];
+  } else if (partesDoc.length === 2) {
+    bloco +=
+      ", portador(a) do " + partesDoc[0] + " e do " + partesDoc[1];
+  }
+  if (municipio) bloco += ", residente e domiciliado(a) em " + municipio + "-MT";
+  return bloco;
+}
+
 function camposMarcadoresContrato() {
   return [
     { id: "nome-completo", aliases: ["nome-completo", "nome completo", "nome"] },
@@ -570,18 +702,51 @@ function camposMarcadoresContrato() {
     },
     { id: "lancamento-sistema", aliases: ["lancamento-sistema", "lancamento sistema"] },
     { id: "chave-pix", aliases: ["chave-pix", "chave pix", "pix"] },
+    { id: "titulo-eleicoes", aliases: [] },
+    { id: "ano-campanha", aliases: [] },
+    { id: "contratante-bloco", aliases: [] },
+    { id: "contratado-bloco", aliases: [] },
+    { id: "objeto-servico", aliases: [] },
+    { id: "carga-horaria", aliases: [] },
+    { id: "valor-remuneracao", aliases: [] },
+    { id: "valor-extenso", aliases: [] },
+    { id: "cargo-candidato", aliases: [] },
+    { id: "data-fim-campanha", aliases: [] },
+    { id: "foro", aliases: [] },
+    { id: "local-assinatura", aliases: [] },
+    { id: "data-contrato", aliases: [] },
   ];
 }
 
 function montarMapaSubstituicoesContrato(registro) {
   const mapa = {};
   const campos = camposMarcadoresContrato();
+  const tipoContrato = valorRegistroContrato(registro, [
+    "tipo-contrato",
+    "tipo contrato",
+  ]);
+  const remuneracao = remuneracaoPorTipoContrato(tipoContrato);
+  const campanha = CONTRATO_CAMPANHA;
 
   campos.forEach(function (campo) {
     let valor = valorRegistroContrato(registro, campo.aliases);
     if (campo.formatar) valor = campo.formatar(valor);
     mapa[campo.id] = valor;
   });
+
+  mapa["titulo-eleicoes"] = campanha.TITULO_ELEICOES;
+  mapa["ano-campanha"] = String(campanha.ANO);
+  mapa["contratante-bloco"] = montarBlocoContratante();
+  mapa["contratado-bloco"] = montarBlocoContratado(registro);
+  mapa["objeto-servico"] = remuneracao.objeto;
+  mapa["carga-horaria"] = remuneracao.horas;
+  mapa["valor-remuneracao"] = remuneracao.valor;
+  mapa["valor-extenso"] = remuneracao.extenso;
+  mapa["cargo-candidato"] = campanha.CARGO_CANDIDATO;
+  mapa["data-fim-campanha"] = campanha.DATA_FIM_CAMPANHA;
+  mapa["foro"] = campanha.FORO;
+  mapa["local-assinatura"] = campanha.LOCAL_ASSINATURA;
+  mapa["data-contrato"] = formatarDataContrato(new Date());
 
   Object.keys(registro).forEach(function (chave) {
     if (chave === "_linha") return;
@@ -1015,6 +1180,80 @@ function atualizarEventoAgenda(corpo) {
 }
 
 // ===================== UTIL / AUTORIZAÇÃO MANUAL =====================
+
+/**
+ * Reescreve o Google Doc modelo-contrato com o texto padrão (Eleição 2026).
+ * Rode no editor Apps Script após colar o BackendPlanilhas.gs atualizado.
+ */
+function atualizarModeloContratoNoDrive() {
+  const modelo = obterArquivoModeloContrato();
+  const doc = DocumentApp.openById(modelo.getId());
+  const corpo = doc.getBody();
+  corpo.clear();
+
+  const linhas = [
+    "CONTRATO DE PRESTAÇÃO DE SERVIÇO PARA CAMPANHA ELEITORAL – {{titulo-eleicoes}}",
+    "",
+    "CONTRATANTE: {{contratante-bloco}}",
+    "",
+    "CONTRATADO: {{contratado-bloco}}. As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Prestação de Serviços por Prazo Determinado para fins da Campanha Eleitoral {{ano-campanha}}, com base no Artigo 100 da Lei nº 9.504/1997 e mediante as seguintes cláusulas e condições:",
+    "",
+    "DO OBJETO DO CONTRATO",
+    "Cláusula Primeira: É objeto do presente contrato a prestação de serviços {{objeto-servico}} para a Campanha Eleitoral {{ano-campanha}}. Parágrafo Único: A prestação de serviços consistirá na realização de tarefas ou atividades mencionadas no caput deste artigo, por {{carga-horaria}} horas diárias, de segunda a sábado, sob a supervisão da coordenação – comitê.",
+    "",
+    "DAS OBRIGAÇÕES DO CONTRATADO",
+    "Cláusula Segunda: O CONTRATADO obriga-se a prestar os serviços respeitando os bons modos e costumes, adotando uma conduta ética e moral e respeitando as regras sociais e legais de modo a não denegrir, sob qualquer pretexto, o nome e a imagem do CONTRATANTE. §1º. Se, a qualquer título, a conduta do CONTRATADO deixar a desejar ou ferir os preceitos, não limitados, mencionados no caput desta cláusula, fica facultado ao CONTRATANTE rescindir o presente contrato de prestação de serviços, sem que seja devido ao CONTRATADO qualquer espécie de indenização.",
+    "§2º. Qualquer prejuízo que, eventualmente, venha a ser causado ao CONTRATANTE em face de conduta inadequada do CONTRATADO, facultará ao CONTRATANTE cobrá-lo do CONTRATADO ou descontar-lhe da remuneração que este tiver a receber, independentemente da faculdade de rescindir o contrato de prestação de serviços.",
+    "",
+    "DAS OBRIGAÇÕES DO CONTRATANTE",
+    "Cláusula Terceira: O CONTRATANTE obriga-se a dar o suporte físico, técnico e pessoal necessário para que o CONTRATADO possa bem exercer seus serviços, tarefas e atividades.",
+    "Cláusula Quarta: O CONTRATANTE obriga-se a pagar dentro do prazo ajustado pelas partes a remuneração devida ao CONTRATADO em face de sua prestação de serviços.",
+    "",
+    "DA REMUNERAÇÃO PELOS SERVIÇOS PRESTADOS",
+    "Cláusula Quinta: Pela prestação dos serviços ajustados neste instrumento, o CONTRATANTE pagará ao CONTRATADO a quantia mensal de R$ {{valor-remuneracao}} ({{valor-extenso}}), a serem pagos em 01 parcela. Parágrafo Único: Na eventualidade de ocorrer a rescisão do contrato antes de cumprida a carga horária semanal da prestação de serviços, a remuneração será paga pro-rata tempore pelo CONTRATANTE ao CONTRATADO.",
+    "",
+    "DO PRAZO DA PRESTAÇÃO DE SERVIÇOS",
+    "Cláusula Sexta: Como a prestação de serviços é contratada para a CAMPANHA ELEITORAL DE {{ano-campanha}}, da qual o CONTRATANTE participa como candidato à {{cargo-candidato}} seu prazo de duração está diretamente relacionado ao prazo de duração da Campanha Eleitoral, iniciando-se a partir da assinatura deste instrumento e terminado em {{data-fim-campanha}}.",
+    "",
+    "DAS CONDIÇÕES GERAIS",
+    "Cláusula Sétima: O presente contrato é ajustado pelas partes sem que haja ou gere vínculo empregatício, sendo regulado pela Lei nº 9.504, de 30 de setembro de 1997 e pelo Código Civil Brasileiro.",
+    "",
+    "DO FORO",
+    "Cláusula Oitava: Para dirimir quaisquer controvérsias oriundas do presente contrato, as partes elegem o foro da Comarca de {{foro}}, renunciando a qualquer outro.",
+    "E, por estarem justas e acordadas, as partes assinam o presente Contrato de Prestação de Serviços por Prazo Determinado para fins de Campanha Eleitoral {{ano-campanha}}, em 02 (duas) vias de iguais teor e forma, na presença de testemunhas.",
+    "",
+    "{{local-assinatura}}, {{data-contrato}}.",
+    "",
+    "_____________________                                        ______________________",
+    "CONTRATANTE                                                  CONTRATADO",
+    "",
+    "TESTEMUNHAS:    1:________________________                    2:_____________________",
+  ];
+
+  linhas.forEach(function (texto, indice) {
+    const par = corpo.appendParagraph(texto);
+    if (indice === 0) {
+      par.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+      par.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    } else if (
+      texto.indexOf("DO OBJETO") === 0 ||
+      texto.indexOf("DAS OBRIGAÇÕES DO CONTRATADO") === 0 ||
+      texto.indexOf("DAS OBRIGAÇÕES DO CONTRATANTE") === 0 ||
+      texto.indexOf("DA REMUNERAÇÃO") === 0 ||
+      texto.indexOf("DO PRAZO") === 0 ||
+      texto.indexOf("DAS CONDIÇÕES") === 0 ||
+      texto.indexOf("DO FORO") === 0
+    ) {
+      par.setBold(true);
+    }
+  });
+
+  doc.saveAndClose();
+  Logger.log(
+    "Modelo atualizado: " + modelo.getName() + " (id " + modelo.getId() + ")"
+  );
+  return modelo.getUrl();
+}
 
 /**
  * Testa só a impressão (Drive + Docs). Rode no editor ANTES de usar o Web App.

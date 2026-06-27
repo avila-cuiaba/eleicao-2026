@@ -18,6 +18,7 @@ const PAGINAS = {
     subtitulo: "gráficos e tabelas de votação",
     arquivo: "pages/dashboard.html",
     atualizar: true,
+    menuGrupo: "desempenho",
   },
   "pessoal-visao-geral": {
     titulo: "pessoal",
@@ -90,6 +91,20 @@ const PAGINAS = {
     subtitulo: "temas e compromissos",
     arquivo: "pages/pautas.html",
   },
+  "mobilizacao-estrutura": {
+    titulo: "mobilização em Cuiabá",
+    subtitulo: "estrutura — visão hierárquica",
+    arquivo: "pages/mobilizacao-estrutura.html",
+    atualizar: true,
+    menuGrupo: "desempenho",
+  },
+  "mobilizacao-perspectiva": {
+    titulo: "mobilização em Cuiabá",
+    subtitulo: "responsabilidade e perspectiva de voto",
+    arquivo: "pages/mobilizacao-perspectiva.html",
+    atualizar: true,
+    menuGrupo: "desempenho",
+  },
   planilhas: {
     titulo: "planilhas",
     subtitulo: "diagnóstico do Google Sheets",
@@ -101,6 +116,8 @@ const PAGINAS = {
 function resolverPagina(id) {
   if (id === "pessoal") return "pessoal-visao-geral";
   if (id === "orcamento") return "orcamento-estratificado";
+  if (id === "mobilizacao") return "mobilizacao-estrutura";
+  if (id === "desempenho") return "dashboard";
   const resolved = id && PAGINAS[id] ? id : "inicio";
   if (AUTH.getChave() && !AUTH.podeAcessarPagina(resolved)) {
     return AUTH.paginaInicial();
@@ -189,7 +206,10 @@ function ajustarAlturaFrame() {
       doc.body?.classList.contains("page-parcerias") ||
       doc.body?.classList.contains("page-orcamento") ||
       doc.body?.classList.contains("page-orcamento-geral") ||
-      doc.body?.classList.contains("page-orcamento-desembolso");
+      doc.body?.classList.contains("page-orcamento-desembolso") ||
+      doc.body?.classList.contains("page-mobilizacao-estrutura-resumo") ||
+      doc.body?.classList.contains("page-mobilizacao-estrutura") ||
+      doc.body?.classList.contains("page-mobilizacao");
 
     frame.style.flex = "1 1 auto";
     frame.style.minHeight = "0";

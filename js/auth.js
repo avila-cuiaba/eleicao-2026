@@ -64,6 +64,10 @@ const AUTH = {
     return this.getPerfil() || "master";
   },
 
+  ehAvilaMaster() {
+    return this.getChave() === "avila-master";
+  },
+
   paginaInicial() {
     const cfg = this.PERFIS[this.perfilAtivo()];
     return cfg?.paginaInicial || "inicio";
