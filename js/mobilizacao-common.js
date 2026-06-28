@@ -208,13 +208,30 @@ const MobComum = {
     let total = 0;
     let localidade = 0;
     let segmento = 0;
+    const localidadesMap = new Map();
+
     lista.forEach((r) => {
       const v = r.votos || 0;
       total += v;
-      if (this.ehOrigemSegmento(r)) segmento += v;
-      else localidade += v;
+      if (this.ehOrigemSegmento(r)) {
+        segmento += v;
+        return;
+      }
+      localidade += v;
+      const bairro = String(r.bairro ?? "").trim();
+      if (!bairro) return;
+      const norm = this.normalizarChave(bairro);
+      if (!localidadesMap.has(norm)) {
+        localidadesMap.set(norm, { nome: bairro, votos: 0 });
+      }
+      localidadesMap.get(norm).votos += v;
     });
-    return { total, localidade, segmento };
+
+    const localidades = [...localidadesMap.values()].sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR")
+    );
+
+    return { total, localidade, segmento, localidades };
   },
 
   detalheLocalPerspectiva(nomeLocal, registros, candidatos) {

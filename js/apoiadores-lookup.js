@@ -298,22 +298,47 @@ const ApoiadoresLookup = {
   },
 
   htmlVotosPerspectiva(metricas) {
-    const m = metricas || { total: 0, localidade: 0, segmento: 0 };
-    const subitens = [
-      { rotulo: "voto por localidade", valor: m.localidade },
-      { rotulo: "voto por segmento", valor: m.segmento },
-    ]
-      .map(
-        (l) =>
-          '<div class="orcamento-geral-popover-item mob-estr-apoiador-desp-item">' +
-          '<span class="orcamento-geral-popover-rotulo mob-estr-apoiador-desp-rotulo mob-estr-apoiador-desp-rotulo--sub">- ' +
-          this.escape(l.rotulo) +
-          "</span>" +
-          '<span class="orcamento-geral-popover-valor mob-estr-apoiador-desp-valor mob-estr-apoiador-voto-valor">' +
-          this.fmt.format(l.valor || 0) +
-          "</span></div>"
-      )
-      .join("");
+    const m = metricas || { total: 0, localidade: 0, segmento: 0, localidades: [] };
+
+    const htmlSubitemLocalidade = () => {
+      const n = m.localidade || 0;
+      let detalhe = "";
+      if (n > 0 && m.localidades?.length) {
+        const itens = m.localidades
+          .map((loc) => {
+            const nome = String(loc?.nome ?? loc ?? "").trim();
+            const votos = loc?.votos ?? 0;
+            const nomeEsc = this.escape(nome);
+            if (!nomeEsc) return "";
+            return nomeEsc + " (" + this.fmt.format(votos) + ")";
+          })
+          .filter(Boolean)
+          .join(", ");
+        if (itens) {
+          detalhe =
+            '<div class="mob-estr-apoiador-voto-localidades">' + itens + "</div>";
+        }
+      }
+
+      return (
+        '<div class="mob-estr-apoiador-voto-localidade-wrap">' +
+        '<div class="orcamento-geral-popover-item mob-estr-apoiador-desp-item">' +
+        '<span class="orcamento-geral-popover-rotulo mob-estr-apoiador-desp-rotulo mob-estr-apoiador-desp-rotulo--sub">- voto por localidade</span>' +
+        '<span class="orcamento-geral-popover-valor mob-estr-apoiador-desp-valor mob-estr-apoiador-voto-valor">' +
+        this.fmt.format(n) +
+        "</span></div>" +
+        detalhe +
+        "</div>"
+      );
+    };
+
+    const subitens =
+      '<div class="orcamento-geral-popover-item mob-estr-apoiador-desp-item">' +
+      '<span class="orcamento-geral-popover-rotulo mob-estr-apoiador-desp-rotulo mob-estr-apoiador-desp-rotulo--sub">- voto por segmento</span>' +
+      '<span class="orcamento-geral-popover-valor mob-estr-apoiador-desp-valor mob-estr-apoiador-voto-valor">' +
+      this.fmt.format(m.segmento || 0) +
+      "</span></div>" +
+      htmlSubitemLocalidade.call(this);
 
     return (
       '<div class="orcamento-geral-popover-corpo mob-estr-apoiador-votos">' +
@@ -379,6 +404,7 @@ const ApoiadoresLookup = {
       total: opcoes?.totalVotos ?? 0,
       localidade: opcoes?.totalVotos ?? 0,
       segmento: 0,
+      localidades: [],
     };
 
     let html = '<div class="mob-estr-apoiador-nome">' + (nome || "—") + "</div>";

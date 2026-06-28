@@ -6659,6 +6659,25 @@ body.page-mobilizacao-estrutura .page-frame-content {
 
 .mob-estr-apoiador-voto-valor {
   font-variant-numeric: tabular-nums;
+  text-align: right;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mob-estr-apoiador-voto-localidade-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.mob-estr-apoiador-voto-localidades {
+  display: block;
+  padding-left: 0.85rem;
+  font-size: 0.64rem;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .mob-estr-apoiador-valor-badge,
