@@ -209,12 +209,20 @@ const MobComum = {
     let localidade = 0;
     let segmento = 0;
     const localidadesMap = new Map();
+    const segmentosMap = new Map();
 
     lista.forEach((r) => {
       const v = r.votos || 0;
       total += v;
       if (this.ehOrigemSegmento(r)) {
         segmento += v;
+        const seg = String(r.segmento ?? "").trim();
+        if (!seg) return;
+        const normSeg = this.normalizarChave(seg);
+        if (!segmentosMap.has(normSeg)) {
+          segmentosMap.set(normSeg, { nome: seg, votos: 0 });
+        }
+        segmentosMap.get(normSeg).votos += v;
         return;
       }
       localidade += v;
@@ -230,8 +238,11 @@ const MobComum = {
     const localidades = [...localidadesMap.values()].sort((a, b) =>
       a.nome.localeCompare(b.nome, "pt-BR")
     );
+    const segmentos = [...segmentosMap.values()].sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR")
+    );
 
-    return { total, localidade, segmento, localidades };
+    return { total, localidade, segmento, localidades, segmentos };
   },
 
   detalheLocalPerspectiva(nomeLocal, registros, candidatos) {
@@ -1082,6 +1093,7 @@ const MobComum = {
         cfg.COLUNA_RESPONSAVEL || [],
         cfg.COLUNA_VOTOS || [],
         cfg.COLUNA_ORIGEM || [],
+        cfg.COLUNA_SEGMENTO || [],
         cfg.COLUNA_PERSPECTIVA || []
       );
     const parsed = await this.carregarPlanilhaComCabecalho(
@@ -1109,12 +1121,18 @@ const MobComum = {
       cfg.COLUNA_ORIGEM,
       cfg.INDICE_ORIGEM
     );
+    const colSegmento = this.indiceColunaComFallback(
+      parsed.colunas,
+      cfg.COLUNA_SEGMENTO,
+      cfg.INDICE_SEGMENTO
+    );
 
     return parsed.linhas
       .filter((linha) => this.linhaTemConteudo(linha))
       .map((linha) => ({
         polo: colPolo ? String(linha[colPolo] ?? "").trim() : "",
         bairro: colBairro ? String(linha[colBairro] ?? "").trim() : "",
+        segmento: colSegmento ? String(linha[colSegmento] ?? "").trim() : "",
         regional: colRegional ? String(linha[colRegional] ?? "").trim() : "",
         lideranca: colLideranca ? String(linha[colLideranca] ?? "").trim() : "",
         origem: colOrigem ? String(linha[colOrigem] ?? "").trim() : "",

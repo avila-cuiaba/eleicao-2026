@@ -298,7 +298,39 @@ const ApoiadoresLookup = {
   },
 
   htmlVotosPerspectiva(metricas) {
-    const m = metricas || { total: 0, localidade: 0, segmento: 0, localidades: [] };
+    const m = metricas || {
+      total: 0,
+      localidade: 0,
+      segmento: 0,
+      localidades: [],
+      segmentos: [],
+    };
+
+    const htmlSubitemSegmento = () => {
+      const n = m.segmento || 0;
+      let detalhe = "";
+      if (n > 0 && m.segmentos?.length) {
+        const itens = m.segmentos
+          .map((item) => this.escape(String(item?.nome ?? "").trim()))
+          .filter(Boolean)
+          .join(", ");
+        if (itens) {
+          detalhe =
+            '<div class="mob-estr-apoiador-voto-localidades">' + itens + "</div>";
+        }
+      }
+
+      return (
+        '<div class="mob-estr-apoiador-voto-localidade-wrap">' +
+        '<div class="orcamento-geral-popover-item mob-estr-apoiador-desp-item">' +
+        '<span class="orcamento-geral-popover-rotulo mob-estr-apoiador-desp-rotulo mob-estr-apoiador-desp-rotulo--sub">- voto por segmento</span>' +
+        '<span class="orcamento-geral-popover-valor mob-estr-apoiador-desp-valor mob-estr-apoiador-voto-valor">' +
+        this.fmt.format(n) +
+        "</span></div>" +
+        detalhe +
+        "</div>"
+      );
+    };
 
     const htmlSubitemLocalidade = () => {
       const n = m.localidade || 0;
@@ -332,13 +364,7 @@ const ApoiadoresLookup = {
       );
     };
 
-    const subitens =
-      '<div class="orcamento-geral-popover-item mob-estr-apoiador-desp-item">' +
-      '<span class="orcamento-geral-popover-rotulo mob-estr-apoiador-desp-rotulo mob-estr-apoiador-desp-rotulo--sub">- voto por segmento</span>' +
-      '<span class="orcamento-geral-popover-valor mob-estr-apoiador-desp-valor mob-estr-apoiador-voto-valor">' +
-      this.fmt.format(m.segmento || 0) +
-      "</span></div>" +
-      htmlSubitemLocalidade.call(this);
+    const subitens = htmlSubitemSegmento.call(this) + htmlSubitemLocalidade.call(this);
 
     return (
       '<div class="orcamento-geral-popover-corpo mob-estr-apoiador-votos">' +
@@ -405,6 +431,7 @@ const ApoiadoresLookup = {
       localidade: opcoes?.totalVotos ?? 0,
       segmento: 0,
       localidades: [],
+      segmentos: [],
     };
 
     let html = '<div class="mob-estr-apoiador-nome">' + (nome || "—") + "</div>";

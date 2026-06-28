@@ -69,33 +69,44 @@
                     <option value="">selecione…</option>
                   </select>
                 </div>
-                <div id="perspLocalWrap">
+                <div class="row g-3 mb-3">
+                  <div class="col-6">
+                    <label for="perspOrigem" class="form-label small mb-1">origem voto</label>
+                    <select id="perspOrigem" class="form-select form-select-sm" required>
+                      <option value="">selecione…</option>
+                      <option value="localizado">localizado</option>
+                      <option value="segmento">segmento</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label for="perspVoto" class="form-label small mb-1">voto</label>
+                    <input type="text" id="perspVoto" class="form-control form-control-sm" inputmode="numeric" required autocomplete="off" />
+                  </div>
+                </div>
+                <div id="perspLocalWrap" class="mob-persp-campo--inativo">
                   <div class="mb-3">
                     <label for="perspNivelGeral" class="form-label small mb-1">nível geral</label>
-                    <select id="perspNivelGeral" class="form-select form-select-sm" required>
+                    <select id="perspNivelGeral" class="form-select form-select-sm" disabled>
                       <option value="">selecione…</option>
                     </select>
                   </div>
                   <div class="mb-3">
                     <label for="perspBairro" class="form-label small mb-1">bairro / localidade</label>
-                    <select id="perspBairro" class="form-select form-select-sm" required>
+                    <select id="perspBairro" class="form-select form-select-sm" disabled>
                       <option value="">selecione…</option>
                     </select>
                   </div>
                 </div>
-              </div>
-              <div class="row g-3">
-                <div class="col-6">
-                  <label for="perspOrigem" class="form-label small mb-1">origem voto</label>
-                  <select id="perspOrigem" class="form-select form-select-sm" required>
-                    <option value="">selecione…</option>
-                    <option value="localizado">localizado</option>
-                    <option value="segmento">segmento</option>
-                  </select>
-                </div>
-                <div class="col-6">
-                  <label for="perspVoto" class="form-label small mb-1">voto</label>
-                  <input type="text" id="perspVoto" class="form-control form-control-sm" inputmode="numeric" required autocomplete="off" />
+                <div class="mb-0 mob-persp-campo--inativo" id="perspSegmentoWrap">
+                  <label for="perspSegmento" class="form-label small mb-1">segmento</label>
+                  <input
+                    type="text"
+                    id="perspSegmento"
+                    class="form-control form-control-sm"
+                    autocomplete="off"
+                    placeholder="ex.: profissionais de beleza"
+                    disabled
+                  />
                 </div>
               </div>
             </div>

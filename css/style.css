@@ -6451,6 +6451,18 @@ body.page-mobilizacao-estrutura .page-frame-content {
   padding-right: 1.5rem;
 }
 
+@media (max-width: 575.98px) {
+  .mob-org-ident {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .mob-org-resumo-raiz {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 991.98px) {
   .mob-org-ident {
     flex-direction: column;

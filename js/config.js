@@ -558,6 +558,8 @@ const CONFIG = {
       INDICE_BAIRRO: 1,
       INDICE_ORIGEM: 2,
       INDICE_VOTOS: 3,
+      INDICE_SEGMENTO: 4,
+      COLUNA_SEGMENTO: ["segmento"],
       COLUNA_MUNICIPIO: ["municipio", "município", "cidade"],
       COLUNA_RESPONSAVEL: ["responsavel", "responsável", "nome", "lideranca", "liderança", "coordenador"],
       COLUNA_RESPONSABILIDADE: ["responsabilidade", "papel", "funcao", "função", "cargo"],
@@ -580,6 +582,12 @@ const CONFIG = {
         BAIRRO: {
           ABA: "estrutura",
           COLUNA: 5,
+          LINHA_INICIO: 2,
+          LINHA_FIM: 1000,
+        },
+        SEGMENTO: {
+          ABA: "",
+          COLUNA: 4,
           LINHA_INICIO: 2,
           LINHA_FIM: 1000,
         },
