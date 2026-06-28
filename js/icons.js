@@ -74,7 +74,7 @@ window.APP_MENU = [
     label: "desempenho",
     filhos: [
       { id: "dashboard", label: "votação geral" },
-      { id: "mobilizacao-estrutura", label: "votação Cuiabá" },
+      { id: "mobilizacao-estrutura", label: "Cuiabá / VG" },
     ],
   },
   {

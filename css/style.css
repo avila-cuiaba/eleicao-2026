@@ -6065,11 +6065,87 @@ body.page-mobilizacao-estrutura .page-frame-content {
 .mob-org-resumo-municipio {
   display: block;
   width: 100%;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.45rem;
   font-size: 1.1rem;
   font-weight: 700;
   text-align: center;
   color: #1e293b;
+}
+
+.mob-org-resumo-subtitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+  margin: 0 0 0.5rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: left;
+  color: #334155;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.mob-org-resumo-subtitulo-texto {
+  flex: 0 0 auto;
+}
+
+.mob-org-resumo-municipio + .mob-org-resumo-subtitulo {
+  margin-top: 0.35rem;
+}
+
+.mob-org-resumo-subtitulo + .mob-org-resumo-tabela-wrap {
+  margin-bottom: 0.2rem;
+}
+
+.mob-org-resumo-tabela-wrap + .mob-org-resumo-bloco-segmento {
+  margin-top: 2.1rem;
+}
+
+.mob-org-resumo-bloco-segmento .mob-org-resumo-subtitulo--segmento {
+  margin-bottom: 0.45rem;
+}
+
+.mob-org-resumo-segmento-votos-linha {
+  margin-bottom: 0.35rem;
+  text-align: left;
+}
+
+.mob-org-resumo-segmento-apoiadores-linha {
+  margin-bottom: 0.15rem;
+  text-align: left;
+}
+
+.mob-org-resumo-origem-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  line-height: 1.2;
+}
+
+.mob-org-resumo-origem-badge svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex-shrink: 0;
+}
+
+.mob-org-resumo-origem-badge--localidade {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.mob-org-resumo-origem-badge--segmento {
+  color: #6d28d9;
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.35);
 }
 
 .mob-estr-persp-btn {
@@ -6109,7 +6185,7 @@ body.page-mobilizacao-estrutura .page-frame-content {
 .mob-org-resumo-tabela {
   width: auto;
   max-width: 100%;
-  margin: 0 auto;
+  margin: 0;
   border-collapse: collapse;
   font-size: 0.68rem;
   text-transform: lowercase;
@@ -6149,6 +6225,34 @@ body.page-mobilizacao-estrutura .page-frame-content {
   white-space: nowrap;
   color: #334155;
   padding-right: 0.5rem;
+  text-transform: none;
+}
+
+.mob-org-resumo-tabela-regiao-nome {
+  text-transform: none;
+}
+
+.mob-org-resumo-tabela-marcador {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 4px;
+  height: 0.95rem;
+  margin-right: 0.35rem;
+  border-radius: 2px;
+  vertical-align: middle;
+  background: #94a3b8;
+}
+
+.mob-org-resumo-tabela-marcador--norte { background: #4f8cff; }
+.mob-org-resumo-tabela-marcador--sul { background: #f2a93b; }
+.mob-org-resumo-tabela-marcador--leste { background: #e0617e; }
+.mob-org-resumo-tabela-marcador--oeste { background: #2dd4a8; }
+.mob-org-resumo-tabela-marcador--vg { background: #06b6d4; }
+.mob-org-resumo-tabela-marcador--rural { background: #b48ff0; }
+.mob-org-resumo-tabela-marcador--neutro { background: #94a3b8; }
+
+.mob-org-resumo-tabela-linha--total .mob-org-resumo-tabela-regiao {
+  text-transform: lowercase;
 }
 
 .mob-org-resumo-tabela-num {
@@ -6163,6 +6267,32 @@ body.page-mobilizacao-estrutura .page-frame-content {
   font-weight: 700;
   background: #f1f5f9;
   color: #1e293b;
+}
+
+.mob-org-resumo-tabela-votos {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.mob-estr-regiao-votos-badge.mob-org-resumo-voto-badge--total {
+  font-size: 0.72rem;
+  padding: 0.16rem 0.5rem;
+  background: #4f46e5;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.22);
+}
+
+.mob-estr-regiao-votos-badge.mob-org-resumo-voto-badge--total.mob-org-resumo-voto-badge--zero {
+  background: #e2e8f0;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.mob-org-resumo-segmento-apoiadores {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: lowercase;
 }
 
 .mob-org-resumo-segmento-linha {
@@ -6266,7 +6396,12 @@ body.page-mobilizacao-estrutura .page-frame-content {
 .mob-org-resumo-regiao--sul .mob-org-resumo-regiao-head { border-left: 4px solid #f2a93b; }
 .mob-org-resumo-regiao--leste .mob-org-resumo-regiao-head { border-left: 4px solid #e0617e; }
 .mob-org-resumo-regiao--oeste .mob-org-resumo-regiao-head { border-left: 4px solid #2dd4a8; }
+.mob-org-resumo-regiao--vg .mob-org-resumo-regiao-head { border-left: 4px solid #06b6d4; }
 .mob-org-resumo-regiao--rural .mob-org-resumo-regiao-head { border-left: 4px solid #b48ff0; }
+
+.mob-org-resumo-regiao--vg .mob-org-resumo-regiao-head h2 {
+  text-transform: none;
+}
 
 .mob-org-resumo-regiao-head h2 {
   margin: 0;

@@ -481,6 +481,7 @@ const CONFIG = {
         "REGIONAL SUL",
         "REGIONAL LESTE",
         "REGIONAL OESTE",
+        "REGIONAL VG",
         "ZONA RURAL",
       ],
       REGIONAL_META: {
@@ -488,6 +489,11 @@ const CONFIG = {
         "REGIONAL SUL": { cls: "sul", rotulo: "regional sul" },
         "REGIONAL LESTE": { cls: "leste", rotulo: "regional leste" },
         "REGIONAL OESTE": { cls: "oeste", rotulo: "regional oeste" },
+        "REGIONAL VG": {
+          cls: "vg",
+          rotulo: "regional Várzea Grande",
+          rotuloTabela: "regional VG",
+        },
         "ZONA RURAL": { cls: "rural", rotulo: "zona rural" },
       },
       COLUNAS: {

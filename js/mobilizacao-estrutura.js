@@ -12,6 +12,19 @@ const ICONE_PERSPECTIVA =
   '<path d="M3 6h18M3 12h18M3 18h18M9 6v12M15 6v12"/>' +
   "</svg>";
 
+const ICONE_ORIGEM_LOCAL =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
+  '<path d="M12 22s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11z"/>' +
+  '<circle cx="12" cy="11" r="2.5"/>' +
+  "</svg>";
+
+const ICONE_ORIGEM_SEGMENTO =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
+  '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>' +
+  '<circle cx="9" cy="7" r="4"/>' +
+  '<path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>' +
+  "</svg>";
+
 function mostrarStatus(msg, tipo) {
   statusPainel(el.status, msg, tipo);
 }
@@ -22,9 +35,12 @@ function classeRegional(regional) {
   return "neutro";
 }
 
-function rotuloRegional(regional) {
+function rotuloRegional(regional, contexto) {
   const meta = cfgDados.REGIONAL_META || {};
-  return meta[regional]?.rotulo || String(regional).toLowerCase();
+  const item = meta[regional];
+  if (contexto === "tabela" && item?.rotuloTabela) return item.rotuloTabela;
+  if (item?.rotulo) return item.rotulo;
+  return String(regional).toLowerCase();
 }
 
 function htmlMetaRegionalSemVotos(metricas) {
@@ -47,21 +63,96 @@ function htmlCelulaTabelaResumo(valor) {
   return '<td class="mob-org-resumo-tabela-num">' + MobComum.fmt.format(valor || 0) + "</td>";
 }
 
-function htmlLinhaTabelaResumo(rotulo, resumo, clsExtra) {
+function htmlCelulaTabelaVotos(valor, destaque) {
+  let cls = "mob-estr-regiao-votos-badge";
+  if (destaque) {
+    cls += " mob-org-resumo-voto-badge--total";
+    if (!valor) cls += " mob-org-resumo-voto-badge--zero";
+  }
+  return (
+    '<td class="mob-org-resumo-tabela-num mob-org-resumo-tabela-votos">' +
+    '<span class="' +
+    cls +
+    '">' +
+    MobComum.fmt.format(valor || 0) +
+    "</span></td>"
+  );
+}
+
+function htmlBadgeOrigemVoto(tipo) {
+  if (tipo === "localidade") {
+    return (
+      '<span class="mob-org-resumo-origem-badge mob-org-resumo-origem-badge--localidade" title="localidade" aria-label="origem do voto localidade">' +
+      ICONE_ORIGEM_LOCAL +
+      "localidade</span>"
+    );
+  }
+  return (
+    '<span class="mob-org-resumo-origem-badge mob-org-resumo-origem-badge--segmento" title="segmento" aria-label="origem do voto segmento">' +
+    ICONE_ORIGEM_SEGMENTO +
+    "segmento</span>"
+  );
+}
+
+function htmlSubtituloOrigem(tipo, clsExtra) {
+  const cls = "mob-org-resumo-subtitulo" + (clsExtra ? " " + clsExtra : "");
+  return (
+    '<div class="' +
+    cls +
+    '">' +
+    '<span class="mob-org-resumo-subtitulo-texto">origem do voto por</span>' +
+    htmlBadgeOrigemVoto(tipo) +
+    "</div>"
+  );
+}
+
+function htmlBlocoOrigemSegmento(segmento) {
+  return (
+    '<div class="mob-org-resumo-bloco-segmento">' +
+    htmlSubtituloOrigem("segmento", "mob-org-resumo-subtitulo--segmento") +
+    '<div class="mob-org-resumo-segmento-votos-linha">' +
+    '<span class="mob-estr-regiao-votos-badge">' +
+    MobComum.fmt.format(segmento.votos) +
+    " votos</span></div>" +
+    '<div class="mob-org-resumo-segmento-apoiadores-linha">' +
+    '<span class="mob-org-resumo-segmento-apoiadores">' +
+    MobComum.fmt.format(segmento.apoiadores) +
+    " apoiadores</span></div></div>"
+  );
+}
+
+function htmlMarcadorRegional(cls) {
+  const c = cls || "neutro";
+  return (
+    '<span class="mob-org-resumo-tabela-marcador mob-org-resumo-tabela-marcador--' +
+    MobComum.escapeHtml(c) +
+    '" aria-hidden="true"></span>'
+  );
+}
+
+function htmlLinhaTabelaResumo(regionalKey, resumo, clsExtra) {
+  const destaqueVotos = Boolean(clsExtra && clsExtra.includes("total"));
+  const isTotal = destaqueVotos;
+  const rotulo = isTotal ? "total" : rotuloRegional(regionalKey, "tabela");
+  const clsReg = isTotal ? "" : classeRegional(regionalKey);
   const cls = "mob-org-resumo-tabela-linha" + (clsExtra ? " " + clsExtra : "");
+  const marcador = isTotal ? "" : htmlMarcadorRegional(clsReg);
   return (
     "<tr class=\"" +
     cls +
     '">' +
-    '<th scope="row" class="mob-org-resumo-tabela-regiao">' +
+    '<th scope="row" class="mob-org-resumo-tabela-regiao' +
+    (clsReg ? " mob-org-resumo-tabela-regiao--" + clsReg : "") +
+    '">' +
+    marcador +
+    '<span class="mob-org-resumo-tabela-regiao-nome">' +
     MobComum.escapeHtml(rotulo) +
-    "</th>" +
+    "</span></th>" +
     htmlCelulaTabelaResumo(resumo.polosTotal) +
     htmlCelulaTabelaResumo(resumo.polosMob) +
     htmlCelulaTabelaResumo(resumo.locaisTotal) +
     htmlCelulaTabelaResumo(resumo.locaisMob) +
-    htmlCelulaTabelaResumo(resumo.liderancas) +
-    htmlCelulaTabelaResumo(resumo.votos) +
+    htmlCelulaTabelaVotos(resumo.votos, destaqueVotos) +
     "</tr>"
   );
 }
@@ -73,7 +164,7 @@ function htmlTabelaResumo(regionais, porRegional, registros) {
   const total = MobComum.somarResumosRegionais(resumos);
 
   const linhas = regionais
-    .map((reg, i) => htmlLinhaTabelaResumo(rotuloRegional(reg), resumos[i]))
+    .map((reg, i) => htmlLinhaTabelaResumo(reg, resumos[i]))
     .join("");
 
   return (
@@ -84,7 +175,6 @@ function htmlTabelaResumo(regionais, porRegional, registros) {
     '<th rowspan="2" class="mob-org-resumo-tabela-corner"></th>' +
     '<th colspan="2" class="mob-org-resumo-tabela-grupo">polos</th>' +
     '<th colspan="2" class="mob-org-resumo-tabela-grupo">localidades</th>' +
-    '<th rowspan="2" class="mob-org-resumo-tabela-metrica">lideranças</th>' +
     '<th rowspan="2" class="mob-org-resumo-tabela-metrica">votos</th>' +
     "</tr>" +
     "<tr>" +
@@ -96,7 +186,7 @@ function htmlTabelaResumo(regionais, porRegional, registros) {
     "</thead>" +
     "<tbody>" +
     linhas +
-    htmlLinhaTabelaResumo("total", total, "mob-org-resumo-tabela-linha--total") +
+    htmlLinhaTabelaResumo(null, total, "mob-org-resumo-tabela-linha--total") +
     "</tbody></table></div>"
   );
 }
@@ -117,13 +207,10 @@ function htmlCardIdentificacao(regionais, porRegional, registros) {
     '<div class="mob-org-resumo-municipio">' +
     MobComum.escapeHtml(cfgResumo.TITULO || "Cuiabá") +
     "</div>" +
+    htmlSubtituloOrigem("localidade") +
     htmlTabelaResumo(regionais, porRegional, registros) +
-    '<div class="mob-org-resumo-segmento-linha">' +
-    '<span class="mob-estr-segmento-badge mob-estr-segmento-badge--inline">' +
-    MobComum.fmt.format(segmento.apoiadores) +
-    " apoiadores · " +
-    MobComum.fmt.format(segmento.votos) +
-    " votos · origem segmento</span></div></div></div>"
+    htmlBlocoOrigemSegmento(segmento) +
+    "</div></div>"
   );
 }
 
