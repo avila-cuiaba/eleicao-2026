@@ -230,6 +230,7 @@ const MobComum = {
     return {
       votos,
       lideres: Array.from(lideres.values()),
+      qtdRegistros: filtrados.length,
     };
   },
 

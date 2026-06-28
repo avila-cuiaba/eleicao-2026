@@ -186,6 +186,7 @@ html {
 .app-header-title .app-titulo-texto,
 [data-titulo-pagina] .app-titulo-texto {
   line-height: 1.2;
+  text-transform: none;
 }
 
 .app-sidebar-link:hover .sidebar-icone,

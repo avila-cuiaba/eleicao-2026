@@ -456,11 +456,12 @@ const CONFIG = {
   },
 
   MOBILIZACAO: {
+    TITULO_PAGINA: "mobilização em Cuiabá / VG",
     // Visão hierárquica resumida (organograma).
     ESTRUTURA: {
       PLANILHA: "mobilizacao-estrutura",
       ABA: "",
-      TITULO: "Cuiabá",
+      TITULO: "Cuiabá / Várzea Grande",
       BADGE_PERSPECTIVA_ROTULO: "votos",
       CONTEXTO_APOIADOR: {
         MUNICIPIO: ["Cuiabá", "Cuiaba"],

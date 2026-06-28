@@ -92,14 +92,14 @@ const PAGINAS = {
     arquivo: "pages/pautas.html",
   },
   "mobilizacao-estrutura": {
-    titulo: "mobilização em Cuiabá",
+    titulo: "mobilização em Cuiabá / VG",
     subtitulo: "estrutura — visão hierárquica",
     arquivo: "pages/mobilizacao-estrutura.html",
     atualizar: true,
     menuGrupo: "desempenho",
   },
   "mobilizacao-perspectiva": {
-    titulo: "mobilização em Cuiabá",
+    titulo: "mobilização em Cuiabá / VG",
     subtitulo: "responsabilidade e perspectiva de voto",
     arquivo: "pages/mobilizacao-perspectiva.html",
     atualizar: true,
@@ -136,19 +136,28 @@ function iconeIdPagina(id) {
   return window.APP_ICONE ? APP_ICONE.idPagina(id) : id;
 }
 
+function tituloPagina(id) {
+  const cfg = PAGINAS[id] || PAGINAS.inicio;
+  if (id === "mobilizacao-estrutura" || id === "mobilizacao-perspectiva") {
+    return CONFIG.MOBILIZACAO?.TITULO_PAGINA || cfg.titulo;
+  }
+  return cfg.titulo;
+}
+
 function atualizarCabecalho(id) {
   const cfg = PAGINAS[id] || PAGINAS.inicio;
   const titulo = document.getElementById("appHeaderTitulo");
   const sub = document.getElementById("appHeaderSub");
   const btnAtualizar = document.getElementById("btnAtualizarShell");
+  const textoTitulo = tituloPagina(id);
   if (titulo) {
     const iconId = iconeIdPagina(id);
     titulo.innerHTML =
-      window.APP_ICONE ? APP_ICONE.tituloComIcone(iconId, cfg.titulo) : cfg.titulo;
+      window.APP_ICONE ? APP_ICONE.tituloComIcone(iconId, textoTitulo) : textoTitulo;
   }
   if (sub) sub.textContent = cfg.subtitulo;
   if (btnAtualizar) btnAtualizar.hidden = !cfg.atualizar;
-  document.title = cfg.titulo + " | Eleição 2026";
+  document.title = textoTitulo + " | Eleição 2026";
   if (window.LAYOUT) LAYOUT.atualizarMenu(id);
 }
 

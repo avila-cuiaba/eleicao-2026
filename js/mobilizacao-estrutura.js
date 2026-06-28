@@ -232,9 +232,6 @@ function montarLinhaBairro(item, registrosPolo, candidatosPolo) {
 
   return (
     '<li class="mob-estr-bairro-item">' +
-    '<span class="mob-estr-bairro-num">' +
-    MobComum.escapeHtml(item.num) +
-    "</span>" +
     '<div class="mob-estr-bairro-info">' +
     '<span class="mob-estr-bairro-nome">' +
     MobComum.escapeHtml(item.nome) +
@@ -251,7 +248,12 @@ function montarCardPolo(p) {
   const totalVotos = MobComum.somarPerspectivaPolo(p, perspectivaRegistros);
   const badgeTitle = "soma de perspectiva-voto (coluna D)";
 
-  const bairros = p.itens
+  const itensComRegistro = p.itens.filter((item) => {
+    const detalhe = MobComum.detalheLocalPerspectiva(item.nome, registrosPolo, candidatosPolo);
+    return detalhe.qtdRegistros > 0;
+  });
+
+  const bairros = itensComRegistro
     .map((i) => montarLinhaBairro(i, registrosPolo, candidatosPolo))
     .join("");
 
@@ -275,7 +277,7 @@ function montarCardPolo(p) {
     MobComum.escapeHtml(p.polo) +
     "</span>" +
     '<span class="mob-estr-card-qtd">' +
-    p.itens.length +
+    itensComRegistro.length +
     " locais</span>" +
     '<span class="mob-estr-card-chevron" aria-hidden="true"></span>' +
     "</button>" +
