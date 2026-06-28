@@ -286,6 +286,46 @@ const ApoiadoresLookup = {
     return '<div class="orcamento-geral-popover-corpo mob-estr-apoiador-corpo">' + itens + "</div>";
   },
 
+  htmlTotalBadge(valor, formato) {
+    const cls =
+      "mob-estr-apoiador-valor-badge mob-estr-apoiador-valor-badge--total" +
+      (valor > 0 ? "" : " mob-estr-apoiador-valor-badge--zero");
+    const texto =
+      formato === "moeda"
+        ? this.fmtMoeda.format(valor || 0)
+        : this.fmt.format(valor || 0);
+    return '<span class="' + cls + '">' + texto + "</span>";
+  },
+
+  htmlVotosPerspectiva(metricas) {
+    const m = metricas || { total: 0, localidade: 0, segmento: 0 };
+    const subitens = [
+      { rotulo: "voto por localidade", valor: m.localidade },
+      { rotulo: "voto por segmento", valor: m.segmento },
+    ]
+      .map(
+        (l) =>
+          '<div class="orcamento-geral-popover-item mob-estr-apoiador-desp-item">' +
+          '<span class="orcamento-geral-popover-rotulo mob-estr-apoiador-desp-rotulo mob-estr-apoiador-desp-rotulo--sub">- ' +
+          this.escape(l.rotulo) +
+          "</span>" +
+          '<span class="orcamento-geral-popover-valor mob-estr-apoiador-desp-valor mob-estr-apoiador-voto-valor">' +
+          this.fmt.format(l.valor || 0) +
+          "</span></div>"
+      )
+      .join("");
+
+    return (
+      '<div class="orcamento-geral-popover-corpo mob-estr-apoiador-votos">' +
+      '<div class="orcamento-geral-popover-item mob-estr-apoiador-desp-item mob-estr-apoiador-desp-item--total mob-estr-apoiador-voto-item--total">' +
+      '<span class="orcamento-geral-popover-rotulo mob-estr-apoiador-desp-rotulo">total de votos</span>' +
+      this.htmlTotalBadge(m.total, "numero") +
+      "</div>" +
+      subitens +
+      "</div>"
+    );
+  },
+
   htmlTotaisDespacho(registros) {
     if (!registros?.length) return "";
     const totais = this.somarDespacho(registros);
@@ -321,10 +361,9 @@ const ApoiadoresLookup = {
     return (
       '<div class="orcamento-geral-popover-corpo mob-estr-apoiador-totais">' +
       '<div class="orcamento-geral-popover-item mob-estr-apoiador-desp-item mob-estr-apoiador-desp-item--total">' +
-      '<span class="orcamento-geral-popover-rotulo mob-estr-apoiador-desp-rotulo">total desembolso</span>' +
-      '<strong class="orcamento-geral-popover-valor mob-estr-apoiador-desp-valor mob-estr-apoiador-desp-valor--total">' +
-      this.fmtMoeda.format(totalGeral) +
-      "</strong></div>" +
+      '<span class="orcamento-geral-popover-rotulo mob-estr-apoiador-desp-rotulo">total orçamento</span>' +
+      this.htmlTotalBadge(totalGeral, "moeda") +
+      "</div>" +
       subitens +
       "</div>"
     );
@@ -336,7 +375,11 @@ const ApoiadoresLookup = {
     }
 
     const nome = this.escape(String(registros[0].lideranca ?? "").trim());
-    const totalVotos = opcoes?.totalVotos ?? 0;
+    const votos = opcoes?.votos || {
+      total: opcoes?.totalVotos ?? 0,
+      localidade: opcoes?.totalVotos ?? 0,
+      segmento: 0,
+    };
 
     let html = '<div class="mob-estr-apoiador-nome">' + (nome || "—") + "</div>";
     html += '<hr class="mob-estr-apoiador-sep">';
@@ -347,13 +390,8 @@ const ApoiadoresLookup = {
     });
 
     html += '<hr class="mob-estr-apoiador-sep">';
-    if (totalVotos > 0) {
-      html +=
-        '<div class="mob-estr-apoiador-votos-linha">' +
-        '<span class="mob-estr-apoiador-votos-badge">' +
-        this.fmt.format(totalVotos) +
-        " votos</span></div>";
-    }
+    html += this.htmlVotosPerspectiva(votos);
+    html += '<hr class="mob-estr-apoiador-sep">';
     html += this.htmlTotaisDespacho(registros);
     return html;
   },

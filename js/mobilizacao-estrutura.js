@@ -329,8 +329,8 @@ async function abrirModalApoiador(nome) {
       return;
     }
     el.modalTitulo.textContent = ApoiadoresLookup.tituloAcessivel(registros, nome);
-    const totalVotos = MobComum.somarVotosLideranca(nome, perspectivaRegistros);
-    el.modalCorpo.innerHTML = ApoiadoresLookup.htmlDetalhes(registros, { totalVotos });
+    const metricasVotos = MobComum.metricasVotosLideranca(nome, perspectivaRegistros);
+    el.modalCorpo.innerHTML = ApoiadoresLookup.htmlDetalhes(registros, { votos: metricasVotos });
   } catch (err) {
     el.modalCorpo.innerHTML =
       '<p class="text-danger small mb-0">' +

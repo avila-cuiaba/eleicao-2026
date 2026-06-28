@@ -6648,8 +6648,24 @@ body.page-mobilizacao-estrutura .page-frame-content {
   margin-bottom: 0.35rem;
 }
 
+.mob-estr-apoiador-votos {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.mob-estr-apoiador-voto-item--total {
+  align-items: center;
+}
+
+.mob-estr-apoiador-voto-valor {
+  font-variant-numeric: tabular-nums;
+}
+
+.mob-estr-apoiador-valor-badge,
 .mob-estr-apoiador-votos-badge {
   display: inline-block;
+  flex-shrink: 0;
+  min-width: 1.75rem;
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
   background: #e0e7ff;
@@ -6658,7 +6674,23 @@ body.page-mobilizacao-estrutura .page-frame-content {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.35;
+  text-align: center;
   text-transform: lowercase;
+}
+
+.mob-estr-apoiador-valor-badge--total {
+  font-weight: 700;
+}
+
+.mob-estr-apoiador-valor-badge {
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.mob-estr-apoiador-valor-badge--zero,
+.mob-estr-apoiador-votos-badge--zero {
+  background: #e2e8f0;
+  color: #64748b;
 }
 
 .mob-estr-apoiador-modal .modal-body .orcamento-geral-popover-corpo {
@@ -6711,6 +6743,25 @@ body.page-mobilizacao-estrutura .page-frame-content {
 
 .mob-estr-apoiador-desp-valor--total {
   font-weight: 700;
+}
+
+@media (max-width: 575.98px) {
+  #modalApoiador .modal-dialog {
+    width: calc(100vw - 1.25rem);
+    max-width: calc(100vw - 1.25rem);
+  }
+
+  .mob-estr-apoiador-modal .modal-body,
+  .mob-estr-apoiador-modal .orcamento-geral-popover-corpo {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .mob-estr-apoiador-modal .orcamento-geral-popover-item {
+    gap: 1rem;
+    justify-content: space-between;
+  }
 }
 
 .mob-estr-apoiador-sep {

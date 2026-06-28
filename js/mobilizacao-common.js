@@ -185,24 +185,36 @@ const MobComum = {
     };
   },
 
-  somarVotosLideranca(nome, registros) {
-    if (!nome || !registros?.length) return 0;
+  registrosPerspectivaLideranca(nome, registros) {
+    if (!nome || !registros?.length) return [];
     const alvo = this.normalizarChave(nome);
-    if (!alvo) return 0;
+    if (!alvo) return [];
 
     const exatos = registros.filter((r) => this.normalizarChave(r.lideranca) === alvo);
-    const lista = exatos.length
-      ? exatos
-      : registros.filter((r) => {
-          const k = this.normalizarChave(r.lideranca);
-          return k && (k.includes(alvo) || alvo.includes(k));
-        });
+    if (exatos.length) return exatos;
 
-    let total = 0;
-    lista.forEach((r) => {
-      total += r.votos || 0;
+    return registros.filter((r) => {
+      const k = this.normalizarChave(r.lideranca);
+      return k && (k.includes(alvo) || alvo.includes(k));
     });
-    return total;
+  },
+
+  somarVotosLideranca(nome, registros) {
+    return this.metricasVotosLideranca(nome, registros).total;
+  },
+
+  metricasVotosLideranca(nome, registros) {
+    const lista = this.registrosPerspectivaLideranca(nome, registros);
+    let total = 0;
+    let localidade = 0;
+    let segmento = 0;
+    lista.forEach((r) => {
+      const v = r.votos || 0;
+      total += v;
+      if (this.ehOrigemSegmento(r)) segmento += v;
+      else localidade += v;
+    });
+    return { total, localidade, segmento };
   },
 
   detalheLocalPerspectiva(nomeLocal, registros, candidatos) {
