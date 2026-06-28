@@ -5441,7 +5441,7 @@ body.page-pessoal .dashboard-tabela-panel {
   align-items: center;
   justify-content: center;
   gap: 0.65rem;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(248, 250, 252, 0.82);
   border-radius: inherit;
 }
 
@@ -6824,6 +6824,15 @@ body.page-mobilizacao .page-frame-content {
   opacity: 0.55;
 }
 
+.mob-persp-modal-ident {
+  margin-bottom: 0.25rem;
+}
+
+.mob-persp-modal-ident .form-label {
+  font-weight: 600;
+  color: #475569;
+}
+
 .mob-persp-scroll {
   max-height: min(70vh, 640px);
   overflow: auto;
@@ -6932,3 +6941,106 @@ body.page-mobilizacao .page-frame-content {
 .mob-persp-td.mob-persp--media strong { color: #b45309; }
 .mob-persp-td.mob-persp--baixa strong { color: #b91c1c; }
 
+/* Perspectiva — tabela desktop / mobile */
+.mob-persp-thead-mobile {
+  display: none;
+}
+
+.mob-persp-tabela-mobile-col {
+  display: none;
+}
+
+.mob-persp-th-stack-head,
+.mob-persp-celula-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  line-height: 1.25;
+}
+
+.mob-persp-th-stack-head span {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.mob-persp-stack-apoiador {
+  display: block;
+  font-weight: 600;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.mob-persp-stack-bairro {
+  display: block;
+  font-size: 0.72rem;
+  color: #64748b;
+  word-break: break-word;
+}
+
+@media (min-width: 992px) {
+  .mob-persp-thead-mobile {
+    display: none !important;
+  }
+
+  .mob-persp-tabela th.mob-persp-tabela-mobile-col,
+  .mob-persp-tabela td.mob-persp-tabela-mobile-col {
+    display: none !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .mob-persp-tabela {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .mob-persp-thead-desktop {
+    display: none !important;
+  }
+
+  .mob-persp-thead-mobile {
+    display: table-row !important;
+  }
+
+  .mob-persp-tabela th.mob-persp-tabela-desktop-col,
+  .mob-persp-tabela td.mob-persp-tabela-desktop-col {
+    display: none !important;
+  }
+
+  .mob-persp-tabela th.mob-persp-tabela-mobile-col,
+  .mob-persp-tabela td.mob-persp-tabela-mobile-col {
+    display: table-cell !important;
+    white-space: normal;
+    vertical-align: middle;
+    font-size: 0.8rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  .mob-persp-tabela .mob-persp-col-stack.mob-persp-tabela-mobile-col {
+    width: 42%;
+  }
+
+  .mob-persp-tabela .mob-persp-th-origem,
+  .mob-persp-tabela .mob-persp-col-origem {
+    width: 18%;
+  }
+
+  .mob-persp-tabela .mob-persp-th-voto,
+  .mob-persp-tabela .mob-persp-col-voto {
+    width: 18%;
+  }
+
+  .mob-persp-tabela .mob-persp-td--acoes.mob-persp-tabela-mobile-col {
+    width: 22%;
+    min-width: 0;
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+  }
+
+  .mob-persp-tabela td.mob-persp-col-stack {
+    font-size: 0.78rem;
+  }
+}

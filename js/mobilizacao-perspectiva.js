@@ -1,6 +1,7 @@
 // Mobilização — perspectiva de voto (CRUD na planilha mobilizacao-perspectiva).
 
 const cfgPersp = CONFIG.MOBILIZACAO.PERSPECTIVA;
+const cfgEstrutura = CONFIG.MOBILIZACAO.CUIABA;
 
 const ICONE_EDITAR =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
@@ -37,7 +38,7 @@ let regioesLista = [];
 let modalRegistro = null;
 let modoEdicao = null;
 let opcoesApoiador = [];
-let opcoesBairro = [];
+let estruturaFormulario = null;
 
 function mostrarStatus(msg, tipo) {
   statusPainel(el.status, msg, tipo);
@@ -116,18 +117,70 @@ async function carregarOpcoesFormulario() {
   const cfgForm = cfgPersp.OPCOES_FORMULARIO;
   if (!cfgForm) {
     opcoesApoiador = [];
-    opcoesBairro = [];
+    estruturaFormulario = null;
     return;
   }
 
   const planilha = cfgForm.PLANILHA || cfgPersp.PLANILHA;
-  const [valApoiador, valEstrutura] = await Promise.all([
+  const [valApoiador, estrutura] = await Promise.all([
     PlanilhaApi.lerValores(planilha, cfgForm.APOIADOR.ABA).catch(() => []),
-    PlanilhaApi.lerValores(planilha, cfgForm.BAIRRO.ABA).catch(() => []),
+    MobComum.montarOpcoesEstruturaPorRegional(cfgEstrutura).catch(() => null),
   ]);
 
   opcoesApoiador = extrairOpcoesColuna(valApoiador, cfgForm.APOIADOR);
-  opcoesBairro = extrairOpcoesColuna(valEstrutura, cfgForm.BAIRRO);
+  estruturaFormulario = estrutura;
+}
+
+function preencherSelectNivelGeral(selectEl, regionais, valorSelecionado) {
+  if (!selectEl) return;
+
+  const atual = String(valorSelecionado ?? "").trim();
+  const lista = [...(regionais || [])];
+  if (
+    atual &&
+    !lista.some((item) => MobComum.normalizarChave(item.chave) === MobComum.normalizarChave(atual))
+  ) {
+    lista.push({ chave: atual, rotulo: atual.toLowerCase() });
+  }
+
+  selectEl.innerHTML =
+    '<option value="">selecione…</option>' +
+    lista
+      .map((item) => {
+        const selected =
+          atual && MobComum.normalizarChave(item.chave) === MobComum.normalizarChave(atual)
+            ? " selected"
+            : "";
+        return (
+          '<option value="' +
+          MobComum.escapeHtml(item.chave) +
+          '"' +
+          selected +
+          ">" +
+          MobComum.escapeHtml(item.rotulo) +
+          "</option>"
+        );
+      })
+      .join("");
+}
+
+function opcoesBairroPorNivelGeral(nivelGeral) {
+  if (!estruturaFormulario?.bairrosPorRegional || !nivelGeral) return [];
+  const alvo = MobComum.normalizarChave(nivelGeral);
+  const regional =
+    estruturaFormulario.regionais?.find(
+      (item) => MobComum.normalizarChave(item.chave) === alvo
+    )?.chave || MobComum.normalizarRegional(nivelGeral, cfgEstrutura);
+  return estruturaFormulario.bairrosPorRegional.get(regional) || [];
+}
+
+function atualizarSelectRegional(valorSelecionado) {
+  const nivel = el.perspNivelGeral?.value || "";
+  const bairroAtual =
+    valorSelecionado !== undefined
+      ? String(valorSelecionado ?? "").trim()
+      : el.perspBairro?.value || "";
+  preencherSelect(el.perspBairro, opcoesBairroPorNivelGeral(nivel), bairroAtual);
 }
 
 function preencherSelect(selectEl, opcoes, valorSelecionado) {
@@ -171,17 +224,28 @@ function origemSegmentoSelecionada() {
 
 function atualizarCampoBairroPorOrigem() {
   const segmento = origemSegmentoSelecionada();
-  if (!el.perspBairro) return;
+  const campos = [el.perspNivelGeral, el.perspBairro];
 
   if (segmento) {
-    el.perspBairro.value = "";
-    el.perspBairro.disabled = true;
-    el.perspBairro.removeAttribute("required");
-    el.perspBairroWrap?.classList.add("mob-persp-campo--inativo");
+    campos.forEach((campo) => {
+      if (!campo) return;
+      campo.value = "";
+      campo.disabled = true;
+      campo.removeAttribute("required");
+    });
+    el.perspLocalWrap?.classList.add("mob-persp-campo--inativo");
   } else {
-    el.perspBairro.disabled = false;
-    el.perspBairro.setAttribute("required", "required");
-    el.perspBairroWrap?.classList.remove("mob-persp-campo--inativo");
+    campos.forEach((campo) => {
+      if (!campo) return;
+      campo.disabled = false;
+      campo.setAttribute("required", "required");
+    });
+    el.perspLocalWrap?.classList.remove("mob-persp-campo--inativo");
+    if (el.perspNivelGeral?.value) {
+      atualizarSelectRegional();
+    } else {
+      preencherSelect(el.perspBairro, [], "");
+    }
   }
 }
 
@@ -191,9 +255,15 @@ function montarSelectsFormulario(reg) {
     reg && !MobComum.ehOrigemSegmento({ origem: valorCampo(reg, "origem") })
       ? String(valorCampo(reg, "bairro") ?? "").trim()
       : "";
+
+  let nivelGeral = "";
+  if (bairro && estruturaFormulario?.regionalPorBairro) {
+    nivelGeral = estruturaFormulario.regionalPorBairro.get(MobComum.normalizarChave(bairro)) || "";
+  }
+
   preencherSelect(el.perspApoiador, opcoesApoiador, apoiador);
-  preencherSelect(el.perspBairro, opcoesBairro, bairro);
-  atualizarCampoBairroPorOrigem();
+  preencherSelectNivelGeral(el.perspNivelGeral, estruturaFormulario?.regionais || [], nivelGeral);
+  atualizarSelectRegional(bairro);
 }
 
 function classePerspectiva(val) {
@@ -225,39 +295,120 @@ function htmlOrigem(val) {
   return MobComum.escapeHtml(texto);
 }
 
-function htmlAcoes() {
+function htmlBotoesAcoes() {
   return (
-    '<td class="mob-persp-td mob-persp-td--acoes">' +
     '<div class="crud-acoes-icones">' +
     '<button type="button" class="crud-acao-icone crud-acao-icone--editar" data-acao="editar" aria-label="editar">' +
     ICONE_EDITAR +
     "</button>" +
     '<button type="button" class="crud-acao-icone crud-acao-icone--excluir" data-acao="excluir" aria-label="excluir">' +
     ICONE_EXCLUIR +
-    "</button></div></td>"
+    "</button></div>"
+  );
+}
+
+function htmlAcoesDesktop() {
+  return (
+    '<td class="mob-persp-td mob-persp-td--acoes mob-persp-tabela-desktop-col">' +
+    htmlBotoesAcoes() +
+    "</td>"
+  );
+}
+
+function htmlAcoesMobile() {
+  return (
+    '<td class="mob-persp-td mob-persp-td--acoes mob-persp-tabela-mobile-col">' +
+    htmlBotoesAcoes() +
+    "</td>"
+  );
+}
+
+function htmlCelulaApoiadorBairroStack(reg) {
+  const apoiador = MobComum.exibirValor(valorCampo(reg, "apoiador")) || "—";
+  let bairro = MobComum.exibirValor(valorCampo(reg, "bairro")) || "—";
+  if (MobComum.ehOrigemSegmento({ origem: valorCampo(reg, "origem") })) {
+    bairro = "—";
+  }
+
+  return (
+    '<td class="mob-persp-td mob-persp-col-stack mob-persp-tabela-mobile-col">' +
+    '<div class="mob-persp-celula-stack">' +
+    '<span class="mob-persp-stack-apoiador">' +
+    apoiador +
+    "</span>" +
+    '<span class="mob-persp-stack-bairro">' +
+    bairro +
+    "</span></div></td>"
   );
 }
 
 function htmlCelula(col, reg) {
   const val = valorCampo(reg, col.id);
+  const clsDesktop =
+    col.id === "apoiador" || col.id === "bairro" ? " mob-persp-tabela-desktop-col" : "";
+
   if (col.id === "bairro" && MobComum.ehOrigemSegmento({ origem: valorCampo(reg, "origem") })) {
-    return '<td class="mob-persp-td">—</td>';
+    return '<td class="mob-persp-td mob-persp-col-bairro' + clsDesktop + '">—</td>';
   }
   if (col.tipo === "origem") {
-    return '<td class="mob-persp-td mob-persp-td--origem">' + htmlOrigem(val) + "</td>";
+    return (
+      '<td class="mob-persp-td mob-persp-td--origem mob-persp-col-origem' +
+      clsDesktop +
+      '">' +
+      htmlOrigem(val) +
+      "</td>"
+    );
   }
   if (col.tipo === "perspectiva") {
     const exib = MobComum.exibirValor(val) || "—";
     return (
-      '<td class="mob-persp-td mob-persp-td--num ' +
+      '<td class="mob-persp-td mob-persp-td--num mob-persp-col-voto ' +
       classePerspectiva(val) +
+      clsDesktop +
       '"><strong>' +
       exib +
       "</strong></td>"
     );
   }
   const exib = MobComum.exibirValor(val) || "—";
-  return '<td class="mob-persp-td">' + exib + "</td>";
+  return (
+    '<td class="mob-persp-td mob-persp-col-' +
+    col.id +
+    clsDesktop +
+    '">' +
+    exib +
+    "</td>"
+  );
+}
+
+function renderizarCabecalhoTabela() {
+  if (!el.cabecalhoDesktop || !el.cabecalhoMobile) return;
+
+  el.cabecalhoDesktop.innerHTML =
+    COLUNAS_TABELA.map((col) => {
+      const clsCentro =
+        col.tipo === "origem" || col.tipo === "perspectiva" ? " mob-persp-th--centro" : "";
+      const clsDesktop =
+        col.id === "apoiador" || col.id === "bairro" ? " mob-persp-tabela-desktop-col" : "";
+      return (
+        '<th scope="col" class="mob-persp-th mob-persp-th-' +
+        col.id +
+        clsCentro +
+        clsDesktop +
+        '">' +
+        MobComum.escapeHtml(col.rotulo) +
+        "</th>"
+      );
+    }).join("") +
+    '<th scope="col" class="mob-persp-th mob-persp-th--acoes mob-persp-tabela-desktop-col"><span class="visually-hidden">ações</span></th>';
+
+  el.cabecalhoMobile.innerHTML =
+    '<th scope="col" class="mob-persp-th mob-persp-col-stack mob-persp-tabela-mobile-col">' +
+    '<div class="mob-persp-th-stack-head">' +
+    "<span>apoiador</span><span>bairro</span></div></th>" +
+    '<th scope="col" class="mob-persp-th mob-persp-th--centro mob-persp-th-origem mob-persp-tabela-mobile-col">origem voto</th>' +
+    '<th scope="col" class="mob-persp-th mob-persp-th--centro mob-persp-th-voto mob-persp-tabela-mobile-col">voto</th>' +
+    '<th scope="col" class="mob-persp-th mob-persp-th--acoes mob-persp-tabela-mobile-col"><span class="visually-hidden">ações</span></th>';
 }
 
 function registrosFiltrados() {
@@ -280,30 +431,19 @@ function registrosFiltrados() {
 
 function renderizarTabela() {
   const filtrados = registrosFiltrados();
-  if (!el.corpoTabela || !el.cabecalhoTabela) return;
+  if (!el.corpoTabela || !el.cabecalhoDesktop || !el.cabecalhoMobile) return;
 
   const colsOk = COLUNAS_TABELA.every((col) => colunasMap[col.id]);
   if (!colsOk) {
-    el.cabecalhoTabela.innerHTML = "";
+    el.cabecalhoDesktop.innerHTML = "";
+    el.cabecalhoMobile.innerHTML = "";
     el.corpoTabela.innerHTML =
       '<tr><td colspan="5" class="text-secondary small">não foi possível identificar colunas na planilha.</td></tr>';
     notificarAlturaFrame();
     return;
   }
 
-  el.cabecalhoTabela.innerHTML =
-    COLUNAS_TABELA.map((col) => {
-      const clsCentro =
-        col.tipo === "origem" || col.tipo === "perspectiva" ? " mob-persp-th--centro" : "";
-      return (
-        '<th scope="col" class="mob-persp-th' +
-        clsCentro +
-        '">' +
-        MobComum.escapeHtml(col.rotulo) +
-        "</th>"
-      );
-    }).join("") +
-    '<th scope="col" class="mob-persp-th mob-persp-th--acoes"><span class="visually-hidden">ações</span></th>';
+  renderizarCabecalhoTabela();
 
   if (!filtrados.length) {
     el.corpoTabela.innerHTML =
@@ -315,15 +455,8 @@ function renderizarTabela() {
 
   el.corpoTabela.innerHTML = filtrados
     .map((reg, idx) => {
-      const cells = COLUNAS_TABELA.map((col) => htmlCelula(col, reg)).join("");
-      return (
-        '<tr data-idx="' +
-        idx +
-        '">' +
-        cells +
-        htmlAcoes() +
-        "</tr>"
-      );
+      const cells = htmlCelulaApoiadorBairroStack(reg) + COLUNAS_TABELA.map((col) => htmlCelula(col, reg)).join("");
+      return '<tr data-idx="' + idx + '">' + cells + htmlAcoesDesktop() + htmlAcoesMobile() + "</tr>";
     })
     .join("");
 
@@ -414,7 +547,7 @@ async function salvarFormulario(evento) {
   const dados = lerFormulario();
   const acao = modoEdicao ? "atualizar" : "inserir";
 
-  mostrarStatus("salvando…", "carregando");
+  setSalvandoModal(true);
   try {
     const payload = {
       acao,
@@ -435,6 +568,23 @@ async function salvarFormulario(evento) {
     await carregar();
   } catch (e) {
     mostrarStatus(e.message || "erro ao salvar.", "erro");
+  } finally {
+    setSalvandoModal(false);
+  }
+}
+
+function setSalvandoModal(ativo) {
+  el.modalSalvando?.classList.toggle("d-none", !ativo);
+  el.modalSalvando?.setAttribute("aria-hidden", ativo ? "false" : "true");
+  el.modalSalvando?.setAttribute("aria-busy", ativo ? "true" : "false");
+  el.form?.querySelectorAll("button").forEach((btn) => {
+    btn.disabled = ativo;
+  });
+  el.form?.querySelectorAll("select, input").forEach((campo) => {
+    campo.disabled = ativo;
+  });
+  if (!ativo) {
+    atualizarCampoBairroPorOrigem();
   }
 }
 
@@ -503,14 +653,17 @@ function init() {
     filtroRegioesWrap: document.getElementById("filtroRegioesWrap"),
     filtroRegioes: document.getElementById("filtroRegioes"),
     busca: document.getElementById("buscaPerspectiva"),
-    cabecalhoTabela: document.getElementById("cabecalhoPerspectiva"),
+    cabecalhoDesktop: document.getElementById("cabecalhoPerspectivaDesktop"),
+    cabecalhoMobile: document.getElementById("cabecalhoPerspectivaMobile"),
     corpoTabela: document.getElementById("corpoPerspectiva"),
     contador: document.getElementById("contadorPerspectiva"),
     btnInserir: document.getElementById("btnPerspInserir"),
     form: document.getElementById("formPerspectiva"),
     modalTitulo: document.getElementById("modalPerspectivaTitulo"),
+    modalSalvando: document.getElementById("perspModalSalvando"),
     perspApoiador: document.getElementById("perspApoiador"),
-    perspBairroWrap: document.getElementById("perspBairroWrap"),
+    perspLocalWrap: document.getElementById("perspLocalWrap"),
+    perspNivelGeral: document.getElementById("perspNivelGeral"),
     perspBairro: document.getElementById("perspBairro"),
     perspOrigem: document.getElementById("perspOrigem"),
     perspVoto: document.getElementById("perspVoto"),
@@ -525,6 +678,9 @@ function init() {
   el.busca?.addEventListener("input", renderizarTabela);
   el.btnInserir?.addEventListener("click", abrirNovo);
   el.perspOrigem?.addEventListener("change", atualizarCampoBairroPorOrigem);
+  el.perspNivelGeral?.addEventListener("change", () => {
+    atualizarSelectRegional("");
+  });
   el.form?.addEventListener("submit", salvarFormulario);
   vincularTabela();
   carregar();

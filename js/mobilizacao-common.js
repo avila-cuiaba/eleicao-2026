@@ -1000,6 +1000,61 @@ const MobComum = {
     return this.ordenarBlocosEstrutura(Array.from(mapa.values()), cfg);
   },
 
+  async montarOpcoesEstruturaPorRegional(cfg) {
+    const valores = await this.carregarValoresBrutos(cfg.PLANILHA, cfg.ABA || "");
+    const aliases = Object.values(cfg.COLUNAS || {}).flatMap((c) => c.aliases || []);
+    const parsed = this.parsePlanilhaComCabecalho(valores, aliases, cfg.LINHA_INICIO_DADOS);
+    const cols = this.resolverColunasEstrutura(parsed, cfg);
+    const vazio = {
+      regionais: [],
+      bairrosPorRegional: new Map(),
+      regionalPorBairro: new Map(),
+    };
+    if (!cols.REGIONAL || !cols.BAIRRO) return vazio;
+
+    const linhas = this.preencherHierarquia(parsed.linhas, cols.REGIONAL, cols.POLO);
+    const bairrosPorRegional = new Map();
+    const regionalPorBairro = new Map();
+
+    linhas.forEach((linha) => {
+      const regionalBruto = String(linha[cols.REGIONAL] ?? "").trim();
+      const bairro = String(linha[cols.BAIRRO] ?? "").trim();
+      if (!regionalBruto || !bairro) return;
+      if (this.ehRotuloCampo(bairro, cfg)) return;
+      if (this.ehRegionalNome(bairro, cfg) || this.ehPoloNome(bairro)) return;
+
+      const regional = this.normalizarRegional(regionalBruto, cfg);
+      if (!bairrosPorRegional.has(regional)) bairrosPorRegional.set(regional, new Map());
+      const normBairro = this.normalizarChave(bairro);
+      bairrosPorRegional.get(regional).set(normBairro, bairro);
+      regionalPorBairro.set(normBairro, regional);
+    });
+
+    const regionaisOrdenadas = this.ordenarRegioes(
+      [...bairrosPorRegional.keys()],
+      cfg.REGIONAIS
+    );
+    const meta = cfg.REGIONAL_META || {};
+    const regionais = regionaisOrdenadas.map((item) => ({
+      chave: item.rotulo,
+      rotulo: meta[item.rotulo]?.rotulo || String(item.rotulo).toLowerCase(),
+    }));
+
+    const bairrosPorRegionalLista = new Map();
+    bairrosPorRegional.forEach((mapaBairros, regional) => {
+      bairrosPorRegionalLista.set(
+        regional,
+        [...mapaBairros.values()].sort((a, b) => a.localeCompare(b, "pt-BR"))
+      );
+    });
+
+    return {
+      regionais,
+      bairrosPorRegional: bairrosPorRegionalLista,
+      regionalPorBairro,
+    };
+  },
+
   async parsePerspectivaLista(cfg) {
     const aliases = []
       .concat(
