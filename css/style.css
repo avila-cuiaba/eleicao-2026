@@ -653,9 +653,13 @@ html {
 }
 
 .orcamento-kpi-ilustra-pessoal {
-  background: linear-gradient(145deg, #f472b6, #db2777);
+  background: linear-gradient(145deg, #4ade80, #16a34a);
   color: #fff;
-  box-shadow: 0 3px 10px rgba(219, 39, 119, 0.3);
+  box-shadow: 0 3px 10px rgba(22, 163, 74, 0.3);
+}
+
+body.page-orcamento .apoiadores-kpi-total .dashboard-kpi-card {
+  border-left-color: #16a34a;
 }
 
 .orcamento-kpi-ilustra-combustivel {
@@ -674,6 +678,50 @@ html {
   background: linear-gradient(145deg, #f87171, #dc2626);
   color: #fff;
   box-shadow: 0 3px 10px rgba(220, 38, 38, 0.3);
+}
+
+.orcamento-estratificado-stack-valor-linha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  max-width: 100%;
+}
+
+.orcamento-estratificado-stack-valor-linha--vazio {
+  display: block;
+  min-height: 1.25rem;
+}
+
+.orcamento-estratificado-th-campo-linha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  width: 100%;
+}
+
+.orcamento-estratificado-campo-ponto {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.orcamento-estratificado-campo-ponto--pessoal {
+  background: #16a34a;
+}
+
+.orcamento-estratificado-campo-ponto--combustivel {
+  background: #ea580c;
+}
+
+.orcamento-estratificado-campo-ponto--diversos {
+  background: #7c3aed;
+}
+
+.orcamento-estratificado-campo-ponto--diad {
+  background: #dc2626;
 }
 
 .orcamento-kpi-row-total {
@@ -830,7 +878,7 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
 }
 
 .popover-marcador--orc-pessoal {
-  background: #db2777;
+  background: #16a34a;
 }
 
 .popover-marcador--orc-combustivel {
@@ -1194,10 +1242,23 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
 
   .orcamento-estratificado-tabela .orcamento-estratificado-th-total-mobile {
     display: block;
+    width: fit-content;
+    max-width: 100%;
+    text-align: left;
   }
 
   .orcamento-estratificado-tabela .orcamento-municipio-total-mobile {
-    display: block;
+    display: inline-block;
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 0.2rem;
+  }
+
+  .orcamento-estratificado-tabela td.orcamento-col-municipio .dashboard-municipio-texto {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
   }
 
   .orcamento-geral-tabela th,
@@ -1273,6 +1334,17 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
     font-weight: 400;
   }
 
+  .orcamento-estratificado-tabela .orcamento-tabela-stack-valores {
+    align-items: flex-end;
+    gap: 0.32rem;
+    width: 100%;
+  }
+
+  .orcamento-estratificado-tabela .orcamento-tabela-stack-valor {
+    font-size: 0.74rem;
+    font-weight: 400;
+  }
+
   .orcamento-geral-tabela .orcamento-tabela-stack-head span,
   .orcamento-geral-tabela th .orcamento-tabela-celula-direita {
     font-size: 0.8rem;
@@ -1286,11 +1358,6 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
   .orcamento-geral-tabela .orcamento-tabela-stack-valor {
     font-size: 0.8rem;
     font-weight: 400;
-  }
-
-  .orcamento-estratificado-tabela .orcamento-tabela-stack-valor {
-    font-size: 0.8rem;
-    font-weight: 500;
   }
 
   .orcamento-estratificado-tabela th.orcamento-col-stack-pessoal,
@@ -1351,6 +1418,9 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
   .orcamento-estratificado-tabela .orcamento-total-badge {
     font-size: 0.74rem;
     font-weight: 600;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 }
 
@@ -3196,12 +3266,17 @@ body.page-dashboard .dashboard-tabela-panel {
   background: var(--brand);
 }
 
-.marcador-pessoal {
+.marcador-gabinete {
   background: #c45c26;
 }
 
+.marcador-eventos {
+  background: #16a34a;
+}
+
 .mini-cal-dia.selecionado .marcador-campanha,
-.mini-cal-dia.selecionado .marcador-pessoal {
+.mini-cal-dia.selecionado .marcador-gabinete,
+.mini-cal-dia.selecionado .marcador-eventos {
   background: #fff;
 }
 
@@ -3230,8 +3305,79 @@ body.page-dashboard .dashboard-tabela-panel {
   background: var(--brand);
 }
 
-.legenda-pessoal {
+.legenda-gabinete {
   background: #c45c26;
+}
+
+.legenda-eventos {
+  background: #16a34a;
+}
+
+.agenda-origem-opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.agenda-origem-opcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #3d4a57;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.agenda-origem-opcao input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.agenda-origem-marcador {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.agenda-origem-opcao--campanha .agenda-origem-marcador {
+  background: var(--brand);
+}
+
+.agenda-origem-opcao--gabinete .agenda-origem-marcador {
+  background: #c45c26;
+}
+
+.agenda-origem-opcao--eventos .agenda-origem-marcador {
+  background: #16a34a;
+}
+
+.agenda-origem-opcao:has(input:checked) {
+  border-color: var(--brand);
+  background: #f4f8fc;
+}
+
+.agenda-origem-opcao--gabinete:has(input:checked) {
+  border-color: #c45c26;
+  background: #fdf6f1;
+}
+
+.agenda-origem-opcao--eventos:has(input:checked) {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.agenda-origem-opcao--indisponivel {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .badge-origem {
@@ -3247,17 +3393,26 @@ body.page-dashboard .dashboard-tabela-panel {
   color: var(--brand);
 }
 
-.badge-origem-pessoal {
+.badge-origem-gabinete {
   background: #fdeee8;
   color: #9a4a3a;
+}
+
+.badge-origem-eventos {
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .lista-evento-campanha {
   border-left: 3px solid var(--brand);
 }
 
-.lista-evento-pessoal {
+.lista-evento-gabinete {
   border-left: 3px solid #c45c26;
+}
+
+.lista-evento-eventos {
+  border-left: 3px solid #16a34a;
 }
 
 /* Lista de eventos (agenda) */
@@ -3274,6 +3429,240 @@ body.page-dashboard .dashboard-tabela-panel {
   border: 1px solid #e3e8ef;
   border-radius: 10px;
   background: #fff;
+}
+
+.lista-evento-acao {
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+button.lista-evento-acao:hover,
+button.lista-evento-acao:focus-visible {
+  background: #f8fafc;
+  border-color: #c5d0dc;
+}
+
+.lista-evento-tarefa {
+  align-items: flex-start;
+}
+
+.agenda-tarefa-check-wrap {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.lista-evento-tarefa--concluida {
+  opacity: 0.82;
+}
+
+.agenda-tipo-opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.agenda-tipo-opcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #3d4a57;
+}
+
+.agenda-tipo-opcao input {
+  margin: 0;
+}
+
+.agenda-tipo-opcao:has(input:checked) {
+  border-color: var(--brand);
+  background: #f4f8fc;
+}
+
+.agenda-tarefas-filtro {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.agenda-filtro-badge {
+  border: 1px solid #d8dee6;
+  background: #fff;
+  color: #5c6b7a;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.agenda-filtro-badge:hover {
+  border-color: #b8c4d4;
+  background: #f8fafc;
+}
+
+.agenda-filtro-badge.is-ativo {
+  border-color: var(--brand);
+  background: #e8eef7;
+  color: var(--brand);
+}
+
+.agenda-topo-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agenda-filtro-origens {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.agenda-filtro-badge--origem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.agenda-filtro-badge--origem::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+
+.agenda-filtro-badge--origem.is-ativo::before {
+  opacity: 1;
+}
+
+.agenda-filtro-badge--campanha::before {
+  background: var(--brand);
+}
+
+.agenda-filtro-badge--gabinete::before {
+  background: #c45c26;
+}
+
+.agenda-filtro-badge--eventos::before {
+  background: #16a34a;
+}
+
+.agenda-filtro-badge--campanha.is-ativo {
+  border-color: var(--brand);
+  background: #e8eef7;
+  color: var(--brand);
+}
+
+.agenda-filtro-badge--gabinete.is-ativo {
+  border-color: #c45c26;
+  background: #fdeee8;
+  color: #9a4a3a;
+}
+
+.agenda-filtro-badge--eventos.is-ativo {
+  border-color: #16a34a;
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.agenda-listas-tabs {
+  display: none;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.agenda-btn-nova {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: var(--brand, #1f4e8c);
+  color: #fff;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(31, 78, 140, 0.22);
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.agenda-btn-nova:hover {
+  background: #183d6f;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(31, 78, 140, 0.28);
+}
+
+.agenda-btn-nova:active {
+  transform: scale(0.96);
+}
+
+.agenda-btn-nova svg {
+  width: 1.28rem;
+  height: 1.28rem;
+}
+
+.agenda-listas-tab {
+  flex: 1;
+  border: 1px solid #d8dee6;
+  background: #fff;
+  color: #5c6b7a;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.agenda-listas-tab.is-ativo {
+  border-color: var(--brand);
+  background: #e8eef7;
+  color: var(--brand);
+}
+
+@media (max-width: 576px) {
+  .agenda-listas-tabs {
+    display: flex;
+  }
+
+  .agenda-lista-painel {
+    display: none;
+  }
+
+  .agenda-lista-painel.agenda-lista-painel--ativo {
+    display: block;
+  }
+
+  .agenda-lista-card {
+    margin-bottom: 0;
+  }
+}
+
+@media (min-width: 577px) {
+  .agenda-lista-painel {
+    display: block;
+  }
+
+  .agenda-lista-painel + .agenda-lista-painel {
+    margin-top: 1rem;
+  }
 }
 
 .lista-evento-data {
@@ -3685,13 +4074,13 @@ th.dashboard-col-eleitores.dashboard-th-desktop-only {
   }
 
   .dashboard-tabela col.dashboard-col-municipio {
-    width: 52%;
+    width: 46%;
   }
 
   .dashboard-tabela col.dashboard-col-2022,
   .dashboard-tabela col.dashboard-col-minima,
   .dashboard-tabela col.dashboard-col-ideal {
-    width: 16%;
+    width: 18%;
   }
 }
 
@@ -3960,7 +4349,7 @@ th.dashboard-col-eleitores.dashboard-th-desktop-only {
   }
 
   body.page-dashboard .dashboard-tabela col.dashboard-col-municipio {
-    width: 52%;
+    width: 46%;
   }
 
   body.page-dashboard .dashboard-tabela col.dashboard-col-eleitores {
@@ -3970,7 +4359,7 @@ th.dashboard-col-eleitores.dashboard-th-desktop-only {
   body.page-dashboard .dashboard-tabela col.dashboard-col-2022,
   body.page-dashboard .dashboard-tabela col.dashboard-col-minima,
   body.page-dashboard .dashboard-tabela col.dashboard-col-ideal {
-    width: 16%;
+    width: 18%;
   }
 
   body.page-dashboard .dashboard-col-eleitores {
@@ -6294,6 +6683,48 @@ body.page-mobilizacao-estrutura .page-frame-content {
   font-weight: 600;
   color: #64748b;
   text-transform: lowercase;
+}
+
+.mob-org-segmento-apoiadores-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: inherit;
+  font-weight: inherit;
+  color: #4338ca;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  cursor: pointer;
+}
+
+.mob-org-segmento-apoiadores-link:hover {
+  color: #3730a3;
+}
+
+.mob-org-segmento-modal .modal-title {
+  text-transform: lowercase;
+  font-weight: 600;
+  color: #334155;
+}
+
+.mob-org-segmento-modal-tabela {
+  font-size: 0.8rem;
+}
+
+.mob-org-segmento-modal-tabela th {
+  font-weight: 600;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+.mob-org-segmento-modal-votos {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mob-org-segmento-modal-scroll {
+  max-height: min(60vh, 420px);
 }
 
 .mob-org-resumo-segmento-linha {

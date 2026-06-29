@@ -3,7 +3,7 @@
  *
  * Recursos atendidos por UMA única publicação (1 WEB_APP_URL):
  *   - planilha (padrão): leitura/gravação no Google Sheets
- *   - agenda: leitura/criação de eventos no Google Agenda (Calendar)
+ *   - agenda: compromissos (Calendar) + tarefas (Google Tasks)
  *   - login: valida a chave de acesso
  *
  * SEGURANÇA — Propriedades do script (Configurações > Propriedades do script):
@@ -174,22 +174,32 @@ const CONTRATO_CAMPANHA = {
 
 // ===================== AGENDA =====================
 
-// Várias agendas podem alimentar o mesmo calendário (leitura).
-// Novos eventos pelo app vão para AGENDA_GRAVACAO (campanha).
+// Várias agendas alimentam o mesmo calendário na leitura.
+// Novos eventos vão para a agenda indicada em corpo.origem (padrão: AGENDA_GRAVACAO).
 const AGENDAS = {
   campanha: {
     id: "5022e5968413188b563f3ed7f37711c25a4ddf55dd9e05183b045c82f1a5b840@group.calendar.google.com",
     titulo: "Campanha",
-    gravar: true,
   },
-  pessoal: {
-    id: "", // cole o ID da agenda pessoal (Settings > Integrate calendar)
-    titulo: "Pessoal",
-    gravar: false,
+  gabinete: {
+    id: "f9c2882b275996cd5a04681b7de07072bd6355b45820b64a0f86f5ab7b335252@group.calendar.google.com",
+    titulo: "Gabinete",
+  },
+  eventos: {
+    id: "2a2a853562b3f94514d02822e1ab1c23554f8f09cc2a16e69fcf8d24bd0553e3@group.calendar.google.com",
+    titulo: "Eventos",
   },
 };
 
 const AGENDA_GRAVACAO = "campanha";
+
+// Listas do Google Tasks (aba Tarefas) — uma por agenda.
+// Se listaId estiver vazio, a lista é localizada/criada pelo tituloLista.
+const TAREFAS_AGENDA = {
+  campanha: { tituloLista: "Campanha", listaId: "" },
+  gabinete: { tituloLista: "Gabinete", listaId: "" },
+  eventos: { tituloLista: "Eventos", listaId: "" },
+};
 
 // ===================== AUTORIZAÇÃO =====================
 
@@ -1066,13 +1076,65 @@ function obterSheet(planilhaKey, nomeAbaRequisicao) {
 
 // ===================== AGENDA (handlers) =====================
 
+// ID efetivo: AGENDAS[chave].id ou propriedade AGENDA_*_ID (ver AGENDA_ID_PROP).
+const AGENDA_ID_PROP = {
+  gabinete: "AGENDA_GABINETE_ID",
+  eventos: "AGENDA_EVENTOS_ID",
+};
+
+function idAgendaCalendario(chave) {
+  const key = String(chave || "");
+  const cfg = AGENDAS[key];
+  if (!cfg) return "";
+  const idFixo = String(cfg.id || "").trim();
+  if (idFixo) return idFixo;
+  const prop = AGENDA_ID_PROP[key];
+  if (prop) {
+    return String(
+      PropertiesService.getScriptProperties().getProperty(prop) || ""
+    ).trim();
+  }
+  return "";
+}
+
+function chaveAgenda(chave) {
+  const key = String(chave || "").trim();
+  if (key === "pessoal") return "gabinete";
+  return key || AGENDA_GRAVACAO;
+}
+
+function resumoAgendas() {
+  const out = {};
+  Object.keys(AGENDAS).forEach(function (key) {
+    const cfg = AGENDAS[key];
+    const id = idAgendaCalendario(key);
+    out[key] = {
+      titulo: cfg.titulo,
+      cadastrada: !!id,
+      gravacao: !!id,
+    };
+  });
+  return out;
+}
+
 function obterAgenda(chave) {
   const key = chave || AGENDA_GRAVACAO;
   const cfg = AGENDAS[key];
-  if (!cfg || !cfg.id) {
-    throw new Error("Agenda não cadastrada: " + key);
+  const id = idAgendaCalendario(key);
+  if (!cfg || !id) {
+    throw new Error(
+      "Agenda não cadastrada: " +
+        key +
+        ". Configure AGENDAS." +
+        key +
+        ".id" +
+        (AGENDA_ID_PROP[key]
+          ? " ou a propriedade " + AGENDA_ID_PROP[key]
+          : "") +
+        " no Apps Script e publique nova versão do Web App."
+    );
   }
-  const cal = CalendarApp.getCalendarById(cfg.id);
+  const cal = CalendarApp.getCalendarById(id);
   if (!cal) {
     throw new Error(
       "Agenda sem acesso: " + key + ". Compartilhe com a conta do Apps Script."
@@ -1081,26 +1143,236 @@ function obterAgenda(chave) {
   return cal;
 }
 
+function parseAgendaMeta(descricao) {
+  const txt = String(descricao || "");
+  const m = txt.match(/<!--agenda-app:([^>]*)-->/);
+  if (!m) return { texto: txt.trim(), meta: {} };
+  const meta = {};
+  m[1].split(";").forEach(function (par) {
+    const p = par.split("=");
+    if (p[0]) meta[p[0].trim()] = (p[1] || "").trim();
+  });
+  return { texto: txt.replace(/<!--agenda-app:[^>]*-->/, "").trim(), meta: meta };
+}
+
+function montarDescricaoAgenda(texto, meta) {
+  const base = String(texto || "").trim();
+  const keys = Object.keys(meta || {});
+  if (!keys.length) return base;
+  const tag =
+    "<!--agenda-app:" +
+    keys
+      .map(function (k) {
+        return k + "=" + meta[k];
+      })
+      .join(";") +
+    "-->";
+  return base ? base + "\n" + tag : tag;
+}
+
 function eventoParaJson(ev, origem, origemTitulo) {
+  const parsed = parseAgendaMeta(ev.getDescription() || "");
+  const legadoTarefa = parsed.meta.tipo === "tarefa";
   return {
     id: ev.getId(),
     origem: origem,
     origemTitulo: origemTitulo,
+    tipo: legadoTarefa ? "tarefa" : "evento",
+    legadoCalendario: legadoTarefa,
+    concluida: parsed.meta.concluida === "1",
     titulo: ev.getTitle(),
     inicio: ev.getStartTime().toISOString(),
     fim: ev.getEndTime().toISOString(),
     diaInteiro: ev.isAllDayEvent(),
     local: ev.getLocation() || "",
-    descricao: ev.getDescription() || "",
+    descricao: parsed.texto,
   };
+}
+
+function ehIdTarefaGoogle(id) {
+  return String(id || "").indexOf("tarefa:") === 0;
+}
+
+function idTarefaComposto(origem, taskId) {
+  return "tarefa:" + chaveAgenda(origem) + ":" + taskId;
+}
+
+function parseIdTarefaGoogle(id) {
+  const partes = String(id || "").split(":");
+  if (partes[0] !== "tarefa" || partes.length < 3) return null;
+  return {
+    origem: partes[1],
+    taskId: partes.slice(2).join(":"),
+  };
+}
+
+function dataParaDueGoogle(valor) {
+  const txt = String(valor || "").trim();
+  const m = txt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[1] + "-" + m[2] + "-" + m[3] + "T00:00:00.000Z";
+  const d = new Date(valor);
+  if (isNaN(d.getTime())) throw new Error("Data inválida.");
+  return Utilities.formatDate(d, "UTC", "yyyy-MM-dd'T'00:00:00.000Z'");
+}
+
+function inicioDeDueTask(task) {
+  if (!task.due) {
+    return Utilities.formatDate(new Date(), "UTC", "yyyy-MM-dd'T'12:00:00.000Z'");
+  }
+  const m = String(task.due).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[1] + "-" + m[2] + "-" + m[3] + "T12:00:00.000Z";
+  return task.due;
+}
+
+function idListaTarefas(origem) {
+  const key = chaveAgenda(origem);
+  const cfg = TAREFAS_AGENDA[key];
+  if (!cfg) throw new Error("Lista de tarefas não configurada: " + key);
+
+  const idFixo = String(cfg.listaId || "").trim();
+  if (idFixo) return idFixo;
+
+  const prop = PropertiesService.getScriptProperties().getProperty(
+    "AGENDA_TAREFAS_" + key.toUpperCase() + "_LIST_ID"
+  );
+  if (prop) return String(prop).trim();
+
+  const titulo = cfg.tituloLista || key;
+  const listas = Tasks.Tasklists.list();
+  const items = listas.items || [];
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].title === titulo) return items[i].id;
+  }
+
+  const nova = Tasks.Tasklists.insert({ title: titulo });
+  return nova.id;
+}
+
+function tarefaParaJson(task, origem, origemTitulo) {
+  const parsed = parseAgendaMeta(task.notes || "");
+  const inicio = inicioDeDueTask(task);
+  return {
+    id: idTarefaComposto(origem, task.id),
+    origem: origem,
+    origemTitulo: origemTitulo,
+    tipo: "tarefa",
+    legadoCalendario: false,
+    concluida: task.status === "completed",
+    titulo: task.title || "",
+    inicio: inicio,
+    fim: inicio,
+    diaInteiro: true,
+    local: "",
+    descricao: parsed.texto,
+  };
+}
+
+function tarefaNoPeriodo(task, inicio, fim) {
+  if (!task.due) return true;
+
+  const due = new Date(task.due);
+  if (due >= inicio && due <= fim) return true;
+
+  // Concluídas podem ter prazo fora do mês — incluir pela data de conclusão.
+  if (task.status === "completed" && task.completed) {
+    const concluidaEm = new Date(task.completed);
+    return concluidaEm >= inicio && concluidaEm <= fim;
+  }
+
+  return false;
+}
+
+function listarTarefasGoogle(inicio, fim) {
+  const todos = [];
+  Object.keys(TAREFAS_AGENDA).forEach(function (key) {
+    const cfgAgenda = AGENDAS[key];
+    if (!cfgAgenda) return;
+    let listaId;
+    try {
+      listaId = idListaTarefas(key);
+    } catch (err) {
+      Logger.log("Tarefas (" + key + "): " + err.message);
+      return;
+    }
+    if (!listaId) return;
+
+    let pageToken;
+    do {
+      const resp = Tasks.Tasks.list(listaId, {
+        showCompleted: true,
+        showHidden: true,
+        maxResults: 100,
+        pageToken: pageToken,
+      });
+      (resp.items || []).forEach(function (task) {
+        if (tarefaNoPeriodo(task, inicio, fim)) {
+          todos.push(tarefaParaJson(task, key, cfgAgenda.titulo));
+        }
+      });
+      pageToken = resp.nextPageToken;
+    } while (pageToken);
+  });
+  return todos;
+}
+
+function obterEventoCalendario(id, origem) {
+  if (!id) return null;
+
+  const chaves = [];
+  if (origem) chaves.push(chaveAgenda(origem));
+  Object.keys(AGENDAS).forEach(function (key) {
+    if (chaves.indexOf(key) < 0) chaves.push(key);
+  });
+
+  const buscaInicio = new Date();
+  buscaInicio.setFullYear(buscaInicio.getFullYear() - 1);
+  const buscaFim = new Date();
+  buscaFim.setFullYear(buscaFim.getFullYear() + 2);
+
+  try {
+    const direto = CalendarApp.getEventById(id);
+    if (direto) return direto;
+  } catch (err) {}
+
+  for (let i = 0; i < chaves.length; i++) {
+    try {
+      const cal = obterAgenda(chaves[i]);
+      const eventos = cal.getEvents(buscaInicio, buscaFim);
+      for (let j = 0; j < eventos.length; j++) {
+        if (eventos[j].getId() === id) return eventos[j];
+      }
+    } catch (err) {}
+  }
+  return null;
+}
+
+function listarItensAgenda(inicio, fim) {
+  const compromissos = [];
+  const tarefasLegado = [];
+
+  listarEventosAgendas(inicio, fim).forEach(function (item) {
+    if (item.tipo === "tarefa" && item.legadoCalendario) {
+      tarefasLegado.push(item);
+    } else if (item.tipo !== "tarefa") {
+      compromissos.push(item);
+    }
+  });
+
+  const tarefas = listarTarefasGoogle(inicio, fim).concat(tarefasLegado);
+  const todos = compromissos.concat(tarefas);
+  todos.sort(function (a, b) {
+    return new Date(a.inicio) - new Date(b.inicio);
+  });
+  return todos;
 }
 
 function listarEventosAgendas(inicio, fim) {
   const todos = [];
   Object.keys(AGENDAS).forEach(function (key) {
     const cfg = AGENDAS[key];
-    if (!cfg.id) return;
-    const cal = CalendarApp.getCalendarById(cfg.id);
+    const id = idAgendaCalendario(key);
+    if (!id) return;
+    const cal = CalendarApp.getCalendarById(id);
     if (!cal) return;
     cal.getEvents(inicio, fim).forEach(function (ev) {
       todos.push(eventoParaJson(ev, key, cfg.titulo));
@@ -1120,16 +1392,33 @@ function doGetAgenda(p) {
     ? new Date(p.fim)
     : new Date(agora.getTime() + 60 * 24 * 60 * 60 * 1000);
 
-  return responder({ ok: true, eventos: listarEventosAgendas(inicio, fim) });
+  return responder({
+    ok: true,
+    eventos: listarItensAgenda(inicio, fim),
+    agendas: resumoAgendas(),
+  });
 }
 
-// Cria ou atualiza um evento na agenda.
+// Cria, atualiza ou exclui compromissos (Calendar) e tarefas (Google Tasks).
 function doPostAgenda(corpo) {
+  if (corpo.acao === "excluir") {
+    if (ehIdTarefaGoogle(corpo.id)) return excluirTarefaGoogle(corpo);
+    return excluirEventoAgenda(corpo);
+  }
+  if (corpo.acao === "alternar-tarefa") {
+    if (ehIdTarefaGoogle(corpo.id)) return alternarTarefaGoogle(corpo);
+    return alternarTarefaLegadoAgenda(corpo);
+  }
   if (corpo.acao === "atualizar") {
+    if (ehIdTarefaGoogle(corpo.id)) return atualizarTarefaGoogle(corpo);
+    if (corpo.tipo === "tarefa" || corpo.legadoCalendario) {
+      return atualizarTarefaLegadoAgenda(corpo);
+    }
     return atualizarEventoAgenda(corpo);
   }
+  if (corpo.tipo === "tarefa") return criarTarefaGoogle(corpo);
 
-  const cal = obterAgenda(corpo.origem || AGENDA_GRAVACAO);
+  const cal = obterAgenda(chaveAgenda(corpo.origem));
 
   if (!corpo.titulo) throw new Error("Título é obrigatório.");
   if (!corpo.inicio) throw new Error("Data/hora de início é obrigatória.");
@@ -1141,7 +1430,14 @@ function doPostAgenda(corpo) {
 
   let ev;
   if (corpo.diaInteiro) {
-    ev = cal.createAllDayEvent(corpo.titulo, inicio, opcoes);
+    const fim = corpo.fim ? new Date(corpo.fim) : null;
+    if (fim && fim.getTime() > inicio.getTime()) {
+      ev = cal.createAllDayEvent(corpo.titulo, inicio, fim);
+      if (corpo.descricao) ev.setDescription(corpo.descricao);
+      if (corpo.local) ev.setLocation(corpo.local);
+    } else {
+      ev = cal.createAllDayEvent(corpo.titulo, inicio, opcoes);
+    }
   } else {
     const duracaoMin = Number(corpo.duracaoMin) || 60;
     const fim = corpo.fim
@@ -1157,22 +1453,239 @@ function doPostAgenda(corpo) {
   return responder({ ok: true, id: ev.getId() });
 }
 
-// Atualiza horário de um evento (arrastar no Toast UI Calendar).
+function precisaTransferirAgenda(corpo) {
+  if (!corpo.origemAnterior || !corpo.origem) return false;
+  return chaveAgenda(corpo.origemAnterior) !== chaveAgenda(corpo.origem);
+}
+
+function transferirEventoAgenda(corpo) {
+  const origemAnt = chaveAgenda(corpo.origemAnterior);
+  const origemNova = chaveAgenda(corpo.origem);
+
+  const ev = obterEventoCalendario(corpo.id, origemAnt);
+  if (!ev) throw new Error("Evento não encontrado para transferir: " + corpo.id);
+
+  const titulo = corpo.titulo || ev.getTitle();
+  const inicio = corpo.inicio ? new Date(corpo.inicio) : ev.getStartTime();
+  const fim = corpo.fim ? new Date(corpo.fim) : ev.getEndTime();
+  const diaInteiro =
+    corpo.diaInteiro != null ? !!corpo.diaInteiro : ev.isAllDayEvent();
+  const local = corpo.local != null ? corpo.local : ev.getLocation();
+  const descricao = corpo.descricao != null ? corpo.descricao : ev.getDescription();
+
+  const cal = obterAgenda(origemNova);
+  const opcoes = {};
+  if (descricao) opcoes.description = descricao;
+  if (local) opcoes.location = local;
+
+  let novo;
+  if (diaInteiro) {
+    const fimExclusivo = corpo.fim ? new Date(corpo.fim) : null;
+    if (fimExclusivo && fimExclusivo.getTime() > inicio.getTime()) {
+      novo = cal.createAllDayEvent(titulo, inicio, fimExclusivo);
+      if (descricao) novo.setDescription(descricao);
+      if (local) novo.setLocation(local);
+    } else {
+      novo = cal.createAllDayEvent(titulo, inicio, opcoes);
+    }
+  } else {
+    novo = cal.createEvent(titulo, inicio, fim, opcoes);
+  }
+
+  ev.deleteEvent();
+
+  return responder({
+    ok: true,
+    id: novo.getId(),
+    origem: origemNova,
+    transferido: true,
+  });
+}
+
+function transferirTarefaGoogle(corpo) {
+  if (!corpo.id) throw new Error("ID da tarefa é obrigatório.");
+  const ref = parseIdTarefaGoogle(corpo.id);
+  if (!ref) throw new Error("ID de tarefa inválido: " + corpo.id);
+
+  const origemNova = chaveAgenda(corpo.origem);
+  const listaAnt = idListaTarefas(ref.origem);
+  const atual = Tasks.Tasks.get(listaAnt, ref.taskId);
+
+  const titulo = corpo.titulo || atual.title;
+  const notes = corpo.descricao != null ? corpo.descricao : atual.notes;
+  const due = corpo.inicio ? dataParaDueGoogle(corpo.inicio) : atual.due;
+  const status =
+    corpo.concluida != null
+      ? corpo.concluida
+        ? "completed"
+        : "needsAction"
+      : atual.status;
+
+  const listaNova = idListaTarefas(origemNova);
+  const nova = Tasks.Tasks.insert(
+    {
+      title: titulo,
+      notes: notes || "",
+      due: due,
+      status: status || "needsAction",
+    },
+    listaNova
+  );
+  Tasks.Tasks.remove(listaAnt, ref.taskId);
+
+  return responder({
+    ok: true,
+    id: idTarefaComposto(origemNova, nova.id),
+    origem: origemNova,
+    transferido: true,
+  });
+}
+
+function criarTarefaGoogle(corpo) {
+  if (!corpo.titulo) throw new Error("Título é obrigatório.");
+  if (!corpo.inicio) throw new Error("Prazo da tarefa é obrigatório.");
+
+  const origem = chaveAgenda(corpo.origem);
+  const listaId = idListaTarefas(origem);
+  const task = Tasks.Tasks.insert(
+    {
+      title: corpo.titulo,
+      notes: corpo.descricao || "",
+      due: dataParaDueGoogle(corpo.inicio),
+      status: "needsAction",
+    },
+    listaId
+  );
+
+  return responder({
+    ok: true,
+    id: idTarefaComposto(origem, task.id),
+  });
+}
+
+function atualizarTarefaGoogle(corpo) {
+  if (!corpo.id) throw new Error("ID da tarefa é obrigatório.");
+  const ref = parseIdTarefaGoogle(corpo.id);
+  if (!ref) throw new Error("ID de tarefa inválido: " + corpo.id);
+
+  const origemNova = corpo.origem ? chaveAgenda(corpo.origem) : ref.origem;
+  if (precisaTransferirAgenda(corpo) || ref.origem !== origemNova) {
+    return transferirTarefaGoogle(corpo);
+  }
+
+  const listaId = idListaTarefas(ref.origem);
+  const atual = Tasks.Tasks.get(listaId, ref.taskId);
+  if (corpo.titulo) atual.title = corpo.titulo;
+  if (corpo.descricao != null) atual.notes = corpo.descricao;
+  if (corpo.concluida != null) {
+    atual.status = corpo.concluida ? "completed" : "needsAction";
+  }
+  if (corpo.inicio) atual.due = dataParaDueGoogle(corpo.inicio);
+  Tasks.Tasks.update(atual, listaId, ref.taskId);
+
+  return responder({ ok: true, id: corpo.id });
+}
+
+function alternarTarefaGoogle(corpo) {
+  if (!corpo.id) throw new Error("ID da tarefa é obrigatório.");
+  const ref = parseIdTarefaGoogle(corpo.id);
+  if (!ref) throw new Error("ID de tarefa inválido: " + corpo.id);
+
+  const listaId = idListaTarefas(ref.origem);
+  const atual = Tasks.Tasks.get(listaId, ref.taskId);
+  atual.status = corpo.concluida ? "completed" : "needsAction";
+  Tasks.Tasks.update(atual, listaId, ref.taskId);
+
+  return responder({
+    ok: true,
+    id: corpo.id,
+    concluida: !!corpo.concluida,
+  });
+}
+
+function atualizarTarefaLegadoAgenda(corpo) {
+  if (!corpo.id) throw new Error("ID da tarefa é obrigatório.");
+  if (precisaTransferirAgenda(corpo)) return transferirEventoAgenda(corpo);
+
+  const ev = obterEventoCalendario(corpo.id, corpo.origemAnterior || corpo.origem);
+  if (!ev) throw new Error("Tarefa não encontrada: " + corpo.id);
+
+  const parsed = parseAgendaMeta(ev.getDescription() || "");
+  if (corpo.titulo) ev.setTitle(corpo.titulo);
+  const texto = corpo.descricao != null ? corpo.descricao : parsed.texto;
+  if (corpo.concluida != null) parsed.meta.concluida = corpo.concluida ? "1" : "0";
+  parsed.meta.tipo = "tarefa";
+  ev.setDescription(montarDescricaoAgenda(texto, parsed.meta));
+  if (corpo.inicio) ev.setAllDayDate(new Date(corpo.inicio));
+
+  return responder({ ok: true, id: corpo.id });
+}
+
+function excluirTarefaGoogle(corpo) {
+  if (!corpo.id) throw new Error("ID da tarefa é obrigatório.");
+  const ref = parseIdTarefaGoogle(corpo.id);
+  if (!ref) throw new Error("ID de tarefa inválido: " + corpo.id);
+
+  const listaId = idListaTarefas(ref.origem);
+  Tasks.Tasks.remove(listaId, ref.taskId);
+  return responder({ ok: true, id: corpo.id });
+}
+
+function alternarTarefaLegadoAgenda(corpo) {
+  if (!corpo.id) throw new Error("ID da tarefa é obrigatório.");
+  const ev = obterEventoCalendario(corpo.id, corpo.origemAnterior || corpo.origem);
+  if (!ev) throw new Error("Tarefa não encontrada: " + corpo.id);
+
+  const parsed = parseAgendaMeta(ev.getDescription() || "");
+  if (parsed.meta.tipo !== "tarefa") {
+    throw new Error("O item informado não é uma tarefa legada.");
+  }
+  parsed.meta.concluida = corpo.concluida ? "1" : "0";
+  ev.setDescription(montarDescricaoAgenda(parsed.texto, parsed.meta));
+
+  return responder({
+    ok: true,
+    id: corpo.id,
+    concluida: !!corpo.concluida,
+  });
+}
+
+function excluirEventoAgenda(corpo) {
+  if (!corpo.id) throw new Error("ID do evento é obrigatório.");
+  const ev = obterEventoCalendario(corpo.id, corpo.origemAnterior || corpo.origem);
+  if (!ev) throw new Error("Evento não encontrado: " + corpo.id);
+  ev.deleteEvent();
+  return responder({ ok: true, id: corpo.id });
+}
+
+// Atualiza compromisso existente no Google Calendar.
 function atualizarEventoAgenda(corpo) {
   if (!corpo.id) throw new Error("ID do evento é obrigatório.");
-  if (!corpo.inicio) throw new Error("Data/hora de início é obrigatória.");
+  if (precisaTransferirAgenda(corpo)) return transferirEventoAgenda(corpo);
 
-  const ev = CalendarApp.getEventById(corpo.id);
+  const ev = obterEventoCalendario(corpo.id, corpo.origemAnterior || corpo.origem);
   if (!ev) throw new Error("Evento não encontrado: " + corpo.id);
 
-  const inicio = new Date(corpo.inicio);
-  const fim = corpo.fim
-    ? new Date(corpo.fim)
-    : new Date(inicio.getTime() + 60 * 60000);
+  if (corpo.titulo) ev.setTitle(corpo.titulo);
+  if (corpo.local != null) ev.setLocation(corpo.local);
+  if (corpo.descricao != null) ev.setDescription(corpo.descricao);
 
+  if (!corpo.inicio) {
+    return responder({ ok: true, id: ev.getId() });
+  }
+
+  const inicio = new Date(corpo.inicio);
   if (corpo.diaInteiro) {
-    ev.setAllDayDate(inicio);
+    const fim = corpo.fim ? new Date(corpo.fim) : null;
+    if (fim && fim.getTime() > inicio.getTime()) {
+      ev.setAllDayDates(inicio, fim);
+    } else {
+      ev.setAllDayDate(inicio);
+    }
   } else {
+    const fim = corpo.fim
+      ? new Date(corpo.fim)
+      : new Date(inicio.getTime() + 60 * 60000);
     ev.setTime(inicio, fim);
   }
 
@@ -1298,12 +1811,40 @@ function autorizar() {
 
   Object.keys(AGENDAS).forEach(function (key) {
     const cfg = AGENDAS[key];
-    if (!cfg.id) return;
-    const cal = CalendarApp.getCalendarById(cfg.id);
-    if (cal) Logger.log("Agenda OK (" + key + "): " + cal.getName());
+    const id = idAgendaCalendario(key);
+    if (!id) {
+      Logger.log("Agenda sem ID (" + key + ")");
+      return;
+    }
+    const cal = CalendarApp.getCalendarById(id);
+    if (cal) Logger.log("Agenda OK (" + key + "): " + cal.getName() + " => " + id);
+  });
+
+  Object.keys(TAREFAS_AGENDA).forEach(function (key) {
+    try {
+      const listaId = idListaTarefas(key);
+      Logger.log("Tarefas OK (" + key + "): lista " + listaId);
+    } catch (err) {
+      Logger.log("Tarefas (" + key + "): " + err.message);
+    }
   });
 
   Logger.log("Concluído. Se a impressão falhar no site, republique o Web App (nova versão).");
+}
+
+/** Rode no editor e veja o log para copiar IDs das listas de tarefas. */
+function descobrirListasTarefas() {
+  const listas = Tasks.Tasklists.list();
+  (listas.items || []).forEach(function (lista) {
+    Logger.log(lista.title + " => " + lista.id);
+  });
+}
+
+/** Rode no editor e veja o log para copiar IDs das agendas. */
+function descobrirAgendas() {
+  CalendarApp.getAllCalendars().forEach(function (cal) {
+    Logger.log(cal.getName() + " => " + cal.getId());
+  });
 }
 
 function responder(obj) {

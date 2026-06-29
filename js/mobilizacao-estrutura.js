@@ -6,6 +6,7 @@ const cfgPersp = CONFIG.MOBILIZACAO.PERSPECTIVA;
 let el = {};
 let perspectivaRegistros = [];
 let modalApoiador = null;
+let modalSegmento = null;
 
 const ICONE_PERSPECTIVA =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
@@ -117,7 +118,11 @@ function htmlBlocoOrigemSegmento(segmento) {
     '<div class="mob-org-resumo-segmento-apoiadores-linha">' +
     '<span class="mob-org-resumo-segmento-apoiadores">' +
     MobComum.fmt.format(segmento.apoiadores) +
-    " apoiadores</span></div></div>"
+    " " +
+    (segmento.apoiadores > 0
+      ? '<button type="button" class="mob-org-segmento-apoiadores-link" data-acao="segmento-apoiadores">apoiadores</button>'
+      : "apoiadores") +
+    "</span></div></div>"
   );
 }
 
@@ -299,11 +304,62 @@ function fecharRegionais(exceto) {
   });
 }
 
+function htmlTabelaSegmentoApoiadores(registros) {
+  if (!registros.length) {
+    return '<p class="text-secondary small mb-0">nenhum registro com origem segmento.</p>';
+  }
+
+  const linhas = registros
+    .map(
+      (r) =>
+        "<tr>" +
+        "<td>" +
+        MobComum.escapeHtml(r.apoiador || "—") +
+        "</td>" +
+        "<td>" +
+        MobComum.escapeHtml(r.segmento || "—") +
+        "</td>" +
+        '<td class="text-end mob-org-segmento-modal-votos">' +
+        MobComum.fmt.format(r.votos || 0) +
+        "</td></tr>"
+    )
+    .join("");
+
+  return (
+    '<div class="table-responsive mob-org-segmento-modal-scroll">' +
+    '<table class="table table-sm table-hover mb-0 mob-org-segmento-modal-tabela">' +
+    '<thead class="table-light"><tr>' +
+    "<th scope=\"col\">apoiador</th>" +
+    "<th scope=\"col\">segmento</th>" +
+    '<th scope="col" class="text-end">votos</th>' +
+    "</tr></thead><tbody>" +
+    linhas +
+    "</tbody></table></div>"
+  );
+}
+
+function abrirModalSegmentoApoiadores() {
+  if (!modalSegmento) return;
+
+  const registros = MobComum.listarRegistrosOrigemSegmento(perspectivaRegistros);
+  el.modalSegmentoCorpo.innerHTML = htmlTabelaSegmentoApoiadores(registros);
+  modalSegmento.show();
+}
+
 function vincularApoiadores() {
   el.chart.querySelectorAll(".mob-estr-lider-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       abrirModalApoiador(btn.dataset.lideranca || "");
+    });
+  });
+}
+
+function vincularSegmentoApoiadores() {
+  el.chart.querySelectorAll('[data-acao="segmento-apoiadores"]').forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      abrirModalSegmentoApoiadores();
     });
   });
 }
@@ -428,6 +484,7 @@ function renderizarOrganograma(dados, perspectiva) {
   el.chart.innerHTML = html;
   vincularExpansao();
   vincularApoiadores();
+  vincularSegmentoApoiadores();
   document.getElementById("btnMobPerspectiva")?.addEventListener("click", () => {
     navegarParaPagina("mobilizacao-perspectiva");
   });
@@ -479,9 +536,14 @@ function init() {
     modalEl: document.getElementById("modalApoiador"),
     modalTitulo: document.getElementById("modalApoiadorTitulo"),
     modalCorpo: document.getElementById("modalApoiadorCorpo"),
+    modalSegmentoEl: document.getElementById("modalSegmentoApoiadores"),
+    modalSegmentoCorpo: document.getElementById("modalSegmentoApoiadoresCorpo"),
   };
   if (el.modalEl && typeof bootstrap !== "undefined") {
     modalApoiador = bootstrap.Modal.getOrCreateInstance(el.modalEl);
+  }
+  if (el.modalSegmentoEl && typeof bootstrap !== "undefined") {
+    modalSegmento = bootstrap.Modal.getOrCreateInstance(el.modalSegmentoEl);
   }
   PageLoader.init("pageLoader");
   carregar();

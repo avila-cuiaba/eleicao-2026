@@ -16,6 +16,7 @@ const CONFIG = {
   AGENDA: {
     DURACAO_PADRAO_MIN: 60, // duração do evento quando não informado o fim
     LEMBRETE_PADRAO_MIN: 30, // lembrete (pop-up) padrão antes do evento
+    ORIGEM_PADRAO: "campanha", // agenda pré-selecionada ao inserir compromisso
   },
 
   // Chave da planilha (deve existir em PLANILHAS no BackendPlanilhas.gs).

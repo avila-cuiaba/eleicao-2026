@@ -369,6 +369,22 @@ const MobComum = {
     };
   },
 
+  listarRegistrosOrigemSegmento(registros) {
+    return (registros || [])
+      .filter((r) => this.ehOrigemSegmento(r))
+      .map((r) => ({
+        apoiador: String(r.lideranca ?? "").trim(),
+        segmento: String(r.segmento ?? "").trim(),
+        votos: r.votos || 0,
+      }))
+      .filter((r) => r.apoiador || r.segmento)
+      .sort((a, b) => {
+        const porApoiador = a.apoiador.localeCompare(b.apoiador, "pt-BR");
+        if (porApoiador) return porApoiador;
+        return a.segmento.localeCompare(b.segmento, "pt-BR");
+      });
+  },
+
   metricasPerspectivaRegional(polos, registros) {
     const bairros = [];
     (polos || []).forEach((p) => p.itens.forEach((i) => bairros.push(i.nome)));

@@ -9,8 +9,41 @@
 </head>
 <body class="bg-light page-frame-body">
   <div class="page-frame-content">
-    <div class="d-flex justify-content-end mb-3">
-      <button type="button" id="btnNova" class="btn btn-sm btn-primary flex-shrink-0">nova atividade</button>
+    <div class="agenda-topo-acoes mb-3">
+      <div class="agenda-filtro-origens" role="group" aria-label="filtrar por agenda">
+        <button
+          type="button"
+          class="agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--campanha is-ativo"
+          data-filtro-origem="campanha"
+          aria-pressed="true"
+        >
+          campanha
+        </button>
+        <button
+          type="button"
+          class="agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--gabinete is-ativo"
+          data-filtro-origem="gabinete"
+          aria-pressed="true"
+        >
+          gabinete
+        </button>
+        <button
+          type="button"
+          class="agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--eventos is-ativo"
+          data-filtro-origem="eventos"
+          aria-pressed="true"
+        >
+          eventos
+        </button>
+      </div>
+      <button type="button" id="btnNova" class="agenda-btn-nova" aria-label="nova atividade" title="nova atividade">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
+          <path d="M12 14v4M10 16h4" />
+        </svg>
+        <span class="visually-hidden">nova atividade</span>
+      </button>
     </div>
 
     <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
@@ -30,7 +63,8 @@
             <div id="miniCalendario" class="mini-calendario"></div>
             <div class="agenda-legenda mt-2">
               <span class="agenda-legenda-item"><i class="legenda-campanha"></i> campanha</span>
-              <span class="agenda-legenda-item"><i class="legenda-pessoal"></i> pessoal</span>
+              <span class="agenda-legenda-item"><i class="legenda-gabinete"></i> gabinete</span>
+              <span class="agenda-legenda-item"><i class="legenda-eventos"></i> eventos</span>
             </div>
             <p class="text-secondary small mt-2 mb-0">toque no dia para filtrar a lista</p>
           </div>
@@ -47,14 +81,66 @@
           </div>
         </div>
       </div>
-      <div class="col-12 col-lg-7">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <div class="d-flex align-items-center justify-content-between mb-3">
-              <h2 class="h6 mb-0" id="tituloLista">próximas atividades</h2>
-              <button type="button" id="btnLimparFiltro" class="btn btn-sm btn-outline-secondary d-none">ver todas</button>
+      <div class="col-12 col-lg-7 agenda-listas-col">
+        <nav class="agenda-listas-tabs" role="tablist" aria-label="listas da agenda">
+          <button
+            type="button"
+            role="tab"
+            id="tabAgendaAtividades"
+            class="agenda-listas-tab is-ativo"
+            aria-selected="true"
+            aria-controls="painelAgendaAtividades"
+            data-agenda-tab="atividades"
+          >
+            atividades
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tabAgendaTarefas"
+            class="agenda-listas-tab"
+            aria-selected="false"
+            aria-controls="painelAgendaTarefas"
+            data-agenda-tab="tarefas"
+          >
+            tarefas
+          </button>
+        </nav>
+        <div class="agenda-listas-conteudo">
+          <div
+            id="painelAgendaAtividades"
+            class="agenda-lista-painel agenda-lista-painel--ativo"
+            role="tabpanel"
+            aria-labelledby="tabAgendaAtividades"
+          >
+            <div class="card shadow-sm agenda-lista-card">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <h2 class="h6 mb-0" id="tituloLista">próximas atividades</h2>
+                  <button type="button" id="btnLimparFiltro" class="btn btn-sm btn-outline-secondary d-none">ver todas</button>
+                </div>
+                <div id="listaEventos" class="lista-eventos"></div>
+              </div>
             </div>
-            <div id="listaEventos" class="lista-eventos"></div>
+          </div>
+          <div
+            id="painelAgendaTarefas"
+            class="agenda-lista-painel"
+            role="tabpanel"
+            aria-labelledby="tabAgendaTarefas"
+          >
+            <div class="card shadow-sm agenda-lista-card">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                  <h2 class="h6 mb-0" id="tituloTarefas">tarefas</h2>
+                  <div class="agenda-tarefas-filtro" role="group" aria-label="filtro de tarefas">
+                    <button type="button" class="agenda-filtro-badge is-ativo" data-filtro-tarefas="pendentes">pendentes</button>
+                    <button type="button" class="agenda-filtro-badge" data-filtro-tarefas="todas">todas</button>
+                  </div>
+                </div>
+                <div id="listaTarefas" class="lista-eventos"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -62,50 +148,104 @@
 
     <div class="modal fade" id="modalEvento" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content contratos-modal-content">
           <form id="formEvento">
+              <input type="hidden" id="evId" value="" />
+              <input type="hidden" id="evOrigemSalva" value="" />
             <div class="modal-header">
-              <h2 class="modal-title h5">nova atividade</h2>
+              <h2 class="modal-title h5" id="modalEventoTitulo">nova atividade</h2>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
+              <fieldset class="mb-3" id="evTipoFieldset">
+                <legend class="form-label col-form-label pt-0 pb-1">tipo</legend>
+                <div class="agenda-tipo-opcoes" role="radiogroup" aria-label="tipo do item">
+                  <label class="agenda-tipo-opcao">
+                    <input type="radio" name="evTipo" value="evento" checked />
+                    <span>compromisso</span>
+                  </label>
+                  <label class="agenda-tipo-opcao">
+                    <input type="radio" name="evTipo" value="tarefa" />
+                    <span>tarefa</span>
+                  </label>
+                </div>
+              </fieldset>
               <div class="mb-3">
                 <label for="evTitulo" class="form-label">título</label>
                 <input type="text" id="evTitulo" class="form-control" required />
               </div>
-              <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" id="evDiaInteiro" />
-                <label class="form-check-label" for="evDiaInteiro">dia inteiro</label>
-              </div>
-              <div class="row g-3">
-                <div class="col-12 col-sm-6">
-                  <label for="evInicio" class="form-label">início</label>
-                  <input type="datetime-local" id="evInicio" class="form-control" required />
+              <fieldset class="mb-3" id="evOrigemFieldset">
+                <legend class="form-label col-form-label pt-0 pb-1">agenda</legend>
+                <div class="agenda-origem-opcoes" role="radiogroup" aria-label="agenda destino">
+                  <label class="agenda-origem-opcao agenda-origem-opcao--campanha">
+                    <input type="radio" name="evOrigem" value="campanha" checked />
+                    <span class="agenda-origem-marcador" aria-hidden="true"></span>
+                    <span>campanha</span>
+                  </label>
+                  <label class="agenda-origem-opcao agenda-origem-opcao--gabinete">
+                    <input type="radio" name="evOrigem" value="gabinete" />
+                    <span class="agenda-origem-marcador" aria-hidden="true"></span>
+                    <span>gabinete</span>
+                  </label>
+                  <label class="agenda-origem-opcao agenda-origem-opcao--eventos">
+                    <input type="radio" name="evOrigem" value="eventos" />
+                    <span class="agenda-origem-marcador" aria-hidden="true"></span>
+                    <span>eventos</span>
+                  </label>
                 </div>
-                <div class="col-12 col-sm-6">
-                  <label for="evFim" class="form-label">fim</label>
-                  <input type="datetime-local" id="evFim" class="form-control" />
+                <p id="evOrigemAviso" class="form-text text-warning small mb-0 mt-2 d-none"></p>
+              </fieldset>
+              <div id="evCamposEvento">
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="evDiaInteiro" />
+                  <label class="form-check-label" for="evDiaInteiro">dia inteiro</label>
+                </div>
+                <div class="row g-3">
+                  <div class="col-12 col-sm-6">
+                    <label for="evInicio" class="form-label">início</label>
+                    <input type="datetime-local" id="evInicio" class="form-control" required />
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <label for="evFim" class="form-label">fim</label>
+                    <input type="datetime-local" id="evFim" class="form-control" />
+                  </div>
+                </div>
+                <div class="mb-3 mt-3">
+                  <label for="evLocal" class="form-label">local</label>
+                  <input type="text" id="evLocal" class="form-control" />
+                </div>
+                <div class="mb-3">
+                  <label for="evLembrete" class="form-label">lembrete (minutos antes)</label>
+                  <input type="number" id="evLembrete" class="form-control" min="0" />
                 </div>
               </div>
-              <div class="mb-3 mt-3">
-                <label for="evLocal" class="form-label">local</label>
-                <input type="text" id="evLocal" class="form-control" />
-              </div>
-              <div class="mb-3">
-                <label for="evDescricao" class="form-label">descrição</label>
-                <textarea id="evDescricao" rows="2" class="form-control"></textarea>
+              <div id="evCamposTarefa" class="d-none">
+                <div class="mb-3">
+                  <label for="evPrazo" class="form-label">prazo</label>
+                  <input type="date" id="evPrazo" class="form-control" />
+                </div>
+                <div class="form-check mb-3" id="evConcluidaWrap">
+                  <input class="form-check-input" type="checkbox" id="evConcluida" />
+                  <label class="form-check-label" for="evConcluida">concluída</label>
+                </div>
               </div>
               <div class="mb-1">
-                <label for="evLembrete" class="form-label">lembrete (minutos antes)</label>
-                <input type="number" id="evLembrete" class="form-control" min="0" />
+                <label for="evDescricao" class="form-label">descrição</label>
+                <textarea id="evDescricao" rows="2" class="form-control"></textarea>
               </div>
               <div id="statusModal" class="alert d-none mt-3" role="alert"></div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">cancelar</button>
-              <button type="submit" id="btnSalvarEvento" class="btn btn-primary">salvar</button>
+              <button type="button" id="btnExcluirEvento" class="btn btn-sm btn-outline-danger me-auto d-none">excluir</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">cancelar</button>
+              <button type="submit" id="btnSalvarEvento" class="btn btn-sm btn-primary">salvar</button>
             </div>
           </form>
+          <div id="evModalSalvando" class="contratos-modal-salvando d-none" aria-hidden="true" aria-busy="false">
+            <div class="spinner-border page-frame-loader-spinner" role="status">
+              <span class="visually-hidden">salvando</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

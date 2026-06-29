@@ -379,6 +379,27 @@ function htmlPopoverOrcamento(r) {
   );
 }
 
+function valorStackVisivel(val) {
+  if (!celulaPreenchida(val)) return false;
+  const n = parseNumero(val);
+  return !Number.isFinite(n) || n !== 0;
+}
+
+function valorCampoStack(prop, valor) {
+  if (!valorStackVisivel(valor)) {
+    return '<span class="orcamento-estratificado-stack-valor-linha orcamento-estratificado-stack-valor-linha--vazio"></span>';
+  }
+  return (
+    '<span class="orcamento-estratificado-stack-valor-linha">' +
+    '<span class="orcamento-tabela-stack-valor">' +
+    exibirMoeda(valor) +
+    "</span>" +
+    '<span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--' +
+    prop +
+    '" aria-hidden="true"></span></span>'
+  );
+}
+
 function renderizarLinha(r) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
@@ -390,10 +411,10 @@ function renderizarLinha(r) {
   ).join("");
 
   const total = totalLinha(r);
-  const stackPessoal = `<span class="orcamento-tabela-stack-valor">${exibirMoeda(r.pessoal)}</span>
-        <span class="orcamento-tabela-stack-valor">${exibirMoeda(r.combustivel)}</span>`;
-  const stackDiversos = `<span class="orcamento-tabela-stack-valor">${exibirMoeda(r.diversos)}</span>
-        <span class="orcamento-tabela-stack-valor">${exibirMoeda(r.diaD)}</span>`;
+  const stackPessoal =
+    valorCampoStack("pessoal", r.pessoal) + valorCampoStack("combustivel", r.combustivel);
+  const stackDiversos =
+    valorCampoStack("diversos", r.diversos) + valorCampoStack("diad", r.diaD);
 
   return `<tr class="orcamento-estratificado-linha-popover" tabindex="0" aria-label="detalhes do município">
     <td class="orcamento-col-municipio">

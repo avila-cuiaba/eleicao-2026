@@ -1,8 +1,7 @@
-// Agenda — calendário vanilla (JS puro) + lista de próximas atividades.
+// Agenda — calendário vanilla (JS puro) + lista de compromissos e tarefas.
 
 let ui = {};
 
-// Semana começa na segunda-feira (col 5 = sábado, col 6 = domingo).
 const DIAS_SEM = ["S", "T", "Q", "Q", "S", "S", "D"];
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -11,13 +10,24 @@ const MESES = [
 
 const ORIGENS = {
   campanha: { rotulo: "campanha", cor: "#1f4e8c" },
-  pessoal: { rotulo: "pessoal", cor: "#c45c26" },
+  gabinete: { rotulo: "gabinete", cor: "#c45c26" },
+  eventos: { rotulo: "eventos", cor: "#16a34a" },
 };
+
+function normalizarOrigem(origem) {
+  if (origem === "pessoal") return "gabinete";
+  return origem || "campanha";
+}
 
 let modalEvento = null;
 let mesAtual = new Date();
 let diaFiltro = null;
 let todosEventos = [];
+let agendasGravacao = { campanha: true, gabinete: true, eventos: true };
+let modoEdicao = false;
+let filtroTarefas = "pendentes";
+let abaListasMobile = "atividades";
+let filtroOrigens = new Set(Object.keys(ORIGENS));
 
 function chaveDia(d) {
   return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
@@ -31,9 +41,17 @@ function mesmoDia(a, b) {
   );
 }
 
-// Deslocamento para grade com início na segunda (0=seg … 6=dom).
 function offsetSegunda(date) {
   return (date.getDay() + 6) % 7;
+}
+
+function ehTarefa(item) {
+  return item?.tipo === "tarefa";
+}
+
+function tipoSelecionado() {
+  const marcado = document.querySelector('input[name="evTipo"]:checked');
+  return marcado ? marcado.value : "evento";
 }
 
 function atualizarTituloHeader() {
@@ -103,12 +121,18 @@ function abrirSeletorAno() {
   abrirPicker();
 }
 
+function passaFiltroOrigem(item) {
+  return filtroOrigens.has(normalizarOrigem(item.origem));
+}
+
 function mapaEventosPorDia() {
   const mapa = {};
-  todosEventos.forEach((e) => {
-    const k = chaveDia(new Date(e.inicio));
-    if (!mapa[k]) mapa[k] = new Set();
-    mapa[k].add(e.origem || "campanha");
+  todosEventos.filter(passaFiltroOrigem).forEach((e) => {
+    AgendaAPI.diasCompromisso(e).forEach((d) => {
+      const k = chaveDia(d);
+      if (!mapa[k]) mapa[k] = new Set();
+      mapa[k].add(normalizarOrigem(e.origem));
+    });
   });
   return mapa;
 }
@@ -173,66 +197,419 @@ function renderMiniCalendario() {
       const d = new Date(btn.dataset.dia);
       diaFiltro = diaFiltro && mesmoDia(d, diaFiltro) ? null : d;
       renderMiniCalendario();
-      renderLista();
+      renderListas();
     });
   });
 }
 
-function renderLista() {
-  let eventos = todosEventos.slice();
+function filtrarItens() {
+  let compromissos = todosEventos.filter((e) => !ehTarefa(e) && passaFiltroOrigem(e));
+  let tarefas = todosEventos.filter((e) => ehTarefa(e) && passaFiltroOrigem(e));
 
   if (diaFiltro) {
-    eventos = eventos.filter((e) => mesmoDia(new Date(e.inicio), diaFiltro));
+    compromissos = compromissos.filter((e) => AgendaAPI.compromissoNoDia(e, diaFiltro));
+    tarefas = tarefas.filter((e) => mesmoDia(new Date(e.inicio), diaFiltro));
+  } else {
+    const agora = new Date();
+    compromissos = compromissos.filter((e) => !AgendaAPI.compromissoEncerrado(e, agora));
+    if (filtroTarefas === "pendentes") {
+      const inicioDia = new Date();
+      inicioDia.setHours(0, 0, 0, 0);
+      tarefas = tarefas.filter((e) => !e.concluida && new Date(e.inicio) >= inicioDia);
+    }
+  }
+
+  if (filtroTarefas === "pendentes") {
+    tarefas = tarefas.filter((e) => !e.concluida);
+  }
+
+  compromissos.sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
+  tarefas.sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
+
+  return { compromissos, tarefas };
+}
+
+function atualizarFiltroTarefasBadges() {
+  if (!ui.filtroTarefasBtns) return;
+  ui.filtroTarefasBtns.forEach((btn) => {
+    btn.classList.toggle("is-ativo", btn.dataset.filtroTarefas === filtroTarefas);
+  });
+}
+
+function atualizarFiltroOrigensBadges() {
+  if (!ui.filtroOrigemBtns) return;
+  ui.filtroOrigemBtns.forEach((btn) => {
+    const ativo = filtroOrigens.has(btn.dataset.filtroOrigem);
+    btn.classList.toggle("is-ativo", ativo);
+    btn.setAttribute("aria-pressed", ativo ? "true" : "false");
+  });
+}
+
+function alternarFiltroOrigem(origem) {
+  const key = normalizarOrigem(origem);
+  if (filtroOrigens.has(key)) {
+    filtroOrigens.delete(key);
+  } else {
+    filtroOrigens.add(key);
+  }
+  atualizarFiltroOrigensBadges();
+  renderMiniCalendario();
+  renderListas();
+}
+
+function definirFiltroTarefas(valor) {
+  if (filtroTarefas === valor) return;
+  filtroTarefas = valor;
+  atualizarFiltroTarefasBadges();
+  renderListas();
+}
+
+function definirAbaListasMobile(aba) {
+  if (abaListasMobile === aba) return;
+  abaListasMobile = aba;
+  atualizarAbasListasMobile();
+  notificarAlturaFrame();
+}
+
+function ehMobileListas() {
+  return window.matchMedia("(max-width: 576px)").matches;
+}
+
+function atualizarAbasListasMobile() {
+  if (!ui.listasTabs?.length) return;
+  const mobile = ehMobileListas();
+
+  ui.listasTabs.forEach((tab) => {
+    const ativo = tab.dataset.agendaTab === abaListasMobile;
+    tab.classList.toggle("is-ativo", ativo);
+    tab.setAttribute("aria-selected", mobile && ativo ? "true" : "false");
+    tab.tabIndex = mobile ? (ativo ? 0 : -1) : -1;
+  });
+
+  [
+    { id: "atividades", el: ui.painelAtividades },
+    { id: "tarefas", el: ui.painelTarefas },
+  ].forEach(({ id, el }) => {
+    if (!el) return;
+    const ativo = abaListasMobile === id;
+    el.classList.toggle("agenda-lista-painel--ativo", !mobile || ativo);
+    if (mobile) el.hidden = !ativo;
+    else el.hidden = false;
+  });
+}
+
+function htmlItemCompromisso(ev) {
+  const inicio = new Date(ev.inicio);
+  const dataExibida =
+    diaFiltro && AgendaAPI.compromissoNoDia(ev, diaFiltro) ? diaFiltro : inicio;
+  const hora = ev.diaInteiro ? "dia inteiro" : AgendaAPI.fmtHora.format(inicio);
+  const origem = normalizarOrigem(ev.origem);
+  const rotuloOrigem = ev.origemTitulo || ORIGENS[origem]?.rotulo || origem;
+  return `
+    <button type="button" class="lista-evento-item lista-evento-${origem} lista-evento-acao" data-id="${escapar(ev.id)}">
+      <div class="lista-evento-data">
+        <span class="lista-evento-dia">${dataExibida.getDate()}</span>
+        <span class="lista-evento-mes">${new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(dataExibida)}</span>
+      </div>
+      <div class="lista-evento-corpo text-start">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <strong>${escapar(ev.titulo)}</strong>
+          <span class="badge-origem badge-origem-${origem}">${escapar(rotuloOrigem)}</span>
+        </div>
+        <span class="text-secondary small d-block">${hora}${ev.local ? " · " + escapar(ev.local) : ""}</span>
+        ${ev.descricao ? `<span class="small">${escapar(ev.descricao)}</span>` : ""}
+      </div>
+    </button>`;
+}
+
+function htmlItemTarefa(ev) {
+  const inicio = new Date(ev.inicio);
+  const origem = normalizarOrigem(ev.origem);
+  const rotuloOrigem = ev.origemTitulo || ORIGENS[origem]?.rotulo || origem;
+  const concluida = !!ev.concluida;
+  return `
+    <div class="lista-evento-item lista-evento-${origem} lista-evento-tarefa${concluida ? " lista-evento-tarefa--concluida" : ""}">
+      <label class="agenda-tarefa-check-wrap mb-0">
+        <input type="checkbox" class="form-check-input agenda-tarefa-check" data-id="${escapar(ev.id)}" data-origem="${escapar(origem)}" ${concluida ? "checked" : ""} aria-label="marcar tarefa como concluída" />
+      </label>
+      <button type="button" class="lista-evento-corpo lista-evento-acao text-start flex-grow-1 border-0 bg-transparent p-0" data-id="${escapar(ev.id)}">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <strong class="${concluida ? "text-decoration-line-through text-secondary" : ""}">${escapar(ev.titulo)}</strong>
+          <span class="badge-origem badge-origem-${origem}">${escapar(rotuloOrigem)}</span>
+        </div>
+        <span class="text-secondary small d-block">prazo: ${AgendaAPI.formatarPrazoTarefa(ev.inicio)}</span>
+        ${ev.descricao ? `<span class="small">${escapar(ev.descricao)}</span>` : ""}
+      </button>
+    </div>`;
+}
+
+function vincularAcoesLista(container) {
+  if (!container) return;
+  container.querySelectorAll(".lista-evento-acao").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const ev = todosEventos.find((e) => e.id === btn.dataset.id);
+      if (ev) abrirEditarItem(ev);
+    });
+  });
+}
+
+function vincularChecksTarefas() {
+  ui.listaTarefas.querySelectorAll(".agenda-tarefa-check").forEach((chk) => {
+    chk.addEventListener("change", async () => {
+      const id = chk.dataset.id;
+      const origem = chk.dataset.origem || "";
+      const concluida = chk.checked;
+      chk.disabled = true;
+      try {
+        await AgendaAPI.alternarTarefa(id, concluida, origem);
+        const ev = todosEventos.find((e) => e.id === id);
+        if (ev) ev.concluida = concluida;
+        renderListas();
+      } catch (err) {
+        chk.checked = !concluida;
+        statusPainel(ui.status, "Erro: " + mensagemErroAgenda(err), "erro");
+      } finally {
+        chk.disabled = false;
+      }
+    });
+  });
+}
+
+function renderListas() {
+  const { compromissos, tarefas } = filtrarItens();
+
+  if (diaFiltro) {
     ui.tituloLista.textContent =
       "atividades em " +
       new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(diaFiltro);
     ui.btnLimpar.classList.remove("d-none");
   } else {
-    const agora = new Date();
-    eventos = eventos.filter((e) => new Date(e.inicio) >= agora);
     ui.tituloLista.textContent = "próximas atividades";
     ui.btnLimpar.classList.add("d-none");
   }
 
-  eventos.sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
-
-  if (!eventos.length) {
+  if (!compromissos.length) {
     ui.lista.innerHTML =
       '<p class="text-secondary text-center py-4 mb-0">nenhuma atividade neste período.</p>';
-    return;
+  } else {
+    ui.lista.innerHTML = compromissos.map(htmlItemCompromisso).join("");
+    vincularAcoesLista(ui.lista);
   }
 
-  ui.lista.innerHTML = eventos
-    .map((ev) => {
-      const inicio = new Date(ev.inicio);
-      const hora = ev.diaInteiro
-        ? "dia inteiro"
-        : AgendaAPI.fmtHora.format(inicio);
-      const origem = ev.origem || "campanha";
-      const rotuloOrigem = ev.origemTitulo || ORIGENS[origem]?.rotulo || origem;
-      return `
-        <div class="lista-evento-item lista-evento-${origem}">
-          <div class="lista-evento-data">
-            <span class="lista-evento-dia">${inicio.getDate()}</span>
-            <span class="lista-evento-mes">${new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(inicio)}</span>
-          </div>
-          <div class="lista-evento-corpo">
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <strong>${escapar(ev.titulo)}</strong>
-              <span class="badge-origem badge-origem-${origem}">${escapar(rotuloOrigem)}</span>
-            </div>
-            <span class="text-secondary small d-block">${hora}${ev.local ? " · " + escapar(ev.local) : ""}</span>
-            ${ev.descricao ? `<span class="small">${escapar(ev.descricao)}</span>` : ""}
-          </div>
-        </div>`;
-    })
-    .join("");
+  if (!tarefas.length) {
+    ui.listaTarefas.innerHTML =
+      '<p class="text-secondary text-center py-4 mb-0">' +
+      (filtroTarefas === "pendentes"
+        ? "nenhuma tarefa pendente neste período."
+        : "nenhuma tarefa neste período.") +
+      "</p>";
+  } else {
+    ui.listaTarefas.innerHTML = tarefas.map(htmlItemTarefa).join("");
+    vincularAcoesLista(ui.listaTarefas);
+    vincularChecksTarefas();
+  }
+
+  notificarAlturaFrame();
 }
 
 function escapar(txt) {
   const d = document.createElement("div");
   d.textContent = txt || "";
   return d.innerHTML;
+}
+
+function atualizarSeletorAgendas(agendas) {
+  const fieldset = document.getElementById("evOrigemFieldset");
+  const aviso = document.getElementById("evOrigemAviso");
+  if (!fieldset) return;
+
+  if (agendas) {
+    agendasGravacao = {};
+    Object.keys(agendas).forEach((key) => {
+      agendasGravacao[key] = !!agendas[key].gravacao;
+    });
+  }
+
+  const opcoes = fieldset.querySelectorAll(".agenda-origem-opcao");
+  let algumaGravacao = false;
+
+  opcoes.forEach((label) => {
+    const input = label.querySelector('input[name="evOrigem"]');
+    if (!input) return;
+    const key = input.value;
+    const disponivel = !!agendasGravacao[key];
+    label.classList.toggle("agenda-origem-opcao--indisponivel", !disponivel);
+    input.disabled = !disponivel;
+    if (disponivel) algumaGravacao = true;
+  });
+
+  const marcada = document.querySelector('input[name="evOrigem"]:checked');
+  if (!modoEdicao && (!marcada || marcada.disabled)) {
+    const primeira = fieldset.querySelector('input[name="evOrigem"]:not(:disabled)');
+    if (primeira) primeira.checked = true;
+  }
+
+  if (aviso) {
+    const indisponiveis = Object.keys(agendasGravacao).filter(
+      (key) => agendasGravacao[key] === false
+    );
+    aviso.textContent =
+      indisponiveis.length > 0
+        ? `Agenda(s) ainda não configurada(s) no servidor (Apps Script): ${indisponiveis.join(", ")}.`
+        : "";
+    aviso.classList.toggle("d-none", indisponiveis.length === 0);
+  }
+
+  fieldset.classList.toggle("d-none", !algumaGravacao);
+}
+
+function extrairDataDoCampo(el) {
+  const v = String(el?.value || "").trim();
+  if (!v) return AgendaAPI.paraInputData(new Date());
+  return v.length >= 10 ? v.slice(0, 10) : v;
+}
+
+function aplicarModoDiaInteiro(diaInteiro) {
+  const inicioEl = ui.evInicio;
+  const fimEl = ui.evFim;
+  const inicioAtual = extrairDataDoCampo(inicioEl);
+  const fimAtual = extrairDataDoCampo(fimEl) || inicioAtual;
+
+  if (diaInteiro) {
+    inicioEl.type = "date";
+    fimEl.type = "date";
+    inicioEl.value = inicioAtual;
+    fimEl.value = fimAtual;
+    fimEl.disabled = false;
+  } else {
+    const horaInicio = inicioEl.type === "datetime-local" && inicioEl.value.includes("T")
+      ? inicioEl.value.slice(11, 16)
+      : "09:00";
+    const horaFim = fimEl.type === "datetime-local" && fimEl.value.includes("T")
+      ? fimEl.value.slice(11, 16)
+      : "10:00";
+    inicioEl.type = "datetime-local";
+    fimEl.type = "datetime-local";
+    inicioEl.value = inicioAtual + "T" + horaInicio;
+    fimEl.value = fimAtual + "T" + horaFim;
+    fimEl.disabled = false;
+  }
+
+  ui.evLembrete.disabled = diaInteiro;
+}
+
+function aplicarCamposTipo(tipo) {
+  const ehTarefaForm = tipo === "tarefa";
+  ui.camposEvento.classList.toggle("d-none", ehTarefaForm);
+  ui.camposTarefa.classList.toggle("d-none", !ehTarefaForm);
+  ui.evInicio.required = !ehTarefaForm;
+  ui.evPrazo.required = ehTarefaForm;
+  ui.evConcluidaWrap.classList.toggle("d-none", !modoEdicao || !ehTarefaForm);
+}
+
+function definirTipoFormulario(tipo) {
+  const input = document.querySelector(`input[name="evTipo"][value="${tipo}"]`);
+  if (input) input.checked = true;
+  aplicarCamposTipo(tipo);
+}
+
+function definirOrigemFormulario(origem) {
+  const key = normalizarOrigem(origem);
+  document.querySelectorAll('input[name="evOrigem"]').forEach((inp) => {
+    inp.checked = inp.value === key;
+  });
+}
+
+function definirOrigemPadrao() {
+  const padrao = CONFIG.AGENDA?.ORIGEM_PADRAO || "campanha";
+  definirOrigemFormulario(padrao);
+}
+
+function setSalvandoModal(ativo) {
+  ui.modalSalvando?.classList.toggle("d-none", !ativo);
+  ui.modalSalvando?.setAttribute("aria-hidden", ativo ? "false" : "true");
+  ui.modalSalvando?.setAttribute("aria-busy", ativo ? "true" : "false");
+  if (ui.btnSalvar) ui.btnSalvar.disabled = ativo;
+  if (ui.btnExcluir) ui.btnExcluir.disabled = ativo;
+}
+
+function mensagemErroAgenda(err) {
+  const msg = String(err?.message || err || "");
+  const m = msg.match(/Agenda não cadastrada:\s*(\w+)/i);
+  if (m) {
+    const chave = m[1];
+    return (
+      `A agenda ${chave} não está configurada no Apps Script. ` +
+      `Configure AGENDAS.${chave}.id e publique nova versão do Web App.`
+    );
+  }
+  return msg.replace(/^Error:\s*/i, "");
+}
+
+function abrirModalItem(tipo, data, ev) {
+  modoEdicao = !!ev;
+  ui.form.reset();
+  ui.evId.value = ev ? ev.id : "";
+  ui.evOrigemSalva.value = ev ? normalizarOrigem(ev.origem) : "";
+  atualizarSeletorAgendas();
+  AgendaAPI.alerta(ui.statusModal, "", null);
+
+  const inicio = ev ? new Date(ev.inicio) : data || diaFiltro || new Date();
+  const tipoItem = ev ? (ehTarefa(ev) ? "tarefa" : "evento") : tipo || "evento";
+
+  definirTipoFormulario(tipoItem);
+  document.querySelectorAll('input[name="evTipo"]').forEach((input) => {
+    input.disabled = modoEdicao;
+  });
+  ui.tipoFieldset.classList.toggle("d-none", modoEdicao);
+
+  if (ev) {
+    ui.modalTitulo.textContent = ehTarefa(ev) ? "editar tarefa" : "editar atividade";
+    ui.evTitulo.value = ev.titulo || "";
+    ui.evDescricao.value = ev.descricao || "";
+    definirOrigemFormulario(ev.origem);
+    if (ehTarefa(ev)) {
+      ui.evPrazo.value = AgendaAPI.diaDeIso(ev.inicio);
+      ui.evConcluida.checked = !!ev.concluida;
+    } else {
+      ui.diaInteiro.checked = !!ev.diaInteiro;
+      aplicarModoDiaInteiro(ui.diaInteiro.checked);
+      if (ev.diaInteiro) {
+        ui.evInicio.value = AgendaAPI.paraInputData(inicio);
+        ui.evFim.value = ev.fim
+          ? AgendaAPI.diaInteiroFimInclusive(ev.fim)
+          : AgendaAPI.paraInputData(inicio);
+      } else {
+        ui.evInicio.value = AgendaAPI.paraInputLocal(inicio);
+        ui.evFim.value = ev.fim ? AgendaAPI.paraInputLocal(new Date(ev.fim)) : "";
+      }
+      ui.evLocal.value = ev.local || "";
+      ui.evLembrete.value = CONFIG.AGENDA.LEMBRETE_PADRAO_MIN;
+    }
+  } else {
+    ui.modalTitulo.textContent = tipoItem === "tarefa" ? "nova tarefa" : "nova atividade";
+    definirOrigemPadrao();
+    ui.evInicio.value = AgendaAPI.paraInputLocal(inicio);
+    const fim = new Date(inicio.getTime() + CONFIG.AGENDA.DURACAO_PADRAO_MIN * 60000);
+    ui.evFim.value = AgendaAPI.paraInputLocal(fim);
+    ui.diaInteiro.checked = false;
+    aplicarModoDiaInteiro(false);
+    ui.evPrazo.value = AgendaAPI.paraInputData(inicio);
+    ui.evLembrete.value = CONFIG.AGENDA.LEMBRETE_PADRAO_MIN;
+    ui.evConcluida.checked = false;
+  }
+
+  ui.btnExcluir.classList.toggle("d-none", !modoEdicao);
+  aplicarCamposTipo(tipoItem);
+  modalEvento.show();
+}
+
+function abrirNovoEvento(data) {
+  abrirModalItem("evento", data, null);
+}
+
+function abrirEditarItem(ev) {
+  abrirModalItem(ehTarefa(ev) ? "tarefa" : "evento", null, ev);
 }
 
 async function carregarEventos() {
@@ -246,29 +623,154 @@ async function carregarEventos() {
   try {
     const inicio = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
     const fim = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 2, 0);
-    const eventos = await AgendaAPI.buscar(inicio, fim);
-    if (eventos === null) return;
+    const resultado = await AgendaAPI.buscar(inicio, fim);
+    if (resultado === null) return;
 
-    todosEventos = eventos;
+    todosEventos = resultado.eventos;
+    atualizarSeletorAgendas(resultado.agendas);
     statusPainel(ui.status, "", null);
     renderMiniCalendario();
-    renderLista();
+    renderListas();
   } catch (err) {
     statusPainel(ui.status, "Erro: " + err.message, "erro");
   }
 }
 
-function abrirNovoEvento(data) {
-  ui.form.reset();
+function origemAnterior() {
+  return normalizarOrigem(ui.evOrigemSalva?.value || "");
+}
+
+function origemSelecionada() {
+  const marcada = document.querySelector('input[name="evOrigem"]:checked');
+  if (marcada) return normalizarOrigem(marcada.value);
+  const anterior = origemAnterior();
+  return anterior || "campanha";
+}
+
+function lerFormulario() {
+  const tipo = tipoSelecionado();
+  const origem = origemSelecionada();
+  const base = {
+    id: ui.evId.value || undefined,
+    titulo: ui.evTitulo.value.trim(),
+    descricao: ui.evDescricao.value.trim(),
+    origem: origem,
+    tipo: tipo,
+  };
+
+  if (modoEdicao) {
+    const anterior = origemAnterior();
+    if (anterior) base.origemAnterior = anterior;
+    const ev = todosEventos.find((e) => e.id === base.id);
+    if (ev?.legadoCalendario) base.legadoCalendario = true;
+  }
+
+  if (tipo === "tarefa") {
+    const prazo = ui.evPrazo.value;
+    if (!prazo) throw new Error("Informe o prazo da tarefa.");
+    return Object.assign(base, {
+      inicio: prazo,
+      concluida: ui.evConcluida.checked,
+    });
+  }
+
+  const inicioVal = ui.evInicio.value;
+  if (!inicioVal) throw new Error("Informe o início.");
+
+  if (ui.diaInteiro.checked) {
+    const inicioYmd = extrairDataDoCampo(ui.evInicio);
+    const fimYmd = extrairDataDoCampo(ui.evFim) || inicioYmd;
+    if (fimYmd < inicioYmd) {
+      throw new Error("A data de fim não pode ser anterior à data de início.");
+    }
+    return Object.assign(base, {
+      inicio: AgendaAPI.isoDeDataLocal(inicioYmd),
+      fim: AgendaAPI.isoDeDataLocal(AgendaAPI.diaInteiroFimExclusivo(fimYmd)),
+      local: ui.evLocal.value.trim(),
+      diaInteiro: true,
+      duracaoMin: CONFIG.AGENDA.DURACAO_PADRAO_MIN,
+      lembreteMin: "",
+    });
+  }
+
+  return Object.assign(base, {
+    inicio: new Date(inicioVal).toISOString(),
+    fim: ui.evFim.value ? new Date(ui.evFim.value).toISOString() : null,
+    local: ui.evLocal.value.trim(),
+    diaInteiro: ui.diaInteiro.checked,
+    duracaoMin: CONFIG.AGENDA.DURACAO_PADRAO_MIN,
+    lembreteMin: ui.evLembrete.value,
+  });
+}
+
+async function salvarFormulario(e) {
+  e.preventDefault();
+  if (!AgendaAPI.configValida()) return;
+
+  const origem = origemSelecionada();
+  if (agendasGravacao[origem] === false) {
+    AgendaAPI.alerta(ui.statusModal, mensagemErroAgenda("Agenda não cadastrada: gabinete"), "erro");
+    return;
+  }
+
+  let dados;
+  try {
+    dados = lerFormulario();
+  } catch (err) {
+    AgendaAPI.alerta(ui.statusModal, err.message, "erro");
+    return;
+  }
+
+  setSalvandoModal(true);
   AgendaAPI.alerta(ui.statusModal, "", null);
 
-  const inicio = data || diaFiltro || new Date();
-  document.getElementById("evInicio").value = AgendaAPI.paraInputLocal(inicio);
-  const fim = new Date(inicio.getTime() + CONFIG.AGENDA.DURACAO_PADRAO_MIN * 60000);
-  document.getElementById("evFim").value = AgendaAPI.paraInputLocal(fim);
-  document.getElementById("evLembrete").value = CONFIG.AGENDA.LEMBRETE_PADRAO_MIN;
+  try {
+    if (modoEdicao) {
+      await AgendaAPI.atualizar(dados);
+      const transferiu =
+        dados.origemAnterior && dados.origemAnterior !== dados.origem;
+      statusPainel(
+        ui.status,
+        transferiu
+          ? dados.tipo === "tarefa"
+            ? "Tarefa transferida e atualizada!"
+            : "Atividade transferida e atualizada!"
+          : dados.tipo === "tarefa"
+          ? "Tarefa atualizada!"
+          : "Atividade atualizada!",
+        "sucesso"
+      );
+    } else {
+      await AgendaAPI.criar(dados);
+      statusPainel(ui.status, dados.tipo === "tarefa" ? "Tarefa adicionada!" : "Atividade adicionada!", "sucesso");
+    }
+    modalEvento.hide();
+    await carregarEventos();
+  } catch (err) {
+    AgendaAPI.alerta(ui.statusModal, "Erro: " + mensagemErroAgenda(err), "erro");
+  } finally {
+    setSalvandoModal(false);
+  }
+}
 
-  modalEvento.show();
+async function excluirItem() {
+  if (!modoEdicao || !ui.evId.value) return;
+  if (!confirm("Excluir este item da agenda?")) return;
+
+  const ev = todosEventos.find((e) => e.id === ui.evId.value);
+  const origem = ev ? normalizarOrigem(ev.origem) : origemAnterior() || origemSelecionada();
+
+  setSalvandoModal(true);
+  try {
+    await AgendaAPI.excluir(ui.evId.value, origem);
+    modalEvento.hide();
+    statusPainel(ui.status, "Item excluído.", "sucesso");
+    await carregarEventos();
+  } catch (err) {
+    AgendaAPI.alerta(ui.statusModal, "Erro: " + mensagemErroAgenda(err), "erro");
+  } finally {
+    setSalvandoModal(false);
+  }
 }
 
 function montarUi() {
@@ -276,9 +778,26 @@ function montarUi() {
     status: document.getElementById("status"),
     statusModal: document.getElementById("statusModal"),
     form: document.getElementById("formEvento"),
+    evId: document.getElementById("evId"),
+    evOrigemSalva: document.getElementById("evOrigemSalva"),
+    modalTitulo: document.getElementById("modalEventoTitulo"),
     btnSalvar: document.getElementById("btnSalvarEvento"),
+    btnExcluir: document.getElementById("btnExcluirEvento"),
     btnNova: document.getElementById("btnNova"),
     diaInteiro: document.getElementById("evDiaInteiro"),
+    evInicio: document.getElementById("evInicio"),
+    evFim: document.getElementById("evFim"),
+    evPrazo: document.getElementById("evPrazo"),
+    evTitulo: document.getElementById("evTitulo"),
+    evDescricao: document.getElementById("evDescricao"),
+    evLocal: document.getElementById("evLocal"),
+    evLembrete: document.getElementById("evLembrete"),
+    evConcluida: document.getElementById("evConcluida"),
+    evConcluidaWrap: document.getElementById("evConcluidaWrap"),
+    camposEvento: document.getElementById("evCamposEvento"),
+    camposTarefa: document.getElementById("evCamposTarefa"),
+    tipoFieldset: document.getElementById("evTipoFieldset"),
+    modalSalvando: document.getElementById("evModalSalvando"),
     miniCal: document.getElementById("miniCalendario"),
     btnSelMes: document.getElementById("btnSelMes"),
     btnSelAno: document.getElementById("btnSelAno"),
@@ -288,7 +807,14 @@ function montarUi() {
     pickerFechar: document.getElementById("pickerFechar"),
     pickerBackdrop: document.getElementById("pickerBackdrop"),
     lista: document.getElementById("listaEventos"),
+    listaTarefas: document.getElementById("listaTarefas"),
     tituloLista: document.getElementById("tituloLista"),
+    tituloTarefas: document.getElementById("tituloTarefas"),
+    filtroTarefasBtns: document.querySelectorAll("[data-filtro-tarefas]"),
+    filtroOrigemBtns: document.querySelectorAll("[data-filtro-origem]"),
+    listasTabs: document.querySelectorAll("[data-agenda-tab]"),
+    painelAtividades: document.getElementById("painelAgendaAtividades"),
+    painelTarefas: document.getElementById("painelAgendaTarefas"),
     btnLimpar: document.getElementById("btnLimparFiltro"),
     btnMesAnt: document.getElementById("btnMesAnt"),
     btnMesProx: document.getElementById("btnMesProx"),
@@ -302,53 +828,41 @@ function initAgenda() {
   const modalEl = document.getElementById("modalEvento");
   modalEvento = modalEl ? new bootstrap.Modal(modalEl) : null;
 
-  ui.form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!AgendaAPI.configValida()) return;
+  ui.form.addEventListener("submit", salvarFormulario);
+  ui.btnExcluir.addEventListener("click", excluirItem);
 
-    const inicioVal = document.getElementById("evInicio").value;
-    if (!inicioVal) {
-      AgendaAPI.alerta(ui.statusModal, "Informe o início.", "erro");
-      return;
-    }
-
-    AgendaAPI.alerta(ui.statusModal, "Salvando...", "carregando");
-    ui.btnSalvar.disabled = true;
-
-    try {
-      await AgendaAPI.criar({
-        titulo: document.getElementById("evTitulo").value.trim(),
-        inicio: new Date(inicioVal).toISOString(),
-        fim: document.getElementById("evFim").value
-          ? new Date(document.getElementById("evFim").value).toISOString()
-          : null,
-        local: document.getElementById("evLocal").value.trim(),
-        descricao: document.getElementById("evDescricao").value.trim(),
-        diaInteiro: ui.diaInteiro.checked,
-        duracaoMin: CONFIG.AGENDA.DURACAO_PADRAO_MIN,
-        lembreteMin: document.getElementById("evLembrete").value,
-      });
-
-      modalEvento.hide();
-      AgendaAPI.alerta(ui.status, "Atividade adicionada!", "sucesso");
-      carregarEventos();
-    } catch (err) {
-      AgendaAPI.alerta(ui.statusModal, "Erro: " + err.message, "erro");
-    } finally {
-      ui.btnSalvar.disabled = false;
-    }
+  document.querySelectorAll('input[name="evTipo"]').forEach((input) => {
+    input.addEventListener("change", () => aplicarCamposTipo(tipoSelecionado()));
   });
 
   ui.diaInteiro.addEventListener("change", () => {
-    document.getElementById("evFim").disabled = ui.diaInteiro.checked;
-    document.getElementById("evLembrete").disabled = ui.diaInteiro.checked;
+    aplicarModoDiaInteiro(ui.diaInteiro.checked);
   });
 
   ui.btnNova.addEventListener("click", () => abrirNovoEvento());
+
+  ui.filtroTarefasBtns.forEach((btn) => {
+    btn.addEventListener("click", () => definirFiltroTarefas(btn.dataset.filtroTarefas));
+  });
+  ui.filtroOrigemBtns.forEach((btn) => {
+    btn.addEventListener("click", () => alternarFiltroOrigem(btn.dataset.filtroOrigem));
+  });
+  ui.listasTabs.forEach((tab) => {
+    tab.addEventListener("click", () => definirAbaListasMobile(tab.dataset.agendaTab));
+  });
+  atualizarFiltroTarefasBadges();
+  atualizarFiltroOrigensBadges();
+  atualizarAbasListasMobile();
+
+  window.addEventListener("resize", () => {
+    atualizarAbasListasMobile();
+    notificarAlturaFrame();
+  });
+
   ui.btnLimpar.addEventListener("click", () => {
     diaFiltro = null;
     renderMiniCalendario();
-    renderLista();
+    renderListas();
   });
 
   ui.btnMesAnt.addEventListener("click", () => {
