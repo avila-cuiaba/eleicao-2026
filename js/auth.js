@@ -74,6 +74,9 @@ const AUTH = {
   },
 
   podeAcessarPagina(paginaId) {
+    if (paginaId === "planilhas" && !this.ehAvilaMaster()) {
+      return false;
+    }
     const cfg = this.PERFIS[this.perfilAtivo()];
     if (!cfg) return true;
     if (cfg.paginas) return cfg.paginas.includes(paginaId);

@@ -86,11 +86,6 @@ const PAGINAS = {
     arquivo: "pages/entregas.html",
     atualizar: true,
   },
-  pautas: {
-    titulo: "pautas",
-    subtitulo: "temas e compromissos",
-    arquivo: "pages/pautas.html",
-  },
   "mobilizacao-estrutura": {
     titulo: "mobilização em Cuiabá / VG",
     subtitulo: "estrutura — visão hierárquica",

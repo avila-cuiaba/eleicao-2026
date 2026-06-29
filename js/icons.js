@@ -43,11 +43,6 @@ window.APP_ICON_SVG = {
     '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>' +
     '<path d="M3.27 6.96 12 12.01 20.73 6.96M12 22.08V12"/>' +
     "</svg>",
-  pautas:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
-    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
-    '<path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/>' +
-    "</svg>",
   mobilizacao:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
     '<circle cx="12" cy="5" r="2"/>' +
@@ -99,7 +94,6 @@ window.APP_MENU = [
   },
   { id: "agenda", label: "agenda" },
   { id: "entregas", label: "entregas" },
-  { id: "pautas", label: "pautas" },
   { id: "planilhas", label: "planilhas" },
 ];
 
