@@ -211,15 +211,26 @@ function montarFiltrosRegioes(listaRegioes) {
   });
 }
 
+function municipioSelecionadoInfo() {
+  return listaMunicipiosAtual.find((m) => m.norm === municipioSelecionado) || null;
+}
+
 function rotuloMunicipioSelecionado() {
-  const mun = listaMunicipiosAtual.find((m) => m.norm === municipioSelecionado);
-  return mun?.rotulo || null;
+  return municipioSelecionadoInfo()?.rotulo || null;
 }
 
 function atualizarTituloAccordionMunicipio() {
   if (!el.municipioAccordionTitulo) return;
-  const rotulo = rotuloMunicipioSelecionado();
-  el.municipioAccordionTitulo.textContent = rotulo ? `município: ${rotulo}` : "município";
+  const mun = municipioSelecionadoInfo();
+  if (!mun) {
+    el.municipioAccordionTitulo.textContent = "município";
+    return;
+  }
+
+  const corIdx = indiceCorRegiao(mun.regiaoNorm);
+  el.municipioAccordionTitulo.innerHTML =
+    `município: <span class="entregas-municipio-item entregas-municipio-cor--${corIdx} is-active">` +
+    `<span class="entregas-municipio-badge">${escapeHtml(mun.rotulo)}</span></span>`;
 }
 
 function fecharAccordionMunicipios() {

@@ -5838,6 +5838,19 @@ body.page-pessoal .dashboard-tabela-panel {
   box-shadow: 0 0 0 0.2rem rgba(31, 78, 140, 0.15);
 }
 
+.entregas-municipio-accordion-titulo {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.entregas-municipio-accordion-titulo .entregas-municipio-item {
+  margin: 0;
+  pointer-events: none;
+  cursor: default;
+}
+
 .entregas-municipios-accordion .accordion-body {
   max-height: 220px;
   overflow-y: auto;
