@@ -898,6 +898,7 @@ function montarUi() {
     btnSalvar: document.getElementById("btnSalvarEvento"),
     btnExcluir: document.getElementById("btnExcluirEvento"),
     btnNova: document.getElementById("btnNova"),
+    btnNovaDesktop: document.getElementById("btnNovaDesktop"),
     diaInteiro: document.getElementById("evDiaInteiro"),
     evInicio: document.getElementById("evInicio"),
     evFim: document.getElementById("evFim"),
@@ -963,6 +964,7 @@ function initAgenda() {
   });
 
   ui.btnNova.addEventListener("click", () => abrirNovoEvento());
+  ui.btnNovaDesktop?.addEventListener("click", () => abrirNovoEvento());
 
   ui.btnToggleCalendario?.addEventListener("click", () => toggleCalendarioMobile());
   ui.btnFecharCalendario?.addEventListener("click", () => fecharCalendarioMobile());

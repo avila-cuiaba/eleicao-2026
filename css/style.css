@@ -3680,26 +3680,32 @@ button.lista-evento-acao:focus-visible {
 .agenda-topo-linha--filtros {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   flex-wrap: nowrap;
   width: 100%;
 }
 
-.agenda-topo-linha--filtros .agenda-btn-nova {
-  flex-shrink: 0;
+.agenda-topo-linha--filtros .agenda-filtro-origens {
+  justify-content: flex-end;
 }
 
-.agenda-topo-linha--filtros .agenda-filtro-origens {
-  flex: 1;
-  min-width: 0;
-  justify-content: flex-end;
+.agenda-btn-nova--calendario {
+  display: none;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.agenda-btn-nova--filtros {
+  display: inline-flex;
+  flex-shrink: 0;
 }
 
 .agenda-topo-linha--calendario {
   display: none;
   align-items: center;
   gap: 8px;
+  width: 100%;
 }
 
 .agenda-titulo-filtro-mobile {
@@ -3727,8 +3733,8 @@ button.lista-evento-acao:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 2.65rem;
+  height: 2.65rem;
   padding: 0;
   border: none;
   background: transparent;
@@ -3740,8 +3746,8 @@ button.lista-evento-acao:focus-visible {
 }
 
 .agenda-toggle-calendario svg {
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 1.85rem;
+  height: 1.85rem;
 }
 
 .agenda-toggle-calendario:hover {
@@ -3832,18 +3838,17 @@ button.lista-evento-acao:focus-visible {
   padding: 0;
   border: none;
   border-radius: 10px;
-  background: var(--brand, #1f4e8c);
-  color: #fff;
+  background: transparent;
+  color: var(--brand, #1f4e8c);
   line-height: 1;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(31, 78, 140, 0.22);
-  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
 .agenda-btn-nova:hover {
-  background: #183d6f;
-  color: #fff;
-  box-shadow: 0 3px 10px rgba(31, 78, 140, 0.28);
+  color: #183d6f;
+  background: rgba(31, 78, 140, 0.08);
 }
 
 .agenda-btn-nova:active {
@@ -3851,8 +3856,8 @@ button.lista-evento-acao:focus-visible {
 }
 
 .agenda-btn-nova svg {
-  width: 1.28rem;
-  height: 1.28rem;
+  width: 1.85rem;
+  height: 1.85rem;
 }
 
 .agenda-listas-tab {
@@ -3878,6 +3883,14 @@ button.lista-evento-acao:focus-visible {
 @media (max-width: 576px) {
   .agenda-topo-linha--calendario {
     display: flex;
+  }
+
+  .agenda-btn-nova--calendario {
+    display: inline-flex;
+  }
+
+  .agenda-btn-nova--filtros {
+    display: none !important;
   }
 
   .agenda-lista-cabecalho--desktop {
@@ -3998,6 +4011,23 @@ button.lista-evento-acao:focus-visible {
 
   .agenda-topo-linha--calendario {
     display: none !important;
+  }
+
+  .agenda-btn-nova--calendario {
+    display: none !important;
+  }
+
+  .agenda-btn-nova--filtros {
+    display: inline-flex !important;
+  }
+
+  .agenda-topo-linha--filtros {
+    justify-content: space-between;
+  }
+
+  .agenda-topo-linha--filtros .agenda-filtro-origens {
+    flex: 1;
+    justify-content: flex-end;
   }
 
   .agenda-lista-cabecalho--desktop {
