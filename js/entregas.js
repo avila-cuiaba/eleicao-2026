@@ -26,6 +26,7 @@ let colunaObjeto = null;
 let colunaValor = null;
 let colunasExtras = [];
 let municipioSelecionado = null;
+let listaMunicipiosAtual = [];
 let modoMt = false;
 
 function mostrarStatus(mensagem, tipo) {
@@ -210,6 +211,28 @@ function montarFiltrosRegioes(listaRegioes) {
   });
 }
 
+function rotuloMunicipioSelecionado() {
+  const mun = listaMunicipiosAtual.find((m) => m.norm === municipioSelecionado);
+  return mun?.rotulo || null;
+}
+
+function atualizarTituloAccordionMunicipio() {
+  if (!el.municipioAccordionTitulo) return;
+  const rotulo = rotuloMunicipioSelecionado();
+  el.municipioAccordionTitulo.textContent = rotulo ? `município: ${rotulo}` : "município";
+}
+
+function fecharAccordionMunicipios() {
+  const collapse = el.collapseMunicipios;
+  if (!collapse || !window.bootstrap?.Collapse) return;
+  const inst =
+    bootstrap.Collapse.getInstance(collapse) ||
+    new bootstrap.Collapse(collapse, { toggle: false });
+  inst.hide();
+  el.btnAccordionMunicipios?.classList.add("collapsed");
+  el.btnAccordionMunicipios?.setAttribute("aria-expanded", "false");
+}
+
 function onRegiaoAlterada(evento) {
   const alvo = evento?.target;
 
@@ -218,6 +241,7 @@ function onRegiaoAlterada(evento) {
       if (input.value !== REGIAO_MT) input.checked = false;
     });
     municipioSelecionado = null;
+    listaMunicipiosAtual = [];
     modoMt = true;
     montarFiltroMunicipios([]);
   } else {
@@ -239,9 +263,11 @@ function onRegiaoAlterada(evento) {
 function montarFiltroMunicipios(lista) {
   if (!el.filtroMunicipios || !el.municipiosWrap) return;
 
+  listaMunicipiosAtual = lista;
   el.filtroMunicipios.innerHTML = "";
   if (modoMt || !lista.length) {
     el.municipiosWrap.classList.add("d-none");
+    atualizarTituloAccordionMunicipio();
     return;
   }
 
@@ -268,9 +294,13 @@ function montarFiltroMunicipios(lista) {
       el.filtroMunicipios.querySelectorAll(".entregas-municipio-item").forEach((item) => {
         item.classList.toggle("is-active", item.querySelector("input")?.value === municipioSelecionado);
       });
+      atualizarTituloAccordionMunicipio();
+      fecharAccordionMunicipios();
       atualizarPainelTabela();
     });
   });
+
+  atualizarTituloAccordionMunicipio();
 }
 
 function selecaoAtiva() {
@@ -367,8 +397,8 @@ function montarCabecalhoTabela() {
   const thStack = criarTh("", "entregas-col-stack entregas-tabela-mobile-col");
   thStack.innerHTML =
     '<div class="entregas-th-stack-head">' +
-    `<span>${escapeHtml(rotuloColuna(colunaArea, "área"))}</span>` +
-    `<span>${escapeHtml(rotuloColuna(colunaObjeto, "objeto"))}</span>` +
+    `<span class="entregas-th-objeto">${escapeHtml(rotuloColuna(colunaObjeto, "objeto"))}</span>` +
+    `<span class="entregas-th-area">${escapeHtml(rotuloColuna(colunaArea, "área"))}</span>` +
     "</div>";
   trMobile.appendChild(thStack);
 
@@ -442,8 +472,8 @@ function criarLinhaTabela(item) {
   const tdStack = criarTdHtml("", "entregas-col-stack entregas-tabela-mobile-col");
   tdStack.innerHTML =
     '<div class="entregas-celula-stack">' +
-    `<span class="entregas-stack-area">${exibirValor(valorItem(item, colunaArea))}</span>` +
     `<span class="entregas-stack-objeto">${exibirValor(valorItem(item, colunaObjeto))}</span>` +
+    `<span class="entregas-stack-area">${exibirValor(valorItem(item, colunaArea))}</span>` +
     "</div>";
   tr.appendChild(tdStack);
 
@@ -466,9 +496,57 @@ function atualizarKpis(filtradas) {
   }
 }
 
+function anoItem(item) {
+  return String(valorItem(item, colunaAno) ?? "").trim() || "—";
+}
+
+function compararAnosCrescente(a, b) {
+  const na = parseInt(a, 10);
+  const nb = parseInt(b, 10);
+  if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+  return a.localeCompare(b, "pt-BR", { numeric: true });
+}
+
+function somarValoresPorAno(filtradas) {
+  const totais = new Map();
+  filtradas.forEach((item) => {
+    const ano = anoItem(item);
+    const atual = totais.get(ano) || 0;
+    totais.set(ano, atual + (colunaValor ? parseNumero(valorItem(item, colunaValor)) : 0));
+  });
+  return Array.from(totais.entries()).sort(([a], [b]) => compararAnosCrescente(a, b));
+}
+
+function atualizarAbasEntregas(filtradas) {
+  const temPorAno = colunaAno && colunaValor && selecaoAtiva() && filtradas.length > 0;
+  el.tabPorAnoItem?.classList.toggle("d-none", !temPorAno);
+
+  if (!temPorAno && el.tabEntregas && window.bootstrap?.Tab) {
+    bootstrap.Tab.getOrCreateInstance(el.tabEntregas).show();
+  }
+}
+
+function renderizarCardPorAno(filtradas) {
+  if (!el.entregasPorAnoCorpo) return;
+
+  atualizarAbasEntregas(filtradas);
+  el.entregasPorAnoCorpo.innerHTML = "";
+
+  if (!colunaAno || !colunaValor || !selecaoAtiva() || !filtradas.length) return;
+
+  somarValoresPorAno(filtradas).forEach(([ano, total]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      `<td class="entregas-por-ano-celula-ano">${escapeHtml(ano)}</td>` +
+      `<td class="text-end entregas-por-ano-celula-valor">${fmtMoeda.format(total)}</td>`;
+    el.entregasPorAnoCorpo.appendChild(tr);
+  });
+}
+
 function renderizarTabela() {
   const filtradas = linhasFiltradas();
   atualizarKpis(filtradas);
+  renderizarCardPorAno(filtradas);
   el.corpo.innerHTML = "";
 
   if (!selecaoAtiva()) {
@@ -497,7 +575,7 @@ function renderizarTabela() {
 
 function atualizarPainelTabela() {
   const mostrar = selecaoAtiva();
-  el.tabelaCard?.classList.toggle("d-none", !mostrar);
+  el.entregasDadosCard?.classList.toggle("d-none", !mostrar);
   el.entregasKpis?.classList.toggle("d-none", !mostrar);
   el.selecioneMsg?.classList.toggle("d-none", mostrar);
   renderizarTabela();
@@ -542,6 +620,7 @@ async function carregarEntregas() {
 
     modoMt = false;
     municipioSelecionado = null;
+    listaMunicipiosAtual = [];
     montarCabecalhoTabela();
     montarFiltrosRegioes(extrairRegioesDoCadastro());
     montarFiltroMunicipios([]);
@@ -559,16 +638,27 @@ function init() {
     filtroRegioes: document.getElementById("filtroRegioes"),
     municipiosWrap: document.getElementById("municipiosWrap"),
     filtroMunicipios: document.getElementById("filtroMunicipios"),
+    municipioAccordionTitulo: document.getElementById("municipioAccordionTitulo"),
+    btnAccordionMunicipios: document.getElementById("btnAccordionMunicipios"),
+    collapseMunicipios: document.getElementById("collapseMunicipios"),
     entregasKpis: document.getElementById("entregasKpis"),
     kpiEntregas: document.getElementById("kpiEntregas"),
     kpiValorTotal: document.getElementById("kpiValorTotal"),
     selecioneMsg: document.getElementById("entregasSelecione"),
-    tabelaCard: document.getElementById("tabelaCard"),
+    entregasDadosCard: document.getElementById("entregasDadosCard"),
+    tabPorAnoItem: document.getElementById("tabPorAnoItem"),
+    tabPorAno: document.getElementById("tabPorAno"),
+    tabEntregas: document.getElementById("tabEntregas"),
+    entregasPorAnoCorpo: document.getElementById("entregasPorAnoCorpo"),
     cabecalhoDesktop: document.getElementById("cabecalhoDesktop"),
     cabecalhoMobile: document.getElementById("cabecalhoMobile"),
     corpo: document.getElementById("corpoTabela"),
     vazio: document.getElementById("vazio"),
   };
+
+  document.querySelectorAll('#entregasDadosTabs button[data-bs-toggle="tab"]').forEach((btn) => {
+    btn.addEventListener("shown.bs.tab", () => notificarAlturaFrame());
+  });
 
   window.atualizarPagina = carregarEntregas;
   carregarEntregas();

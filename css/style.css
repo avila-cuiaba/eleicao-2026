@@ -5815,6 +5815,34 @@ body.page-pessoal .dashboard-tabela-panel {
   cursor: pointer;
 }
 
+.entregas-municipios-accordion .accordion-item {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.entregas-municipios-accordion-btn {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.entregas-municipios-accordion-btn:not(.collapsed) {
+  color: #1e293b;
+  background: #f1f5f9;
+  box-shadow: none;
+}
+
+.entregas-municipios-accordion-btn:focus {
+  box-shadow: 0 0 0 0.2rem rgba(31, 78, 140, 0.15);
+}
+
+.entregas-municipios-accordion .accordion-body {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
 .entregas-municipio-badge {
   display: inline-block;
   padding: 0.28rem 0.55rem;
@@ -5966,14 +5994,21 @@ body.page-pessoal .dashboard-tabela-panel {
 .entregas-th-stack-head span {
   display: block;
   font-size: 0.72rem;
-  font-weight: 700;
   color: #475569;
+}
+
+.entregas-th-stack-head .entregas-th-objeto {
+  font-weight: 400;
+}
+
+.entregas-th-stack-head .entregas-th-area {
+  font-weight: 700;
 }
 
 .entregas-stack-area,
 .entregas-tabela td.entregas-col-area {
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #1e293b;
   word-break: break-word;
 }
@@ -5985,6 +6020,7 @@ body.page-pessoal .dashboard-tabela-panel {
 .entregas-stack-objeto {
   display: block;
   font-size: 0.78rem;
+  font-weight: 400;
   color: #64748b;
   word-break: break-word;
 }
@@ -6016,6 +6052,70 @@ body.page-pessoal .dashboard-tabela-panel {
 .entregas-kpi-card-valor .dashboard-kpi-valor {
   color: #115e59;
   font-size: clamp(0.82rem, 2.2vw, 1.15rem);
+}
+
+.entregas-dados-card {
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+}
+
+.entregas-dados-tabs {
+  border-bottom: 1px solid #e2e8f0;
+  gap: 0.25rem;
+}
+
+.entregas-dados-tabs .nav-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0.45rem 0.85rem;
+  margin-bottom: -1px;
+  text-transform: lowercase;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.entregas-dados-tabs .nav-link:hover {
+  color: var(--brand, #1f4e8c);
+  border-bottom-color: rgba(31, 78, 140, 0.25);
+  isolation: isolate;
+}
+
+.entregas-dados-tabs .nav-link.active {
+  color: var(--brand, #1f4e8c);
+  background: transparent;
+  border-bottom-color: var(--brand, #1f4e8c);
+}
+
+.entregas-por-ano-card {
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+}
+
+.entregas-por-ano-tabela thead th {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: lowercase;
+  white-space: nowrap;
+  padding: 0.5rem 0.75rem;
+}
+
+.entregas-por-ano-tabela tbody td {
+  font-size: 0.82rem;
+  padding: 0.45rem 0.75rem;
+  vertical-align: middle;
+}
+
+.entregas-por-ano-celula-ano {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.entregas-por-ano-celula-valor {
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
 }
 
 @media (min-width: 992px) {
@@ -6077,6 +6177,16 @@ body.page-pessoal .dashboard-tabela-panel {
 
   .entregas-tabela td.entregas-col-stack {
     font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .entregas-tabela .entregas-col-ano.entregas-tabela-mobile-col {
+    width: 14%;
+  }
+
+  .entregas-tabela .entregas-col-stack.entregas-tabela-mobile-col {
+    width: 61%;
   }
 }
 

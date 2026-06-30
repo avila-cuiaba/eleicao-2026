@@ -1436,7 +1436,7 @@ function doPostAgenda(corpo) {
       if (corpo.descricao) ev.setDescription(corpo.descricao);
       if (corpo.local) ev.setLocation(corpo.local);
     } else {
-      ev = cal.createAllDayEvent(corpo.titulo, inicio, opcoes);
+    ev = cal.createAllDayEvent(corpo.titulo, inicio, opcoes);
     }
   } else {
     const duracaoMin = Number(corpo.duracaoMin) || 60;
@@ -1680,7 +1680,7 @@ function atualizarEventoAgenda(corpo) {
     if (fim && fim.getTime() > inicio.getTime()) {
       ev.setAllDayDates(inicio, fim);
     } else {
-      ev.setAllDayDate(inicio);
+    ev.setAllDayDate(inicio);
     }
   } else {
     const fim = corpo.fim
