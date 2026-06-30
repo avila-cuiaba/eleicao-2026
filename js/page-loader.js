@@ -74,6 +74,19 @@ window.PageLoader = PageLoader;
 window.statusPainel = statusPainel;
 
 function notificarAlturaFrame() {
+  try {
+    if (
+      window.parent &&
+      window.parent !== window &&
+      window.parent.ehMobileShell &&
+      window.parent.ehMobileShell()
+    ) {
+      return;
+    }
+  } catch (e) {
+    /* ignorar */
+  }
+
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       try {

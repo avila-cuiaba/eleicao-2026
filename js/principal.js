@@ -196,6 +196,10 @@ window.carregarPagina = function (id) {
   }
 };
 
+function ehMobileShell() {
+  return window.matchMedia("(max-width: 576px)").matches;
+}
+
 function ajustarAlturaFrame() {
   const frame = document.getElementById("appFrame");
   const main = document.querySelector(".app-main-frame");
@@ -218,7 +222,7 @@ function ajustarAlturaFrame() {
     frame.style.flex = "1 1 auto";
     frame.style.minHeight = "0";
 
-    if (preencheViewport) {
+    if (preencheViewport || ehMobileShell()) {
       frame.style.height = "";
       return;
     }
@@ -244,13 +248,19 @@ function ajustarAlturaFrame() {
   }
 }
 
+let agendarAjusteFrameTimer = null;
+
 function agendarAjusteFrame() {
-  ajustarAlturaFrame();
-  setTimeout(ajustarAlturaFrame, 120);
-  setTimeout(ajustarAlturaFrame, 350);
+  if (agendarAjusteFrameTimer) clearTimeout(agendarAjusteFrameTimer);
+  agendarAjusteFrameTimer = setTimeout(() => {
+    agendarAjusteFrameTimer = null;
+    ajustarAlturaFrame();
+    setTimeout(ajustarAlturaFrame, 120);
+  }, ehMobileShell() ? 180 : 0);
 }
 
 window.ajustarAlturaFrame = ajustarAlturaFrame;
+window.ehMobileShell = ehMobileShell;
 
 document.addEventListener("DOMContentLoaded", () => {
   AUTH.exigir();

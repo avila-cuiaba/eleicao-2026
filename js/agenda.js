@@ -978,7 +978,7 @@ function initAgenda() {
     if (!ehMobileListas()) fecharCalendarioMobile();
     atualizarAbasListasMobile();
     atualizarBotaoCalendarioMobile();
-    notificarAlturaFrame();
+    if (!ehMobileListas()) notificarAlturaFrame();
   });
 
   ui.btnLimpar.addEventListener("click", () => {

@@ -310,6 +310,18 @@ html {
   width: 100%;
 }
 
+@media (max-width: 576px) {
+  .app-main-frame {
+    overflow: hidden;
+  }
+
+  .app-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100% !important;
+  }
+}
+
 .app-main-frame {
   padding: 0;
   max-width: none;
@@ -2238,6 +2250,23 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 576px) {
+  html:has(body.page-frame-body) {
+    height: 100%;
+  }
+
+  body.page-frame-body {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.page-frame-body .page-frame-content {
+    flex: 1 0 auto;
+  }
 }
 
 html.dashboard-page {
