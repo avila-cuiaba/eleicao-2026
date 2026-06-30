@@ -3559,29 +3559,68 @@ button.lista-evento-acao:focus-visible {
   font-size: 0.82rem;
 }
 
-.agenda-modal-origem .agenda-origem-opcoes {
+.agenda-modal-origem .agenda-origem-opcoes,
+.agenda-modal-dialog .agenda-tipo-opcoes {
+  display: flex;
   flex-wrap: nowrap;
   gap: 6px;
 }
 
-.agenda-modal-origem .agenda-origem-opcao {
+.agenda-modal-dialog .agenda-origem-opcao,
+.agenda-modal-dialog .agenda-tipo-opcao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
   flex: 1 1 0;
   min-width: 0;
-  justify-content: center;
-  padding: 6px 6px;
-  font-size: 0.78rem;
-  gap: 5px;
 }
 
-.agenda-modal-dialog .agenda-tipo-opcoes {
-  gap: 8px;
+.agenda-modal-dialog .agenda-origem-opcao input,
+.agenda-modal-dialog .agenda-tipo-opcao input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
 }
 
-.agenda-modal-dialog .agenda-tipo-opcao {
-  flex: 1;
-  justify-content: center;
-  padding: 6px 10px;
-  font-size: 0.82rem;
+.agenda-modal-dialog .agenda-filtro-badge--origem::before {
+  opacity: 0.45;
+}
+
+.agenda-modal-dialog .agenda-filtro-badge--origem:has(input:checked)::before {
+  opacity: 1;
+}
+
+.agenda-modal-dialog .agenda-tipo-opcao.agenda-filtro-badge:has(input:checked) {
+  border-color: var(--brand);
+  background: #e8eef7;
+  color: var(--brand);
+}
+
+.agenda-modal-dialog .agenda-filtro-badge--campanha:has(input:checked) {
+  border-color: var(--brand);
+  background: #e8eef7;
+  color: var(--brand);
+}
+
+.agenda-modal-dialog .agenda-filtro-badge--gabinete:has(input:checked) {
+  border-color: #c45c26;
+  background: #fdeee8;
+  color: #9a4a3a;
+}
+
+.agenda-modal-dialog .agenda-filtro-badge--eventos:has(input:checked) {
+  border-color: #16a34a;
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.agenda-modal-dialog .agenda-origem-opcao--indisponivel {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .agenda-modal-dialog input[type="datetime-local"].form-control-sm,
@@ -3641,14 +3680,47 @@ button.lista-evento-acao:focus-visible {
 .agenda-topo-linha--filtros {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
+  justify-content: space-between;
   gap: 8px;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.agenda-topo-linha--filtros .agenda-btn-nova {
+  flex-shrink: 0;
+}
+
+.agenda-topo-linha--filtros .agenda-filtro-origens {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 .agenda-topo-linha--calendario {
   display: none;
   align-items: center;
+  gap: 8px;
+}
+
+.agenda-titulo-filtro-mobile {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  font-weight: 600;
+  color: #3d4a57;
+}
+
+.agenda-limpar-filtro-badge {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.agenda-lista-cabecalho--desktop {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .agenda-toggle-calendario {
@@ -3808,6 +3880,10 @@ button.lista-evento-acao:focus-visible {
     display: flex;
   }
 
+  .agenda-lista-cabecalho--desktop {
+    display: none !important;
+  }
+
   .agenda-layout {
     --bs-gutter-y: 0.75rem;
   }
@@ -3918,6 +3994,14 @@ button.lista-evento-acao:focus-visible {
     flex-direction: row;
     justify-content: flex-end;
     align-items: center;
+  }
+
+  .agenda-topo-linha--calendario {
+    display: none !important;
+  }
+
+  .agenda-lista-cabecalho--desktop {
+    display: flex !important;
   }
 
   .agenda-cal-fechar-mobile,

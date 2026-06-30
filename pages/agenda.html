@@ -25,8 +25,22 @@
             <path d="M16 2v4M8 2v4M3 10h18" />
           </svg>
         </button>
+        <h2 id="tituloListaMobile" class="agenda-titulo-filtro-mobile h6 mb-0">próximas atividades</h2>
+        <button
+          type="button"
+          id="btnLimparFiltro"
+          class="agenda-filtro-badge agenda-limpar-filtro-badge d-none"
+        >
+          ver todas
+        </button>
       </div>
       <div class="agenda-topo-linha agenda-topo-linha--filtros">
+        <button type="button" id="btnNova" class="agenda-btn-nova" aria-label="nova atividade" title="nova atividade">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          <span class="visually-hidden">nova atividade</span>
+        </button>
         <div class="agenda-filtro-origens" role="group" aria-label="filtrar por agenda">
           <button
             type="button"
@@ -53,12 +67,6 @@
             eventos
           </button>
         </div>
-        <button type="button" id="btnNova" class="agenda-btn-nova" aria-label="nova atividade" title="nova atividade">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          <span class="visually-hidden">nova atividade</span>
-        </button>
       </div>
     </div>
 
@@ -147,9 +155,15 @@
           >
             <div class="card shadow-sm agenda-lista-card">
               <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="agenda-lista-cabecalho agenda-lista-cabecalho--desktop mb-3">
                   <h2 class="h6 mb-0" id="tituloLista">próximas atividades</h2>
-                  <button type="button" id="btnLimparFiltro" class="btn btn-sm btn-outline-secondary d-none">ver todas</button>
+                  <button
+                    type="button"
+                    id="btnLimparFiltroDesktop"
+                    class="agenda-filtro-badge agenda-limpar-filtro-badge d-none"
+                  >
+                    ver todas
+                  </button>
                 </div>
                 <div id="listaEventos" class="lista-eventos"></div>
               </div>
@@ -192,19 +206,16 @@
               <fieldset class="mb-2 agenda-modal-origem" id="evOrigemFieldset">
                 <legend class="form-label col-form-label pt-0 pb-1">agenda</legend>
                 <div class="agenda-origem-opcoes" role="radiogroup" aria-label="agenda destino">
-                  <label class="agenda-origem-opcao agenda-origem-opcao--campanha">
+                  <label class="agenda-origem-opcao agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--campanha">
                     <input type="radio" name="evOrigem" value="campanha" checked />
-                    <span class="agenda-origem-marcador" aria-hidden="true"></span>
                     <span>campanha</span>
                   </label>
-                  <label class="agenda-origem-opcao agenda-origem-opcao--gabinete">
+                  <label class="agenda-origem-opcao agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--gabinete">
                     <input type="radio" name="evOrigem" value="gabinete" />
-                    <span class="agenda-origem-marcador" aria-hidden="true"></span>
                     <span>gabinete</span>
                   </label>
-                  <label class="agenda-origem-opcao agenda-origem-opcao--eventos">
+                  <label class="agenda-origem-opcao agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--eventos">
                     <input type="radio" name="evOrigem" value="eventos" />
-                    <span class="agenda-origem-marcador" aria-hidden="true"></span>
                     <span>eventos</span>
                   </label>
                 </div>
@@ -213,11 +224,11 @@
               <fieldset class="mb-2" id="evTipoFieldset">
                 <legend class="form-label col-form-label pt-0 pb-1">tipo</legend>
                 <div class="agenda-tipo-opcoes" role="radiogroup" aria-label="tipo do item">
-                  <label class="agenda-tipo-opcao">
+                  <label class="agenda-tipo-opcao agenda-filtro-badge">
                     <input type="radio" name="evTipo" value="evento" checked />
                     <span>compromisso</span>
                   </label>
-                  <label class="agenda-tipo-opcao">
+                  <label class="agenda-tipo-opcao agenda-filtro-badge">
                     <input type="radio" name="evTipo" value="tarefa" />
                     <span>tarefa</span>
                   </label>

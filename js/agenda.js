@@ -482,19 +482,24 @@ function vincularChecksTarefas() {
   });
 }
 
+function atualizarTituloLista() {
+  const texto = diaFiltro
+    ? "atividades em " +
+      new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(diaFiltro)
+    : "próximas atividades";
+
+  if (ui.tituloLista) ui.tituloLista.textContent = texto;
+  if (ui.tituloListaMobile) ui.tituloListaMobile.textContent = texto;
+
+  const mostrarLimpar = !!diaFiltro;
+  ui.btnLimpar?.classList.toggle("d-none", !mostrarLimpar);
+  ui.btnLimparDesktop?.classList.toggle("d-none", !mostrarLimpar);
+}
+
 function renderListas() {
   const { compromissos, tarefas } = filtrarItens();
 
-  if (diaFiltro) {
-    ui.tituloLista.textContent =
-      "atividades em " +
-      new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(diaFiltro);
-    ui.btnLimpar.classList.remove("d-none");
-  } else {
-    ui.tituloLista.textContent = "próximas atividades";
-    ui.btnLimpar.classList.add("d-none");
-  }
-
+  atualizarTituloLista();
   atualizarBotaoCalendarioMobile();
 
   if (!compromissos.length) {
@@ -921,6 +926,7 @@ function montarUi() {
     lista: document.getElementById("listaEventos"),
     listaTarefas: document.getElementById("listaTarefas"),
     tituloLista: document.getElementById("tituloLista"),
+    tituloListaMobile: document.getElementById("tituloListaMobile"),
     tituloTarefas: document.getElementById("tituloTarefas"),
     filtroTarefasBtns: document.querySelectorAll("[data-filtro-tarefas]"),
     filtroOrigemBtns: document.querySelectorAll("[data-filtro-origem]"),
@@ -928,6 +934,7 @@ function montarUi() {
     painelAtividades: document.getElementById("painelAgendaAtividades"),
     painelTarefas: document.getElementById("painelAgendaTarefas"),
     btnLimpar: document.getElementById("btnLimparFiltro"),
+    btnLimparDesktop: document.getElementById("btnLimparFiltroDesktop"),
     btnMesAnt: document.getElementById("btnMesAnt"),
     btnMesProx: document.getElementById("btnMesProx"),
     calDrawer: document.getElementById("agendaCalDrawer"),
@@ -982,6 +989,11 @@ function initAgenda() {
   });
 
   ui.btnLimpar.addEventListener("click", () => {
+    diaFiltro = null;
+    renderMiniCalendario();
+    renderListas();
+  });
+  ui.btnLimparDesktop?.addEventListener("click", () => {
     diaFiltro = null;
     renderMiniCalendario();
     renderListas();
