@@ -27,6 +27,8 @@ let agendasGravacao = { campanha: true, gabinete: true, eventos: true };
 let modoEdicao = false;
 let filtroTarefas = "pendentes";
 let abaListasMobile = "atividades";
+let calendarioMobileAberto = false;
+let calendarioCarregando = false;
 let filtroOrigens = new Set(Object.keys(ORIGENS));
 
 function chaveDia(d) {
@@ -60,17 +62,78 @@ function atualizarTituloHeader() {
 }
 
 function irParaMesAno(mes, ano) {
+  return mudarPeriodoCalendario(mes, ano);
+}
+
+function setCalendarioCarregando(ativo) {
+  calendarioCarregando = !!ativo;
+  const pickerAberto = ui.picker && !ui.picker.classList.contains("d-none");
+
+  ui.pickerCarregando?.classList.toggle("d-none", !ativo || !pickerAberto);
+  ui.pickerCarregando?.setAttribute("aria-hidden", ativo && pickerAberto ? "false" : "true");
+  ui.pickerCarregando?.setAttribute("aria-busy", ativo && pickerAberto ? "true" : "false");
+
+  ui.calCarregando?.classList.toggle("d-none", !ativo || pickerAberto);
+  ui.calCarregando?.setAttribute("aria-hidden", ativo && !pickerAberto ? "false" : "true");
+  ui.calCarregando?.setAttribute("aria-busy", ativo && !pickerAberto ? "true" : "false");
+
+  ui.calCard?.classList.toggle("is-carregando", ativo);
+
+  [ui.btnMesAnt, ui.btnMesProx, ui.btnSelMes, ui.btnSelAno, ui.pickerFechar].forEach((el) => {
+    if (el) el.disabled = ativo;
+  });
+
+  ui.miniCal?.querySelectorAll("button").forEach((btn) => {
+    btn.disabled = ativo;
+  });
+  ui.pickerCorpo?.querySelectorAll("button").forEach((btn) => {
+    btn.disabled = ativo;
+  });
+}
+
+async function mudarPeriodoCalendario(mes, ano) {
+  if (calendarioCarregando) return;
+
+  const mudou = mesAtual.getMonth() !== mes || mesAtual.getFullYear() !== ano;
+  if (!mudou) {
+    fecharPicker();
+    return;
+  }
+
   mesAtual.setFullYear(ano, mes, 1);
   diaFiltro = null;
-  carregarEventos();
+  setCalendarioCarregando(true);
+
+  try {
+    await carregarEventos();
+  } finally {
+    setCalendarioCarregando(false);
+    fecharPicker();
+  }
+}
+
+async function avancarMesCalendario(delta) {
+  if (calendarioCarregando) return;
+
+  mesAtual.setMonth(mesAtual.getMonth() + delta);
+  diaFiltro = null;
+  setCalendarioCarregando(true);
+
+  try {
+    await carregarEventos();
+  } finally {
+    setCalendarioCarregando(false);
+  }
 }
 
 function abrirPicker() {
+  if (calendarioCarregando) return;
   ui.picker.classList.remove("d-none");
   ui.picker.setAttribute("aria-hidden", "false");
 }
 
 function fecharPicker() {
+  if (calendarioCarregando) return;
   ui.picker.classList.add("d-none");
   ui.picker.setAttribute("aria-hidden", "true");
 }
@@ -89,8 +152,7 @@ function abrirSeletorMes() {
 
   ui.pickerCorpo.querySelectorAll("[data-mes]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      irParaMesAno(Number(btn.dataset.mes), mesAtual.getFullYear());
-      fecharPicker();
+      mudarPeriodoCalendario(Number(btn.dataset.mes), mesAtual.getFullYear());
     });
   });
 
@@ -113,8 +175,7 @@ function abrirSeletorAno() {
 
   ui.pickerCorpo.querySelectorAll("[data-ano]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      irParaMesAno(mesAtual.getMonth(), Number(btn.dataset.ano));
-      fecharPicker();
+      mudarPeriodoCalendario(mesAtual.getMonth(), Number(btn.dataset.ano));
     });
   });
 
@@ -198,8 +259,11 @@ function renderMiniCalendario() {
       diaFiltro = diaFiltro && mesmoDia(d, diaFiltro) ? null : d;
       renderMiniCalendario();
       renderListas();
+      if (ehMobileListas()) fecharCalendarioMobile();
     });
   });
+
+  atualizarBotaoCalendarioMobile();
 }
 
 function filtrarItens() {
@@ -273,6 +337,49 @@ function definirAbaListasMobile(aba) {
 
 function ehMobileListas() {
   return window.matchMedia("(max-width: 576px)").matches;
+}
+
+function atualizarBotaoCalendarioMobile() {
+  if (!ui.btnToggleCalendario) return;
+  let label = "Abrir calendário";
+  if (diaFiltro) {
+    label =
+      "Calendário: " +
+      new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(diaFiltro);
+    ui.btnToggleCalendario.classList.add("is-filtrado");
+  } else {
+    label = "Calendário: " + MESES[mesAtual.getMonth()] + " " + mesAtual.getFullYear();
+    ui.btnToggleCalendario.classList.remove("is-filtrado");
+  }
+  ui.btnToggleCalendario.setAttribute("aria-label", label);
+  ui.btnToggleCalendario.title = label;
+}
+
+function setCalendarioMobileAberto(aberto) {
+  calendarioMobileAberto = !!aberto;
+  document.body.classList.toggle("agenda-cal-aberto", calendarioMobileAberto && ehMobileListas());
+  ui.calDrawer?.classList.toggle("is-open", calendarioMobileAberto && ehMobileListas());
+  ui.calBackdrop?.classList.toggle("is-visible", calendarioMobileAberto && ehMobileListas());
+  ui.calBackdrop?.setAttribute("aria-hidden", calendarioMobileAberto ? "false" : "true");
+  ui.btnToggleCalendario?.setAttribute(
+    "aria-expanded",
+    calendarioMobileAberto && ehMobileListas() ? "true" : "false"
+  );
+  notificarAlturaFrame();
+}
+
+function abrirCalendarioMobile() {
+  if (!ehMobileListas()) return;
+  setCalendarioMobileAberto(true);
+}
+
+function fecharCalendarioMobile() {
+  setCalendarioMobileAberto(false);
+}
+
+function toggleCalendarioMobile() {
+  if (!ehMobileListas()) return;
+  setCalendarioMobileAberto(!calendarioMobileAberto);
 }
 
 function atualizarAbasListasMobile() {
@@ -387,6 +494,8 @@ function renderListas() {
     ui.tituloLista.textContent = "próximas atividades";
     ui.btnLimpar.classList.add("d-none");
   }
+
+  atualizarBotaoCalendarioMobile();
 
   if (!compromissos.length) {
     ui.lista.innerHTML =
@@ -806,6 +915,9 @@ function montarUi() {
     pickerCorpo: document.getElementById("pickerPeriodoCorpo"),
     pickerFechar: document.getElementById("pickerFechar"),
     pickerBackdrop: document.getElementById("pickerBackdrop"),
+    pickerCarregando: document.getElementById("pickerCarregando"),
+    calCard: document.querySelector(".vanilla-cal-card"),
+    calCarregando: document.getElementById("calAgendaCarregando"),
     lista: document.getElementById("listaEventos"),
     listaTarefas: document.getElementById("listaTarefas"),
     tituloLista: document.getElementById("tituloLista"),
@@ -818,6 +930,10 @@ function montarUi() {
     btnLimpar: document.getElementById("btnLimparFiltro"),
     btnMesAnt: document.getElementById("btnMesAnt"),
     btnMesProx: document.getElementById("btnMesProx"),
+    calDrawer: document.getElementById("agendaCalDrawer"),
+    calBackdrop: document.getElementById("agendaCalBackdrop"),
+    btnToggleCalendario: document.getElementById("btnToggleCalendario"),
+    btnFecharCalendario: document.getElementById("btnFecharCalendario"),
   };
 }
 
@@ -841,6 +957,10 @@ function initAgenda() {
 
   ui.btnNova.addEventListener("click", () => abrirNovoEvento());
 
+  ui.btnToggleCalendario?.addEventListener("click", () => toggleCalendarioMobile());
+  ui.btnFecharCalendario?.addEventListener("click", () => fecharCalendarioMobile());
+  ui.calBackdrop?.addEventListener("click", () => fecharCalendarioMobile());
+
   ui.filtroTarefasBtns.forEach((btn) => {
     btn.addEventListener("click", () => definirFiltroTarefas(btn.dataset.filtroTarefas));
   });
@@ -855,7 +975,9 @@ function initAgenda() {
   atualizarAbasListasMobile();
 
   window.addEventListener("resize", () => {
+    if (!ehMobileListas()) fecharCalendarioMobile();
     atualizarAbasListasMobile();
+    atualizarBotaoCalendarioMobile();
     notificarAlturaFrame();
   });
 
@@ -866,15 +988,11 @@ function initAgenda() {
   });
 
   ui.btnMesAnt.addEventListener("click", () => {
-    mesAtual.setMonth(mesAtual.getMonth() - 1);
-    diaFiltro = null;
-    carregarEventos();
+    avancarMesCalendario(-1);
   });
 
   ui.btnMesProx.addEventListener("click", () => {
-    mesAtual.setMonth(mesAtual.getMonth() + 1);
-    diaFiltro = null;
-    carregarEventos();
+    avancarMesCalendario(1);
   });
 
   ui.btnSelMes.addEventListener("click", abrirSeletorMes);
@@ -883,6 +1001,7 @@ function initAgenda() {
   ui.pickerBackdrop.addEventListener("click", fecharPicker);
 
   atualizarTituloHeader();
+  atualizarBotaoCalendarioMobile();
   carregarEventos();
 }
 
@@ -894,5 +1013,9 @@ document.addEventListener("DOMContentLoaded", initAgenda);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && ui.picker && !ui.picker.classList.contains("d-none")) {
     fecharPicker();
+    return;
+  }
+  if (e.key === "Escape" && calendarioMobileAberto) {
+    fecharCalendarioMobile();
   }
 });

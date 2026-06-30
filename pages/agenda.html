@@ -9,67 +9,87 @@
 </head>
 <body class="bg-light page-frame-body">
   <div class="page-frame-content">
-    <div class="agenda-topo-acoes mb-3">
-      <div class="agenda-filtro-origens" role="group" aria-label="filtrar por agenda">
+    <div class="agenda-topo mb-3">
+      <div class="agenda-topo-linha agenda-topo-linha--calendario">
         <button
           type="button"
-          class="agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--campanha is-ativo"
-          data-filtro-origem="campanha"
-          aria-pressed="true"
+          id="btnToggleCalendario"
+          class="agenda-toggle-calendario"
+          aria-expanded="false"
+          aria-controls="agendaCalDrawer"
+          aria-label="Abrir calendário"
+          title="Abrir calendário"
         >
-          campanha
-        </button>
-        <button
-          type="button"
-          class="agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--gabinete is-ativo"
-          data-filtro-origem="gabinete"
-          aria-pressed="true"
-        >
-          gabinete
-        </button>
-        <button
-          type="button"
-          class="agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--eventos is-ativo"
-          data-filtro-origem="eventos"
-          aria-pressed="true"
-        >
-          eventos
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
         </button>
       </div>
-      <button type="button" id="btnNova" class="agenda-btn-nova" aria-label="nova atividade" title="nova atividade">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <path d="M16 2v4M8 2v4M3 10h18" />
-          <path d="M12 14v4M10 16h4" />
-        </svg>
-        <span class="visually-hidden">nova atividade</span>
-      </button>
+      <div class="agenda-topo-linha agenda-topo-linha--filtros">
+        <div class="agenda-filtro-origens" role="group" aria-label="filtrar por agenda">
+          <button
+            type="button"
+            class="agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--campanha is-ativo"
+            data-filtro-origem="campanha"
+            aria-pressed="true"
+          >
+            campanha
+          </button>
+          <button
+            type="button"
+            class="agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--gabinete is-ativo"
+            data-filtro-origem="gabinete"
+            aria-pressed="true"
+          >
+            gabinete
+          </button>
+          <button
+            type="button"
+            class="agenda-filtro-badge agenda-filtro-badge--origem agenda-filtro-badge--eventos is-ativo"
+            data-filtro-origem="eventos"
+            aria-pressed="true"
+          >
+            eventos
+          </button>
+        </div>
+        <button type="button" id="btnNova" class="agenda-btn-nova" aria-label="nova atividade" title="nova atividade">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          <span class="visually-hidden">nova atividade</span>
+        </button>
+      </div>
     </div>
 
     <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
 
-    <div class="row g-3">
-      <div class="col-12 col-lg-5">
-        <div class="card shadow-sm vanilla-cal-card">
-          <div class="vanilla-cal-header">
-            <button type="button" id="btnMesAnt" class="btn btn-sm btn-vanilla-nav" aria-label="Mês anterior">&lsaquo;</button>
+    <div class="row g-3 agenda-layout">
+      <div class="col-12 col-lg-5 agenda-cal-col">
+        <div id="agendaCalDrawer" class="agenda-cal-drawer">
+          <div class="card shadow-sm vanilla-cal-card">
+            <div class="vanilla-cal-header">
+              <button type="button" id="btnMesAnt" class="btn btn-sm btn-vanilla-nav" aria-label="Mês anterior">&lsaquo;</button>
             <div class="vanilla-cal-titulo">
               <button type="button" id="btnSelMes" class="btn-vanilla-titulo" aria-label="Selecionar mês"></button>
               <button type="button" id="btnSelAno" class="btn-vanilla-titulo" aria-label="Selecionar ano"></button>
             </div>
             <button type="button" id="btnMesProx" class="btn btn-sm btn-vanilla-nav" aria-label="Próximo mês">&rsaquo;</button>
-          </div>
-          <div class="card-body pt-2">
+            </div>
+            <div class="card-body pt-2">
             <div id="miniCalendario" class="mini-calendario"></div>
             <div class="agenda-legenda mt-2">
               <span class="agenda-legenda-item"><i class="legenda-campanha"></i> campanha</span>
               <span class="agenda-legenda-item"><i class="legenda-gabinete"></i> gabinete</span>
               <span class="agenda-legenda-item"><i class="legenda-eventos"></i> eventos</span>
             </div>
-            <p class="text-secondary small mt-2 mb-0">toque no dia para filtrar a lista</p>
-          </div>
+            <div class="agenda-cal-rodape">
+              <p class="text-secondary small mb-0">toque no dia para filtrar a lista</p>
+              <button type="button" id="btnFecharCalendario" class="agenda-cal-fechar-mobile" aria-label="Fechar calendário">&times;</button>
+            </div>
+            </div>
 
-          <div id="pickerPeriodo" class="cal-picker d-none" aria-hidden="true">
+            <div id="pickerPeriodo" class="cal-picker d-none" aria-hidden="true">
             <div class="cal-picker-backdrop" id="pickerBackdrop"></div>
             <div class="cal-picker-box" role="dialog" aria-modal="true" aria-labelledby="pickerPeriodoTitulo">
               <div class="cal-picker-header">
@@ -77,9 +97,21 @@
                 <button type="button" id="pickerFechar" class="cal-picker-fechar" aria-label="Fechar">&times;</button>
               </div>
               <div id="pickerPeriodoCorpo"></div>
+              <div id="pickerCarregando" class="cal-picker-carregando d-none" aria-hidden="true" aria-busy="false">
+                <div class="spinner-border page-frame-loader-spinner" role="status">
+                  <span class="visually-hidden">carregando</span>
+                </div>
+              </div>
             </div>
           </div>
+          <div id="calAgendaCarregando" class="agenda-cal-spinner d-none" aria-hidden="true" aria-busy="false">
+            <div class="spinner-border page-frame-loader-spinner" role="status">
+              <span class="visually-hidden">carregando</span>
+            </div>
+          </div>
+          </div>
         </div>
+        <div id="agendaCalBackdrop" class="agenda-cal-backdrop" aria-hidden="true"></div>
       </div>
       <div class="col-12 col-lg-7 agenda-listas-col">
         <nav class="agenda-listas-tabs" role="tablist" aria-label="listas da agenda">
@@ -147,34 +179,17 @@
     </div>
 
     <div class="modal fade" id="modalEvento" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-dialog-scrollable agenda-modal-dialog">
         <div class="modal-content contratos-modal-content">
           <form id="formEvento">
               <input type="hidden" id="evId" value="" />
               <input type="hidden" id="evOrigemSalva" value="" />
-            <div class="modal-header">
+            <div class="modal-header py-2">
               <h2 class="modal-title h5" id="modalEventoTitulo">nova atividade</h2>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <div class="modal-body">
-              <fieldset class="mb-3" id="evTipoFieldset">
-                <legend class="form-label col-form-label pt-0 pb-1">tipo</legend>
-                <div class="agenda-tipo-opcoes" role="radiogroup" aria-label="tipo do item">
-                  <label class="agenda-tipo-opcao">
-                    <input type="radio" name="evTipo" value="evento" checked />
-                    <span>compromisso</span>
-                  </label>
-                  <label class="agenda-tipo-opcao">
-                    <input type="radio" name="evTipo" value="tarefa" />
-                    <span>tarefa</span>
-                  </label>
-                </div>
-              </fieldset>
-              <div class="mb-3">
-                <label for="evTitulo" class="form-label">título</label>
-                <input type="text" id="evTitulo" class="form-control" required />
-              </div>
-              <fieldset class="mb-3" id="evOrigemFieldset">
+            <div class="modal-body py-2">
+              <fieldset class="mb-2 agenda-modal-origem" id="evOrigemFieldset">
                 <legend class="form-label col-form-label pt-0 pb-1">agenda</legend>
                 <div class="agenda-origem-opcoes" role="radiogroup" aria-label="agenda destino">
                   <label class="agenda-origem-opcao agenda-origem-opcao--campanha">
@@ -193,49 +208,70 @@
                     <span>eventos</span>
                   </label>
                 </div>
-                <p id="evOrigemAviso" class="form-text text-warning small mb-0 mt-2 d-none"></p>
+                <p id="evOrigemAviso" class="form-text text-warning small mb-0 mt-1 d-none"></p>
               </fieldset>
+              <fieldset class="mb-2" id="evTipoFieldset">
+                <legend class="form-label col-form-label pt-0 pb-1">tipo</legend>
+                <div class="agenda-tipo-opcoes" role="radiogroup" aria-label="tipo do item">
+                  <label class="agenda-tipo-opcao">
+                    <input type="radio" name="evTipo" value="evento" checked />
+                    <span>compromisso</span>
+                  </label>
+                  <label class="agenda-tipo-opcao">
+                    <input type="radio" name="evTipo" value="tarefa" />
+                    <span>tarefa</span>
+                  </label>
+                </div>
+              </fieldset>
+              <div class="mb-2">
+                <label for="evTitulo" class="form-label">título</label>
+                <input type="text" id="evTitulo" class="form-control form-control-sm" required />
+              </div>
               <div id="evCamposEvento">
-                <div class="form-check mb-3">
-                  <input class="form-check-input" type="checkbox" id="evDiaInteiro" />
-                  <label class="form-check-label" for="evDiaInteiro">dia inteiro</label>
-                </div>
-                <div class="row g-3">
-                  <div class="col-12 col-sm-6">
+                <div class="row g-2 mb-2">
+                  <div class="col-6">
                     <label for="evInicio" class="form-label">início</label>
-                    <input type="datetime-local" id="evInicio" class="form-control" required />
+                    <input type="datetime-local" id="evInicio" class="form-control form-control-sm" required />
                   </div>
-                  <div class="col-12 col-sm-6">
+                  <div class="col-6">
                     <label for="evFim" class="form-label">fim</label>
-                    <input type="datetime-local" id="evFim" class="form-control" />
+                    <input type="datetime-local" id="evFim" class="form-control form-control-sm" />
                   </div>
                 </div>
-                <div class="mb-3 mt-3">
-                  <label for="evLocal" class="form-label">local</label>
-                  <input type="text" id="evLocal" class="form-control" />
+                <div class="row g-2 align-items-end mb-2">
+                  <div class="col-6">
+                    <div class="form-check mb-0">
+                      <input class="form-check-input" type="checkbox" id="evDiaInteiro" />
+                      <label class="form-check-label" for="evDiaInteiro">dia inteiro</label>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <label for="evLembrete" class="form-label">lembrete (min)</label>
+                    <input type="number" id="evLembrete" class="form-control form-control-sm" min="0" />
+                  </div>
                 </div>
-                <div class="mb-3">
-                  <label for="evLembrete" class="form-label">lembrete (minutos antes)</label>
-                  <input type="number" id="evLembrete" class="form-control" min="0" />
+                <div class="mb-2">
+                  <label for="evLocal" class="form-label">local</label>
+                  <input type="text" id="evLocal" class="form-control form-control-sm" />
                 </div>
               </div>
               <div id="evCamposTarefa" class="d-none">
-                <div class="mb-3">
+                <div class="mb-2">
                   <label for="evPrazo" class="form-label">prazo</label>
-                  <input type="date" id="evPrazo" class="form-control" />
+                  <input type="date" id="evPrazo" class="form-control form-control-sm" />
                 </div>
-                <div class="form-check mb-3" id="evConcluidaWrap">
+                <div class="form-check mb-2" id="evConcluidaWrap">
                   <input class="form-check-input" type="checkbox" id="evConcluida" />
                   <label class="form-check-label" for="evConcluida">concluída</label>
                 </div>
               </div>
-              <div class="mb-1">
+              <div class="mb-0">
                 <label for="evDescricao" class="form-label">descrição</label>
-                <textarea id="evDescricao" rows="2" class="form-control"></textarea>
+                <textarea id="evDescricao" rows="2" class="form-control form-control-sm"></textarea>
               </div>
-              <div id="statusModal" class="alert d-none mt-3" role="alert"></div>
+              <div id="statusModal" class="alert d-none mt-2 mb-0" role="alert"></div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer py-2">
               <button type="button" id="btnExcluirEvento" class="btn btn-sm btn-outline-danger me-auto d-none">excluir</button>
               <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">cancelar</button>
               <button type="submit" id="btnSalvarEvento" class="btn btn-sm btn-primary">salvar</button>

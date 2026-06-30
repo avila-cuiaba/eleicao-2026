@@ -3037,6 +3037,33 @@ body.page-dashboard .dashboard-tabela-panel {
   padding: 10px;
 }
 
+.cal-picker-carregando {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: inherit;
+  backdrop-filter: blur(1px);
+}
+
+.agenda-cal-spinner {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(1px);
+}
+
+.vanilla-cal-card.is-carregando {
+  pointer-events: none;
+}
+
 .cal-picker-header {
   display: flex;
   align-items: center;
@@ -3485,6 +3512,67 @@ button.lista-evento-acao:focus-visible {
   background: #f4f8fc;
 }
 
+/* Modal nova/editar atividade */
+.agenda-modal-dialog {
+  max-width: 520px;
+}
+
+.agenda-modal-dialog .modal-body {
+  max-height: calc(100vh - 7.5rem);
+}
+
+.agenda-modal-dialog .form-label {
+  margin-bottom: 0.2rem;
+  font-size: 0.82rem;
+}
+
+.agenda-modal-dialog fieldset legend.form-label {
+  font-size: 0.82rem;
+}
+
+.agenda-modal-origem .agenda-origem-opcoes {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.agenda-modal-origem .agenda-origem-opcao {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  padding: 6px 6px;
+  font-size: 0.78rem;
+  gap: 5px;
+}
+
+.agenda-modal-dialog .agenda-tipo-opcoes {
+  gap: 8px;
+}
+
+.agenda-modal-dialog .agenda-tipo-opcao {
+  flex: 1;
+  justify-content: center;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+}
+
+.agenda-modal-dialog input[type="datetime-local"].form-control-sm,
+.agenda-modal-dialog input[type="date"].form-control-sm {
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 576px) {
+  .agenda-modal-dialog {
+    margin: 0.4rem auto;
+    max-width: calc(100% - 0.75rem);
+  }
+
+  .agenda-modal-dialog .modal-body {
+    max-height: calc(100vh - 6.5rem);
+  }
+}
+
 .agenda-tarefas-filtro {
   display: inline-flex;
   flex-wrap: wrap;
@@ -3515,12 +3603,56 @@ button.lista-evento-acao:focus-visible {
   color: var(--brand);
 }
 
-.agenda-topo-acoes {
+.agenda-topo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agenda-topo-linha--filtros {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.agenda-topo-linha--calendario {
+  display: none;
+  align-items: center;
+}
+
+.agenda-toggle-calendario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--brand);
+  line-height: 1;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.agenda-toggle-calendario svg {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.agenda-toggle-calendario:hover {
+  color: #183d6f;
+}
+
+.agenda-toggle-calendario:active {
+  transform: scale(0.96);
+}
+
+.agenda-toggle-calendario.is-filtrado {
+  color: #183d6f;
 }
 
 .agenda-filtro-origens {
@@ -3585,6 +3717,11 @@ button.lista-evento-acao:focus-visible {
   margin-bottom: 12px;
 }
 
+.agenda-cal-fechar-mobile,
+.agenda-cal-backdrop {
+  display: none;
+}
+
 .agenda-btn-nova {
   display: inline-flex;
   align-items: center;
@@ -3638,8 +3775,100 @@ button.lista-evento-acao:focus-visible {
 }
 
 @media (max-width: 576px) {
+  .agenda-topo-linha--calendario {
+    display: flex;
+  }
+
+  .agenda-layout {
+    --bs-gutter-y: 0.75rem;
+  }
+
+  .agenda-cal-col {
+    height: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible;
+  }
+
+  .agenda-cal-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1060;
+    width: 90vw;
+    padding: 10px 10px 16px;
+    background: #f1f3f5;
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.18);
+    overflow-y: auto;
+    transform: translateX(-105%);
+    transition: transform 0.24s ease;
+    visibility: hidden;
+  }
+
+  .agenda-cal-drawer.is-open {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .agenda-cal-drawer .vanilla-cal-card {
+    margin-bottom: 0;
+  }
+
+  .agenda-cal-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 0.5rem;
+  }
+
+  .agenda-cal-rodape p {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .agenda-cal-fechar-mobile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin-left: auto;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #5c6b7a;
+    font-size: 1.35rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .agenda-cal-fechar-mobile:hover {
+    background: rgba(31, 78, 140, 0.08);
+    color: var(--brand);
+  }
+
+  .vanilla-cal-header {
+    flex-wrap: nowrap;
+  }
+
+  .agenda-cal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1055;
+    background: rgba(15, 23, 42, 0.42);
+  }
+
+  .agenda-cal-backdrop.is-visible {
+    display: block;
+  }
+
   .agenda-listas-tabs {
     display: flex;
+    margin-bottom: 12px;
   }
 
   .agenda-lista-painel {
@@ -3656,6 +3885,17 @@ button.lista-evento-acao:focus-visible {
 }
 
 @media (min-width: 577px) {
+  .agenda-topo {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .agenda-cal-fechar-mobile,
+  .agenda-cal-backdrop {
+    display: none !important;
+  }
+
   .agenda-lista-painel {
     display: block;
   }
