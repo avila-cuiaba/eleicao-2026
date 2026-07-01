@@ -5,12 +5,20 @@ const cfgDados = CONFIG.MOBILIZACAO.CUIABA;
 const cfgPersp = CONFIG.MOBILIZACAO.PERSPECTIVA;
 let el = {};
 let perspectivaRegistros = [];
+let dadosEstrutura = [];
+let organogramaContexto = null;
 let modalApoiador = null;
 let modalSegmento = null;
 
 const ICONE_PERSPECTIVA =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
   '<path d="M3 6h18M3 12h18M3 18h18M9 6v12M15 6v12"/>' +
+  "</svg>";
+
+const ICONE_IMPRIMIR =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+  '<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>' +
+  '<path d="M6 14h12v8H6z"/>' +
   "</svg>";
 
 const ICONE_ORIGEM_LOCAL =
@@ -46,6 +54,43 @@ function rotuloRegional(regional, contexto) {
 
 function htmlMetaRegionalSemVotos(metricas) {
   return metricas.qtdLiderancas + " lideranças";
+}
+
+function htmlLiderancaTexto(l) {
+  return MobComum.escapeHtml(l.nome) + " (" + MobComum.fmt.format(l.votos) + ")";
+}
+
+function locaisComRegistroPolo(p, registrosPolo) {
+  const candidatosPolo = p.itens.map((i) => i.nome);
+  return p.itens.filter((item) => {
+    const detalhe = MobComum.detalheLocalPerspectiva(item.nome, registrosPolo, candidatosPolo);
+    return detalhe.qtdRegistros > 0;
+  });
+}
+
+function poloTemRegistro(p) {
+  const registrosPolo = MobComum.filtrarPerspectivaPolo(p, perspectivaRegistros);
+  return locaisComRegistroPolo(p, registrosPolo).length > 0;
+}
+
+function filtrarPolosComRegistro(polos) {
+  return (polos || []).filter(poloTemRegistro);
+}
+
+function htmlBotoesIdent() {
+  let html =
+    '<div class="mob-org-ident-acao">' +
+    '<button type="button" class="mob-estr-persp-btn mob-estr-persp-btn--imprimir" id="btnMobImprimir" aria-label="imprimir relatório" title="imprimir relatório">' +
+    ICONE_IMPRIMIR +
+    "</button>";
+  if (AUTH.ehAvilaMaster()) {
+    html +=
+      '<button type="button" class="mob-estr-persp-btn mob-estr-persp-btn--externo" id="btnMobPerspectiva" aria-label="responsabilidade e perspectiva de voto" title="responsabilidade">' +
+      ICONE_PERSPECTIVA +
+      "</button>";
+  }
+  html += "</div>";
+  return html;
 }
 
 function htmlLiderancaClicavel(l) {
@@ -198,16 +243,10 @@ function htmlTabelaResumo(regionais, porRegional, registros) {
 
 function htmlCardIdentificacao(regionais, porRegional, registros) {
   const segmento = MobComum.metricasOrigemSegmento(registros);
-  const btnPersp = AUTH.ehAvilaMaster()
-    ? '<div class="mob-org-ident-acao">' +
-      '<button type="button" class="mob-estr-persp-btn mob-estr-persp-btn--externo" id="btnMobPerspectiva" aria-label="responsabilidade e perspectiva de voto" title="responsabilidade">' +
-      ICONE_PERSPECTIVA +
-      "</button></div>"
-    : "";
 
   return (
     '<div class="mob-org-ident">' +
-    btnPersp +
+    htmlBotoesIdent() +
     '<div class="mob-org-resumo-raiz">' +
     '<div class="mob-org-resumo-municipio">' +
     MobComum.escapeHtml(cfgResumo.TITULO || "Cuiabá") +
@@ -252,11 +291,9 @@ function montarCardPolo(p) {
   const registrosPolo = MobComum.filtrarPerspectivaPolo(p, perspectivaRegistros);
   const totalVotos = MobComum.somarPerspectivaPolo(p, perspectivaRegistros);
   const badgeTitle = "soma de perspectiva-voto (coluna D)";
+  const itensComRegistro = locaisComRegistroPolo(p, registrosPolo);
 
-  const itensComRegistro = p.itens.filter((item) => {
-    const detalhe = MobComum.detalheLocalPerspectiva(item.nome, registrosPolo, candidatosPolo);
-    return detalhe.qtdRegistros > 0;
-  });
+  if (!itensComRegistro.length) return "";
 
   const bairros = itensComRegistro
     .map((i) => montarLinhaBairro(i, registrosPolo, candidatosPolo))
@@ -293,6 +330,263 @@ function montarCardPolo(p) {
     resp +
     "</div></article>"
   );
+}
+
+function htmlLinhaBairroImpressao(item, registrosPolo, candidatosPolo) {
+  const detalhe = MobComum.detalheLocalPerspectiva(item.nome, registrosPolo, candidatosPolo);
+  if (!detalhe.qtdRegistros) return "";
+
+  const votos =
+    detalhe.votos > 0
+      ? ' <span class="mob-rel-votos">(' + MobComum.fmt.format(detalhe.votos) + " votos)</span>"
+      : "";
+  const lideres = detalhe.lideres.length
+    ? " — " + detalhe.lideres.map(htmlLiderancaTexto).join(", ")
+    : "";
+
+  return (
+    "<li><strong>" +
+    MobComum.escapeHtml(item.nome) +
+    "</strong>" +
+    votos +
+    lideres +
+    "</li>"
+  );
+}
+
+function htmlPoloImpressao(p) {
+  const candidatosPolo = p.itens.map((i) => i.nome);
+  const registrosPolo = MobComum.filtrarPerspectivaPolo(p, perspectivaRegistros);
+  const itensComRegistro = locaisComRegistroPolo(p, registrosPolo);
+  if (!itensComRegistro.length) return "";
+
+  const linhas = itensComRegistro
+    .map((i) => htmlLinhaBairroImpressao(i, registrosPolo, candidatosPolo))
+    .join("");
+  const totalVotos = MobComum.somarPerspectivaPolo(p, perspectivaRegistros);
+  const resp = p.responsavel
+    ? '<p class="mob-rel-resp">responsável: ' + MobComum.escapeHtml(p.responsavel) + "</p>"
+    : "";
+
+  return (
+    '<div class="mob-rel-polo">' +
+    "<h3>" +
+    MobComum.escapeHtml(p.polo) +
+    ' <span class="mob-rel-polo-meta">(' +
+    MobComum.fmt.format(totalVotos) +
+    " votos · " +
+    itensComRegistro.length +
+    " locais)</span></h3>" +
+    "<ul>" +
+    linhas +
+    "</ul>" +
+    resp +
+    "</div>"
+  );
+}
+
+function htmlRegionalImpressao(reg, polos) {
+  const polosComRegistro = filtrarPolosComRegistro(polos);
+  if (!polosComRegistro.length) return "";
+
+  const metricasReg = MobComum.metricasPerspectivaRegional(polosComRegistro, perspectivaRegistros);
+  const corpo = polosComRegistro.map(htmlPoloImpressao).join("");
+
+  return (
+    '<section class="mob-rel-regional">' +
+    "<h2>" +
+    MobComum.escapeHtml(rotuloRegional(reg)) +
+    ' <span class="mob-rel-regional-meta">(' +
+    MobComum.fmt.format(metricasReg.totalVotos) +
+    " votos)</span></h2>" +
+    corpo +
+    "</section>"
+  );
+}
+
+function estilosRelatorioImpressao() {
+  return (
+    "<style>" +
+    "body{font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;margin:1.2rem;font-size:11pt;line-height:1.4;}" +
+    "h1{font-size:16pt;margin:0 0 0.35rem;text-align:center;}" +
+    ".mob-rel-gerado{font-size:9pt;color:#64748b;text-align:center;margin:0 0 1rem;}" +
+    "table{border-collapse:collapse;width:100%;margin:0.5rem 0 1rem;font-size:9pt;}" +
+    "th,td{border:1px solid #cbd5e1;padding:0.3rem 0.4rem;text-align:center;}" +
+    "th{background:#f1f5f9;font-weight:600;}" +
+    "th.mob-rel-regiao,td.mob-rel-regiao{text-align:left;}" +
+    ".mob-rel-total th,.mob-rel-total td{font-weight:700;background:#f8fafc;}" +
+    ".mob-rel-segmento{margin:1rem 0 1.25rem;padding:0.65rem 0.75rem;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;}" +
+    ".mob-rel-segmento h2{font-size:11pt;margin:0 0 0.35rem;}" +
+    ".mob-rel-segmento-resumo{margin:0 0 0.5rem;font-size:9.5pt;}" +
+    "th.mob-rel-texto,td.mob-rel-texto{text-align:left;}" +
+    "td.mob-rel-num{text-align:right;font-variant-numeric:tabular-nums;}" +
+    ".mob-rel-segmento-vazio{margin:0;font-size:9pt;color:#64748b;}" +
+    ".mob-rel-regional{margin-top:1rem;page-break-inside:avoid;}" +
+    ".mob-rel-regional h2{font-size:12pt;margin:0 0 0.5rem;border-bottom:1px solid #e2e8f0;padding-bottom:0.25rem;}" +
+    ".mob-rel-regional-meta{font-size:10pt;font-weight:600;color:#4338ca;}" +
+    ".mob-rel-polo{margin:0.5rem 0 0.75rem 0.5rem;}" +
+    ".mob-rel-polo h3{font-size:10.5pt;margin:0 0 0.25rem;}" +
+    ".mob-rel-polo-meta{font-size:9pt;font-weight:600;color:#64748b;}" +
+    ".mob-rel-polo ul{margin:0;padding-left:1.1rem;}" +
+    ".mob-rel-polo li{margin:0.15rem 0;}" +
+    ".mob-rel-votos{color:#4338ca;font-weight:600;}" +
+    ".mob-rel-resp{margin:0.25rem 0 0;font-size:9pt;color:#64748b;}" +
+    "@media print{body{margin:0.8cm;} .mob-rel-regional{page-break-inside:avoid;}}" +
+    "</style>"
+  );
+}
+
+function htmlTabelaResumoImpressao(regionais, porRegional, registros) {
+  const resumos = regionais.map((reg) =>
+    MobComum.resumoRegionalEstrutura(porRegional.get(reg) || [], registros)
+  );
+  const total = MobComum.somarResumosRegionais(resumos);
+
+  const linhas = regionais
+    .map((reg, i) => {
+      const r = resumos[i];
+      const rotulo = rotuloRegional(reg, "tabela");
+      return (
+        "<tr>" +
+        '<th scope="row" class="mob-rel-regiao">' +
+        MobComum.escapeHtml(rotulo) +
+        "</th>" +
+        "<td>" +
+        MobComum.fmt.format(r.polosTotal) +
+        "</td><td>" +
+        MobComum.fmt.format(r.polosMob) +
+        "</td><td>" +
+        MobComum.fmt.format(r.locaisTotal) +
+        "</td><td>" +
+        MobComum.fmt.format(r.locaisMob) +
+        "</td><td>" +
+        MobComum.fmt.format(r.votos) +
+        "</td></tr>"
+      );
+    })
+    .join("");
+
+  return (
+    "<table>" +
+    "<thead><tr>" +
+    '<th rowspan="2" class="mob-rel-regiao"></th>' +
+    '<th colspan="2">polos</th><th colspan="2">localidades</th><th rowspan="2">votos</th>' +
+    "</tr><tr>" +
+    "<th>total</th><th>ativo</th><th>total</th><th>ativo</th>" +
+    "</tr></thead><tbody>" +
+    linhas +
+    '<tr class="mob-rel-total"><th scope="row" class="mob-rel-regiao">total</th>' +
+    "<td>" +
+    MobComum.fmt.format(total.polosTotal) +
+    "</td><td>" +
+    MobComum.fmt.format(total.polosMob) +
+    "</td><td>" +
+    MobComum.fmt.format(total.locaisTotal) +
+    "</td><td>" +
+    MobComum.fmt.format(total.locaisMob) +
+    "</td><td>" +
+    MobComum.fmt.format(total.votos) +
+    "</td></tr></tbody></table>"
+  );
+}
+
+function htmlTabelaSegmentoImpressao(registros) {
+  const lista = MobComum.listarRegistrosOrigemSegmento(registros);
+  if (!lista.length) {
+    return '<p class="mob-rel-segmento-vazio">nenhum registro com origem segmento.</p>';
+  }
+
+  const linhas = lista
+    .map(
+      (r) =>
+        "<tr>" +
+        '<td class="mob-rel-texto">' +
+        MobComum.escapeHtml(r.apoiador || "—") +
+        "</td>" +
+        '<td class="mob-rel-texto">' +
+        MobComum.escapeHtml(r.segmento || "—") +
+        "</td>" +
+        '<td class="mob-rel-num">' +
+        MobComum.fmt.format(r.votos || 0) +
+        "</td></tr>"
+    )
+    .join("");
+
+  return (
+    "<table>" +
+    "<thead><tr>" +
+    '<th class="mob-rel-texto">apoiador</th>' +
+    '<th class="mob-rel-texto">segmento</th>' +
+    '<th class="mob-rel-num">votos</th>' +
+    "</tr></thead><tbody>" +
+    linhas +
+    "</tbody></table>"
+  );
+}
+
+function htmlBlocoSegmentoImpressao(registros) {
+  const segmento = MobComum.metricasOrigemSegmento(registros);
+  return (
+    '<div class="mob-rel-segmento">' +
+    "<h2>origem do voto por segmento</h2>" +
+    '<p class="mob-rel-segmento-resumo"><strong>' +
+    MobComum.fmt.format(segmento.votos) +
+    " votos</strong> · " +
+    MobComum.fmt.format(segmento.apoiadores) +
+    " apoiadores</p>" +
+    htmlTabelaSegmentoImpressao(registros) +
+    "</div>"
+  );
+}
+
+function montarHtmlRelatorio() {
+  if (!organogramaContexto) return "";
+
+  const { regionais, porRegional } = organogramaContexto;
+  const registros = perspectivaRegistros;
+  const titulo = cfgResumo.TITULO || "Cuiabá / Várzea Grande";
+  const gerado = new Date().toLocaleString("pt-BR");
+  const detalhes = regionais.map((reg) => htmlRegionalImpressao(reg, porRegional.get(reg) || [])).join("");
+
+  return (
+    "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\" />" +
+    "<title>mobilização — " +
+    MobComum.escapeHtml(titulo) +
+    "</title>" +
+    estilosRelatorioImpressao() +
+    "</head><body>" +
+    "<h1>" +
+    MobComum.escapeHtml(titulo) +
+    "</h1>" +
+    '<p class="mob-rel-gerado">relatório gerado em ' +
+    MobComum.escapeHtml(gerado) +
+    "</p>" +
+    "<h2>origem do voto por localidade</h2>" +
+    htmlTabelaResumoImpressao(regionais, porRegional, registros) +
+    htmlBlocoSegmentoImpressao(registros) +
+    "<h2>estrutura por regional</h2>" +
+    (detalhes || "<p>nenhum local com registro.</p>") +
+    "<script>window.addEventListener('load',function(){window.focus();window.print();});</script>" +
+    "</body></html>"
+  );
+}
+
+function imprimirRelatorio() {
+  if (!organogramaContexto || !dadosEstrutura.length) {
+    mostrarStatus("nenhum dado para imprimir.", "erro");
+    return;
+  }
+
+  const html = montarHtmlRelatorio();
+  const janela = window.open("", "_blank");
+  if (!janela) {
+    mostrarStatus("permita pop-ups para gerar o PDF.", "erro");
+    return;
+  }
+
+  janela.document.open();
+  janela.document.write(html);
+  janela.document.close();
 }
 
 function fecharRegionais(exceto) {
@@ -422,8 +716,10 @@ function vincularExpansao() {
 
 function renderizarOrganograma(dados, perspectiva) {
   perspectivaRegistros = perspectiva || [];
+  dadosEstrutura = dados;
 
   if (!dados.length) {
+    organogramaContexto = null;
     el.chart.innerHTML =
       '<p class="text-secondary small mb-0">nenhum dado na planilha de estrutura.</p>';
     notificarAlturaFrame();
@@ -441,13 +737,16 @@ function renderizarOrganograma(dados, perspectiva) {
   const ordem = (cfgDados.REGIONAIS || []).filter((r) => porRegional.has(r));
   const extras = [...porRegional.keys()].filter((r) => !ordem.includes(r));
   const regionais = ordem.concat(extras);
+  organogramaContexto = { regionais, porRegional };
 
   let html = htmlCardIdentificacao(regionais, porRegional, perspectivaRegistros);
   html += '<div class="mob-org-resumo-tronco" aria-hidden="true"></div>';
   html += '<div class="mob-org-resumo-regionais">';
 
   regionais.forEach((reg) => {
-    const polos = porRegional.get(reg) || [];
+    const polos = filtrarPolosComRegistro(porRegional.get(reg) || []);
+    if (!polos.length) return;
+
     const cls = classeRegional(reg);
     const cards = polos.map(montarCardPolo).join("");
     const resumo = MobComum.resumoRegionalEstrutura(polos, perspectivaRegistros);
@@ -485,6 +784,7 @@ function renderizarOrganograma(dados, perspectiva) {
   vincularExpansao();
   vincularApoiadores();
   vincularSegmentoApoiadores();
+  document.getElementById("btnMobImprimir")?.addEventListener("click", imprimirRelatorio);
   document.getElementById("btnMobPerspectiva")?.addEventListener("click", () => {
     navegarParaPagina("mobilizacao-perspectiva");
   });

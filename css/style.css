@@ -6956,6 +6956,9 @@ body.page-mobilizacao-estrutura .page-frame-content {
   flex: 0 0 auto;
   margin-top: 0.35rem;
   margin-right: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .mob-org-resumo-municipio {
@@ -7067,6 +7070,18 @@ body.page-mobilizacao-estrutura .page-frame-content {
 .mob-estr-persp-btn--externo:hover {
   background: #ede9fe;
   color: #5b21b6;
+}
+
+.mob-estr-persp-btn--imprimir {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.mob-estr-persp-btn--imprimir:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
 }
 
 .mob-estr-persp-btn svg {
@@ -7397,6 +7412,71 @@ body.page-mobilizacao-estrutura .page-frame-content {
   .mob-org-resumo-raiz {
     width: 100%;
     max-width: 100%;
+  }
+}
+
+@media (min-width: 576px) {
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz {
+    --mob-raiz-largura-ref: 20rem;
+    width: min(100%, calc(var(--mob-raiz-largura-ref) * 2));
+    max-width: 100%;
+    padding: 0.85rem 1.15rem 0.9rem;
+  }
+
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-subtitulo {
+    justify-content: center;
+  }
+
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-tabela-wrap {
+    width: 100%;
+  }
+
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-tabela {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-tabela-corner,
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-tabela-regiao {
+    width: 28%;
+  }
+
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-tabela-sub,
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-tabela-num,
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-tabela-metrica,
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-tabela-grupo {
+    width: auto;
+  }
+
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-bloco-segmento {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    column-gap: 2rem;
+    row-gap: 0.35rem;
+  }
+
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-bloco-segmento .mob-org-resumo-subtitulo--segmento {
+    flex: 1 1 100%;
+    justify-content: center;
+    margin-bottom: 0.35rem;
+  }
+
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-segmento-votos-linha,
+  .page-mobilizacao-estrutura-resumo .mob-org-resumo-raiz .mob-org-resumo-segmento-apoiadores-linha {
+    flex: 1 1 0;
+    min-width: 10rem;
+    margin-bottom: 0;
+    text-align: center;
+  }
+}
+
+@media (min-width: 576px) and (max-width: 991.98px) {
+  .page-mobilizacao-estrutura-resumo .mob-org-ident {
+    width: min(100%, calc(var(--mob-raiz-largura-ref, 20rem) * 2));
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 
