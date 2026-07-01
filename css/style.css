@@ -7246,6 +7246,37 @@ body.page-mobilizacao-estrutura .page-frame-content {
 
 .mob-org-segmento-modal-scroll {
   max-height: min(60vh, 420px);
+  overflow-y: auto;
+}
+
+.mob-segmento-apoiador-grupo {
+  margin-bottom: 0.85rem;
+}
+
+.mob-segmento-apoiador-grupo:last-child {
+  margin-bottom: 0;
+}
+
+.mob-segmento-apoiador-cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  padding: 0.15rem 0.1rem;
+}
+
+.mob-segmento-apoiador-cabecalho strong {
+  font-size: 0.82rem;
+  color: #1e293b;
+}
+
+.mob-segmento-apoiador-total {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4338ca;
+  font-variant-numeric: tabular-nums;
 }
 
 .mob-org-resumo-segmento-linha {

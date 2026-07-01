@@ -421,6 +421,10 @@ function estilosRelatorioImpressao() {
     "th.mob-rel-texto,td.mob-rel-texto{text-align:left;}" +
     "td.mob-rel-num{text-align:right;font-variant-numeric:tabular-nums;}" +
     ".mob-rel-segmento-vazio{margin:0;font-size:9pt;color:#64748b;}" +
+    ".mob-rel-segmento-apoiador{margin:0.65rem 0 0.85rem;page-break-inside:avoid;}" +
+    ".mob-rel-segmento-apoiador h3{font-size:10pt;margin:0 0 0.25rem;text-align:left;}" +
+    ".mob-rel-segmento-apoiador-total{font-size:9pt;font-weight:600;color:#4338ca;}" +
+    ".mob-rel-segmento-apoiador table{margin-bottom:0;}" +
     ".mob-rel-regional{margin-top:1rem;page-break-inside:avoid;}" +
     ".mob-rel-regional h2{font-size:12pt;margin:0 0 0.5rem;border-bottom:1px solid #e2e8f0;padding-bottom:0.25rem;}" +
     ".mob-rel-regional-meta{font-size:10pt;font-weight:600;color:#4338ca;}" +
@@ -490,38 +494,51 @@ function htmlTabelaResumoImpressao(regionais, porRegional, registros) {
   );
 }
 
-function htmlTabelaSegmentoImpressao(registros) {
-  const lista = MobComum.listarRegistrosOrigemSegmento(registros);
-  if (!lista.length) {
-    return '<p class="mob-rel-segmento-vazio">nenhum registro com origem segmento.</p>';
-  }
-
-  const linhas = lista
+function htmlLinhasSegmentoGrupo(segmentos, clsSegmento, clsVotos) {
+  return segmentos
     .map(
-      (r) =>
+      (s) =>
         "<tr>" +
-        '<td class="mob-rel-texto">' +
-        MobComum.escapeHtml(r.apoiador || "—") +
+        '<td class="' +
+        clsSegmento +
+        '">' +
+        MobComum.escapeHtml(s.segmento) +
         "</td>" +
-        '<td class="mob-rel-texto">' +
-        MobComum.escapeHtml(r.segmento || "—") +
-        "</td>" +
-        '<td class="mob-rel-num">' +
-        MobComum.fmt.format(r.votos || 0) +
+        '<td class="' +
+        clsVotos +
+        '">' +
+        MobComum.fmt.format(s.votos || 0) +
         "</td></tr>"
     )
     .join("");
+}
 
-  return (
-    "<table>" +
-    "<thead><tr>" +
-    '<th class="mob-rel-texto">apoiador</th>' +
-    '<th class="mob-rel-texto">segmento</th>' +
-    '<th class="mob-rel-num">votos</th>' +
-    "</tr></thead><tbody>" +
-    linhas +
-    "</tbody></table>"
-  );
+function htmlTabelaSegmentoImpressao(registros) {
+  const grupos = MobComum.agruparOrigemSegmentoPorApoiador(registros);
+  if (!grupos.length) {
+    return '<p class="mob-rel-segmento-vazio">nenhum registro com origem segmento.</p>';
+  }
+
+  return grupos
+    .map((g) => {
+      const linhas = htmlLinhasSegmentoGrupo(g.segmentos, "mob-rel-texto", "mob-rel-num");
+      return (
+        '<div class="mob-rel-segmento-apoiador">' +
+        "<h3>" +
+        MobComum.escapeHtml(g.apoiador) +
+        ' <span class="mob-rel-segmento-apoiador-total">(' +
+        MobComum.fmt.format(g.totalVotos) +
+        " votos)</span></h3>" +
+        "<table>" +
+        "<thead><tr>" +
+        '<th class="mob-rel-texto">segmento</th>' +
+        '<th class="mob-rel-num">votos</th>' +
+        "</tr></thead><tbody>" +
+        linhas +
+        "</tbody></table></div>"
+      );
+    })
+    .join("");
 }
 
 function htmlBlocoSegmentoImpressao(registros) {
@@ -599,44 +616,47 @@ function fecharRegionais(exceto) {
 }
 
 function htmlTabelaSegmentoApoiadores(registros) {
-  if (!registros.length) {
+  const grupos = MobComum.agruparOrigemSegmentoPorApoiador(registros);
+  if (!grupos.length) {
     return '<p class="text-secondary small mb-0">nenhum registro com origem segmento.</p>';
   }
 
-  const linhas = registros
-    .map(
-      (r) =>
-        "<tr>" +
-        "<td>" +
-        MobComum.escapeHtml(r.apoiador || "—") +
-        "</td>" +
-        "<td>" +
-        MobComum.escapeHtml(r.segmento || "—") +
-        "</td>" +
-        '<td class="text-end mob-org-segmento-modal-votos">' +
-        MobComum.fmt.format(r.votos || 0) +
-        "</td></tr>"
-    )
-    .join("");
-
   return (
-    '<div class="table-responsive mob-org-segmento-modal-scroll">' +
-    '<table class="table table-sm table-hover mb-0 mob-org-segmento-modal-tabela">' +
-    '<thead class="table-light"><tr>' +
-    "<th scope=\"col\">apoiador</th>" +
-    "<th scope=\"col\">segmento</th>" +
-    '<th scope="col" class="text-end">votos</th>' +
-    "</tr></thead><tbody>" +
-    linhas +
-    "</tbody></table></div>"
+    '<div class="mob-org-segmento-modal-scroll">' +
+    grupos
+      .map((g) => {
+        const linhas = htmlLinhasSegmentoGrupo(
+          g.segmentos,
+          "",
+          "text-end mob-org-segmento-modal-votos"
+        );
+        return (
+          '<div class="mob-segmento-apoiador-grupo">' +
+          '<div class="mob-segmento-apoiador-cabecalho">' +
+          "<strong>" +
+          MobComum.escapeHtml(g.apoiador) +
+          "</strong>" +
+          '<span class="mob-segmento-apoiador-total">' +
+          MobComum.fmt.format(g.totalVotos) +
+          " votos</span></div>" +
+          '<table class="table table-sm table-hover mb-0 mob-org-segmento-modal-tabela">' +
+          '<thead class="table-light"><tr>' +
+          "<th scope=\"col\">segmento</th>" +
+          '<th scope="col" class="text-end">votos</th>' +
+          "</tr></thead><tbody>" +
+          linhas +
+          "</tbody></table></div>"
+        );
+      })
+      .join("") +
+    "</div>"
   );
 }
 
 function abrirModalSegmentoApoiadores() {
   if (!modalSegmento) return;
 
-  const registros = MobComum.listarRegistrosOrigemSegmento(perspectivaRegistros);
-  el.modalSegmentoCorpo.innerHTML = htmlTabelaSegmentoApoiadores(registros);
+  el.modalSegmentoCorpo.innerHTML = htmlTabelaSegmentoApoiadores(perspectivaRegistros);
   modalSegmento.show();
 }
 

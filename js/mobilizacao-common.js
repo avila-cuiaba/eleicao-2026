@@ -385,6 +385,22 @@ const MobComum = {
       });
   },
 
+  agruparOrigemSegmentoPorApoiador(registros) {
+    const mapa = new Map();
+    this.listarRegistrosOrigemSegmento(registros).forEach((r) => {
+      const apoiador = r.apoiador || "—";
+      if (!mapa.has(apoiador)) {
+        mapa.set(apoiador, { apoiador, segmentos: [], totalVotos: 0 });
+      }
+      const grupo = mapa.get(apoiador);
+      grupo.segmentos.push({ segmento: r.segmento || "—", votos: r.votos || 0 });
+      grupo.totalVotos += r.votos || 0;
+    });
+    return Array.from(mapa.values()).sort((a, b) =>
+      a.apoiador.localeCompare(b.apoiador, "pt-BR", { sensitivity: "base" })
+    );
+  },
+
   metricasPerspectivaRegional(polos, registros) {
     const bairros = [];
     (polos || []).forEach((p) => p.itens.forEach((i) => bairros.push(i.nome)));
