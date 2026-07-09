@@ -71,6 +71,8 @@ function criarCadastroPlanilhas() {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1242262181,
   };
+  // Mesma aba apoiadores (colunas B liderança, C município, N federal).
+  p["apoiador-federal"] = p.apoiadores;
   // Aba orçamento estratificado (por município).
   p.orcamento = {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
@@ -255,7 +257,7 @@ function planilhaPermitida(perfil, planilha) {
   if (perfil === "contratos") {
     if (PLANILHAS_SOMENTE_CONTRATOS[chave]) return true;
     if (chave === "municipios" || chave === "micro-municipios") return true;
-    if (chave === "apoiadores") return true;
+    if (chave === "apoiadores" || chave === "apoiador-federal") return true;
     return false;
   }
   if (perfil === "campanha") {
@@ -1047,6 +1049,18 @@ function doPostPlanilha(corpo) {
   return responder({ ok: true, linha: numLinhaInserida });
 }
 
+function obterSheetPorNome(ss, nome) {
+  if (!nome) return null;
+  const direto = ss.getSheetByName(nome);
+  if (direto) return direto;
+  const norm = normalizarChavePlanilha(nome);
+  const abas = ss.getSheets();
+  for (let i = 0; i < abas.length; i++) {
+    if (normalizarChavePlanilha(abas[i].getName()) === norm) return abas[i];
+  }
+  return null;
+}
+
 /**
  * Resolve a planilha (pela chave) e retorna a aba.
  * Ordem: 1) aba explícita na requisição; 2) nomeAba do cadastro; 3) gid; 4) primeira aba.
@@ -1058,18 +1072,24 @@ function obterSheet(planilhaKey, nomeAbaRequisicao) {
   const ss = SpreadsheetApp.openById(cfg.id);
 
   if (nomeAbaRequisicao) {
-    const porRequisicao = ss.getSheetByName(nomeAbaRequisicao);
+    const porRequisicao = obterSheetPorNome(ss, nomeAbaRequisicao);
     if (porRequisicao) return porRequisicao;
   }
   if (cfg.nomeAba) {
-    const porCadastro = ss.getSheetByName(cfg.nomeAba);
+    const porCadastro = obterSheetPorNome(ss, cfg.nomeAba);
     if (porCadastro) return porCadastro;
+    throw new Error(
+      "Aba não encontrada: " + cfg.nomeAba + " (planilha " + planilhaKey + ")"
+    );
   }
-  if (cfg.gid != null) {
+  if (cfg.gid != null && cfg.gid !== 0) {
     const abas = ss.getSheets();
     for (let i = 0; i < abas.length; i++) {
       if (abas[i].getSheetId() === cfg.gid) return abas[i];
     }
+    throw new Error(
+      "Aba gid " + cfg.gid + " não encontrada (planilha " + planilhaKey + ")"
+    );
   }
   return ss.getSheets()[0];
 }

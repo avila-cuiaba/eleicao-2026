@@ -80,7 +80,10 @@
             <thead>
               <tr class="apoiadores-thead-row1">
                 <th scope="col" rowspan="2" class="apoiadores-col-ident apoiadores-th-ident dashboard-th-base">
-                  <div class="apoiadores-th-ident-inner">
+                  <div class="apoiadores-th-ident-inner apoiadores-th-ident-inner--master">
+                    <button type="button" class="agenda-btn-nova agenda-btn-nova--tabela d-none" id="btnIncluirApoiador" title="incluir" aria-label="incluir">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>
+                    </button>
                     <span class="apoiadores-th-titulo apoiadores-th-desktop">liderança</span>
                     <span class="apoiadores-th-mobile">
                       <span class="dashboard-th-principal">liderança</span>
@@ -149,10 +152,58 @@
     </div>
   </div>
 
+  <div class="modal fade master-crud-modal" id="modalApoiadorCrud" tabindex="-1" aria-labelledby="modalApoiadorTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalApoiadorTitulo">apoiador</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="fechar"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formApoiadorCrud" class="row g-3">
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoApLideranca">liderança</label>
+              <input type="text" class="form-control form-control-sm" id="campoApLideranca" required />
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoApMunicipio">município</label>
+              <select class="form-select form-select-sm" id="campoApMunicipio" required>
+                <option value="">selecione</option>
+              </select>
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoApLider">apoiador lider</label>
+              <input type="text" class="form-control form-control-sm" id="campoApLider" inputmode="numeric" />
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoAp30">apoiador 30 dias</label>
+              <input type="text" class="form-control form-control-sm" id="campoAp30" inputmode="numeric" />
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoAp45">apoiador 45 dias</label>
+              <input type="text" class="form-control form-control-sm" id="campoAp45" inputmode="numeric" />
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoApCustom">apoiador customizado</label>
+              <input type="text" class="form-control form-control-sm" id="campoApCustom" inputmode="numeric" />
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">cancelar</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btnSalvarApoiador">salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/page-loader.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/planilha-api.js"></script>
+  <script src="../js/master-crud.js"></script>
   <script src="../js/popover-tabela.js"></script>
   <script src="../js/apoiadores.js"></script>
 </body>

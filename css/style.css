@@ -419,11 +419,24 @@ html {
   .parcerias-kpi-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+
+  .afederal-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .apoiadores-tabela.parcerias-tabela col.apoiadores-col-lider,
 .apoiadores-tabela.parcerias-tabela col.apoiadores-col-30 {
   width: 24%;
+}
+
+.apoiadores-tabela.afederal-tabela col.apoiadores-col-ident,
+.apoiadores-tabela.afederal-tabela col.apoiadores-col-municipio {
+  width: 34%;
+}
+
+.apoiadores-tabela.afederal-tabela col.apoiadores-col-lider {
+  width: 32%;
 }
 
 .orcamento-estratificado-tabela {
@@ -1904,11 +1917,13 @@ body.page-orcamento-desembolso .orcamento-desembolso-tabela-card .dashboard-tabe
 
 /* Página apoiadores — layout espelhado do dashboard/pessoal */
 html.apoiadores-page,
+html.apoiador-federal-page,
 html.orcamento-page {
   height: 100%;
 }
 
 body.page-apoiadores,
+body.page-apoiador-federal,
 body.page-parcerias,
 body.page-orcamento {
   height: 100%;
@@ -1919,6 +1934,7 @@ body.page-orcamento {
 }
 
 body.page-apoiadores .page-frame-content,
+body.page-apoiador-federal .page-frame-content,
 body.page-parcerias .page-frame-content,
 body.page-orcamento .page-frame-content {
   flex: 1;
@@ -1931,6 +1947,8 @@ body.page-orcamento .page-frame-content {
 
 body.page-apoiadores .dashboard-kpis-wrap,
 body.page-apoiadores #status:not(.d-none),
+body.page-apoiador-federal .dashboard-kpis-wrap,
+body.page-apoiador-federal #status:not(.d-none),
 body.page-parcerias .dashboard-kpis-wrap,
 body.page-parcerias #status:not(.d-none),
 body.page-orcamento .dashboard-kpis-wrap,
@@ -1939,6 +1957,7 @@ body.page-orcamento #status:not(.d-none) {
 }
 
 body.page-apoiadores .apoiadores-tabela-card,
+body.page-apoiador-federal .apoiadores-tabela-card,
 body.page-parcerias .apoiadores-tabela-card,
 body.page-parcerias .parcerias-tabela-card,
 body.page-orcamento .apoiadores-tabela-card,
@@ -1952,6 +1971,8 @@ body.page-orcamento .orcamento-tabela-card {
 
 body.page-apoiadores .apoiadores-tabela-card > .card-body,
 body.page-apoiadores .apoiadores-tabela-card .dashboard-tabela-panel,
+body.page-apoiador-federal .apoiadores-tabela-card > .card-body,
+body.page-apoiador-federal .apoiadores-tabela-card .dashboard-tabela-panel,
 body.page-parcerias .apoiadores-tabela-card > .card-body,
 body.page-parcerias .apoiadores-tabela-card .dashboard-tabela-panel,
 body.page-parcerias .parcerias-tabela-card > .card-body,
@@ -2127,6 +2148,7 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
   .apoiadores-th-mobile,
   .apoiadores-celula-mobile {
     display: block;
+    width: 100%;
   }
 
   .apoiadores-th-sub-municipio {
@@ -2215,6 +2237,7 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
 
   .apoiadores-tabela td.apoiadores-col-ident .dashboard-municipio-celula {
     min-width: 0;
+    width: 100%;
   }
 
   .apoiadores-celula-num {
@@ -2226,10 +2249,178 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
   .apoiadores-tabela.parcerias-tabela col.apoiadores-col-30 {
     width: 30% !important;
   }
+
+  .apoiadores-tabela.afederal-tabela col.apoiadores-col-ident {
+    width: 58% !important;
+  }
+
+  .apoiadores-tabela.afederal-tabela col.apoiadores-col-lider {
+    width: 42% !important;
+  }
+}
+
+.afederal-dados-tabs {
+  margin-bottom: 0;
+}
+
+.apoiadores-th-ident-inner--master {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.apoiadores-th-ident-inner .agenda-btn-nova--tabela {
+  width: 2rem;
+  height: 2rem;
+}
+
+.apoiadores-th-ident-inner .agenda-btn-nova--tabela svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.apoiadores-celula-texto-wrap,
+.dashboard-valor-celula-wrap {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  gap: 0.25rem;
+}
+
+.dashboard-valor-celula-wrap {
+  justify-content: flex-end;
+}
+
+.apoiadores-col-ident .apoiadores-celula-texto-wrap {
+  justify-content: flex-start;
+}
+
+.apoiadores-celula-texto-wrap > .crud-acoes-icones,
+.dashboard-municipio-nome.apoiadores-celula-texto-wrap > .crud-acoes-icones {
+  margin-left: auto;
+}
+
+.master-crud-modal .modal-title,
+.master-crud-modal .form-label {
+  text-transform: lowercase;
+}
+
+.master-crud-modal .form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.2rem;
+}
+
+.afederal-modal-ident-lideranca {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.afederal-modal-ident-municipio {
+  font-size: 0.84rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+.afederal-resumo-tabela th {
+  font-size: 0.82rem;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+.afederal-resumo-tabela td {
+  font-size: 0.88rem;
+  vertical-align: top;
+}
+
+.afederal-resumo-col-federal {
+  width: 18%;
+  min-width: 7rem;
+}
+
+.afederal-resumo-col-qtde {
+  width: 10%;
+  min-width: 4.5rem;
+}
+
+.afederal-resumo-col-liderancas {
+  white-space: normal;
+  line-height: 1.45;
+}
+
+@media (max-width: 575.98px) {
+  .afederal-resumo-tabela thead tr {
+    display: flex;
+    align-items: center;
+  }
+
+  .afederal-resumo-tabela thead .afederal-resumo-col-liderancas {
+    display: none;
+  }
+
+  .afederal-resumo-tabela thead .afederal-resumo-col-federal {
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 0;
+  }
+
+  .afederal-resumo-tabela thead .afederal-resumo-col-qtde {
+    flex: 0 0 auto;
+    width: auto !important;
+    min-width: 0;
+    padding-right: 0.75rem;
+  }
+
+  .afederal-resumo-tabela tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+  }
+
+  .afederal-resumo-tabela tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .afederal-resumo-tabela tbody td {
+    border-top: none;
+    border-bottom: none;
+    width: auto !important;
+    min-width: 0;
+  }
+
+  .afederal-resumo-tabela tbody .afederal-resumo-col-federal {
+    flex: 1 1 auto;
+    padding: 0.7rem 0 0.7rem 0.75rem;
+  }
+
+  .afederal-resumo-tabela tbody .afederal-resumo-col-qtde {
+    flex: 0 0 auto;
+    padding: 0.7rem 0.75rem 0.7rem 0.5rem;
+  }
+
+  .afederal-resumo-tabela tbody .afederal-resumo-col-liderancas {
+    flex: 0 0 100%;
+    width: 100%;
+    padding: 0 0.75rem 0.7rem;
+    margin-top: -0.25rem;
+    color: #64748b;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
 }
 
 @media (max-width: 575.98px) {
   body.page-apoiadores .page-frame-content {
+    padding-left: 1.15rem;
+    padding-right: 1.15rem;
+  }
+
+  body.page-apoiador-federal .page-frame-content {
     padding-left: 1.15rem;
     padding-right: 1.15rem;
   }
@@ -4691,9 +4882,20 @@ th.dashboard-col-eleitores.dashboard-th-desktop-only {
   min-width: 0;
 }
 
+.dashboard-municipio-celula > .dashboard-municipio-texto {
+  flex: 1;
+  min-width: 0;
+}
+
 .dashboard-municipio-nome {
   display: block;
   line-height: 1.25;
+}
+
+.dashboard-municipio-nome.apoiadores-celula-texto-wrap {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
 .dashboard-municipio-eleitores {
@@ -4757,6 +4959,11 @@ th.dashboard-col-eleitores.dashboard-th-desktop-only {
   body.page-dashboard .dashboard-tabela td.dashboard-col-minima,
   body.page-dashboard .dashboard-tabela td.dashboard-col-ideal {
     background: transparent;
+  }
+
+  body.page-dashboard .dashboard-tabela td.dashboard-col-ideal .dashboard-valor-celula-wrap {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 
@@ -6403,7 +6610,8 @@ body.page-pessoal .dashboard-tabela-panel {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.35rem;
+  gap: 0.05rem;
+  flex-shrink: 0;
 }
 
 .crud-acao-icone {

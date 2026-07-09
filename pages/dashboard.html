@@ -124,10 +124,64 @@
     </div>
   </div>
 
+  <div class="modal fade master-crud-modal" id="modalDashboardCrud" tabindex="-1" aria-labelledby="modalDashboardTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalDashboardTitulo">editar município</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="fechar"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formDashboardCrud" class="row g-3">
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoDashMunicipio">município</label>
+              <input type="text" class="form-control form-control-sm" id="campoDashMunicipio" disabled />
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoDashRegiao">região</label>
+              <input type="text" class="form-control form-control-sm" id="campoDashRegiao" disabled />
+            </div>
+            <div class="col-12">
+              <div class="row g-2">
+                <div class="col-4">
+                  <label class="form-label" for="campoDashPopulacao">população</label>
+                  <input type="text" class="form-control form-control-sm" id="campoDashPopulacao" disabled />
+                </div>
+                <div class="col-4">
+                  <label class="form-label" for="campoDashEleitores">eleitores</label>
+                  <input type="text" class="form-control form-control-sm" id="campoDashEleitores" disabled />
+                </div>
+                <div class="col-4">
+                  <label class="form-label" for="campoDash2022">votos 2022</label>
+                  <input type="text" class="form-control form-control-sm" id="campoDash2022" disabled />
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoDashMinima">votação mínima</label>
+              <input type="text" class="form-control form-control-sm" id="campoDashMinima" inputmode="numeric" />
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoDashIdeal">meta votação</label>
+              <input type="text" class="form-control form-control-sm" id="campoDashIdeal" inputmode="numeric" />
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">cancelar</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btnSalvarDashboard">salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/page-loader.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/planilha-api.js"></script>
+  <script src="../js/master-crud.js"></script>
   <script src="../js/popover-tabela.js"></script>
   <script src="../js/dashboard.js"></script>
 </body>

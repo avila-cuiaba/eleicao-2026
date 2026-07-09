@@ -77,7 +77,8 @@ window.APP_MENU = [
     label: "pessoal",
     filhos: [
       { id: "pessoal-visao-geral", label: "visão geral" },
-      { id: "pessoal-apoiadores", label: "apoiadores" },
+      { id: "pessoal-apoiadores", label: "apoiador" },
+      { id: "pessoal-apoiador-federal", label: "apoiador / federal" },
       { id: "pessoal-contratos", label: "contratos" },
       { id: "pessoal-parcerias", label: "parceria" },
     ],
@@ -102,6 +103,7 @@ window.APP_ICONE = {
     if (
       paginaId === "pessoal-visao-geral" ||
       paginaId === "pessoal-apoiadores" ||
+      paginaId === "pessoal-apoiador-federal" ||
       paginaId === "pessoal-contratos" ||
       paginaId === "pessoal-parcerias"
     ) {

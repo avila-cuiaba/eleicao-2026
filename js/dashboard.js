@@ -3,9 +3,22 @@
 const fmt = new Intl.NumberFormat("pt-BR");
 const cfg = CONFIG.DASHBOARD;
 
+const CAMPOS_DASHBOARD = [
+  { prop: "municipio", chave: "MUNICIPIO", aliases: ["municipio", "município"] },
+  { prop: "regiao", chave: "REGIAO", aliases: ["regiao", "região"] },
+  { prop: "populacao", chave: "POPULACAO", aliases: ["populacao", "população"] },
+  { prop: "eleitores", chave: "ELEITORES", aliases: ["eleitores"] },
+  { prop: "votos2022", chave: "VOTOS_2022", aliases: ["votos 2022", "votos2022", "2022"] },
+  { prop: "minima", chave: "MINIMA", aliases: ["minima", "mínima", "votacao minima", "votação mínima"] },
+  { prop: "ideal", chave: "IDEAL", aliases: ["ideal", "meta", "meta votacao", "meta votação"] },
+];
+
 let el = {};
 let registros = [];
 let regioes = [];
+let nomesColunaPlanilha = {};
+let modalCrud = null;
+let linhaCrud = null;
 const popoverTabela = PopoverTabela.criar();
 
 function configValida() {
@@ -42,6 +55,103 @@ function normalizarRegiao(texto) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+function normalizarChave(texto) {
+  return String(texto ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function atualizarMetadadosPlanilha(valores) {
+  const cab = valores[0] || [];
+  const normalizados = (cab || []).map((h) => normalizarChave(h));
+  nomesColunaPlanilha = {};
+  CAMPOS_DASHBOARD.forEach((campo) => {
+    let idx = normalizados.findIndex((n) =>
+      campo.aliases.some((alias) => normalizarChave(alias) === n)
+    );
+    if (idx === -1 && cfg.COLUNAS[campo.chave] != null) {
+      idx = cfg.COLUNAS[campo.chave];
+    }
+    if (idx != null && idx >= 0) {
+      const nome = String(cab[idx] ?? "").trim();
+      nomesColunaPlanilha[campo.prop] = nome || campo.aliases[0];
+    }
+  });
+}
+
+function dadosGravacaoDashboard(item) {
+  const dados = {};
+  ["minima", "ideal"].forEach((prop) => {
+    const chave = nomesColunaPlanilha[prop];
+    if (chave) dados[chave] = item[prop] ?? "";
+  });
+  return dados;
+}
+
+function itemPorLinha(numLinha) {
+  return registros.find((r) => r._linha === numLinha) || null;
+}
+
+function preencherFormularioDashboard(item) {
+  el.campoMunicipio.value = String(item.municipio ?? "").trim();
+  el.campoRegiao.value = String(item.regiao ?? "").trim();
+  el.campoPopulacao.value = item.populacao ? fmt.format(item.populacao) : "";
+  el.campoEleitores.value = item.eleitores ? fmt.format(item.eleitores) : "";
+  el.campo2022.value = item.votos2022 ? fmt.format(item.votos2022) : "";
+  el.campoMinima.value = item.minima ? fmt.format(item.minima) : "";
+  el.campoIdeal.value = item.ideal ? fmt.format(item.ideal) : "";
+}
+
+function lerFormularioDashboard() {
+  return {
+    minima: parseNumero(el.campoMinima.value),
+    ideal: parseNumero(el.campoIdeal.value),
+  };
+}
+
+function abrirModalEditarDashboard(numLinha) {
+  const item = itemPorLinha(numLinha);
+  if (!item) return;
+  linhaCrud = numLinha;
+  el.modalTitulo.textContent = "editar · " + String(item.municipio ?? "").trim();
+  preencherFormularioDashboard(item);
+  modalCrud.show();
+}
+
+async function salvarDashboardCrud() {
+  const item = itemPorLinha(linhaCrud);
+  if (!item) return;
+
+  el.btnSalvar.disabled = true;
+  try {
+    const form = lerFormularioDashboard();
+    await PlanilhaApi.gravar(cfg.PLANILHA, {
+      acao: "atualizar",
+      linha: linhaCrud,
+      dados: dadosGravacaoDashboard(form),
+      origem: "dashboard",
+    });
+    modalCrud.hide();
+    MasterCrud.toast("registro atualizado.", "sucesso");
+    await carregarDashboard();
+  } catch (e) {
+    MasterCrud.toast("erro ao salvar: " + e.message, "erro");
+  } finally {
+    el.btnSalvar.disabled = false;
+  }
+}
+
+function aoClicarTabelaDashboard(e) {
+  const btn = e.target.closest(MasterCrud.seletorAcao);
+  if (!btn) return;
+  e.stopPropagation();
+  const numLinha = Number(btn.dataset.linha);
+  if (!numLinha) return;
+  if (btn.dataset.acao === "editar") abrirModalEditarDashboard(numLinha);
+}
+
 function escapeHtml(texto) {
   return String(texto)
     .replace(/&/g, "&amp;")
@@ -68,6 +178,7 @@ function extrairRegistros(valores) {
 
     const regiaoBruta = String(celula(valores, linha, cols.REGIAO) ?? "").trim();
     itens.push({
+      _linha: linha,
       municipio,
       regiao: regiaoBruta,
       regiaoNorm: normalizarRegiao(regiaoBruta),
@@ -238,7 +349,12 @@ function renderizarLinhaDashboard(r) {
     <td class="text-end dashboard-col-eleitores">${fmt.format(r.eleitores)}</td>
     <td class="text-end dashboard-col-2022">${fmt.format(r.votos2022)}</td>
     <td class="text-end dashboard-col-minima">${fmt.format(r.minima)}</td>
-    <td class="text-end dashboard-col-ideal">${fmt.format(r.ideal)}</td>
+    <td class="text-end dashboard-col-ideal">
+      <span class="dashboard-valor-celula-wrap">
+        <span>${fmt.format(r.ideal)}</span>
+        ${MasterCrud.acoesLinha(r._linha, { somenteEditar: true })}
+      </span>
+    </td>
   </tr>`;
 }
 
@@ -285,6 +401,7 @@ function renderizarTabela() {
 }
 
 function montar(valores) {
+  atualizarMetadadosPlanilha(valores);
   registros = extrairRegistros(valores);
   montarFiltros(extrairRegioes(registros));
   renderizarTabela();
@@ -333,8 +450,22 @@ function initDashboard() {
     kpiEleitores: document.getElementById("kpiEleitores"),
     kpiMinima: document.getElementById("kpiMinima"),
     kpiIdeal: document.getElementById("kpiIdeal"),
+    btnSalvar: document.getElementById("btnSalvarDashboard"),
+    modalTitulo: document.getElementById("modalDashboardTitulo"),
+    modalEl: document.getElementById("modalDashboardCrud"),
+    campoMunicipio: document.getElementById("campoDashMunicipio"),
+    campoRegiao: document.getElementById("campoDashRegiao"),
+    campoPopulacao: document.getElementById("campoDashPopulacao"),
+    campoEleitores: document.getElementById("campoDashEleitores"),
+    campo2022: document.getElementById("campoDash2022"),
+    campoMinima: document.getElementById("campoDashMinima"),
+    campoIdeal: document.getElementById("campoDashIdeal"),
   };
   if (!el.corpoTabela) return;
+
+  if (el.modalEl) modalCrud = bootstrap.Modal.getOrCreateInstance(el.modalEl);
+  el.btnSalvar?.addEventListener("click", salvarDashboardCrud);
+  el.corpoTabela.addEventListener("click", aoClicarTabelaDashboard);
 
   window.addEventListener("resize", alinharColunasTabela);
   requestAnimationFrame(() => notificarAlturaFrame());

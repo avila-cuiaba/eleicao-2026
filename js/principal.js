@@ -34,6 +34,13 @@ const PAGINAS = {
     atualizar: true,
     menuGrupo: "pessoal",
   },
+  "pessoal-apoiador-federal": {
+    titulo: "pessoal",
+    subtitulo: "apoiador federal",
+    arquivo: "pages/apoiador-federal.html",
+    atualizar: true,
+    menuGrupo: "pessoal",
+  },
   "pessoal-contratos": {
     titulo: "pessoal",
     subtitulo: "contratos",
@@ -113,6 +120,7 @@ function resolverPagina(id) {
   if (id === "orcamento") return "orcamento-estratificado";
   if (id === "mobilizacao") return "mobilizacao-estrutura";
   if (id === "desempenho") return "dashboard";
+  if (id === "apoiador-federal") return "pessoal-apoiador-federal";
   const resolved = id && PAGINAS[id] ? id : "inicio";
   if (AUTH.getChave() && !AUTH.podeAcessarPagina(resolved)) {
     return AUTH.paginaInicial();
@@ -211,6 +219,7 @@ function ajustarAlturaFrame() {
       doc.body?.classList.contains("page-dashboard") ||
       doc.body?.classList.contains("page-pessoal") ||
       doc.body?.classList.contains("page-apoiadores") ||
+      doc.body?.classList.contains("page-apoiador-federal") ||
       doc.body?.classList.contains("page-parcerias") ||
       doc.body?.classList.contains("page-orcamento") ||
       doc.body?.classList.contains("page-orcamento-geral") ||

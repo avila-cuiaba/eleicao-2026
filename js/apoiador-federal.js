@@ -1,22 +1,16 @@
-// Página apoiadores: contratos por liderança/município + filtro por região (planilha municipios).
+// Página apoiador federal: liderança, município, federal + filtro por região.
 
 const fmt = new Intl.NumberFormat("pt-BR");
 const cfg = CONFIG.PESSOAL;
-const cfgAp = cfg.APOIADORES;
+const cfgAf = cfg.APOIADOR_FEDERAL;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
-const COLS_TABELA = 6;
+const COLS_TABELA = 3;
+const COLS_TABELA_RESUMO = 3;
 
 const CAMPOS_PLANILHA = [
   { prop: "lideranca", chave: "LIDERANCA", aliases: ["lideranca", "liderança"] },
   { prop: "municipio", chave: "MUNICIPIO", aliases: ["municipio", "município"] },
-  { prop: "apoiadorLider", chave: "APOIADOR_LIDER", aliases: ["apoiador-lider", "apoiador lider"] },
-  { prop: "apoiador30", chave: "APOIADOR_30", aliases: ["apoiador-30", "apoiador 30"] },
-  { prop: "apoiador45", chave: "APOIADOR_45", aliases: ["apoiador-45", "apoiador 45"] },
-  {
-    prop: "apoiadorCustomizado",
-    chave: "APOIADOR_CUSTOMIZADO",
-    aliases: ["apoiador-customizado", "apoiador customizado", "apoiador-livre", "apoiador livre"],
-  },
+  { prop: "federal", chave: "FEDERAL", aliases: ["federal", "apoiador federal", "deputado federal"] },
 ];
 
 let el = {};
@@ -24,11 +18,10 @@ let linhas = [];
 let regioes = [];
 let mapaMunicipioRegiao = new Map();
 let nomesColunaPlanilha = {};
-let opcoesMunicipio = [];
+let opcoesFederal = [];
 let modalCrud = null;
 let modoCrud = "inserir";
 let linhaCrud = null;
-const popoverTabela = PopoverTabela.criar();
 
 function atualizarMetadadosPlanilha(valores) {
   const cab = valores[0] || [];
@@ -43,8 +36,13 @@ function atualizarMetadadosPlanilha(valores) {
   });
 }
 
-function dadosGravacaoApoiador(item) {
+function dadosGravacaoFederal(item, somenteFederal) {
   const dados = {};
+  if (somenteFederal) {
+    const chave = nomesColunaPlanilha.federal;
+    if (chave) dados[chave] = item.federal ?? "";
+    return dados;
+  }
   CAMPOS_PLANILHA.forEach((campo) => {
     const chave = nomesColunaPlanilha[campo.prop];
     if (chave) dados[chave] = item[campo.prop] ?? "";
@@ -56,27 +54,33 @@ function itemPorLinha(numLinha) {
   return linhas.find((r) => r._linha === numLinha) || null;
 }
 
-function lerFormularioApoiador() {
-  return {
-    lideranca: el.campoLideranca.value.trim(),
-    municipio: el.campoMunicipio.value.trim(),
-    apoiadorLider: el.campoLider.value.trim(),
-    apoiador30: el.campo30.value.trim(),
-    apoiador45: el.campo45.value.trim(),
-    apoiadorCustomizado: el.campoCustom.value.trim(),
-  };
+function urlConsultaAba(planilha, aba) {
+  const url = new URL(CONFIG.WEB_APP_URL);
+  url.searchParams.set("planilha", planilha);
+  const nomeAba = aba || cfg.ABA;
+  if (nomeAba) url.searchParams.set("aba", nomeAba);
+  AUTH.aplicarNaUrl(url);
+  return url.toString();
 }
 
-function extrairOpcoesMunicipio(valoresMunicipios) {
-  const mapa = new Map();
-  if (!valoresMunicipios?.length) return [];
+async function fetchAba(planilha, aba) {
+  const resp = await fetch(urlConsultaAba(planilha, aba), { method: "GET" });
+  const json = await resp.json();
+  if (!AUTH.tratarResposta(json)) return null;
+  if (!json.ok) throw new Error(json.erro || "Falha ao consultar " + planilha + ".");
+  return json.valores || [];
+}
 
-  const cols = cfgMun.COLUNAS;
-  for (let linha = cfgMun.LINHA_INICIO_DADOS; linha <= valoresMunicipios.length; linha++) {
-    const municipio = String(celula(valoresMunicipios, linha, cols.MUNICIPIO) ?? "").trim();
-    if (!municipio) continue;
-    const chave = normalizarChave(municipio);
-    if (!mapa.has(chave)) mapa.set(chave, municipio);
+function extrairOpcoesFederal(valores) {
+  const p = cfgAf.PARAMETROS;
+  const mapa = new Map();
+  if (!valores?.length) return [];
+
+  for (let i = p.LINHA_INICIO_DADOS - 1; i < valores.length; i++) {
+    const nome = String(valores[i]?.[p.COLUNA_FEDERAL] ?? "").trim();
+    if (!nome) continue;
+    const chave = normalizarChave(nome);
+    if (!mapa.has(chave)) mapa.set(chave, nome);
   }
 
   return Array.from(mapa.values()).sort((a, b) =>
@@ -84,16 +88,16 @@ function extrairOpcoesMunicipio(valoresMunicipios) {
   );
 }
 
-function montarSelectMunicipio(valorSelecionado) {
-  if (!el.campoMunicipio) return;
+function montarSelectFederal(valorSelecionado) {
+  if (!el.campoFederal) return;
   const atual = String(valorSelecionado ?? "").trim();
-  const chaves = new Set(opcoesMunicipio.map((n) => normalizarChave(n)));
-  const lista = [...opcoesMunicipio];
+  const chaves = new Set(opcoesFederal.map((n) => normalizarChave(n)));
+  const lista = [...opcoesFederal];
   if (atual && !chaves.has(normalizarChave(atual))) lista.push(atual);
 
   lista.sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
 
-  el.campoMunicipio.innerHTML =
+  el.campoFederal.innerHTML =
     '<option value="">selecione</option>' +
     lista
       .map((nome) => {
@@ -103,86 +107,105 @@ function montarSelectMunicipio(valorSelecionado) {
       .join("");
 }
 
-function preencherFormularioApoiador(item) {
-  const dados = item || {};
-  el.campoLideranca.value = String(dados.lideranca ?? "").trim();
-  montarSelectMunicipio(dados.municipio ?? "");
-  el.campoLider.value = String(dados.apoiadorLider ?? "").trim();
-  el.campo30.value = String(dados.apoiador30 ?? "").trim();
-  el.campo45.value = String(dados.apoiador45 ?? "").trim();
-  el.campoCustom.value = String(dados.apoiadorCustomizado ?? "").trim();
+async function carregarOpcoesFederal() {
+  const p = cfgAf.PARAMETROS;
+  try {
+    const valores = await fetchAba(p.PLANILHA, p.ABA);
+    opcoesFederal = extrairOpcoesFederal(valores || []);
+  } catch {
+    opcoesFederal = [];
+  }
 }
 
-function abrirModalIncluirApoiador() {
+function abrirModalIncluirAfederal() {
   modoCrud = "inserir";
   linhaCrud = null;
-  el.modalTitulo.textContent = "incluir apoiador";
-  preencherFormularioApoiador({});
+  el.modalTitulo.textContent = "incluir registro";
+  el.camposIdent.classList.remove("d-none");
+  el.resumoIdent.classList.add("d-none");
+  el.campoLideranca.value = "";
+  el.campoMunicipio.value = "";
+  montarSelectFederal("");
   modalCrud.show();
 }
 
-function abrirModalEditarApoiador(numLinha) {
+function abrirModalEditarAfederal(numLinha) {
   const item = itemPorLinha(numLinha);
   if (!item) return;
   modoCrud = "atualizar";
   linhaCrud = numLinha;
-  el.modalTitulo.textContent = "editar apoiador";
-  preencherFormularioApoiador(item);
+  el.modalTitulo.textContent = "editar federal";
+  el.camposIdent.classList.add("d-none");
+  el.resumoIdent.classList.remove("d-none");
+  el.resumoLideranca.textContent = String(item.lideranca ?? "").trim();
+  el.resumoMunicipio.textContent = String(item.municipio ?? "").trim();
+  montarSelectFederal(item.federal);
   modalCrud.show();
 }
 
-async function salvarApoiadorCrud() {
-  const form = lerFormularioApoiador();
-  if (!form.lideranca || !form.municipio) {
-    MasterCrud.toast("preencha liderança e município.", "erro");
+async function salvarAfederalCrud() {
+  const federal = el.campoFederal.value.trim();
+  if (!federal) {
+    MasterCrud.toast("preencha o federal.", "erro");
     return;
   }
 
-  el.btnSalvarApoiador.disabled = true;
+  el.btnSalvar.disabled = true;
   try {
-    const payload = {
-      acao: modoCrud === "atualizar" ? "atualizar" : "inserir",
-      dados: dadosGravacaoApoiador(form),
-      origem: "pessoal-apoiadores",
-    };
-    if (modoCrud === "atualizar") payload.linha = linhaCrud;
-
-    await PlanilhaApi.gravar(cfg.PLANILHA_APOIADORES, payload);
+    if (modoCrud === "inserir") {
+      const lideranca = el.campoLideranca.value.trim();
+      const municipio = el.campoMunicipio.value.trim();
+      if (!lideranca || !municipio) {
+        MasterCrud.toast("preencha liderança e município.", "erro");
+        return;
+      }
+      await PlanilhaApi.gravar(cfgAf.PLANILHA, {
+        acao: "inserir",
+        dados: dadosGravacaoFederal({ lideranca, municipio, federal }, false),
+        origem: "pessoal-apoiador-federal",
+      });
+      MasterCrud.toast("registro incluído.", "sucesso");
+    } else {
+      await PlanilhaApi.gravar(cfgAf.PLANILHA, {
+        acao: "atualizar",
+        linha: linhaCrud,
+        dados: dadosGravacaoFederal({ federal }, true),
+        origem: "pessoal-apoiador-federal",
+      });
+      MasterCrud.toast("federal atualizado.", "sucesso");
+    }
     modalCrud.hide();
-    MasterCrud.toast(modoCrud === "atualizar" ? "registro atualizado." : "registro incluído.", "sucesso");
-    await carregarApoiadores();
+    await carregar();
   } catch (e) {
     MasterCrud.toast("erro ao salvar: " + e.message, "erro");
   } finally {
-    el.btnSalvarApoiador.disabled = false;
+    el.btnSalvar.disabled = false;
   }
 }
 
-async function excluirApoiadorCrud(numLinha) {
-  const item = itemPorLinha(numLinha);
-  if (!item || !MasterCrud.confirmarExclusao()) return;
-
+async function excluirAfederalCrud(numLinha) {
+  if (!itemPorLinha(numLinha) || !MasterCrud.confirmarExclusao()) return;
   try {
-    await PlanilhaApi.gravar(cfg.PLANILHA_APOIADORES, {
+    await PlanilhaApi.gravar(cfgAf.PLANILHA, {
       acao: "excluir",
       linha: numLinha,
-      origem: "pessoal-apoiadores",
+      origem: "pessoal-apoiador-federal",
     });
     MasterCrud.toast("registro excluído.", "sucesso");
-    await carregarApoiadores();
+    await carregar();
   } catch (e) {
     MasterCrud.toast("erro ao excluir: " + e.message, "erro");
   }
 }
 
-function aoClicarTabelaApoiador(e) {
+function aoClicarTabelaAfederal(e) {
   const btn = e.target.closest(MasterCrud.seletorAcao);
   if (!btn) return;
   e.stopPropagation();
   const numLinha = Number(btn.dataset.linha);
   if (!numLinha) return;
-  if (btn.dataset.acao === "editar") abrirModalEditarApoiador(numLinha);
-  if (btn.dataset.acao === "excluir") excluirApoiadorCrud(numLinha);
+  if (btn.dataset.acao === "editar") abrirModalEditarAfederal(numLinha);
+  if (btn.dataset.acao === "excluir") excluirAfederalCrud(numLinha);
 }
 
 function configValida() {
@@ -274,8 +297,8 @@ function resolverIndices(cabecalho) {
     let idx = normalizados.findIndex((n) =>
       campo.aliases.some((alias) => normalizarChave(alias) === n)
     );
-    if (idx === -1 && cfgAp.COLUNAS[campo.chave] != null) {
-      idx = cfgAp.COLUNAS[campo.chave];
+    if (idx === -1 && cfgAf.COLUNAS[campo.chave] != null) {
+      idx = cfgAf.COLUNAS[campo.chave];
     }
     indices[campo.prop] = idx;
   });
@@ -297,7 +320,7 @@ function exibirCelula(val) {
   const s = String(val ?? "").trim();
   if (!s) return "";
   const n = parseNumero(val);
-  if (n > 0) return fmt.format(n);
+  if (n > 0 || s === "0") return fmt.format(n);
   return escapeHtml(s);
 }
 
@@ -345,12 +368,12 @@ function montarFiltros(listaRegioes) {
 
   if (!listaRegioes.length) {
     el.filtroRegioes.innerHTML =
-      '<span class="text-secondary small">Nenhuma micro-região encontrada.</span>';
+      '<span class="text-secondary small">nenhuma micro-região encontrada.</span>';
     return;
   }
 
   listaRegioes.forEach((reg) => {
-    const id = "ap-regiao-" + reg.norm.replace(/[^a-z0-9]+/g, "-");
+    const id = "af-regiao-" + reg.norm.replace(/[^a-z0-9]+/g, "-");
     const label = document.createElement("label");
     label.className = "dashboard-filtro-item dashboard-filtro-cor--" + indiceCorRegiao(reg.norm);
     label.innerHTML =
@@ -360,7 +383,7 @@ function montarFiltros(listaRegioes) {
   });
 
   el.filtroRegioes.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
-    cb.addEventListener("change", renderizarTabela);
+    cb.addEventListener("change", renderizarTudo);
   });
 }
 
@@ -368,12 +391,11 @@ function termoBuscaLideranca() {
   return normalizarChave(el.buscaLideranca?.value);
 }
 
-function linhasFiltradas() {
+function linhasFiltradasPorRegiao() {
   const selecionadas = regioesSelecionadas();
   if (!selecionadas.length) return [];
 
   const todasMarcadas = selecionadas.length === regioes.length;
-  const termo = termoBuscaLideranca();
 
   return linhas.filter((item) => {
     if (item.regiaoNorm) {
@@ -381,10 +403,51 @@ function linhasFiltradas() {
     } else if (!todasMarcadas) {
       return false;
     }
+    return true;
+  });
+}
 
+function linhasFiltradas() {
+  const termo = termoBuscaLideranca();
+  return linhasFiltradasPorRegiao().filter((item) => {
     if (termo && !normalizarChave(item.lideranca).includes(termo)) return false;
     return true;
   });
+}
+
+function agruparPorFederal(filtradas) {
+  const mapa = new Map();
+
+  filtradas.forEach((r) => {
+    const federal = String(r.federal ?? "").trim();
+    if (!federal) return;
+
+    const chave = normalizarChave(federal);
+    if (!mapa.has(chave)) {
+      mapa.set(chave, { federal, liderancas: new Map(), qtde: 0 });
+    }
+
+    const grupo = mapa.get(chave);
+    grupo.qtde++;
+
+    const lideranca = String(r.lideranca ?? "").trim();
+    if (lideranca) {
+      const chaveLideranca = normalizarChave(lideranca);
+      if (!grupo.liderancas.has(chaveLideranca)) {
+        grupo.liderancas.set(chaveLideranca, lideranca);
+      }
+    }
+  });
+
+  return Array.from(mapa.values())
+    .map((grupo) => ({
+      federal: grupo.federal,
+      qtde: grupo.qtde,
+      liderancas: Array.from(grupo.liderancas.values()).sort((a, b) =>
+        a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+      ),
+    }))
+    .sort((a, b) => a.federal.localeCompare(b.federal, "pt-BR", { sensitivity: "base" }));
 }
 
 function ordenarPorLideranca(a, b) {
@@ -407,7 +470,7 @@ function extrairLinhas(valores) {
   const indices = resolverIndices(valores[0]);
   const itens = [];
 
-  for (let i = cfgAp.LINHA_INICIO_DADOS - 1; i < valores.length; i++) {
+  for (let i = cfgAf.LINHA_INICIO_DADOS - 1; i < valores.length; i++) {
     const linha = valores[i];
     if (!linha) continue;
 
@@ -418,10 +481,7 @@ function extrairLinhas(valores) {
       _linha: i + 1,
       lideranca: valorCampo(linha, indices.lideranca),
       municipio,
-      apoiadorLider: valorCampo(linha, indices.apoiadorLider),
-      apoiador30: valorCampo(linha, indices.apoiador30),
-      apoiador45: valorCampo(linha, indices.apoiador45),
-      apoiadorCustomizado: valorCampo(linha, indices.apoiadorCustomizado),
+      federal: valorCampo(linha, indices.federal),
       regiao: info?.regiao || "",
       regiaoNorm: info?.regiaoNorm || "",
     };
@@ -434,65 +494,49 @@ function extrairLinhas(valores) {
   return itens;
 }
 
-function somarCampo(filtradas, prop) {
-  return filtradas.reduce((acc, r) => {
-    const n = parseNumero(r[prop]);
-    if (n > 0) return acc + n;
-    if (celulaPreenchida(r[prop])) return acc + 1;
-    return acc;
-  }, 0);
+function somarFederal(filtradas) {
+  const set = new Set();
+  filtradas.forEach((r) => {
+    const s = String(r.federal ?? "").trim();
+    if (s) set.add(normalizarChave(s));
+  });
+  return set.size;
 }
 
 function atualizarKpis(filtradas) {
-  el.kpiTotal.textContent = fmt.format(filtradas.length);
-  el.kpiLider.textContent = fmt.format(somarCampo(filtradas, "apoiadorLider"));
-  el.kpi30.textContent = fmt.format(somarCampo(filtradas, "apoiador30"));
-  el.kpi45.textContent = fmt.format(somarCampo(filtradas, "apoiador45"));
-  el.kpiCustom.textContent = fmt.format(somarCampo(filtradas, "apoiadorCustomizado"));
+  el.kpiRegistros.textContent = fmt.format(filtradas.length);
+  el.kpiFederal.textContent = fmt.format(somarFederal(filtradas));
 }
 
 function limparKpis() {
-  const vazio = "—";
-  el.kpiTotal.textContent = vazio;
-  el.kpiLider.textContent = vazio;
-  el.kpi30.textContent = vazio;
-  el.kpi45.textContent = vazio;
-  el.kpiCustom.textContent = vazio;
+  el.kpiRegistros.textContent = "—";
+  el.kpiFederal.textContent = "—";
 }
 
 function zerarKpis() {
-  el.kpiTotal.textContent = fmt.format(0);
-  el.kpiLider.textContent = fmt.format(0);
-  el.kpi30.textContent = fmt.format(0);
-  el.kpi45.textContent = fmt.format(0);
-  el.kpiCustom.textContent = fmt.format(0);
+  el.kpiRegistros.textContent = fmt.format(0);
+  el.kpiFederal.textContent = fmt.format(0);
 }
 
-function largurasColunasApoiadores() {
+function largurasColunasAfederal() {
   const mobile = window.matchMedia("(max-width: 991.98px)").matches;
   if (mobile) {
     return {
-      "apoiadores-col-ident": "40%",
+      "apoiadores-col-ident": "58%",
       "apoiadores-col-municipio": "0",
-      "apoiadores-col-lider": "15%",
-      "apoiadores-col-30": "15%",
-      "apoiadores-col-45": "15%",
-      "apoiadores-col-custom": "15%",
+      "apoiadores-col-lider": "42%",
     };
   }
   return {
-    "apoiadores-col-ident": "26%",
-    "apoiadores-col-municipio": "26%",
-    "apoiadores-col-lider": "12%",
-    "apoiadores-col-30": "12%",
-    "apoiadores-col-45": "12%",
-    "apoiadores-col-custom": "12%",
+    "apoiadores-col-ident": "34%",
+    "apoiadores-col-municipio": "34%",
+    "apoiadores-col-lider": "32%",
   };
 }
 
-function sincronizarLargurasColunasApoiadores(headTable, bodyTable) {
+function sincronizarLargurasColunas(headTable, bodyTable) {
   const mobile = window.matchMedia("(max-width: 991.98px)").matches;
-  const larguras = largurasColunasApoiadores();
+  const larguras = largurasColunasAfederal();
   [headTable, bodyTable].forEach((table) => {
     table.querySelectorAll("colgroup col").forEach((col) => {
       const cls = Array.from(col.classList).find((c) => c.startsWith("apoiadores-col-"));
@@ -506,7 +550,7 @@ function sincronizarLargurasColunasApoiadores(headTable, bodyTable) {
 }
 
 function alinharColunasTabela() {
-  const panel = document.querySelector(".apoiadores-tabela-card .dashboard-tabela-panel");
+  const panel = document.querySelector("#painelAfDetalhe .dashboard-tabela-panel");
   const headWrap = panel?.querySelector(".dashboard-tabela-head");
   const bodyScroll = panel?.querySelector(".dashboard-tabela-body-scroll");
   const headTable = headWrap?.querySelector("table");
@@ -520,7 +564,7 @@ function alinharColunasTabela() {
   const barra = bodyScroll.offsetWidth - bodyScroll.clientWidth;
   headWrap.style.paddingRight = barra > 0 ? barra + "px" : "0px";
 
-  sincronizarLargurasColunasApoiadores(headTable, bodyTable);
+  sincronizarLargurasColunas(headTable, bodyTable);
 }
 
 function aposRenderTabela() {
@@ -529,31 +573,6 @@ function aposRenderTabela() {
     notificarAlturaFrame();
     requestAnimationFrame(alinharColunasTabela);
   });
-}
-
-function valorPopoverCelula(val) {
-  return exibirCelula(val) || "—";
-}
-
-function tituloPopoverApoiador(r) {
-  return exibirTexto(r.lideranca) || escapeHtml(r.municipio) || "—";
-}
-
-function htmlPopoverApoiador(r) {
-  return PopoverTabela.corpo(
-    tituloPopoverApoiador(r),
-    [
-      PopoverTabela.item("município", escapeHtml(r.municipio) || "—"),
-      PopoverTabela.item("lider", valorPopoverCelula(r.apoiadorLider), "popover-marcador--apoiador-lider"),
-      PopoverTabela.item("30 dias", valorPopoverCelula(r.apoiador30), "popover-marcador--apoiador-30"),
-      PopoverTabela.item("45 dias", valorPopoverCelula(r.apoiador45), "popover-marcador--apoiador-45"),
-      PopoverTabela.item(
-        "customizado",
-        valorPopoverCelula(r.apoiadorCustomizado),
-        "popover-marcador--apoiador-custom"
-      ),
-    ].join("")
-  );
 }
 
 function renderizarLinha(r) {
@@ -566,7 +585,7 @@ function renderizarLinha(r) {
     ? `<span class="apoiadores-sub-municipio">${municipioHtml}</span>`
     : "";
 
-  return `<tr class="apoiadores-linha-popover" tabindex="0" aria-label="detalhes do apoiador">
+  return `<tr>
     <td class="apoiadores-col-ident">
       <span class="apoiadores-celula-desktop apoiadores-celula-texto">
         <span class="apoiadores-celula-texto-wrap">${liderancaHtml}${acoesMaster}</span>
@@ -589,11 +608,52 @@ function renderizarLinha(r) {
         </span>
       </span>
     </td>
-    <td class="text-end apoiadores-col-lider apoiadores-col-separador apoiadores-celula-num">${exibirCelula(r.apoiadorLider)}</td>
-    <td class="text-end apoiadores-col-30 apoiadores-celula-num">${exibirCelula(r.apoiador30)}</td>
-    <td class="text-end apoiadores-col-45 apoiadores-celula-num">${exibirCelula(r.apoiador45)}</td>
-    <td class="text-end apoiadores-col-custom apoiadores-celula-num">${exibirCelula(r.apoiadorCustomizado)}</td>
+    <td class="apoiadores-col-lider apoiadores-celula-texto">${exibirTexto(r.federal)}</td>
   </tr>`;
+}
+
+function renderizarLinhaResumo(grupo) {
+  const liderancasHtml = grupo.liderancas.length
+    ? grupo.liderancas.map((nome) => escapeHtml(nome)).join(", ")
+    : "";
+
+  return `<tr>
+    <td class="afederal-resumo-col-federal apoiadores-celula-texto">${exibirTexto(grupo.federal)}</td>
+    <td class="text-end afederal-resumo-col-qtde apoiadores-celula-num">${fmt.format(grupo.qtde)}</td>
+    <td class="afederal-resumo-col-liderancas apoiadores-celula-texto">${liderancasHtml}</td>
+  </tr>`;
+}
+
+function renderizarTabelaResumo() {
+  const selecionadas = regioesSelecionadas();
+  const filtradas = linhasFiltradasPorRegiao();
+  const grupos = agruparPorFederal(filtradas);
+
+  if (!linhas.length) {
+    el.corpoResumo.innerHTML =
+      `<tr><td colspan="${COLS_TABELA_RESUMO}" class="text-center text-secondary py-4">nenhum registro na planilha.</td></tr>`;
+    return;
+  }
+
+  if (!selecionadas.length) {
+    el.corpoResumo.innerHTML =
+      `<tr><td colspan="${COLS_TABELA_RESUMO}" class="text-center text-secondary py-4">selecione ao menos uma micro-região</td></tr>`;
+    return;
+  }
+
+  if (!grupos.length) {
+    el.corpoResumo.innerHTML =
+      `<tr><td colspan="${COLS_TABELA_RESUMO}" class="text-center text-secondary py-4">nenhum federal para os filtros selecionados.</td></tr>`;
+    return;
+  }
+
+  el.corpoResumo.innerHTML = grupos.map(renderizarLinhaResumo).join("");
+}
+
+function renderizarTudo() {
+  renderizarTabela();
+  renderizarTabelaResumo();
+  aposRenderTabela();
 }
 
 function renderizarTabela() {
@@ -604,121 +664,114 @@ function renderizarTabela() {
 
   if (!linhas.length) {
     limparKpis();
-    popoverTabela.destruir();
     el.corpo.innerHTML =
-      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum registro na planilha.</td></tr>`;
-    aposRenderTabela();
+      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">nenhum registro na planilha.</td></tr>`;
     return;
   }
 
   if (!selecionadas.length) {
     zerarKpis();
-    popoverTabela.destruir();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">selecione ao menos uma micro-região</td></tr>`;
-    aposRenderTabela();
     return;
   }
 
   if (!filtradas.length) {
     zerarKpis();
-    popoverTabela.destruir();
     el.corpo.innerHTML =
-      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum apoiador para os filtros selecionados.</td></tr>`;
-    aposRenderTabela();
+      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">nenhum registro para os filtros selecionados.</td></tr>`;
     return;
   }
 
   atualizarKpis(filtradas);
   el.corpo.innerHTML = filtradas.map(renderizarLinha).join("");
-  popoverTabela.inicializar({
-    corpo: el.corpo,
-    seletorLinha: "tr.apoiadores-linha-popover",
-    linhas: filtradas,
-    htmlConteudo: htmlPopoverApoiador,
-  });
-  aposRenderTabela();
 }
 
-function montar(valoresApoiadores) {
-  atualizarMetadadosPlanilha(valoresApoiadores);
-  linhas = extrairLinhas(valoresApoiadores);
+function montar(valores) {
+  atualizarMetadadosPlanilha(valores);
+  linhas = extrairLinhas(valores);
   montarFiltros(extrairRegioes(linhas));
-  renderizarTabela();
+  renderizarTudo();
 }
 
-async function carregarApoiadores() {
+async function carregar() {
   if (!configValida()) {
-    mostrarStatus("Configure a URL do Web App em js/config.js.", "erro");
+    mostrarStatus("configure a URL do Web App em js/config.js.", "erro");
     return;
   }
 
-  mostrarStatus("Carregando apoiadores...", "carregando");
+  mostrarStatus("carregando apoiador federal...", "carregando");
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   try {
-    const [valoresApoiadores, valoresMunicipios] = await Promise.all([
-      fetchPlanilha(cfg.PLANILHA_APOIADORES),
+    const [valores, valoresMunicipios] = await Promise.all([
+      fetchPlanilha(cfgAf.PLANILHA),
       fetchPlanilha(cfgMun.PLANILHA).catch(() => []),
+      carregarOpcoesFederal(),
     ]);
 
-    if (valoresApoiadores === null) {
+    if (valores === null) {
       limparStatus();
       return;
     }
 
-    opcoesMunicipio = extrairOpcoesMunicipio(valoresMunicipios || []);
     mapaMunicipioRegiao = montarMapaMunicipios(valoresMunicipios || []);
-    montar(valoresApoiadores);
+    montar(valores);
     limparStatus();
   } catch (e) {
-    mostrarStatus("Erro ao carregar: " + e.message, "erro");
-    popoverTabela.destruir();
+    mostrarStatus("erro ao carregar: " + e.message, "erro");
     el.corpo.innerHTML = "";
+    el.corpoResumo.innerHTML = "";
     el.vazio.hidden = true;
   } finally {
     notificarAlturaFrame();
   }
 }
 
-window.atualizarPagina = carregarApoiadores;
+window.atualizarPagina = carregar;
 
-function initApoiadores() {
+function init() {
   el = {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
     buscaLideranca: document.getElementById("buscaLideranca"),
-    corpo: document.getElementById("corpoApoiadores"),
+    corpo: document.getElementById("corpoTabela"),
+    corpoResumo: document.getElementById("corpoTabelaResumo"),
     vazio: document.getElementById("vazio"),
-    kpiTotal: document.getElementById("kpiTotal"),
-    kpiLider: document.getElementById("kpiLider"),
-    kpi30: document.getElementById("kpi30"),
-    kpi45: document.getElementById("kpi45"),
-    kpiCustom: document.getElementById("kpiCustom"),
-    btnIncluir: document.getElementById("btnIncluirApoiador"),
-    btnSalvarApoiador: document.getElementById("btnSalvarApoiador"),
-    modalTitulo: document.getElementById("modalApoiadorTitulo"),
-    modalEl: document.getElementById("modalApoiadorCrud"),
-    campoLideranca: document.getElementById("campoApLideranca"),
-    campoMunicipio: document.getElementById("campoApMunicipio"),
-    campoLider: document.getElementById("campoApLider"),
-    campo30: document.getElementById("campoAp30"),
-    campo45: document.getElementById("campoAp45"),
-    campoCustom: document.getElementById("campoApCustom"),
+    kpiRegistros: document.getElementById("kpiRegistros"),
+    kpiFederal: document.getElementById("kpiFederal"),
+    btnIncluir: document.getElementById("btnIncluirAfederal"),
+    btnSalvar: document.getElementById("btnSalvarAfederal"),
+    modalTitulo: document.getElementById("modalAfederalTitulo"),
+    modalEl: document.getElementById("modalAfederalCrud"),
+    camposIdent: document.getElementById("afederalCamposIdent"),
+    resumoIdent: document.getElementById("afederalResumoIdent"),
+    resumoLideranca: document.getElementById("afederalResumoLideranca"),
+    resumoMunicipio: document.getElementById("afederalResumoMunicipio"),
+    campoLideranca: document.getElementById("campoAfLideranca"),
+    campoMunicipio: document.getElementById("campoAfMunicipio"),
+    campoFederal: document.getElementById("campoAfFederal"),
   };
-  if (!el.corpo || !el.filtroRegioes) return;
+  if (!el.corpo || !el.corpoResumo || !el.filtroRegioes) return;
 
-  MasterCrud.aplicarVisibilidadeIncluir("btnIncluirApoiador");
+  MasterCrud.aplicarVisibilidadeIncluir("btnIncluirAfederal");
   if (el.modalEl) modalCrud = bootstrap.Modal.getOrCreateInstance(el.modalEl);
-  el.btnIncluir?.addEventListener("click", abrirModalIncluirApoiador);
-  el.btnSalvarApoiador?.addEventListener("click", salvarApoiadorCrud);
-  el.corpo.addEventListener("click", aoClicarTabelaApoiador);
+  el.btnIncluir?.addEventListener("click", abrirModalIncluirAfederal);
+  el.btnSalvar?.addEventListener("click", salvarAfederalCrud);
+  el.corpo.addEventListener("click", aoClicarTabelaAfederal);
 
-  el.buscaLideranca?.addEventListener("input", renderizarTabela);
+  el.buscaLideranca?.addEventListener("input", renderizarTudo);
+  document.querySelectorAll('#afederalTabs button[data-bs-toggle="tab"]').forEach((btn) => {
+    btn.addEventListener("shown.bs.tab", () => {
+      alinharColunasTabela();
+      notificarAlturaFrame();
+    });
+  });
   window.addEventListener("resize", alinharColunasTabela);
+  PageLoader.init("pageLoader");
   alinharColunasTabela();
-  carregarApoiadores();
+  carregar();
 }
 
 AUTH.exigir();
-document.addEventListener("DOMContentLoaded", initApoiadores);
+document.addEventListener("DOMContentLoaded", init);

@@ -21,7 +21,7 @@ const CONFIG = {
 
   // Chave da planilha (deve existir em PLANILHAS no BackendPlanilhas.gs).
   // Opções: mapa-voto, votacao, municipios, cadastro-colaboradores,
-  //         pessoal-municipio, apoiadores, parcerias, orcamento.
+  //         pessoal-municipio, apoiadores, apoiador-federal, parcerias, orcamento.
   PLANILHA: "mapa-voto",
 
   // Planilhas cadastradas (usado pela página de verificação).
@@ -33,6 +33,7 @@ const CONFIG = {
     { chave: "cadastro-colaboradores", titulo: "Cadastro colaboradores" },
     { chave: "pessoal-municipio", titulo: "Pessoal — Município" },
     { chave: "apoiadores", titulo: "Pessoal — Apoiadores" },
+    { chave: "apoiador-federal", titulo: "Pessoal — Apoiador federal" },
     { chave: "parcerias", titulo: "Pessoal — Parcerias" },
     { chave: "orcamento", titulo: "Orçamento" },
     { chave: "orcamento-geral", titulo: "Orçamento — Geral" },
@@ -378,6 +379,21 @@ const CONFIG = {
         PARCERIA: 1,          // B
         APOIADORES: 2,        // C
         VALOR_PARCERIA: 3,    // D
+      },
+    },
+    APOIADOR_FEDERAL: {
+      PLANILHA: "apoiadores",
+      LINHA_INICIO_DADOS: 2,
+      COLUNAS: {
+        LIDERANCA: 1,   // B
+        MUNICIPIO: 2,   // C
+        FEDERAL: 13,    // N
+      },
+      PARAMETROS: {
+        PLANILHA: "apoiadores",
+        ABA: "parametros",
+        COLUNA_FEDERAL: 5, // F
+        LINHA_INICIO_DADOS: 2,
       },
     },
   },

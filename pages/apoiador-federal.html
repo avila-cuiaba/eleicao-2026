@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="apoiador-federal-page">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apoiador federal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="bg-light page-frame-body page-apoiador-federal page-apoiadores">
+  <div class="page-frame-content">
+    <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
+
+    <div class="card shadow-sm border-0 mb-3 dashboard-kpis-wrap apoiadores-kpi-wrap">
+      <div class="card-body py-3">
+        <div class="row g-2 g-sm-3 align-items-start apoiadores-micro-row">
+          <div class="col-5 col-lg-4">
+            <div id="filtroRegioes" class="dashboard-filtro-regioes" role="group" aria-label="Filtrar por região"></div>
+          </div>
+          <div class="col-7 col-lg-8">
+            <div class="apoiadores-kpi-grid afederal-kpi-grid">
+              <div class="apoiadores-kpi-slot">
+                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-total">
+                  <div class="card-body py-2 px-2 px-sm-3">
+                    <div class="dashboard-kpi-rotulo">lideranças</div>
+                    <strong id="kpiRegistros" class="dashboard-kpi-valor">—</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="apoiadores-kpi-slot">
+                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-lider">
+                  <div class="card-body py-2 px-2 px-sm-3">
+                    <div class="dashboard-kpi-rotulo">federal</div>
+                    <strong id="kpiFederal" class="dashboard-kpi-valor">—</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 dashboard-tabela-card apoiadores-tabela-card afederal-tabela-card">
+      <div class="card-header bg-white border-bottom-0 pt-3 px-3 pb-0">
+        <ul class="nav nav-tabs entregas-dados-tabs afederal-dados-tabs" id="afederalTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="tabAfDetalhe"
+              data-bs-toggle="tab"
+              data-bs-target="#painelAfDetalhe"
+              type="button"
+              role="tab"
+              aria-controls="painelAfDetalhe"
+              aria-selected="true"
+            >
+              detalhe
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="tabAfResumo"
+              data-bs-toggle="tab"
+              data-bs-target="#painelAfResumo"
+              type="button"
+              role="tab"
+              aria-controls="painelAfResumo"
+              aria-selected="false"
+            >
+              por federal
+            </button>
+          </li>
+        </ul>
+      </div>
+      <div class="card-body p-0">
+        <div class="tab-content" id="afederalTabContent">
+          <div
+            class="tab-pane fade show active"
+            id="painelAfDetalhe"
+            role="tabpanel"
+            aria-labelledby="tabAfDetalhe"
+            tabindex="0"
+          >
+            <div class="dashboard-tabela-panel">
+              <div class="dashboard-tabela-head table-light">
+                <table class="table mb-0 apoiadores-tabela afederal-tabela">
+                  <colgroup>
+                    <col class="apoiadores-col-ident" />
+                    <col class="apoiadores-col-municipio" />
+                    <col class="apoiadores-col-lider" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th scope="col" class="apoiadores-col-ident apoiadores-th-ident dashboard-th-base">
+                        <div class="apoiadores-th-ident-inner apoiadores-th-ident-inner--master">
+                          <button type="button" class="agenda-btn-nova agenda-btn-nova--tabela d-none" id="btnIncluirAfederal" title="incluir" aria-label="incluir">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>
+                          </button>
+                          <span class="apoiadores-th-titulo apoiadores-th-desktop">liderança</span>
+                          <span class="apoiadores-th-mobile">
+                            <span class="dashboard-th-principal">liderança</span>
+                            <span class="dashboard-th-sub text-muted apoiadores-th-sub-municipio">município</span>
+                          </span>
+                          <label class="apoiadores-busca-campo" for="buscaLideranca">
+                            <span class="visually-hidden">buscar liderança</span>
+                            <span class="apoiadores-busca-inner">
+                              <span class="apoiadores-busca-icone" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                  <circle cx="11" cy="11" r="7" />
+                                  <path d="M20 20l-3.5-3.5" />
+                                </svg>
+                              </span>
+                              <input
+                                type="search"
+                                id="buscaLideranca"
+                                class="form-control form-control-sm apoiadores-busca-input"
+                                placeholder="liderança"
+                                autocomplete="off"
+                              />
+                            </span>
+                          </label>
+                        </div>
+                      </th>
+                      <th scope="col" class="apoiadores-col-municipio dashboard-th-base apoiadores-th-municipio">
+                        <span class="apoiadores-th-desktop">município</span>
+                      </th>
+                      <th scope="col" class="apoiadores-col-lider">federal</th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
+              <div class="dashboard-tabela-body-scroll">
+                <table class="table table-hover mb-0 apoiadores-tabela afederal-tabela">
+                  <colgroup>
+                    <col class="apoiadores-col-ident" />
+                    <col class="apoiadores-col-municipio" />
+                    <col class="apoiadores-col-lider" />
+                  </colgroup>
+                  <tbody id="corpoTabela">
+                    <tr>
+                      <td colspan="3" class="text-center text-secondary py-4">carregando...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p id="vazio" class="text-secondary text-center py-4 mb-0" hidden>
+                nenhum registro encontrado.
+              </p>
+            </div>
+          </div>
+          <div
+            class="tab-pane fade"
+            id="painelAfResumo"
+            role="tabpanel"
+            aria-labelledby="tabAfResumo"
+            tabindex="0"
+          >
+            <div class="dashboard-tabela-panel afederal-resumo-panel">
+              <div class="dashboard-tabela-body-scroll">
+                <table class="table table-hover mb-0 afederal-resumo-tabela">
+                  <thead class="table-light">
+                    <tr>
+                      <th scope="col" class="afederal-resumo-col-federal">federal</th>
+                      <th scope="col" class="text-end afederal-resumo-col-qtde">qtde</th>
+                      <th scope="col" class="afederal-resumo-col-liderancas">lideranças</th>
+                    </tr>
+                  </thead>
+                  <tbody id="corpoTabelaResumo">
+                    <tr>
+                      <td colspan="3" class="text-center text-secondary py-4">carregando...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
+      <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
+      <span class="visually-hidden">carregando</span>
+    </div>
+  </div>
+
+  <div class="modal fade master-crud-modal" id="modalAfederalCrud" tabindex="-1" aria-labelledby="modalAfederalTitulo" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalAfederalTitulo">federal</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="fechar"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formAfederalCrud">
+            <div id="afederalCamposIdent" class="d-none mb-3">
+              <div class="mb-2">
+                <label class="form-label" for="campoAfLideranca">liderança</label>
+                <input type="text" class="form-control form-control-sm" id="campoAfLideranca" />
+              </div>
+              <div>
+                <label class="form-label" for="campoAfMunicipio">município</label>
+                <input type="text" class="form-control form-control-sm" id="campoAfMunicipio" />
+              </div>
+            </div>
+            <div id="afederalResumoIdent" class="mb-3 d-none">
+              <div id="afederalResumoLideranca" class="afederal-modal-ident-lideranca"></div>
+              <div id="afederalResumoMunicipio" class="afederal-modal-ident-municipio"></div>
+            </div>
+            <div class="mb-0">
+              <label class="form-label" for="campoAfFederal">federal</label>
+              <select class="form-select form-select-sm" id="campoAfFederal" required>
+                <option value="">selecione</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">cancelar</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btnSalvarAfederal">salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/page-loader.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/planilha-api.js"></script>
+  <script src="../js/master-crud.js"></script>
+  <script src="../js/apoiador-federal.js"></script>
+</body>
+</html>
