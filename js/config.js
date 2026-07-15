@@ -355,21 +355,20 @@ const CONFIG = {
         APOIADOR_30: 3,           // D
         APOIADOR_45: 4,           // E
         APOIADOR_CUSTOMIZADO: 5,  // F
+        APOIADOR_60: 10,          // K
+        APOIADOR_90: 12,          // M
         DESP_PESSOAL: 9,       // J
-        DESP_COMBUSTIVEL: 10,  // K
         DESP_DIVERSOS: 11,     // L
-        DESP_DIA_D: 12,        // M
       },
       COLUNAS_DESPACHO: [
         { prop: "pessoal", chave: "DESP_PESSOAL", indice: 9, aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
         {
           prop: "combustivel",
           chave: "DESP_COMBUSTIVEL",
-          indice: 10,
           aliases: ["combustivel", "combustível", "orcamento-combustivel", "orcamento combustivel"],
         },
         { prop: "diversos", chave: "DESP_DIVERSOS", indice: 11, aliases: ["diversos", "orcamento-diversos"] },
-        { prop: "diaD", chave: "DESP_DIA_D", indice: 12, aliases: ["dia d", "dia-d", "diad", "orcamento-diad", "orcamento dia d"] },
+        { prop: "diaD", chave: "DESP_DIA_D", aliases: ["dia d", "dia-d", "diad", "orcamento-diad", "orcamento dia d"] },
       ],
     },
     PARCERIAS: {

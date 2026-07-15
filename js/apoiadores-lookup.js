@@ -17,6 +17,8 @@ const ApoiadoresLookup = {
     { prop: "apoiadorLider", chave: "APOIADOR_LIDER", aliases: ["apoiador-lider", "apoiador lider"] },
     { prop: "apoiador30", chave: "APOIADOR_30", aliases: ["apoiador-30", "apoiador 30"] },
     { prop: "apoiador45", chave: "APOIADOR_45", aliases: ["apoiador-45", "apoiador 45"] },
+    { prop: "apoiador60", chave: "APOIADOR_60", aliases: ["apoiador-60", "apoiador 60", "60 dias"] },
+    { prop: "apoiador90", chave: "APOIADOR_90", aliases: ["apoiador-90", "apoiador 90", "90 dias"] },
     {
       prop: "apoiadorCustomizado",
       chave: "APOIADOR_CUSTOMIZADO",
@@ -152,6 +154,8 @@ const ApoiadoresLookup = {
         apoiadorLider: this.valorCampo(linha, indices.apoiadorLider),
         apoiador30: this.valorCampo(linha, indices.apoiador30),
         apoiador45: this.valorCampo(linha, indices.apoiador45),
+        apoiador60: this.valorCampo(linha, indices.apoiador60),
+        apoiador90: this.valorCampo(linha, indices.apoiador90),
         apoiadorCustomizado: this.valorCampo(linha, indices.apoiadorCustomizado),
         pessoal: this.valorCampo(linha, indices.pessoal),
         combustivel: this.valorCampo(linha, indices.combustivel),
@@ -273,6 +277,16 @@ const ApoiadoresLookup = {
         "45 dias",
         this.exibirCelula(registro.apoiador45) || "—",
         "popover-marcador--apoiador-45"
+      ),
+      PopoverTabela.item(
+        "60 dias",
+        this.exibirCelula(registro.apoiador60) || "—",
+        "popover-marcador--apoiador-60"
+      ),
+      PopoverTabela.item(
+        "90 dias",
+        this.exibirCelula(registro.apoiador90) || "—",
+        "popover-marcador--apoiador-90"
       ),
       PopoverTabela.item(
         "customizado",

@@ -386,6 +386,39 @@ html {
   line-height: 1.2;
 }
 
+.apoiadores-kpi-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+body.page-apoiadores .apoiadores-kpi-destaque {
+  min-width: 0;
+}
+
+body.page-apoiadores .apoiadores-kpi-destaque .dashboard-kpi-card {
+  border: 1px solid rgba(31, 78, 140, 0.18);
+  border-left: 4px solid var(--brand, #1f4e8c);
+  background: rgba(31, 78, 140, 0.07);
+}
+
+body.page-apoiadores .apoiadores-kpi-destaque .dashboard-kpi-rotulo {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #1e3a5f;
+}
+
+body.page-apoiadores .apoiadores-kpi-destaque .dashboard-kpi-valor {
+  font-size: 1.35rem;
+  line-height: 1.15;
+  color: #0f172a;
+}
+
+body.page-apoiadores .apoiadores-kpi-apoiador .dashboard-kpi-card {
+  border-left: 3px solid #94a3b8;
+}
+
 .apoiadores-kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -409,11 +442,29 @@ html {
   .apoiadores-kpi-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .apoiadores-kpi-grid--contratos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .apoiadores-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .apoiadores-kpi-grid--contratos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 992px) {
   .apoiadores-kpi-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .apoiadores-kpi-grid--contratos {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   .parcerias-kpi-grid {
@@ -928,6 +979,14 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
 
 .popover-marcador--apoiador-45 {
   background: #1a6f85;
+}
+
+.popover-marcador--apoiador-60 {
+  background: #7c3aed;
+}
+
+.popover-marcador--apoiador-90 {
+  background: #b45309;
 }
 
 .popover-marcador--apoiador-custom {
@@ -1911,6 +1970,14 @@ body.page-orcamento-desembolso .orcamento-desembolso-tabela-card .dashboard-tabe
   border-left: 3px solid #1a6f85;
 }
 
+.apoiadores-kpi-60 .dashboard-kpi-card {
+  border-left: 3px solid #7c3aed;
+}
+
+.apoiadores-kpi-90 .dashboard-kpi-card {
+  border-left: 3px solid #b45309;
+}
+
 .apoiadores-kpi-custom .dashboard-kpi-card {
   border-left: 3px solid #0f766e;
 }
@@ -2124,14 +2191,47 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
 
 .apoiadores-tabela col.apoiadores-col-ident,
 .apoiadores-tabela col.apoiadores-col-municipio {
-  width: 26%;
+  width: 20%;
 }
 
 .apoiadores-tabela col.apoiadores-col-lider,
 .apoiadores-tabela col.apoiadores-col-30,
 .apoiadores-tabela col.apoiadores-col-45,
+.apoiadores-tabela col.apoiadores-col-60,
+.apoiadores-tabela col.apoiadores-col-90,
 .apoiadores-tabela col.apoiadores-col-custom {
-  width: 12%;
+  width: 10%;
+}
+
+.apoiadores-col-grupo-mobile {
+  display: none;
+}
+
+.apoiadores-grupo-inline {
+  font-size: 0.58rem;
+  line-height: 1.35;
+  text-align: start;
+  color: #334155;
+  word-break: break-word;
+}
+
+.apoiadores-grupo-linha + .apoiadores-grupo-linha {
+  margin-top: 0.2rem;
+}
+
+.apoiadores-grupo-valor {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.apoiadores-grupo-par-valor {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.apoiadores-grupo-sep {
+  color: #94a3b8;
+  white-space: pre;
 }
 
 .apoiadores-tabela td.apoiadores-col-ident,
@@ -2209,8 +2309,19 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
   .apoiadores-tabela col.apoiadores-col-lider,
   .apoiadores-tabela col.apoiadores-col-30,
   .apoiadores-tabela col.apoiadores-col-45,
+  .apoiadores-tabela col.apoiadores-col-60,
+  .apoiadores-tabela col.apoiadores-col-90,
   .apoiadores-tabela col.apoiadores-col-custom {
-    width: 15% !important;
+    width: 11% !important;
+  }
+
+  .apoiadores-tabela td.apoiadores-col-apoiador-desk,
+  .apoiadores-tabela th.apoiadores-th-apoiador-desk {
+    display: table-cell;
+  }
+
+  .apoiadores-tabela td.apoiadores-col-grupo-mobile {
+    display: none !important;
   }
 
   .apoiadores-tabela:not(.orcamento-tabela) th,
@@ -2256,6 +2367,70 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
 
   .apoiadores-tabela.afederal-tabela col.apoiadores-col-lider {
     width: 42% !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  body.page-apoiadores .apoiadores-tabela col.apoiadores-col-ident {
+    width: 58% !important;
+  }
+
+  body.page-apoiadores .apoiadores-tabela col.apoiadores-col-lider,
+  body.page-apoiadores .apoiadores-tabela col.apoiadores-col-30,
+  body.page-apoiadores .apoiadores-tabela col.apoiadores-col-45,
+  body.page-apoiadores .apoiadores-tabela col.apoiadores-col-60,
+  body.page-apoiadores .apoiadores-tabela col.apoiadores-col-90,
+  body.page-apoiadores .apoiadores-tabela col.apoiadores-col-custom {
+    width: 7% !important;
+  }
+
+  body.page-apoiadores .apoiadores-th-ident-inner {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  body.page-apoiadores .apoiadores-th-ident-inner .apoiadores-th-mobile {
+    display: none;
+  }
+
+  body.page-apoiadores .apoiadores-tabela:not(.orcamento-tabela) .apoiadores-th-ident-inner .apoiadores-busca-campo {
+    order: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  body.page-apoiadores .apoiadores-th-ident-inner .agenda-btn-nova--tabela {
+    flex-shrink: 0;
+  }
+
+  body.page-apoiadores .apoiadores-tabela tr.apoiadores-th-apoiador-desk,
+  body.page-apoiadores .apoiadores-tabela td.apoiadores-col-apoiador-desk {
+    display: none !important;
+  }
+
+  body.page-apoiadores .apoiadores-tabela td.apoiadores-col-grupo-mobile {
+    display: table-cell !important;
+    padding-left: 0.2rem;
+    padding-right: 0.25rem;
+  }
+
+  body.page-apoiadores .apoiadores-tabela th.apoiadores-th-grupo {
+    font-size: 0.58rem;
+    width: 42%;
+  }
+
+  body.page-apoiadores .apoiadores-grupo-inline {
+    font-size: 0.64rem;
+    line-height: 1.4;
+  }
+
+  body.page-apoiadores .apoiadores-grupo-par-valor,
+  body.page-apoiadores .apoiadores-grupo-valor {
+    font-size: 0.82rem;
+    line-height: 1.25;
   }
 }
 
@@ -2312,6 +2487,40 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
   font-weight: 600;
   color: #475569;
   margin-bottom: 0.2rem;
+}
+
+.master-crud-modal .master-crud-input-num {
+  -moz-appearance: auto;
+  appearance: auto;
+}
+
+.master-crud-modal .master-crud-input-num::-webkit-outer-spin-button,
+.master-crud-modal .master-crud-input-num::-webkit-inner-spin-button {
+  opacity: 1;
+}
+
+.master-crud-modal-content {
+  position: relative;
+}
+
+.master-crud-modal-salvando {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  background: rgba(248, 250, 252, 0.82);
+  border-radius: inherit;
+}
+
+.master-crud-modal-salvando-texto {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: lowercase;
 }
 
 .afederal-modal-ident-lideranca {

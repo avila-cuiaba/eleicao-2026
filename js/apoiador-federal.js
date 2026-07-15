@@ -150,7 +150,7 @@ async function salvarAfederalCrud() {
     return;
   }
 
-  el.btnSalvar.disabled = true;
+  MasterCrud.salvando(el.modalEl, true, { btnSalvar: el.btnSalvar });
   try {
     if (modoCrud === "inserir") {
       const lideranca = el.campoLideranca.value.trim();
@@ -179,7 +179,7 @@ async function salvarAfederalCrud() {
   } catch (e) {
     MasterCrud.toast("erro ao salvar: " + e.message, "erro");
   } finally {
-    el.btnSalvar.disabled = false;
+    MasterCrud.salvando(el.modalEl, false, { btnSalvar: el.btnSalvar });
   }
 }
 

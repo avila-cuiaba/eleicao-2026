@@ -73,6 +73,43 @@ const MasterCrud = {
   toast(mensagem, tipo) {
     if (typeof AppToast !== "undefined") AppToast.show(mensagem, tipo);
   },
+
+  salvando(modalEl, ativo, opcoes) {
+    if (!modalEl) return;
+    const opts = opcoes || {};
+    const content = modalEl.querySelector(".modal-content");
+    if (!content) return;
+
+    let overlay = content.querySelector(".master-crud-modal-salvando");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.className = "master-crud-modal-salvando d-none";
+      overlay.setAttribute("aria-hidden", "true");
+      overlay.setAttribute("aria-busy", "false");
+      overlay.innerHTML =
+        '<div class="spinner-border text-primary master-crud-modal-salvando-spinner" role="status">' +
+        '<span class="visually-hidden">Salvando</span></div>' +
+        '<span class="master-crud-modal-salvando-texto">salvando...</span>';
+      content.classList.add("master-crud-modal-content");
+      content.insertBefore(overlay, content.firstChild);
+    }
+
+    overlay.classList.toggle("d-none", !ativo);
+    overlay.setAttribute("aria-hidden", ativo ? "false" : "true");
+    overlay.setAttribute("aria-busy", ativo ? "true" : "false");
+
+    const btnSalvar = opts.btnSalvar;
+    const btnCancelar =
+      opts.btnCancelar || content.querySelector(".modal-footer .btn-outline-secondary");
+    const btnFechar = opts.btnFechar || content.querySelector(".btn-close");
+
+    if (btnSalvar) btnSalvar.disabled = ativo;
+    if (btnCancelar) btnCancelar.disabled = ativo;
+    if (btnFechar) {
+      btnFechar.disabled = ativo;
+      btnFechar.setAttribute("aria-disabled", ativo ? "true" : "false");
+    }
+  },
 };
 
 window.MasterCrud = MasterCrud;

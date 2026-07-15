@@ -68,11 +68,16 @@ function atualizarMetadadosPlanilha(valores) {
   const normalizados = (cab || []).map((h) => normalizarChave(h));
   nomesColunaPlanilha = {};
   CAMPOS_DASHBOARD.forEach((campo) => {
-    let idx = normalizados.findIndex((n) =>
-      campo.aliases.some((alias) => normalizarChave(alias) === n)
-    );
-    if (idx === -1 && cfg.COLUNAS[campo.chave] != null) {
+    let idx = -1;
+    if (campo.prop === "minima" || campo.prop === "ideal") {
       idx = cfg.COLUNAS[campo.chave];
+    } else {
+      idx = normalizados.findIndex((n) =>
+        campo.aliases.some((alias) => normalizarChave(alias) === n)
+      );
+      if (idx === -1 && cfg.COLUNAS[campo.chave] != null) {
+        idx = cfg.COLUNAS[campo.chave];
+      }
     }
     if (idx != null && idx >= 0) {
       const nome = String(cab[idx] ?? "").trim();
@@ -82,12 +87,10 @@ function atualizarMetadadosPlanilha(valores) {
 }
 
 function dadosGravacaoDashboard(item) {
-  const dados = {};
-  ["minima", "ideal"].forEach((prop) => {
-    const chave = nomesColunaPlanilha[prop];
-    if (chave) dados[chave] = item[prop] ?? "";
-  });
-  return dados;
+  return {
+    minima: item.minima ?? "",
+    ideal: item.ideal ?? "",
+  };
 }
 
 function itemPorLinha(numLinha) {
@@ -124,7 +127,7 @@ async function salvarDashboardCrud() {
   const item = itemPorLinha(linhaCrud);
   if (!item) return;
 
-  el.btnSalvar.disabled = true;
+  MasterCrud.salvando(el.modalEl, true, { btnSalvar: el.btnSalvar });
   try {
     const form = lerFormularioDashboard();
     await PlanilhaApi.gravar(cfg.PLANILHA, {
@@ -139,7 +142,7 @@ async function salvarDashboardCrud() {
   } catch (e) {
     MasterCrud.toast("erro ao salvar: " + e.message, "erro");
   } finally {
-    el.btnSalvar.disabled = false;
+    MasterCrud.salvando(el.modalEl, false, { btnSalvar: el.btnSalvar });
   }
 }
 

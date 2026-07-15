@@ -940,6 +940,23 @@ function valorDadosColuna(dados, col) {
   return undefined;
 }
 
+// Dashboard (planilha votacao): somente colunas I e J — votação mínima e meta votação.
+const DASHBOARD_COL_MINIMA = 9; // I (1-based)
+const DASHBOARD_COL_IDEAL = 10; // J (1-based)
+
+function atualizarLinhaDashboard(sheet, numLinha, existente, dados) {
+  const novaLinha = existente.slice();
+  if (dados && Object.prototype.hasOwnProperty.call(dados, "minima")) {
+    sheet.getRange(numLinha, DASHBOARD_COL_MINIMA).setValue(dados.minima);
+    novaLinha[DASHBOARD_COL_MINIMA - 1] = dados.minima;
+  }
+  if (dados && Object.prototype.hasOwnProperty.call(dados, "ideal")) {
+    sheet.getRange(numLinha, DASHBOARD_COL_IDEAL).setValue(dados.ideal);
+    novaLinha[DASHBOARD_COL_IDEAL - 1] = dados.ideal;
+  }
+  return novaLinha;
+}
+
 function doPostPlanilha(corpo) {
   const planilha = corpo.planilha || PLANILHA_PADRAO;
   const nomeAba = corpo.aba || ABA_PADRAO;
@@ -994,12 +1011,17 @@ function doPostPlanilha(corpo) {
     }
     const existente = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
     const antes = linhaParaObjeto(cabecalhos, existente);
-    const novaLinha = cabecalhos.map(function (col, i) {
-      const val = valorDadosColuna(dados, col);
-      if (val !== undefined) return val;
-      return existente[i] != null ? existente[i] : "";
-    });
-    sheet.getRange(numLinha, 1, 1, cabecalhos.length).setValues([novaLinha]);
+    let novaLinha;
+    if (origemAuditoria === "dashboard") {
+      novaLinha = atualizarLinhaDashboard(sheet, numLinha, existente, dados);
+    } else {
+      novaLinha = cabecalhos.map(function (col, i) {
+        const val = valorDadosColuna(dados, col);
+        if (val !== undefined) return val;
+        return existente[i] != null ? existente[i] : "";
+      });
+      sheet.getRange(numLinha, 1, 1, cabecalhos.length).setValues([novaLinha]);
+    }
     const depois = linhaParaObjeto(cabecalhos, novaLinha);
     if (auditar) {
       registrarAuditoriaContratos(
