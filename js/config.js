@@ -354,11 +354,18 @@ const CONFIG = {
         APOIADOR_LIDER: 2,        // C
         APOIADOR_30: 3,           // D
         APOIADOR_45: 4,           // E
-        APOIADOR_CUSTOMIZADO: 5,  // F
+        FIN_LIDER: 5,             // F
+        FIN_30: 7,                // H
+        FIN_45: 9,                // J
         APOIADOR_60: 10,          // K
+        FIN_60: 11,               // L
         APOIADOR_90: 12,          // M
-        DESP_PESSOAL: 9,       // J
-        DESP_DIVERSOS: 11,     // L
+        FIN_90: 13,               // N
+        APOIADOR_CUSTOMIZADO: 14, // O
+        FIN_CUSTOMIZADO: 15,      // P
+        FIN_TOTAL: 17,            // R
+        DESP_PESSOAL: 9,
+        DESP_DIVERSOS: 11,
       },
       COLUNAS_DESPACHO: [
         { prop: "pessoal", chave: "DESP_PESSOAL", indice: 9, aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },

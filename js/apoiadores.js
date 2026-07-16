@@ -1,6 +1,10 @@
 // Página apoiadores: contratos por liderança/município + filtro por região (planilha municipios).
 
 const fmt = new Intl.NumberFormat("pt-BR");
+const fmtMoeda = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 const cfg = CONFIG.PESSOAL;
 const cfgAp = cfg.APOIADORES;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
@@ -18,6 +22,32 @@ const CAMPOS_PLANILHA = [
     prop: "apoiadorCustomizado",
     chave: "APOIADOR_CUSTOMIZADO",
     aliases: ["apoiador-customizado", "apoiador customizado", "apoiador-livre", "apoiador livre"],
+  },
+];
+
+const CAMPOS_FINANCEIROS = [
+  { prop: "finLider", chave: "FIN_LIDER" },
+  { prop: "fin30", chave: "FIN_30" },
+  { prop: "fin45", chave: "FIN_45" },
+  { prop: "fin60", chave: "FIN_60" },
+  { prop: "fin90", chave: "FIN_90" },
+  { prop: "finCustomizado", chave: "FIN_CUSTOMIZADO" },
+  { prop: "finTotal", chave: "FIN_TOTAL" },
+];
+
+const CAMPOS_FIN_MODAL = CAMPOS_FINANCEIROS.filter((c) => c.prop !== "finTotal");
+
+const LINHAS_APOIADOR_POPOVER = [
+  { rotulo: "lider", qtd: "apoiadorLider", fin: "finLider", marcador: "popover-marcador--apoiador-lider" },
+  { rotulo: "30 dias", qtd: "apoiador30", fin: "fin30", marcador: "popover-marcador--apoiador-30" },
+  { rotulo: "45 dias", qtd: "apoiador45", fin: "fin45", marcador: "popover-marcador--apoiador-45" },
+  { rotulo: "60 dias", qtd: "apoiador60", fin: "fin60", marcador: "popover-marcador--apoiador-60" },
+  { rotulo: "90 dias", qtd: "apoiador90", fin: "fin90", marcador: "popover-marcador--apoiador-90" },
+  {
+    rotulo: "customizado",
+    qtd: "apoiadorCustomizado",
+    fin: "finCustomizado",
+    marcador: "popover-marcador--apoiador-custom",
   },
 ];
 
@@ -43,11 +73,22 @@ function atualizarMetadadosPlanilha(valores) {
       nomesColunaPlanilha[campo.prop] = nome || campo.aliases[0];
     }
   });
+  CAMPOS_FINANCEIROS.forEach((campo) => {
+    const idx = cfgAp.COLUNAS[campo.chave];
+    if (idx != null && idx >= 0) {
+      const nome = String(cab[idx] ?? "").trim();
+      nomesColunaPlanilha[campo.prop] = nome || campo.chave;
+    }
+  });
 }
 
 function dadosGravacaoApoiador(item) {
   const dados = {};
   CAMPOS_PLANILHA.forEach((campo) => {
+    const chave = nomesColunaPlanilha[campo.prop];
+    if (chave) dados[chave] = item[campo.prop] ?? "";
+  });
+  CAMPOS_FIN_MODAL.forEach((campo) => {
     const chave = nomesColunaPlanilha[campo.prop];
     if (chave) dados[chave] = item[campo.prop] ?? "";
   });
@@ -68,6 +109,12 @@ function lerFormularioApoiador() {
     apoiador60: el.campo60.value.trim(),
     apoiador90: el.campo90.value.trim(),
     apoiadorCustomizado: el.campoCustom.value.trim(),
+    finLider: lerCampoMoeda(el.campoFinLider),
+    fin30: lerCampoMoeda(el.campoFin30),
+    fin45: lerCampoMoeda(el.campoFin45),
+    fin60: lerCampoMoeda(el.campoFin60),
+    fin90: lerCampoMoeda(el.campoFin90),
+    finCustomizado: lerCampoMoeda(el.campoFinCustom),
   };
 }
 
@@ -113,6 +160,18 @@ function valorParaCampoNumerico(val) {
   return String(parseNumero(val));
 }
 
+function valorParaCampoMoeda(val) {
+  const s = String(val ?? "").trim();
+  if (!s) return "";
+  return fmtMoeda.format(parseNumero(val));
+}
+
+function lerCampoMoeda(input) {
+  const s = String(input?.value ?? "").trim();
+  if (!s) return "";
+  return parseNumero(s);
+}
+
 function preencherFormularioApoiador(item) {
   const dados = item || {};
   el.campoLideranca.value = String(dados.lideranca ?? "").trim();
@@ -123,6 +182,12 @@ function preencherFormularioApoiador(item) {
   el.campo60.value = valorParaCampoNumerico(dados.apoiador60);
   el.campo90.value = valorParaCampoNumerico(dados.apoiador90);
   el.campoCustom.value = valorParaCampoNumerico(dados.apoiadorCustomizado);
+  el.campoFinLider.value = valorParaCampoMoeda(dados.finLider);
+  el.campoFin30.value = valorParaCampoMoeda(dados.fin30);
+  el.campoFin45.value = valorParaCampoMoeda(dados.fin45);
+  el.campoFin60.value = valorParaCampoMoeda(dados.fin60);
+  el.campoFin90.value = valorParaCampoMoeda(dados.fin90);
+  el.campoFinCustom.value = valorParaCampoMoeda(dados.finCustomizado);
 }
 
 function abrirModalIncluirApoiador() {
@@ -292,6 +357,10 @@ function resolverIndices(cabecalho) {
     indices[campo.prop] = idx;
   });
 
+  CAMPOS_FINANCEIROS.forEach((campo) => {
+    indices[campo.prop] = cfgAp.COLUNAS[campo.chave];
+  });
+
   return indices;
 }
 
@@ -311,6 +380,23 @@ function exibirCelula(val) {
   const n = parseNumero(val);
   if (n > 0) return fmt.format(n);
   return escapeHtml(s);
+}
+
+function exibirMoeda(val) {
+  const s = String(val ?? "").trim();
+  if (!s) return "";
+  return fmtMoeda.format(parseNumero(val));
+}
+
+function subFinTotalHtml(r) {
+  const fin = exibirMoeda(r.finTotal);
+  return fin ? `<span class="apoiadores-sub-fin-total">${fin}</span>` : "";
+}
+
+function badgeFinTotalHtml(r) {
+  const fin = exibirMoeda(r.finTotal);
+  if (!fin) return "";
+  return `<span class="apoiadores-fin-badge">${fin}</span>`;
 }
 
 function ordenarRegioes(a, b) {
@@ -436,6 +522,13 @@ function extrairLinhas(valores) {
       apoiador60: valorCampo(linha, indices.apoiador60),
       apoiador90: valorCampo(linha, indices.apoiador90),
       apoiadorCustomizado: valorCampo(linha, indices.apoiadorCustomizado),
+      finLider: valorCampo(linha, indices.finLider),
+      fin30: valorCampo(linha, indices.fin30),
+      fin45: valorCampo(linha, indices.fin45),
+      fin60: valorCampo(linha, indices.fin60),
+      fin90: valorCampo(linha, indices.fin90),
+      finCustomizado: valorCampo(linha, indices.finCustomizado),
+      finTotal: valorCampo(linha, indices.finTotal),
       regiao: info?.regiao || "",
       regiaoNorm: info?.regiaoNorm || "",
     };
@@ -573,26 +666,43 @@ function valorPopoverCelula(val) {
 }
 
 function tituloPopoverApoiador(r) {
-  return exibirTexto(r.lideranca) || escapeHtml(r.municipio) || "—";
+  return exibirTexto(r.lideranca) || "—";
+}
+
+function badgeFinTotalPopover(r) {
+  return badgeFinTotalHtml(r);
+}
+
+function itemPopoverApoiador(r, linha) {
+  const qtd = valorPopoverCelula(r[linha.qtd]);
+  const fin = exibirMoeda(r[linha.fin]) || "—";
+  if (qtd === "—" && fin === "—") return "";
+  const marcador = linha.marcador
+    ? `<span class="orcamento-geral-popover-marcador ${linha.marcador}" aria-hidden="true"></span>`
+    : "";
+  return `<div class="apoiadores-popover-linha">
+    <span class="apoiadores-popover-rotulo">${marcador}${linha.rotulo}</span>
+    <span class="apoiadores-popover-qtd">${qtd}</span>
+    <span class="apoiadores-popover-fin">${fin}</span>
+  </div>`;
 }
 
 function htmlPopoverApoiador(r) {
-  return PopoverTabela.corpo(
-    tituloPopoverApoiador(r),
-    [
-      PopoverTabela.item("município", escapeHtml(r.municipio) || "—"),
-      PopoverTabela.item("lider", valorPopoverCelula(r.apoiadorLider), "popover-marcador--apoiador-lider"),
-      PopoverTabela.item("30 dias", valorPopoverCelula(r.apoiador30), "popover-marcador--apoiador-30"),
-      PopoverTabela.item("45 dias", valorPopoverCelula(r.apoiador45), "popover-marcador--apoiador-45"),
-      PopoverTabela.item("60 dias", valorPopoverCelula(r.apoiador60), "popover-marcador--apoiador-60"),
-      PopoverTabela.item("90 dias", valorPopoverCelula(r.apoiador90), "popover-marcador--apoiador-90"),
-      PopoverTabela.item(
-        "customizado",
-        valorPopoverCelula(r.apoiadorCustomizado),
-        "popover-marcador--apoiador-custom"
-      ),
-    ].join("")
-  );
+  const itens = LINHAS_APOIADOR_POPOVER.map((linha) => itemPopoverApoiador(r, linha)).filter(Boolean).join("");
+  const municipio = escapeHtml(String(r.municipio ?? "").trim());
+  const badge = badgeFinTotalPopover(r);
+
+  return `<div class="orcamento-geral-popover-corpo apoiadores-popover-corpo">
+    <div class="apoiadores-popover-cabecalho">
+      <div class="apoiadores-popover-topo">
+        <span class="apoiadores-popover-lideranca">${tituloPopoverApoiador(r)}</span>
+        ${badge}
+      </div>
+      ${municipio ? `<div class="apoiadores-popover-municipio-muted">${municipio}</div>` : ""}
+      <hr class="apoiadores-popover-divisor" aria-hidden="true">
+    </div>
+    ${itens ? `<div class="apoiadores-popover-tabela">${itens}</div>` : ""}
+  </div>`;
 }
 
 function montarLinhasGrupoApoiador(partes) {
@@ -641,21 +751,35 @@ function renderizarLinha(r) {
   const municipioHtml = escapeHtml(r.municipio);
   const liderancaHtml = exibirTexto(r.lideranca);
   const acoesMaster = MasterCrud.acoesLinha(r._linha);
-  const municipioSub = r.municipio
+  const finTotalSub = subFinTotalHtml(r);
+  const finBadgeMobile = badgeFinTotalHtml(r);
+  const municipioMobile = r.municipio
     ? `<span class="apoiadores-sub-municipio">${municipioHtml}</span>`
     : "";
 
   return `<tr class="apoiadores-linha-popover" tabindex="0" aria-label="detalhes do apoiador">
     <td class="apoiadores-col-ident">
       <span class="apoiadores-celula-desktop apoiadores-celula-texto">
-        <span class="apoiadores-celula-texto-wrap">${liderancaHtml}${acoesMaster}</span>
+        <span class="apoiadores-celula-texto-wrap">
+          <span class="apoiadores-ident-stack">
+            <span class="apoiadores-ident-nome">${liderancaHtml}</span>
+            ${finTotalSub}
+          </span>
+          ${acoesMaster}
+        </span>
       </span>
       <span class="apoiadores-celula-mobile">
         <span class="dashboard-municipio-celula">
           <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
           <span class="dashboard-municipio-texto">
-            <span class="dashboard-municipio-nome apoiadores-celula-texto-wrap">${liderancaHtml || municipioHtml}${acoesMaster}</span>
-            ${municipioSub}
+            <span class="dashboard-municipio-nome apoiadores-celula-texto-wrap">
+              <span class="apoiadores-ident-stack">
+                <span class="apoiadores-ident-nome">${liderancaHtml || "—"}</span>
+                ${municipioMobile}
+                ${finBadgeMobile}
+              </span>
+              ${acoesMaster}
+            </span>
           </span>
         </span>
       </span>
@@ -791,6 +915,12 @@ function initApoiadores() {
     campo60: document.getElementById("campoAp60"),
     campo90: document.getElementById("campoAp90"),
     campoCustom: document.getElementById("campoApCustom"),
+    campoFinLider: document.getElementById("campoApFinLider"),
+    campoFin30: document.getElementById("campoApFin30"),
+    campoFin45: document.getElementById("campoApFin45"),
+    campoFin60: document.getElementById("campoApFin60"),
+    campoFin90: document.getElementById("campoApFin90"),
+    campoFinCustom: document.getElementById("campoApFinCustom"),
   };
   if (!el.corpo || !el.filtroRegioes) return;
 
