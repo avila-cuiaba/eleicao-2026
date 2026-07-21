@@ -85,14 +85,19 @@ window.LAYOUT = {
       '" data-grupo="' +
       item.id +
       '">' +
-      '<div class="app-sidebar-group-head">' +
+      '<button type="button" class="app-sidebar-group-head" aria-expanded="' +
+      (aberto ? "true" : "false") +
+      '">' +
       '<span class="sidebar-icone" aria-hidden="true">' +
       this.icone(item.id) +
       "</span>" +
       '<span class="app-sidebar-texto">' +
       item.label +
       "</span>" +
-      "</div>" +
+      '<span class="app-sidebar-chevron" aria-hidden="true">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>' +
+      "</span>" +
+      "</button>" +
       '<div class="app-sidebar-subnav">' +
       sublinks +
       "</div>" +
@@ -130,6 +135,19 @@ window.LAYOUT = {
     );
   },
 
+  definirEstadoGrupo(group, aberto) {
+    if (!group) return;
+    group.classList.toggle("is-open", aberto);
+    const head = group.querySelector(".app-sidebar-group-head");
+    if (head) head.setAttribute("aria-expanded", aberto ? "true" : "false");
+  },
+
+  fecharGrupos(exceto) {
+    document.querySelectorAll(".app-sidebar-group").forEach((group) => {
+      if (group !== exceto) this.definirEstadoGrupo(group, false);
+    });
+  },
+
   atualizarMenu(paginaAtiva) {
     document.body.setAttribute("data-pagina", paginaAtiva);
 
@@ -141,12 +159,23 @@ window.LAYOUT = {
       else link.removeAttribute("aria-current");
     });
 
+    let grupoAtivo = null;
     document.querySelectorAll(".app-sidebar-group").forEach((group) => {
       const grupoId = group.getAttribute("data-grupo");
       const ativo = this.grupoEstaAtivo(grupoId, paginaAtiva);
-      group.classList.toggle("is-open", ativo);
       group.classList.toggle("has-active", ativo);
+      if (ativo) grupoAtivo = group;
     });
+
+    this.fecharGrupos(grupoAtivo);
+    if (grupoAtivo) this.definirEstadoGrupo(grupoAtivo, true);
+  },
+
+  alternarGrupo(group) {
+    if (!group) return;
+    const vaiAbrir = !group.classList.contains("is-open");
+    if (vaiAbrir) this.fecharGrupos(group);
+    this.definirEstadoGrupo(group, vaiAbrir);
   },
 
   fecharSidebar() {
@@ -183,6 +212,13 @@ window.LAYOUT = {
     backdrop?.addEventListener("click", () => this.fecharSidebar());
 
     sidebar?.addEventListener("click", (e) => {
+      const head = e.target.closest(".app-sidebar-group-head");
+      if (head) {
+        e.preventDefault();
+        this.alternarGrupo(head.closest(".app-sidebar-group"));
+        return;
+      }
+
       const link = e.target.closest("[data-pagina]");
       if (!link || !sidebar.contains(link)) return;
       e.preventDefault();

@@ -349,6 +349,7 @@ const CONFIG = {
       AGENTE_POLITICO: 8,     // I
       ASSESSOR: 9,            // J
       APOIADORES: 10,         // K — contratos
+      PARCEIROS: 16,          // Q
     },
     APOIADORES: {
       LINHA_INICIO_DADOS: 2,

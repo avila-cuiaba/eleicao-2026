@@ -280,9 +280,17 @@ html {
   min-width: 0;
 }
 
-.app-header-atualizar {
+.app-header-acoes {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
   flex-shrink: 0;
   align-self: center;
+}
+
+.app-header-atualizar,
+.app-header-relatorio {
+  flex-shrink: 0;
 }
 
 .app-topbar {
@@ -350,21 +358,55 @@ html {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 10px 14px 6px;
+  border: 0;
+  background: transparent;
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.95rem;
   font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-sidebar-group-head:hover {
+  color: #fff;
 }
 
 .app-sidebar-group.has-active .app-sidebar-group-head {
   color: #fff;
 }
 
+.app-sidebar-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0.72;
+  transition: transform 0.15s ease;
+}
+
+.app-sidebar-chevron svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.app-sidebar-group.is-open .app-sidebar-chevron {
+  transform: rotate(90deg);
+}
+
 .app-sidebar-subnav {
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 2px;
   padding-left: 34px;
+}
+
+.app-sidebar-group.is-open .app-sidebar-subnav {
+  display: flex;
 }
 
 .app-sidebar-sublink {
@@ -1077,6 +1119,14 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
 
 .popover-marcador--pessoal-apoiadores {
   background: #0f766e;
+}
+
+.popover-marcador--pessoal-parceiros {
+  background: #7c3aed;
+}
+
+.popover-marcador--pessoal-total {
+  background: #0f172a;
 }
 
 .popover-marcador--dashboard-minima {
@@ -5707,8 +5757,12 @@ body.page-pessoal .dashboard-tabela-panel {
 
 .pessoal-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: auto auto;
   gap: 0.35rem;
+  column-gap: 0.4rem;
+  row-gap: 0.35rem;
+  align-items: center;
 }
 
 .pessoal-kpi-slot {
@@ -5717,97 +5771,104 @@ body.page-pessoal .dashboard-tabela-panel {
 
 .pessoal-kpi-slot .dashboard-kpi-rotulo {
   line-height: 1.15;
-  font-size: 0.65rem;
+  font-size: 0.58rem;
+}
+
+.pessoal-kpi-slot .dashboard-kpi-valor {
+  font-size: 0.82rem;
 }
 
 .pessoal-kpi-slot .dashboard-kpi-card .card-body {
   min-width: 0;
+  padding-top: 0.4rem !important;
+  padding-bottom: 0.4rem !important;
 }
 
-.pessoal-kpi-slot--lg {
-  display: none;
-}
-
-.pessoal-kpi-slot--ideal {
+.pessoal-kpi-slot--total {
   grid-column: 1;
-  grid-row: 1;
+  grid-row: 2;
+  align-self: center;
 }
 
-.pessoal-kpi-slot--soma-pv {
+.pessoal-kpi-slot--prefeito {
   grid-column: 2;
   grid-row: 1;
 }
 
-.pessoal-kpi-slot--soma-aa {
-  grid-column: 1;
-  grid-row: 2;
+.pessoal-kpi-slot--vereador {
+  grid-column: 3;
+  grid-row: 1;
 }
 
-.pessoal-kpi-slot--apoiadores-sm {
+.pessoal-kpi-slot--agente {
   grid-column: 2;
   grid-row: 2;
 }
 
-.pessoal-kpi-soma-pv .dashboard-kpi-card {
-  border-left: 3px solid #6366f1;
+.pessoal-kpi-slot--assessor {
+  grid-column: 3;
+  grid-row: 2;
 }
 
-.pessoal-kpi-soma-aa .dashboard-kpi-card {
-  border-left: 3px solid #1a6f85;
+.pessoal-kpi-slot--parceiros {
+  grid-column: 4;
+  grid-row: 1;
+  align-self: stretch;
+}
+
+.pessoal-kpi-slot--apoiadores {
+  grid-column: 4;
+  grid-row: 2;
+  align-self: stretch;
 }
 
 @media (min-width: 992px) {
   .pessoal-kpi-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: auto auto;
     column-gap: 0.65rem;
-    row-gap: 0.35rem;
-    align-items: center;
-  }
-
-  .pessoal-kpi-slot--sm {
-    display: none;
-  }
-
-  .pessoal-kpi-slot--lg {
-    display: block;
-  }
-
-  .pessoal-kpi-slot--ideal {
-    grid-column: 1;
-    grid-row: 2;
-    align-self: center;
-  }
-
-  .pessoal-kpi-slot--prefeito {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .pessoal-kpi-slot--vereador {
-    grid-column: 3;
-    grid-row: 1;
-  }
-
-  .pessoal-kpi-slot--agente {
-    grid-column: 2;
-    grid-row: 2;
-  }
-
-  .pessoal-kpi-slot--assessor {
-    grid-column: 3;
-    grid-row: 2;
-  }
-
-  .pessoal-kpi-slot--apoiadores {
-    grid-column: 4;
-    grid-row: 2;
-    align-self: stretch;
   }
 
   .pessoal-kpi-slot .dashboard-kpi-rotulo {
     font-size: inherit;
   }
+
+  .pessoal-kpi-slot .dashboard-kpi-valor {
+    font-size: inherit;
+  }
+
+  .pessoal-kpi-slot .dashboard-kpi-card .card-body {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+}
+
+.pessoal-popover-titulo-linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.05rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.pessoal-popover-municipio {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.pessoal-popover-total {
+  flex: 0 0 auto;
+  font-weight: 800;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .pessoal-tabela th {
@@ -5826,19 +5887,54 @@ body.page-pessoal .dashboard-tabela-panel {
   width: 18%;
 }
 
-.pessoal-tabela col.pessoal-col-ideal {
-  width: 11%;
-}
-
 .pessoal-tabela col.pessoal-col-prefeito,
 .pessoal-tabela col.pessoal-col-vereador,
 .pessoal-tabela col.pessoal-col-agente,
 .pessoal-tabela col.pessoal-col-assessor {
-  width: 14%;
+  width: 13%;
 }
 
-.pessoal-tabela col.pessoal-col-apoiadores {
-  width: 11%;
+.pessoal-tabela col.pessoal-col-apoiadores,
+.pessoal-tabela col.pessoal-col-parceiros {
+  width: 10%;
+}
+
+.pessoal-tabela-stack-col {
+  display: none;
+}
+
+.pessoal-tabela col.pessoal-tabela-stack-col {
+  width: 0;
+}
+
+.pessoal-tabela-stack-head,
+.pessoal-tabela-stack-valores {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.38rem;
+}
+
+.pessoal-tabela-stack-head span {
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #475569;
+  text-transform: lowercase;
+}
+
+.pessoal-tabela-stack-valor {
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-height: 1.1rem;
+}
+
+.pessoal-stack-vazio {
+  display: block;
+  min-height: 1.1rem;
 }
 
 .pessoal-th-municipio-composto {
@@ -5902,6 +5998,83 @@ body.page-pessoal .dashboard-tabela-panel {
   border-left: 3px solid #0f766e;
 }
 
+.pessoal-kpi-parceiros .dashboard-kpi-card {
+  border-left: 3px solid #7c3aed;
+}
+
+.pessoal-kpi-total .dashboard-kpi-card {
+  border-left: 3px solid #0f172a;
+}
+
+@media (max-width: 991.98px) {
+  .pessoal-tabela .pessoal-tabela-desktop-col {
+    width: 0 !important;
+    max-width: 0 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden;
+    font-size: 0 !important;
+    line-height: 0;
+    white-space: nowrap;
+  }
+
+  .pessoal-tabela .pessoal-tabela-desktop-col > * {
+    display: none !important;
+  }
+
+  .pessoal-tabela .pessoal-tabela-stack-col {
+    display: table-cell !important;
+    visibility: visible;
+  }
+
+  .pessoal-tabela col.pessoal-tabela-desktop-col {
+    width: 0 !important;
+  }
+
+  .pessoal-tabela col.pessoal-col-municipio {
+    width: 32% !important;
+  }
+
+  .pessoal-tabela col.pessoal-col-prefeito,
+  .pessoal-tabela col.pessoal-col-vereador {
+    width: 17% !important;
+  }
+
+  .pessoal-tabela col.pessoal-col-stack-agente,
+  .pessoal-tabela col.pessoal-col-stack-apoiadores {
+    width: 17% !important;
+  }
+
+  .pessoal-tabela th,
+  .pessoal-tabela td {
+    font-size: 0.68rem;
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
+  }
+
+  .pessoal-tabela th {
+    white-space: nowrap;
+    font-size: 0.58rem;
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+  }
+
+  .pessoal-tabela .pessoal-tabela-stack-head span {
+    font-size: 0.52rem;
+  }
+
+  .pessoal-tabela .pessoal-tabela-stack-valor {
+    font-size: 0.65rem;
+  }
+
+  .pessoal-celula-num {
+    font-size: 0.65rem;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 991.98px) {
   .pessoal-th-label-sm {
     display: inline;
@@ -5945,68 +6118,6 @@ body.page-pessoal .dashboard-tabela-panel {
   .pessoal-tabela {
     width: 100% !important;
     table-layout: fixed;
-  }
-
-  .pessoal-tabela .pessoal-col-lg-only {
-    width: 0 !important;
-    max-width: 0 !important;
-    min-width: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    overflow: hidden;
-    visibility: hidden;
-    font-size: 0 !important;
-    line-height: 0;
-  }
-
-  .pessoal-tabela th,
-  .pessoal-tabela td {
-    font-size: 0.68rem;
-    padding-left: 0.3rem;
-    padding-right: 0.3rem;
-  }
-
-  .pessoal-tabela th {
-    white-space: nowrap;
-    font-size: 0.58rem;
-    padding-top: 0.4rem;
-    padding-bottom: 0.4rem;
-  }
-
-  .pessoal-tabela th.pessoal-th-municipio-composto {
-    white-space: normal;
-    line-height: 1.15;
-  }
-
-  .pessoal-tabela th.pessoal-th-prefeito {
-    overflow: visible;
-    text-overflow: clip;
-    min-width: 2.4rem;
-  }
-
-  .pessoal-tabela td {
-    white-space: normal;
-  }
-
-  .pessoal-tabela col.pessoal-col-municipio {
-    width: 34% !important;
-  }
-
-  .pessoal-tabela col.pessoal-col-ideal,
-  .pessoal-tabela col.pessoal-col-assessor {
-    width: 0 !important;
-  }
-
-  .pessoal-tabela col.pessoal-col-prefeito,
-  .pessoal-tabela col.pessoal-col-vereador,
-  .pessoal-tabela col.pessoal-col-agente,
-  .pessoal-tabela col.pessoal-col-apoiadores {
-    width: 16.5% !important;
-  }
-
-  .pessoal-celula-num {
-    font-size: 0.65rem;
-    white-space: nowrap;
   }
 }
 

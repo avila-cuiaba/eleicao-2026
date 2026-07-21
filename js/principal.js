@@ -55,10 +55,17 @@ const PAGINAS = {
     atualizar: true,
     menuGrupo: "pessoal",
   },
-  logistica: {
+  "logistica-material-grafico": {
     titulo: "logística",
-    subtitulo: "operações e deslocamentos",
-    arquivo: "pages/logistica.html",
+    subtitulo: "material gráfico",
+    arquivo: "pages/logistica-material-grafico.html",
+    menuGrupo: "logistica",
+  },
+  "logistica-abastecimento": {
+    titulo: "logística",
+    subtitulo: "abastecimento",
+    arquivo: "pages/logistica-abastecimento.html",
+    menuGrupo: "logistica",
   },
   "orcamento-geral": {
     titulo: "orçamento",
@@ -138,6 +145,7 @@ const PAGINAS = {
 
 function resolverPagina(id) {
   if (id === "pessoal") return "pessoal-visao-geral";
+  if (id === "logistica") return "logistica-material-grafico";
   if (id === "orcamento") return "orcamento-estratificado";
   if (id === "mobilizacao") return "mobilizacao-estrutura";
   if (id === "desempenho") return "dashboard";
@@ -168,11 +176,17 @@ function tituloPagina(id) {
   return cfg.titulo;
 }
 
+function paginaTemRelatorio(cfg) {
+  if (cfg.relatorio === false) return false;
+  return cfg.relatorio === true || !!cfg.atualizar;
+}
+
 function atualizarCabecalho(id) {
   const cfg = PAGINAS[id] || PAGINAS.inicio;
   const titulo = document.getElementById("appHeaderTitulo");
   const sub = document.getElementById("appHeaderSub");
   const btnAtualizar = document.getElementById("btnAtualizarShell");
+  const btnRelatorio = document.getElementById("btnRelatorioShell");
   const textoTitulo = tituloPagina(id);
   if (titulo) {
     const iconId = iconeIdPagina(id);
@@ -181,6 +195,7 @@ function atualizarCabecalho(id) {
   }
   if (sub) sub.textContent = cfg.subtitulo;
   if (btnAtualizar) btnAtualizar.hidden = !cfg.atualizar;
+  if (btnRelatorio) btnRelatorio.hidden = !paginaTemRelatorio(cfg);
   document.title = textoTitulo + " | Eleição 2026";
   if (window.LAYOUT) LAYOUT.atualizarMenu(id);
 }
@@ -200,6 +215,109 @@ function executarAtualizarShell() {
   }
 
   win.postMessage({ tipo: "eleicao-atualizar" }, "*");
+}
+
+function abrirRelatorioHtml(html) {
+  if (!html) return false;
+  const janela = window.open("", "_blank");
+  if (!janela) {
+    window.alert("permita pop-ups para gerar o PDF.");
+    return false;
+  }
+  janela.document.open();
+  janela.document.write(html);
+  janela.document.close();
+  return true;
+}
+
+window.abrirRelatorioHtml = abrirRelatorioHtml;
+
+let relatorioJanelaPendente = null;
+
+function framePermiteAcessoDireto(frame) {
+  if (!frame?.contentWindow) return false;
+  try {
+    void frame.contentWindow.document;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function obterHtmlRelatorioDoFrame(frame) {
+  let doc = null;
+  try {
+    doc = frame.contentDocument;
+  } catch (e) {
+    return undefined;
+  }
+  if (!doc) return undefined;
+
+  const win = doc.defaultView;
+  if (!win) return undefined;
+
+  try {
+    if (typeof win.obterHtmlRelatorioPagina === "function") {
+      return win.obterHtmlRelatorioPagina({ documento: doc });
+    }
+    if (win.Relatorio) {
+      return win.Relatorio.montarHtml({ documento: doc });
+    }
+    if (typeof win.gerarRelatorioPagina === "function") {
+      const html = win.gerarRelatorioPagina({ apenasHtml: true, documento: doc });
+      if (typeof html === "string") return html;
+    }
+  } catch (e) {
+    return undefined;
+  }
+
+  return undefined;
+}
+
+function deveUsarMensagemRelatorio(frame) {
+  if (window.location.protocol === "file:") return true;
+  return !framePermiteAcessoDireto(frame);
+}
+
+function solicitarRelatorioPorMensagem(frame) {
+  const win = frame?.contentWindow;
+  if (!win) return;
+
+  const janela = window.open("", "_blank");
+  if (!janela) {
+    window.alert("permita pop-ups para gerar o PDF.");
+    return;
+  }
+
+  try {
+    janela.document.open();
+    janela.document.write(
+      "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\" />" +
+        "<title>relatório</title><style>body{font-family:Segoe UI,sans-serif;padding:2rem;color:#475569;}</style>" +
+        "</head><body><p>gerando relatório…</p></body></html>"
+    );
+    janela.document.close();
+  } catch (e) {
+    /* ignorar */
+  }
+
+  relatorioJanelaPendente = janela;
+  win.postMessage({ tipo: "eleicao-relatorio" }, "*");
+}
+
+function executarRelatorioShell() {
+  const frame = document.getElementById("appFrame");
+  if (!frame) return;
+
+  if (!deveUsarMensagemRelatorio(frame)) {
+    const html = obterHtmlRelatorioDoFrame(frame);
+    if (typeof html === "string" && html) {
+      abrirRelatorioHtml(html);
+      return;
+    }
+  }
+
+  solicitarRelatorioPorMensagem(frame);
 }
 
 // Chamado pelo menu lateral e pelos links dentro do iframe (parent.carregarPagina).
@@ -323,6 +441,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   document.getElementById("btnAtualizarShell")?.addEventListener("click", executarAtualizarShell);
+  document.getElementById("btnRelatorioShell")?.addEventListener("click", executarRelatorioShell);
 
   frame?.addEventListener("load", () => {
     agendarAjusteFrame();
@@ -341,6 +460,28 @@ window.addEventListener("message", (event) => {
   }
   if (event.data && event.data.tipo === "eleicao-resize") {
     agendarAjusteFrame();
+    return;
+  }
+  if (event.data?.tipo === "eleicao-relatorio-html") {
+    const janela = relatorioJanelaPendente;
+    relatorioJanelaPendente = null;
+    if (!janela || janela.closed) return;
+
+    if (event.data.erro) {
+      janela.close();
+      window.alert(event.data.erro);
+      return;
+    }
+
+    if (event.data.html) {
+      janela.document.open();
+      janela.document.write(event.data.html);
+      janela.document.close();
+      return;
+    }
+
+    janela.close();
+    window.alert(event.data.mensagem || "nenhum dado para imprimir.");
   }
 });
 

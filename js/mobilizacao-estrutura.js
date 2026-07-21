@@ -589,12 +589,21 @@ function montarHtmlRelatorio() {
 }
 
 function imprimirRelatorio() {
-  if (!organogramaContexto || !dadosEstrutura.length) {
+  const html = montarHtmlRelatorioPagina();
+  if (!html) {
     mostrarStatus("nenhum dado para imprimir.", "erro");
     return;
   }
 
-  const html = montarHtmlRelatorio();
+  try {
+    if (window.parent && window.parent !== window && typeof window.parent.abrirRelatorioHtml === "function") {
+      window.parent.abrirRelatorioHtml(html);
+      return;
+    }
+  } catch (e) {
+    /* origem cruzada */
+  }
+
   const janela = window.open("", "_blank");
   if (!janela) {
     mostrarStatus("permita pop-ups para gerar o PDF.", "erro");
@@ -604,6 +613,11 @@ function imprimirRelatorio() {
   janela.document.open();
   janela.document.write(html);
   janela.document.close();
+}
+
+function montarHtmlRelatorioPagina() {
+  if (!organogramaContexto || !dadosEstrutura.length) return "";
+  return montarHtmlRelatorio();
 }
 
 function fecharRegionais(exceto) {
@@ -870,6 +884,8 @@ function init() {
 }
 
 window.atualizarPagina = carregar;
+window.montarHtmlRelatorioPagina = montarHtmlRelatorioPagina;
+window.gerarRelatorioPagina = imprimirRelatorio;
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", init);

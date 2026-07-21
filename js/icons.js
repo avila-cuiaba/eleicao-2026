@@ -64,6 +64,12 @@ window.APP_ICON_SVG = {
     '<path d="M1 4v6h6M23 20v-6h-6"/>' +
     '<path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>' +
     "</svg>",
+  relatorio:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true">' +
+    '<path d="M6 9V2h12v7"/>' +
+    '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>' +
+    '<rect x="6" y="14" width="12" height="8"/>' +
+    "</svg>",
 };
 
 window.APP_MENU = [
@@ -88,7 +94,6 @@ window.APP_MENU = [
       { id: "pessoal-parcerias", label: "parceria" },
     ],
   },
-  { id: "logistica", label: "logística" },
   {
     id: "orcamento",
     label: "orçamento",
@@ -105,6 +110,14 @@ window.APP_MENU = [
     filhos: [
       { id: "pagamentos-geral", label: "geral" },
       { id: "pagamentos-lideranca", label: "por liderança" },
+    ],
+  },
+  {
+    id: "logistica",
+    label: "logística",
+    filhos: [
+      { id: "logistica-material-grafico", label: "material gráfico" },
+      { id: "logistica-abastecimento", label: "abastecimento" },
     ],
   },
   { id: "agenda", label: "agenda" },
@@ -133,6 +146,9 @@ window.APP_ICONE = {
     }
     if (paginaId === "pagamentos-geral" || paginaId === "pagamentos-lideranca") {
       return "pagamentos";
+    }
+    if (paginaId === "logistica-material-grafico" || paginaId === "logistica-abastecimento") {
+      return "logistica";
     }
     if (paginaId === "dashboard") {
       return "desempenho";

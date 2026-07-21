@@ -367,8 +367,16 @@ function valorPopoverMoeda(val) {
 }
 
 function htmlPopoverOrcamento(r) {
-  return PopoverTabela.corpo(
-    escapeHtml(r.municipio),
+  const totalExib = exibirMoeda(totalLinha(r));
+  const titulo =
+    `<div class="pessoal-popover-titulo-linha">` +
+    `<span class="pessoal-popover-municipio">${escapeHtml(r.municipio)}</span>` +
+    `<span class="pessoal-popover-total">${totalExib}</span>` +
+    `</div>`;
+
+  return (
+    `<div class="orcamento-geral-popover-corpo">` +
+    titulo +
     [
       PopoverTabela.item("pessoal", valorPopoverMoeda(r.pessoal), "popover-marcador--orc-pessoal"),
       PopoverTabela.item(
@@ -378,8 +386,8 @@ function htmlPopoverOrcamento(r) {
       ),
       PopoverTabela.item("diversos", valorPopoverMoeda(r.diversos), "popover-marcador--orc-diversos"),
       PopoverTabela.item("dia D", valorPopoverMoeda(r.diaD), "popover-marcador--orc-diad"),
-      PopoverTabela.item("total", exibirMoeda(totalLinha(r))),
-    ].join("")
+    ].join("") +
+    `</div>`
   );
 }
 

@@ -8,9 +8,10 @@ const PopoverTabela = (function () {
       : "click";
   }
 
-  function item(rotulo, valor, marcadorClass) {
+  function item(rotulo, valor, marcadorClass, semTracoVazio) {
+    const vazio = semTracoVazio ? "" : "—";
     const exibicao =
-      valor !== undefined && valor !== null && String(valor).trim() !== "" ? valor : "—";
+      valor !== undefined && valor !== null && String(valor).trim() !== "" ? valor : vazio;
     const marcador = marcadorClass
       ? `<span class="orcamento-geral-popover-marcador ${marcadorClass}" aria-hidden="true"></span>`
       : "";

@@ -317,5 +317,22 @@ function initMicroRegiao() {
   carregarDados();
 }
 
+function estilosRelatorioPagina() {
+  return (
+    ".page-micro-regiao table.rel-tabela.micro-regiao-tabela th:nth-child(n+2)," +
+    ".page-micro-regiao table.rel-tabela.micro-regiao-tabela td:nth-child(n+2){" +
+    "text-align:right;" +
+    "padding-top:0.4rem;" +
+    "padding-bottom:0.4rem;" +
+    "padding-left:2.4rem;" +
+    "padding-right:2.4rem;" +
+    "font-variant-numeric:tabular-nums;" +
+    "white-space:nowrap;" +
+    "}"
+  );
+}
+
+window.estilosRelatorioPagina = estilosRelatorioPagina;
+
 AUTH.exigir();
 document.addEventListener("DOMContentLoaded", initMicroRegiao);

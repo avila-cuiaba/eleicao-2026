@@ -105,11 +105,57 @@ function notificarAlturaFrame() {
 
 window.notificarAlturaFrame = notificarAlturaFrame;
 
+function montarHtmlRelatorioNoIframe() {
+  if (typeof window.obterHtmlRelatorioPagina === "function") {
+    return window.obterHtmlRelatorioPagina();
+  }
+  if (window.Relatorio && typeof window.Relatorio.montarHtml === "function") {
+    return window.Relatorio.montarHtml();
+  }
+  if (typeof window.gerarRelatorioPagina === "function") {
+    const resultado = window.gerarRelatorioPagina({ apenasHtml: true });
+    if (typeof resultado === "string" && resultado) return resultado;
+  }
+  return null;
+}
+
 window.addEventListener("message", (event) => {
-  if (event.source !== window.parent) return;
-  if (event.data?.tipo !== "eleicao-atualizar") return;
-  if (typeof window.atualizarPagina === "function") {
-    window.atualizarPagina();
+  if (event.data?.tipo === "eleicao-atualizar") {
+    if (event.source !== window.parent) return;
+    if (typeof window.atualizarPagina === "function") {
+      window.atualizarPagina();
+    }
+    return;
+  }
+
+  if (event.data?.tipo === "eleicao-relatorio") {
+    let html = null;
+    let erro = null;
+
+    try {
+      html = montarHtmlRelatorioNoIframe();
+      if (!html) {
+        erro = window.Relatorio
+          ? "nenhum dado para imprimir."
+          : "módulo de relatório não carregado nesta página.";
+      }
+    } catch (e) {
+      erro = e?.message || "não foi possível gerar o relatório.";
+    }
+
+    try {
+      window.parent.postMessage(
+        {
+          tipo: "eleicao-relatorio-html",
+          html: typeof html === "string" && html ? html : null,
+          mensagem: "nenhum dado para imprimir.",
+          erro: html ? null : erro,
+        },
+        "*"
+      );
+    } catch (e) {
+      /* ignorar */
+    }
   }
 });
 

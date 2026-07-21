@@ -1,4 +1,4 @@
-// Página pessoal: equipe por município (planilhas pessoal-municipio + apoiadores).
+// Página pessoal: equipe por município (planilha pessoal-municipio).
 
 const fmt = new Intl.NumberFormat("pt-BR");
 const cfg = CONFIG.PESSOAL;
@@ -8,7 +8,7 @@ let registros = [];
 let regioes = [];
 const popoverTabela = PopoverTabela.criar();
 
-const COLS_TABELA = 7;
+const COLS_TABELA = 9;
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -68,50 +68,50 @@ function textoPreenchido(v) {
   return String(v ?? "").trim() !== "";
 }
 
+function celulaEhNumerica(val) {
+  if (typeof val === "number" && !isNaN(val)) return true;
+  const s = String(val ?? "").trim();
+  if (!s) return false;
+  return /^-?[\d.,]+$/.test(s);
+}
+
+function valorColunaPessoal(raw) {
+  if (!textoPreenchido(raw)) return 0;
+  if (celulaEhNumerica(raw)) {
+    const n = parseNumero(raw);
+    return n > 0 ? n : 0;
+  }
+  return 1;
+}
+
 function exibirTexto(val) {
   const s = String(val ?? "").trim();
   return s ? escapeHtml(s) : "";
 }
 
-function exibirNumero(val) {
-  const n = parseNumero(val);
-  return n ? fmt.format(n) : "";
-}
-
 function exibirApoiadores(r) {
   if (r.apoiadores > 0) return fmt.format(r.apoiadores);
+  const s = String(r.apoiadoresTexto ?? "").trim();
+  if (!s) return "";
+  if (celulaEhNumerica(r.apoiadoresTexto)) return "";
   return exibirTexto(r.apoiadoresTexto);
 }
 
 function exibirCelulaPessoal(val) {
   const s = String(val ?? "").trim();
   if (!s) return "";
-  const n = parseNumero(val);
-  if (n > 0) return fmt.format(n);
+  if (celulaEhNumerica(val)) {
+    const n = parseNumero(val);
+    return n > 0 ? fmt.format(n) : "";
+  }
   return escapeHtml(s);
 }
 
 function valorApoiadores(val) {
-  const n = parseNumero(val);
-  if (n > 0) return n;
-  return textoPreenchido(val) ? 1 : 0;
+  return valorColunaPessoal(val);
 }
 
-function contagemApoiadoresPorMunicipio(valores) {
-  const mapa = new Map();
-  if (!valores?.length) return mapa;
-
-  const colMun = cfg.APOIADORES.COLUNAS.MUNICIPIO;
-  for (let linha = cfg.APOIADORES.LINHA_INICIO_DADOS; linha <= valores.length; linha++) {
-    const municipio = String(celula(valores, linha, colMun) ?? "").trim();
-    if (!municipio) continue;
-    const chave = normalizarMunicipio(municipio);
-    mapa.set(chave, (mapa.get(chave) || 0) + 1);
-  }
-  return mapa;
-}
-
-function extrairRegistros(valores, contagemApoiadores) {
+function extrairRegistros(valores) {
   const cols = cfg.COLUNAS;
   const itens = [];
 
@@ -120,24 +120,20 @@ function extrairRegistros(valores, contagemApoiadores) {
     if (!municipio) continue;
 
     const regiaoBruta = String(celula(valores, linha, cols.REGIAO) ?? "").trim();
-    const municipioNorm = normalizarMunicipio(municipio);
-    let apoiadores = valorApoiadores(celula(valores, linha, cols.APOIADORES));
-    if (!apoiadores && contagemApoiadores.has(municipioNorm)) {
-      apoiadores = contagemApoiadores.get(municipioNorm);
-    }
+    const apoiadores = valorApoiadores(celula(valores, linha, cols.APOIADORES));
 
     itens.push({
       municipio,
-      municipioNorm,
+      municipioNorm: normalizarMunicipio(municipio),
       regiao: regiaoBruta,
       regiaoNorm: normalizarRegiao(regiaoBruta),
-      ideal: parseNumero(celula(valores, linha, cols.IDEAL)),
       prefeito: celula(valores, linha, cols.PREFEITO),
       vereador: celula(valores, linha, cols.VEREADOR),
       agentePolitico: celula(valores, linha, cols.AGENTE_POLITICO),
       assessor: celula(valores, linha, cols.ASSESSOR),
       apoiadores,
       apoiadoresTexto: celula(valores, linha, cols.APOIADORES),
+      parceiros: celula(valores, linha, cols.PARCEIROS),
     });
   }
 
@@ -214,21 +210,22 @@ function registrosFiltrados() {
 }
 
 function totalColunaPessoal(filtrados, campo) {
-  return filtrados.reduce((acc, r) => {
-    const raw = r[campo];
-    const n = parseNumero(raw);
-    if (n > 0) return acc + n;
-    if (textoPreenchido(raw)) return acc + 1;
-    return acc;
-  }, 0);
+  return filtrados.reduce((acc, r) => acc + valorColunaPessoal(r[campo]), 0);
 }
 
 function totalApoiadores(filtrados) {
   return filtrados.reduce((acc, r) => acc + r.apoiadores, 0);
 }
 
-function totalVotacaoIdeal(filtrados) {
-  return filtrados.reduce((acc, r) => acc + (r.ideal || 0), 0);
+function totalGeralColunas(filtrados) {
+  return (
+    totalColunaPessoal(filtrados, "prefeito") +
+    totalColunaPessoal(filtrados, "vereador") +
+    totalColunaPessoal(filtrados, "agentePolitico") +
+    totalColunaPessoal(filtrados, "assessor") +
+    totalApoiadores(filtrados) +
+    totalColunaPessoal(filtrados, "parceiros")
+  );
 }
 
 function atualizarResumo(filtrados) {
@@ -237,34 +234,26 @@ function atualizarResumo(filtrados) {
   const totalAgente = totalColunaPessoal(filtrados, "agentePolitico");
   const totalAssessor = totalColunaPessoal(filtrados, "assessor");
   const totalApoiad = totalApoiadores(filtrados);
-  const totalIdeal = totalVotacaoIdeal(filtrados);
+  const totalParceiros = totalColunaPessoal(filtrados, "parceiros");
 
-  el.kpiIdeal.textContent = fmt.format(totalIdeal);
+  el.kpiTotal.textContent = fmt.format(totalGeralColunas(filtrados));
   el.kpiPrefeito.textContent = fmt.format(totalPrefeito);
   el.kpiVereador.textContent = fmt.format(totalVereador);
   el.kpiAgente.textContent = fmt.format(totalAgente);
   el.kpiAssessor.textContent = fmt.format(totalAssessor);
   el.kpiApoiadores.textContent = fmt.format(totalApoiad);
-
-  const somaPv = fmt.format(totalPrefeito + totalVereador);
-  const somaAa = fmt.format(totalAgente + totalAssessor);
-  const apoiadFmt = fmt.format(totalApoiad);
-  el.kpiSomaPrefeitoVereador.textContent = somaPv;
-  el.kpiSomaAgenteAssessor.textContent = somaAa;
-  el.kpiApoiadoresSm.textContent = apoiadFmt;
+  el.kpiParceiros.textContent = fmt.format(totalParceiros);
 }
 
 function limparResumo() {
   const vazio = "—";
-  el.kpiIdeal.textContent = vazio;
+  el.kpiTotal.textContent = vazio;
   el.kpiPrefeito.textContent = vazio;
   el.kpiVereador.textContent = vazio;
   el.kpiAgente.textContent = vazio;
   el.kpiAssessor.textContent = vazio;
   el.kpiApoiadores.textContent = vazio;
-  el.kpiSomaPrefeitoVereador.textContent = vazio;
-  el.kpiSomaAgenteAssessor.textContent = vazio;
-  el.kpiApoiadoresSm.textContent = vazio;
+  el.kpiParceiros.textContent = vazio;
 }
 
 function alinharColunasTabela() {
@@ -284,15 +273,17 @@ function alinharColunasTabela() {
 }
 
 function sincronizarLargurasColunasPessoal(headTable, bodyTable) {
-  const mobile = window.matchMedia("(max-width: 575.98px)").matches;
+  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
   const largurasMobile = {
-    "pessoal-col-municipio": "34%",
-    "pessoal-col-ideal": "0",
-    "pessoal-col-prefeito": "16.5%",
-    "pessoal-col-vereador": "16.5%",
-    "pessoal-col-agente": "16.5%",
+    "pessoal-col-municipio": "32%",
+    "pessoal-col-prefeito": "17%",
+    "pessoal-col-vereador": "17%",
+    "pessoal-col-agente": "0",
     "pessoal-col-assessor": "0",
-    "pessoal-col-apoiadores": "16.5%",
+    "pessoal-col-apoiadores": "0",
+    "pessoal-col-parceiros": "0",
+    "pessoal-col-stack-agente": "17%",
+    "pessoal-col-stack-apoiadores": "17%",
   };
 
   [headTable, bodyTable].forEach((table) => {
@@ -316,29 +307,61 @@ function aposRenderTabela() {
 }
 
 function valorPopoverPessoal(val) {
-  return exibirCelulaPessoal(val) || "—";
+  return exibirCelulaPessoal(val);
+}
+
+function itemPopoverPessoal(rotulo, valor, marcadorClass) {
+  return PopoverTabela.item(rotulo, valor, marcadorClass, true);
+}
+
+function totalLinhaPessoal(r) {
+  return (
+    valorColunaPessoal(r.prefeito) +
+    valorColunaPessoal(r.vereador) +
+    valorColunaPessoal(r.agentePolitico) +
+    valorColunaPessoal(r.assessor) +
+    (r.apoiadores || 0) +
+    valorColunaPessoal(r.parceiros)
+  );
 }
 
 function htmlPopoverPessoal(r) {
-  return PopoverTabela.corpo(
-    escapeHtml(r.municipio),
+  const titulo =
+    `<div class="pessoal-popover-titulo-linha">` +
+    `<span class="pessoal-popover-municipio">${escapeHtml(r.municipio)}</span>` +
+    `<span class="pessoal-popover-total">${fmt.format(totalLinhaPessoal(r))}</span>` +
+    `</div>`;
+
+  return (
+    `<div class="orcamento-geral-popover-corpo pessoal-popover-corpo">` +
+    titulo +
     [
-      PopoverTabela.item("meta votação", exibirNumero(r.ideal) || "—"),
-      PopoverTabela.item("prefeito", valorPopoverPessoal(r.prefeito), "popover-marcador--pessoal-prefeito"),
-      PopoverTabela.item("vereador", valorPopoverPessoal(r.vereador), "popover-marcador--pessoal-vereador"),
-      PopoverTabela.item(
+      itemPopoverPessoal("prefeito", valorPopoverPessoal(r.prefeito), "popover-marcador--pessoal-prefeito"),
+      itemPopoverPessoal("vereador", valorPopoverPessoal(r.vereador), "popover-marcador--pessoal-vereador"),
+      itemPopoverPessoal(
         "agente-político",
         valorPopoverPessoal(r.agentePolitico),
         "popover-marcador--pessoal-agente"
       ),
-      PopoverTabela.item("assessor", valorPopoverPessoal(r.assessor), "popover-marcador--pessoal-assessor"),
-      PopoverTabela.item(
+      itemPopoverPessoal("assessor", valorPopoverPessoal(r.assessor), "popover-marcador--pessoal-assessor"),
+      itemPopoverPessoal(
         "apoiadores",
-        exibirApoiadores(r) || "—",
+        exibirApoiadores(r),
         "popover-marcador--pessoal-apoiadores"
       ),
-    ].join("")
+      itemPopoverPessoal("parceiros", valorPopoverPessoal(r.parceiros), "popover-marcador--pessoal-parceiros"),
+    ].join("") +
+    `</div>`
   );
+}
+
+function htmlStackPessoal(valorSuperior, valorInferior) {
+  const sup = valorSuperior || '<span class="pessoal-stack-vazio" aria-hidden="true"></span>';
+  const inf = valorInferior || '<span class="pessoal-stack-vazio" aria-hidden="true"></span>';
+  return `<div class="pessoal-tabela-stack-valores">
+    <span class="pessoal-tabela-stack-valor">${sup}</span>
+    <span class="pessoal-tabela-stack-valor">${inf}</span>
+  </div>`;
 }
 
 function renderizarLinhaPessoal(r) {
@@ -354,12 +377,14 @@ function renderizarLinhaPessoal(r) {
         </span>
       </span>
     </td>
-    <td class="text-end pessoal-col-ideal pessoal-col-lg-only">${exibirNumero(r.ideal)}</td>
     <td class="text-end pessoal-col-prefeito pessoal-celula-num">${exibirCelulaPessoal(r.prefeito)}</td>
     <td class="text-end pessoal-col-vereador pessoal-celula-num">${exibirCelulaPessoal(r.vereador)}</td>
-    <td class="text-end pessoal-col-agente pessoal-celula-num">${exibirCelulaPessoal(r.agentePolitico)}</td>
-    <td class="text-end pessoal-col-assessor pessoal-col-lg-only pessoal-celula-num">${exibirCelulaPessoal(r.assessor)}</td>
-    <td class="text-end pessoal-col-apoiadores">${exibirApoiadores(r)}</td>
+    <td class="text-end pessoal-col-agente pessoal-tabela-desktop-col pessoal-celula-num">${exibirCelulaPessoal(r.agentePolitico)}</td>
+    <td class="text-end pessoal-col-assessor pessoal-tabela-desktop-col pessoal-celula-num">${exibirCelulaPessoal(r.assessor)}</td>
+    <td class="text-end pessoal-col-apoiadores pessoal-tabela-desktop-col">${exibirApoiadores(r)}</td>
+    <td class="text-end pessoal-col-parceiros pessoal-tabela-desktop-col pessoal-celula-num">${exibirCelulaPessoal(r.parceiros)}</td>
+    <td class="text-end pessoal-tabela-stack-col pessoal-col-stack-agente pessoal-celula-num">${htmlStackPessoal(exibirCelulaPessoal(r.agentePolitico), exibirCelulaPessoal(r.assessor))}</td>
+    <td class="text-end pessoal-tabela-stack-col pessoal-col-stack-apoiadores">${htmlStackPessoal(exibirApoiadores(r), exibirCelulaPessoal(r.parceiros))}</td>
   </tr>`;
 }
 
@@ -405,9 +430,8 @@ function renderizarTabela() {
   aposRenderTabela();
 }
 
-function montar(valoresMunicipio, valoresApoiadores) {
-  const contagem = contagemApoiadoresPorMunicipio(valoresApoiadores);
-  registros = extrairRegistros(valoresMunicipio, contagem);
+function montar(valoresMunicipio) {
+  registros = extrairRegistros(valoresMunicipio);
   montarFiltros(extrairRegioes(registros));
   renderizarTabela();
 }
@@ -430,17 +454,14 @@ async function carregarPessoal() {
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   try {
-    const [valoresMunicipio, valoresApoiadores] = await Promise.all([
-      fetchPlanilha(cfg.PLANILHA),
-      fetchPlanilha(cfg.PLANILHA_APOIADORES).catch(() => []),
-    ]);
+    const valoresMunicipio = await fetchPlanilha(cfg.PLANILHA);
 
     if (valoresMunicipio === null) {
       limparStatus();
       return;
     }
 
-    montar(valoresMunicipio, valoresApoiadores || []);
+    montar(valoresMunicipio);
     limparStatus();
     aposRenderTabela();
   } catch (e) {
@@ -460,15 +481,13 @@ function initPessoal() {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
     corpoTabela: document.getElementById("corpoTabela"),
-    kpiIdeal: document.getElementById("kpiIdeal"),
+    kpiTotal: document.getElementById("kpiTotal"),
     kpiPrefeito: document.getElementById("kpiPrefeito"),
     kpiVereador: document.getElementById("kpiVereador"),
     kpiAgente: document.getElementById("kpiAgente"),
     kpiAssessor: document.getElementById("kpiAssessor"),
     kpiApoiadores: document.getElementById("kpiApoiadores"),
-    kpiSomaPrefeitoVereador: document.getElementById("kpiSomaPrefeitoVereador"),
-    kpiSomaAgenteAssessor: document.getElementById("kpiSomaAgenteAssessor"),
-    kpiApoiadoresSm: document.getElementById("kpiApoiadoresSm"),
+    kpiParceiros: document.getElementById("kpiParceiros"),
   };
   if (!el.corpoTabela) return;
 
