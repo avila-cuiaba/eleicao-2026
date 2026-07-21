@@ -1,4 +1,4 @@
-// Página apoiadores: contratos por liderança/município + filtro por região (planilha municipios).
+// Página orçamento — por liderança (pessoal, combustível, diversos, dia D).
 
 const fmt = new Intl.NumberFormat("pt-BR");
 const fmtMoeda = new Intl.NumberFormat("pt-BR", {
@@ -6,47 +6,28 @@ const fmtMoeda = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 2,
 });
 const cfg = CONFIG.PESSOAL;
-const cfgAp = cfg.APOIADORES;
+const cfgOrc = cfg.ORCAMENTO_POR_LIDERANCA;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
-const COLS_TABELA = 6;
+const COLS_TABELA = 8;
 
 const CAMPOS_PLANILHA = [
   { prop: "lideranca", chave: "LIDERANCA", aliases: ["lideranca", "liderança"] },
   { prop: "municipio", chave: "MUNICIPIO", aliases: ["municipio", "município"] },
-  { prop: "apoiadorLider", chave: "APOIADOR_LIDER", aliases: ["apoiador-lider", "apoiador lider", "lider"] },
-  { prop: "apoiadorIntegral", chave: "APOIADOR_INTEGRAL", aliases: ["apoiador-integral", "apoiador integral", "integral"] },
-  { prop: "apoiadorMeio", chave: "APOIADOR_MEIO", aliases: ["apoiador-meio", "apoiador meio", "meio"] },
+  { prop: "pessoal", chave: "PESSOAL", aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
   {
-    prop: "apoiadorCustomizado",
-    chave: "APOIADOR_CUSTOMIZADO",
-    aliases: ["apoiador-customizado", "apoiador customizado", "apoiador-livre", "apoiador livre", "customizado"],
+    prop: "combustivel",
+    chave: "COMBUSTIVEL",
+    aliases: ["combustivel", "combustível", "orcamento-combustivel", "orcamento combustivel"],
   },
+  { prop: "diversos", chave: "DIVERSOS", aliases: ["diversos", "orcamento-diversos"] },
+  { prop: "diaD", chave: "DIA_D", aliases: ["dia d", "dia-d", "diad", "orcamento-diad", "orcamento dia d"] },
 ];
 
-const CAMPOS_FINANCEIROS = [
-  { prop: "finLider", chave: "FIN_LIDER" },
-  { prop: "finIntegral", chave: "FIN_INTEGRAL" },
-  { prop: "finMeio", chave: "FIN_MEIO" },
-  { prop: "finCustomizado", chave: "FIN_CUSTOMIZADO" },
-];
-
-const CAMPOS_FIN_MODAL = CAMPOS_FINANCEIROS;
-
-const LINHAS_APOIADOR_POPOVER = [
-  {
-    rotulo: "liderança",
-    fin: "proprioApoiador",
-    marcador: "popover-marcador--apoiador-proprio",
-  },
-  { rotulo: "lider", qtd: "apoiadorLider", fin: "finLider", marcador: "popover-marcador--apoiador-lider" },
-  { rotulo: "integral", qtd: "apoiadorIntegral", fin: "finIntegral", marcador: "popover-marcador--apoiador-integral" },
-  { rotulo: "meio", qtd: "apoiadorMeio", fin: "finMeio", marcador: "popover-marcador--apoiador-meio" },
-  {
-    rotulo: "customizado",
-    qtd: "apoiadorCustomizado",
-    fin: "finCustomizado",
-    marcador: "popover-marcador--apoiador-custom",
-  },
+const LINHAS_ORCAMENTO_POPOVER = [
+  { rotulo: "pessoal", prop: "pessoal", marcador: "popover-marcador--orc-pessoal" },
+  { rotulo: "combustível", prop: "combustivel", marcador: "popover-marcador--orc-combustivel" },
+  { rotulo: "diversos", prop: "diversos", marcador: "popover-marcador--orc-diversos" },
+  { rotulo: "dia D", prop: "diaD", marcador: "popover-marcador--orc-diad", preserveCase: true },
 ];
 
 let el = {};
@@ -71,22 +52,11 @@ function atualizarMetadadosPlanilha(valores) {
       nomesColunaPlanilha[campo.prop] = nome || campo.aliases[0];
     }
   });
-  CAMPOS_FINANCEIROS.forEach((campo) => {
-    const idx = cfgAp.COLUNAS[campo.chave];
-    if (idx != null && idx >= 0) {
-      const nome = String(cab[idx] ?? "").trim();
-      nomesColunaPlanilha[campo.prop] = nome || campo.chave;
-    }
-  });
 }
 
 function dadosGravacaoApoiador(item) {
   const dados = {};
   CAMPOS_PLANILHA.forEach((campo) => {
-    const chave = nomesColunaPlanilha[campo.prop];
-    if (chave) dados[chave] = item[campo.prop] ?? "";
-  });
-  CAMPOS_FIN_MODAL.forEach((campo) => {
     const chave = nomesColunaPlanilha[campo.prop];
     if (chave) dados[chave] = item[campo.prop] ?? "";
   });
@@ -101,14 +71,10 @@ function lerFormularioApoiador() {
   return {
     lideranca: el.campoLideranca.value.trim(),
     municipio: el.campoMunicipio.value.trim(),
-    apoiadorLider: el.campoLider.value.trim(),
-    apoiadorIntegral: el.campoIntegral.value.trim(),
-    apoiadorMeio: el.campoMeio.value.trim(),
-    apoiadorCustomizado: el.campoCustom.value.trim(),
-    finLider: lerCampoMoeda(el.campoFinLider),
-    finIntegral: lerCampoMoeda(el.campoFinIntegral),
-    finMeio: lerCampoMoeda(el.campoFinMeio),
-    finCustomizado: lerCampoMoeda(el.campoFinCustom),
+    pessoal: lerCampoMoeda(el.campoPessoal),
+    combustivel: lerCampoMoeda(el.campoCombustivel),
+    diversos: lerCampoMoeda(el.campoDiversos),
+    diaD: lerCampoMoeda(el.campoDiaD),
   };
 }
 
@@ -148,12 +114,6 @@ function montarSelectMunicipio(valorSelecionado) {
       .join("");
 }
 
-function valorParaCampoNumerico(val) {
-  const s = String(val ?? "").trim();
-  if (!s) return "";
-  return String(parseNumero(val));
-}
-
 function valorParaCampoMoeda(val) {
   const s = String(val ?? "").trim();
   if (!s) return "";
@@ -170,20 +130,16 @@ function preencherFormularioApoiador(item) {
   const dados = item || {};
   el.campoLideranca.value = String(dados.lideranca ?? "").trim();
   montarSelectMunicipio(dados.municipio ?? "");
-  el.campoLider.value = valorParaCampoNumerico(dados.apoiadorLider);
-  el.campoIntegral.value = valorParaCampoNumerico(dados.apoiadorIntegral);
-  el.campoMeio.value = valorParaCampoNumerico(dados.apoiadorMeio);
-  el.campoCustom.value = valorParaCampoNumerico(dados.apoiadorCustomizado);
-  el.campoFinLider.value = valorParaCampoMoeda(dados.finLider);
-  el.campoFinIntegral.value = valorParaCampoMoeda(dados.finIntegral);
-  el.campoFinMeio.value = valorParaCampoMoeda(dados.finMeio);
-  el.campoFinCustom.value = valorParaCampoMoeda(dados.finCustomizado);
+  el.campoPessoal.value = valorParaCampoMoeda(dados.pessoal);
+  el.campoCombustivel.value = valorParaCampoMoeda(dados.combustivel);
+  el.campoDiversos.value = valorParaCampoMoeda(dados.diversos);
+  el.campoDiaD.value = valorParaCampoMoeda(dados.diaD);
 }
 
 function abrirModalIncluirApoiador() {
   modoCrud = "inserir";
   linhaCrud = null;
-  el.modalTitulo.textContent = "incluir apoiador";
+  el.modalTitulo.textContent = "incluir orçamento";
   preencherFormularioApoiador({});
   modalCrud.show();
 }
@@ -193,7 +149,7 @@ function abrirModalEditarApoiador(numLinha) {
   if (!item) return;
   modoCrud = "atualizar";
   linhaCrud = numLinha;
-  el.modalTitulo.textContent = "editar apoiador";
+  el.modalTitulo.textContent = "editar orçamento";
   preencherFormularioApoiador(item);
   modalCrud.show();
 }
@@ -210,7 +166,7 @@ async function salvarApoiadorCrud() {
     const payload = {
       acao: modoCrud === "atualizar" ? "atualizar" : "inserir",
       dados: dadosGravacaoApoiador(form),
-      origem: "pessoal-apoiadores",
+      origem: "orcamento-pessoal-apoiadores",
     };
     if (modoCrud === "atualizar") payload.linha = linhaCrud;
 
@@ -233,7 +189,7 @@ async function excluirApoiadorCrud(numLinha) {
     await PlanilhaApi.gravar(cfg.PLANILHA_APOIADORES, {
       acao: "excluir",
       linha: numLinha,
-      origem: "pessoal-apoiadores",
+      origem: "orcamento-pessoal-apoiadores",
     });
     MasterCrud.toast("registro excluído.", "sucesso");
     await carregarApoiadores();
@@ -341,22 +297,11 @@ function resolverIndices(cabecalho) {
     let idx = normalizados.findIndex((n) =>
       campo.aliases.some((alias) => normalizarChave(alias) === n)
     );
-    if (idx === -1 && cfgAp.COLUNAS[campo.chave] != null) {
-      idx = cfgAp.COLUNAS[campo.chave];
+    if (idx === -1 && cfgOrc.COLUNAS[campo.chave] != null) {
+      idx = cfgOrc.COLUNAS[campo.chave];
     }
     indices[campo.prop] = idx;
   });
-
-  CAMPOS_FINANCEIROS.forEach((campo) => {
-    indices[campo.prop] = cfgAp.COLUNAS[campo.chave];
-  });
-
-  const aliasesProprio = ["proprio apoiador", "próprio apoiador", "proprio-apoiador"];
-  let idxProprio = normalizados.findIndex((n) => aliasesProprio.some((alias) => normalizarChave(alias) === n));
-  if (idxProprio === -1 && cfgAp.COLUNAS.PROPRIO_APOIADOR != null) {
-    idxProprio = cfgAp.COLUNAS.PROPRIO_APOIADOR;
-  }
-  indices.proprioApoiador = idxProprio;
 
   return indices;
 }
@@ -371,29 +316,27 @@ function exibirTexto(val) {
   return s ? escapeHtml(s) : "";
 }
 
-function exibirCelula(val) {
-  const s = String(val ?? "").trim();
-  if (!s) return "";
-  const n = parseNumero(val);
-  if (n > 0) return fmt.format(n);
-  return escapeHtml(s);
-}
-
 function exibirMoeda(val) {
   const s = String(val ?? "").trim();
-  if (!s) return "";
-  return fmtMoeda.format(parseNumero(val));
+  if (!s || s === "-" || s === "—") return "";
+  const n = parseNumero(val);
+  if (!Number.isFinite(n) || n === 0) return "";
+  return fmtMoeda.format(n);
 }
 
-function subFinTotalHtml(r) {
-  const fin = exibirMoeda(r.finTotal);
-  return fin ? `<span class="apoiadores-sub-fin-total">${fin}</span>` : "";
+function exibirMoedaKpi(val) {
+  const n = typeof val === "number" ? val : parseNumero(val);
+  return fmtMoeda.format(Number.isFinite(n) ? n : 0);
+}
+
+function valorPopoverMoeda(val) {
+  return exibirMoeda(val);
 }
 
 function badgeFinTotalHtml(r) {
-  const fin = exibirMoeda(r.finTotal);
-  if (!fin) return "";
-  return `<span class="apoiadores-fin-badge">${fin}</span>`;
+  const total = parseNumero(r.finTotal);
+  if (total <= 0) return "";
+  return `<span class="orcamento-total-badge">${fmtMoeda.format(total)}</span>`;
 }
 
 function ordenarRegioes(a, b) {
@@ -467,16 +410,10 @@ function linhasFiltradas() {
   const selecionadas = regioesSelecionadas();
   if (!selecionadas.length) return [];
 
-  const todasMarcadas = selecionadas.length === regioes.length;
   const termo = termoBuscaLideranca();
 
   return linhas.filter((item) => {
-    if (item.regiaoNorm) {
-      if (!selecionadas.includes(item.regiaoNorm)) return false;
-    } else if (!todasMarcadas) {
-      return false;
-    }
-
+    if (!item.regiaoNorm || !selecionadas.includes(item.regiaoNorm)) return false;
     if (termo && !normalizarChave(item.lideranca).includes(termo)) return false;
     return true;
   });
@@ -493,17 +430,27 @@ function ordenarPorLideranca(a, b) {
 }
 
 function linhaTemConteudo(item) {
-  if (celulaPreenchida(item.proprioApoiador)) return true;
-  return CAMPOS_PLANILHA.some((c) => celulaPreenchida(item[c.prop]));
+  const lideranca = String(item.lideranca ?? "").trim();
+  const municipio = String(item.municipio ?? "").trim();
+  if (!lideranca || !municipio) return false;
+  return (
+    parseNumero(item.pessoal) > 0 ||
+    parseNumero(item.combustivel) > 0 ||
+    parseNumero(item.diversos) > 0 ||
+    parseNumero(item.diaD) > 0 ||
+    celulaPreenchida(item.pessoal) ||
+    celulaPreenchida(item.combustivel) ||
+    celulaPreenchida(item.diversos) ||
+    celulaPreenchida(item.diaD)
+  );
 }
 
 function calcularFinTotal(item) {
   return (
-    parseNumero(item.proprioApoiador) +
-    parseNumero(item.finLider) +
-    parseNumero(item.finIntegral) +
-    parseNumero(item.finMeio) +
-    parseNumero(item.finCustomizado)
+    parseNumero(item.pessoal) +
+    parseNumero(item.combustivel) +
+    parseNumero(item.diversos) +
+    parseNumero(item.diaD)
   );
 }
 
@@ -513,28 +460,27 @@ function extrairLinhas(valores) {
   const indices = resolverIndices(valores[0]);
   const itens = [];
 
-  for (let i = cfgAp.LINHA_INICIO_DADOS - 1; i < valores.length; i++) {
+  for (let i = cfgOrc.LINHA_INICIO_DADOS - 1; i < valores.length; i++) {
     const linha = valores[i];
     if (!linha) continue;
 
     const municipio = String(valorCampo(linha, indices.municipio) ?? "").trim();
-    const info = municipio ? mapaMunicipioRegiao.get(normalizarChave(municipio)) : null;
+    const lideranca = String(valorCampo(linha, indices.lideranca) ?? "").trim();
+    if (!municipio || !lideranca) continue;
+
+    const info = mapaMunicipioRegiao.get(normalizarChave(municipio));
+    if (!info?.regiaoNorm) continue;
 
     const item = {
       _linha: i + 1,
-      lideranca: valorCampo(linha, indices.lideranca),
+      lideranca,
       municipio,
-      proprioApoiador: valorCampo(linha, indices.proprioApoiador),
-      apoiadorLider: valorCampo(linha, indices.apoiadorLider),
-      apoiadorIntegral: valorCampo(linha, indices.apoiadorIntegral),
-      apoiadorMeio: valorCampo(linha, indices.apoiadorMeio),
-      apoiadorCustomizado: valorCampo(linha, indices.apoiadorCustomizado),
-      finLider: valorCampo(linha, indices.finLider),
-      finIntegral: valorCampo(linha, indices.finIntegral),
-      finMeio: valorCampo(linha, indices.finMeio),
-      finCustomizado: valorCampo(linha, indices.finCustomizado),
-      regiao: info?.regiao || "",
-      regiaoNorm: info?.regiaoNorm || "",
+      pessoal: valorCampo(linha, indices.pessoal),
+      combustivel: valorCampo(linha, indices.combustivel),
+      diversos: valorCampo(linha, indices.diversos),
+      diaD: valorCampo(linha, indices.diaD),
+      regiao: info.regiao,
+      regiaoNorm: info.regiaoNorm,
     };
     item.finTotal = calcularFinTotal(item);
 
@@ -546,51 +492,57 @@ function extrairLinhas(valores) {
   return itens;
 }
 
-function somarCampo(filtradas, prop) {
-  return filtradas.reduce((acc, r) => {
-    const n = parseNumero(r[prop]);
-    if (n > 0) return acc + n;
-    if (celulaPreenchida(r[prop])) return acc + 1;
-    return acc;
-  }, 0);
+function somarMoeda(filtradas, prop) {
+  return filtradas.reduce((acc, r) => acc + parseNumero(r[prop]), 0);
 }
 
-function somarEfetivoMobilizado(filtradas) {
-  return (
-    filtradas.length +
-    somarCampo(filtradas, "apoiadorLider") +
-    somarCampo(filtradas, "apoiadorIntegral") +
-    somarCampo(filtradas, "apoiadorMeio") +
-    somarCampo(filtradas, "apoiadorCustomizado")
-  );
+function somarTotalGeral(filtradas) {
+  return filtradas.reduce((acc, r) => acc + calcularFinTotal(r), 0);
 }
 
 function atualizarKpis(filtradas) {
-  el.kpiTotal.textContent = fmt.format(filtradas.length);
-  el.kpiLider.textContent = fmt.format(somarCampo(filtradas, "apoiadorLider"));
-  el.kpiIntegral.textContent = fmt.format(somarCampo(filtradas, "apoiadorIntegral"));
-  el.kpiMeio.textContent = fmt.format(somarCampo(filtradas, "apoiadorMeio"));
-  el.kpiCustom.textContent = fmt.format(somarCampo(filtradas, "apoiadorCustomizado"));
-  el.kpiEfetivoMobilizado.textContent = fmt.format(somarEfetivoMobilizado(filtradas));
+  el.kpiPessoal.textContent = exibirMoedaKpi(somarMoeda(filtradas, "pessoal"));
+  el.kpiCombustivel.textContent = exibirMoedaKpi(somarMoeda(filtradas, "combustivel"));
+  el.kpiDiversos.textContent = exibirMoedaKpi(somarMoeda(filtradas, "diversos"));
+  el.kpiDiaD.textContent = exibirMoedaKpi(somarMoeda(filtradas, "diaD"));
+  el.kpiTotal.textContent = exibirMoedaKpi(somarTotalGeral(filtradas));
 }
 
 function limparKpis() {
-  const vazio = "—";
-  el.kpiTotal.textContent = vazio;
-  el.kpiEfetivoMobilizado.textContent = vazio;
-  el.kpiLider.textContent = vazio;
-  el.kpiIntegral.textContent = vazio;
-  el.kpiMeio.textContent = vazio;
-  el.kpiCustom.textContent = vazio;
+  el.kpiPessoal.textContent = "";
+  el.kpiCombustivel.textContent = "";
+  el.kpiDiversos.textContent = "";
+  el.kpiDiaD.textContent = "";
+  el.kpiTotal.textContent = "";
 }
 
 function zerarKpis() {
-  el.kpiTotal.textContent = fmt.format(0);
-  el.kpiEfetivoMobilizado.textContent = fmt.format(0);
-  el.kpiLider.textContent = fmt.format(0);
-  el.kpiIntegral.textContent = fmt.format(0);
-  el.kpiMeio.textContent = fmt.format(0);
-  el.kpiCustom.textContent = fmt.format(0);
+  el.kpiPessoal.textContent = "";
+  el.kpiCombustivel.textContent = "";
+  el.kpiDiversos.textContent = "";
+  el.kpiDiaD.textContent = "";
+  el.kpiTotal.textContent = "";
+}
+
+function valorStackVisivel(val) {
+  if (!celulaPreenchida(val)) return false;
+  const n = parseNumero(val);
+  return !Number.isFinite(n) || n !== 0;
+}
+
+function valorCampoStack(prop, valor) {
+  if (!valorStackVisivel(valor)) {
+    return '<span class="orcamento-estratificado-stack-valor-linha orcamento-estratificado-stack-valor-linha--vazio"></span>';
+  }
+  return (
+    '<span class="orcamento-estratificado-stack-valor-linha">' +
+    '<span class="orcamento-tabela-stack-valor">' +
+    exibirMoeda(valor) +
+    "</span>" +
+    '<span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--' +
+    prop +
+    '" aria-hidden="true"></span></span>'
+  );
 }
 
 function largurasColunasApoiadores() {
@@ -598,31 +550,37 @@ function largurasColunasApoiadores() {
   const mobile = window.matchMedia("(max-width: 991.98px)").matches;
   if (estreito) {
     return {
-      "apoiadores-col-ident": "58%",
+      "apoiadores-col-ident": "50%",
       "apoiadores-col-municipio": "0",
-      "apoiadores-col-lider": "10.5%",
-      "apoiadores-col-integral": "10.5%",
-      "apoiadores-col-meio": "10.5%",
-      "apoiadores-col-custom": "10.5%",
+      "apoiadores-col-orc-pessoal": "0",
+      "apoiadores-col-orc-combustivel": "0",
+      "apoiadores-col-orc-diversos": "0",
+      "apoiadores-col-orc-diad": "0",
+      "apoiadores-col-orc-stack-pessoal": "25%",
+      "apoiadores-col-orc-stack-diversos": "25%",
     };
   }
   if (mobile) {
     return {
-      "apoiadores-col-ident": "34%",
+      "apoiadores-col-ident": "50%",
       "apoiadores-col-municipio": "0",
-      "apoiadores-col-lider": "16.5%",
-      "apoiadores-col-integral": "16.5%",
-      "apoiadores-col-meio": "16.5%",
-      "apoiadores-col-custom": "16.5%",
+      "apoiadores-col-orc-pessoal": "0",
+      "apoiadores-col-orc-combustivel": "0",
+      "apoiadores-col-orc-diversos": "0",
+      "apoiadores-col-orc-diad": "0",
+      "apoiadores-col-orc-stack-pessoal": "25%",
+      "apoiadores-col-orc-stack-diversos": "25%",
     };
   }
   return {
-    "apoiadores-col-ident": "20%",
-    "apoiadores-col-municipio": "20%",
-    "apoiadores-col-lider": "15%",
-    "apoiadores-col-integral": "15%",
-    "apoiadores-col-meio": "15%",
-    "apoiadores-col-custom": "15%",
+    "apoiadores-col-ident": "22%",
+    "apoiadores-col-municipio": "18%",
+    "apoiadores-col-orc-pessoal": "15%",
+    "apoiadores-col-orc-combustivel": "15%",
+    "apoiadores-col-orc-diversos": "15%",
+    "apoiadores-col-orc-diad": "15%",
+    "apoiadores-col-orc-stack-pessoal": "0",
+    "apoiadores-col-orc-stack-diversos": "0",
   };
 }
 
@@ -667,14 +625,6 @@ function aposRenderTabela() {
   });
 }
 
-function valorPopoverQtd(val) {
-  return fmt.format(parseNumero(val));
-}
-
-function valorPopoverMoeda(val) {
-  return fmtMoeda.format(parseNumero(val));
-}
-
 function tituloPopoverApoiador(r) {
   return exibirTexto(r.lideranca) || "—";
 }
@@ -683,21 +633,21 @@ function badgeFinTotalPopover(r) {
   return badgeFinTotalHtml(r);
 }
 
-function itemPopoverApoiador(r, linha) {
-  const qtd = linha.qtd ? valorPopoverQtd(r[linha.qtd]) : valorPopoverQtd(0);
-  const fin = linha.fin ? valorPopoverMoeda(r[linha.fin]) : valorPopoverMoeda(0);
+function itemPopoverOrcamento(r, linha) {
+  const rotuloClass = linha.preserveCase
+    ? "apoiadores-popover-rotulo apoiadores-popover-rotulo--case"
+    : "apoiadores-popover-rotulo";
   const marcador = linha.marcador
     ? `<span class="orcamento-geral-popover-marcador ${linha.marcador}" aria-hidden="true"></span>`
     : "";
-  return `<div class="apoiadores-popover-linha">
-    <span class="apoiadores-popover-rotulo">${marcador}${linha.rotulo}</span>
-    <span class="apoiadores-popover-qtd">${qtd}</span>
-    <span class="apoiadores-popover-fin">${fin}</span>
+  return `<div class="apoiadores-popover-linha apoiadores-popover-linha--fin">
+    <span class="${rotuloClass}">${marcador}${linha.rotulo}</span>
+    <span class="apoiadores-popover-fin">${valorPopoverMoeda(r[linha.prop])}</span>
   </div>`;
 }
 
 function htmlPopoverApoiador(r) {
-  const itens = LINHAS_APOIADOR_POPOVER.map((linha) => itemPopoverApoiador(r, linha)).join("");
+  const itens = LINHAS_ORCAMENTO_POPOVER.map((linha) => itemPopoverOrcamento(r, linha)).join("");
   const municipio = escapeHtml(String(r.municipio ?? "").trim());
   const badge = badgeFinTotalPopover(r);
 
@@ -714,63 +664,28 @@ function htmlPopoverApoiador(r) {
   </div>`;
 }
 
-function montarLinhasGrupoApoiador(partes) {
-  if (!partes.length) return "—";
-
-  const sep = '<span class="apoiadores-grupo-sep"> ; </span>';
-  const sepFim = '<span class="apoiadores-grupo-sep"> ;</span>';
-  const linhas = [];
-
-  for (let i = 0; i < partes.length; i += 3) {
-    const chunk = partes.slice(i, i + 3);
-    const ultima = i + 3 >= partes.length;
-    const texto = chunk.join(sep) + (ultima ? "" : sepFim);
-    linhas.push(`<div class="apoiadores-grupo-linha">${texto}</div>`);
-  }
-
-  return linhas.join("");
-}
-
-function htmlGrupoApoiadorMobile(r) {
-  const celulas = [
-    { rotulo: "lider", valor: r.apoiadorLider },
-    { rotulo: "integral", valor: r.apoiadorIntegral },
-    { rotulo: "meio", valor: r.apoiadorMeio },
-    { rotulo: "customizado", valor: r.apoiadorCustomizado },
-  ];
-
-  const partes = celulas
-    .map((c) => {
-      const exib = exibirCelula(c.valor);
-      if (!exib) return "";
-      return `${c.rotulo} <span class="apoiadores-grupo-par-valor">(<strong class="apoiadores-grupo-valor">${exib}</strong>)</span>`;
-    })
-    .filter(Boolean);
-
-  return `<td class="apoiadores-col-grupo-mobile apoiadores-col-separador" colspan="4">
-    <div class="apoiadores-grupo-inline" aria-label="apoiador">${montarLinhasGrupoApoiador(partes)}</div>
-  </td>`;
-}
-
 function renderizarLinha(r) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
   const municipioHtml = escapeHtml(r.municipio);
   const liderancaHtml = exibirTexto(r.lideranca);
   const acoesMaster = MasterCrud.acoesLinha(r._linha);
-  const finTotalSub = subFinTotalHtml(r);
-  const finBadgeMobile = badgeFinTotalHtml(r);
+  const finBadge = badgeFinTotalHtml(r);
   const municipioMobile = r.municipio
     ? `<span class="apoiadores-sub-municipio">${municipioHtml}</span>`
     : "";
+  const stackPessoal =
+    valorCampoStack("pessoal", r.pessoal) + valorCampoStack("combustivel", r.combustivel);
+  const stackDiversos =
+    valorCampoStack("diversos", r.diversos) + valorCampoStack("diad", r.diaD);
 
-  return `<tr class="apoiadores-linha-popover" tabindex="0" aria-label="detalhes do apoiador">
+  return `<tr class="apoiadores-linha-popover" tabindex="0" aria-label="detalhes do orçamento">
     <td class="apoiadores-col-ident">
       <span class="apoiadores-celula-desktop apoiadores-celula-texto">
         <span class="apoiadores-celula-texto-wrap">
           <span class="apoiadores-ident-stack">
             <span class="apoiadores-ident-nome">${liderancaHtml}</span>
-            ${finTotalSub}
+            ${finBadge}
           </span>
           ${acoesMaster}
         </span>
@@ -783,7 +698,7 @@ function renderizarLinha(r) {
               <span class="apoiadores-ident-stack">
                 <span class="apoiadores-ident-nome">${liderancaHtml || "—"}</span>
                 ${municipioMobile}
-                ${finBadgeMobile}
+                ${finBadge}
               </span>
               ${acoesMaster}
             </span>
@@ -799,11 +714,16 @@ function renderizarLinha(r) {
         </span>
       </span>
     </td>
-    ${htmlGrupoApoiadorMobile(r)}
-    <td class="text-end apoiadores-col-lider apoiadores-col-apoiador-desk apoiadores-col-separador apoiadores-celula-num">${exibirCelula(r.apoiadorLider)}</td>
-    <td class="text-end apoiadores-col-integral apoiadores-col-apoiador-desk apoiadores-celula-num">${exibirCelula(r.apoiadorIntegral)}</td>
-    <td class="text-end apoiadores-col-meio apoiadores-col-apoiador-desk apoiadores-celula-num">${exibirCelula(r.apoiadorMeio)}</td>
-    <td class="text-end apoiadores-col-custom apoiadores-col-apoiador-desk apoiadores-celula-num">${exibirCelula(r.apoiadorCustomizado)}</td>
+    <td class="text-end apoiadores-col-orc-pessoal apoiadores-col-orc-desk apoiadores-col-separador apoiadores-celula-num orcamento-tabela-desktop-col">${exibirMoeda(r.pessoal)}</td>
+    <td class="text-end apoiadores-col-orc-combustivel apoiadores-col-orc-desk apoiadores-celula-num orcamento-tabela-desktop-col">${exibirMoeda(r.combustivel)}</td>
+    <td class="text-end apoiadores-col-orc-diversos apoiadores-col-orc-desk apoiadores-celula-num orcamento-tabela-desktop-col">${exibirMoeda(r.diversos)}</td>
+    <td class="text-end apoiadores-col-orc-diad apoiadores-col-orc-desk apoiadores-celula-num orcamento-tabela-desktop-col">${exibirMoeda(r.diaD)}</td>
+    <td class="text-end apoiadores-col-orc-stack-pessoal orcamento-tabela-stack-col apoiadores-col-separador">
+      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackPessoal}</div>
+    </td>
+    <td class="text-end apoiadores-col-orc-stack-diversos orcamento-tabela-stack-col">
+      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackDiversos}</div>
+    </td>
   </tr>`;
 }
 
@@ -835,7 +755,7 @@ function renderizarTabela() {
     zerarKpis();
     popoverTabela.destruir();
     el.corpo.innerHTML =
-      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum apoiador para os filtros selecionados.</td></tr>`;
+      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum registro para os filtros selecionados.</td></tr>`;
     aposRenderTabela();
     return;
   }
@@ -856,6 +776,10 @@ function montar(valoresApoiadores) {
   linhas = extrairLinhas(valoresApoiadores);
   montarFiltros(extrairRegioes(linhas));
   renderizarTabela();
+  requestAnimationFrame(() => {
+    alinharColunasTabela();
+    renderizarTabela();
+  });
 }
 
 async function carregarApoiadores() {
@@ -864,7 +788,7 @@ async function carregarApoiadores() {
     return;
   }
 
-  mostrarStatus("Carregando apoiadores...", "carregando");
+  mostrarStatus("Carregando orçamento...", "carregando");
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   try {
@@ -894,7 +818,7 @@ async function carregarApoiadores() {
 
 window.atualizarPagina = carregarApoiadores;
 
-function initApoiadores() {
+function initOrcamentoPessoalApoiadores() {
   el = {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
@@ -902,25 +826,20 @@ function initApoiadores() {
     corpo: document.getElementById("corpoApoiadores"),
     vazio: document.getElementById("vazio"),
     kpiTotal: document.getElementById("kpiTotal"),
-    kpiEfetivoMobilizado: document.getElementById("kpiEfetivoMobilizado"),
-    kpiLider: document.getElementById("kpiLider"),
-    kpiIntegral: document.getElementById("kpiIntegral"),
-    kpiMeio: document.getElementById("kpiMeio"),
-    kpiCustom: document.getElementById("kpiCustom"),
+    kpiPessoal: document.getElementById("kpiPessoal"),
+    kpiCombustivel: document.getElementById("kpiCombustivel"),
+    kpiDiversos: document.getElementById("kpiDiversos"),
+    kpiDiaD: document.getElementById("kpiDiaD"),
     btnIncluir: document.getElementById("btnIncluirApoiador"),
     btnSalvarApoiador: document.getElementById("btnSalvarApoiador"),
     modalTitulo: document.getElementById("modalApoiadorTitulo"),
     modalEl: document.getElementById("modalApoiadorCrud"),
     campoLideranca: document.getElementById("campoApLideranca"),
     campoMunicipio: document.getElementById("campoApMunicipio"),
-    campoLider: document.getElementById("campoApLider"),
-    campoIntegral: document.getElementById("campoApIntegral"),
-    campoMeio: document.getElementById("campoApMeio"),
-    campoCustom: document.getElementById("campoApCustom"),
-    campoFinLider: document.getElementById("campoApFinLider"),
-    campoFinIntegral: document.getElementById("campoApFinIntegral"),
-    campoFinMeio: document.getElementById("campoApFinMeio"),
-    campoFinCustom: document.getElementById("campoApFinCustom"),
+    campoPessoal: document.getElementById("campoApPessoal"),
+    campoCombustivel: document.getElementById("campoApCombustivel"),
+    campoDiversos: document.getElementById("campoApDiversos"),
+    campoDiaD: document.getElementById("campoApDiaD"),
   };
   if (!el.corpo || !el.filtroRegioes) return;
 
@@ -932,9 +851,8 @@ function initApoiadores() {
 
   el.buscaLideranca?.addEventListener("input", renderizarTabela);
   window.addEventListener("resize", alinharColunasTabela);
-  alinharColunasTabela();
   carregarApoiadores();
 }
 
 AUTH.exigir();
-document.addEventListener("DOMContentLoaded", initApoiadores);
+document.addEventListener("DOMContentLoaded", initOrcamentoPessoalApoiadores);

@@ -1,14 +1,18 @@
-// Página orçamento geral: planilha orcamento-geral (item, orçamento C).
+// Página pagamentos — geral (réplica de orcamento-geral).
 
 const fmtMoeda = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
 const cfg = CONFIG.ORCAMENTO_GERAL;
-const COLS_TABELA = 3;
+const COLS_TABELA = 5;
+const COR_GRAFICO_ORCAMENTO = "#f87171";
+const COR_GRAFICO_PAGAMENTO = "#0891b2";
 
 let el = {};
+let chartComparativo = null;
 let popoversTabela = [];
+let rotulosGrafico = { orcamento: "orçamento", pagamento: "pagamento" };
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -77,6 +81,8 @@ function resolverIndices(cabecalho) {
     item: cols.ITEM,
     valorB: cols.VALOR_B,
     orcamento: cols.ORCAMENTO,
+    pagamento: cols.PAGAMENTO,
+    aPagar: cols.A_PAGAR,
   };
 
   Object.entries(cfg.CAMPOS || {}).forEach(([prop, campo]) => {
@@ -86,6 +92,8 @@ function resolverIndices(cabecalho) {
     if (idx === -1) return;
     if (prop === "ITEM") indices.item = idx;
     if (prop === "ORCAMENTO") indices.orcamento = idx;
+    if (prop === "PAGAMENTO") indices.pagamento = idx;
+    if (prop === "A_PAGAR") indices.aPagar = idx;
   });
 
   return indices;
@@ -114,6 +122,17 @@ function exibirTexto(val) {
   return s ? escapeHtml(s) : "";
 }
 
+function rotuloGraficoOrcamento(texto) {
+  const t = String(texto ?? "").trim();
+  if (!t) return "orçamento";
+  if (normalizarChave(t) === normalizarChave("orçamento inicial")) return "orçamento";
+  return t;
+}
+
+function somarColuna(linhas, prop) {
+  return linhas.reduce((acc, r) => acc + parseNumero(r[prop]), 0);
+}
+
 function extrairDados(valores) {
   if (!valores?.length) {
     return { linhas: [], indices: null, cabecalho: [] };
@@ -123,25 +142,46 @@ function extrairDados(valores) {
   const indices = resolverIndices(cabecalho);
   const linhas = [];
 
+  rotulosGrafico = {
+    orcamento: rotuloGraficoOrcamento(cabecalho[indices.orcamento]),
+    pagamento: String(cabecalho[indices.pagamento] ?? "pagamento").trim() || "pagamento",
+  };
+
   for (let linha1 = cfg.LINHA_INICIO_DADOS; linha1 <= valores.length; linha1++) {
     const linha = valores[linha1 - 1];
     if (!linha) continue;
 
     const item = String(valorCampo(linha, indices.item) ?? "").trim();
     const orcamento = valorCampo(linha, indices.orcamento);
+    const pagamento = valorCampo(linha, indices.pagamento);
+    const aPagar = valorCampo(linha, indices.aPagar);
     const valorB = valorCampo(linha, indices.valorB);
 
-    if (!item && !celulaPreenchida(orcamento) && !celulaPreenchida(valorB)) {
+    if (
+      !item &&
+      !celulaPreenchida(orcamento) &&
+      !celulaPreenchida(valorB) &&
+      !celulaPreenchida(pagamento) &&
+      !celulaPreenchida(aPagar)
+    ) {
       continue;
     }
     if (!item) continue;
+
+    const orcNum = parseNumero(orcamento);
+    const pagNum = parseNumero(pagamento);
+    const aPagarNum = celulaPreenchida(aPagar) ? parseNumero(aPagar) : orcNum - pagNum;
 
     linhas.push({
       linha1,
       item,
       valorB,
       orcamento,
-      orcNum: parseNumero(orcamento),
+      pagamento,
+      aPagar,
+      orcNum,
+      pagNum,
+      aPagarNum,
       estratificada: linhaEstratificada(linha1),
     });
   }
@@ -149,7 +189,10 @@ function extrairDados(valores) {
   return { linhas, indices, cabecalho };
 }
 
-function calcularTotais(valores, indices) {
+function calcularTotais(valores, indices, linhas) {
+  const estratificadas = linhas.filter((r) => r.estratificada);
+  const agrupadas = linhas.filter((r) => !r.estratificada);
+
   let kpiEstratificadas = 0;
   (cfg.LINHAS_ESTRATIFICADAS || []).forEach((linha1) => {
     const linha = valores[linha1 - 1];
@@ -164,10 +207,17 @@ function calcularTotais(valores, indices) {
     kpiAgrupadas += parseNumero(linha[indices.orcamento]);
   }
 
+  const somaC = (lista) => somarColuna(lista, "orcNum");
+  const somaH = (lista) => somarColuna(lista, "pagNum");
+
   return {
     kpiAgrupadas,
     kpiEstratificadas,
     kpiTotal: kpiAgrupadas + kpiEstratificadas,
+    grafico: {
+      agrupadas: { orcamento: somaC(agrupadas), pagamento: somaH(agrupadas) },
+      estratificadas: { orcamento: somaC(estratificadas), pagamento: somaH(estratificadas) },
+    },
   };
 }
 
@@ -183,6 +233,87 @@ function limparKpis() {
   el.kpiEstratificadas.textContent = "";
 }
 
+function opcoesGrafico(totais) {
+  const g = totais.grafico;
+  return {
+    animationDuration: 600,
+    grid: { left: 8, right: 12, top: 36, bottom: 8, containLabel: true },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      valueFormatter: (v) => fmtMoeda.format(v),
+    },
+    legend: {
+      top: 0,
+      textStyle: { fontSize: 11, color: "#64748b" },
+    },
+    xAxis: {
+      type: "category",
+      data: ["despesas agrupadas", "despesas estratificadas"],
+      axisLabel: { fontSize: 10, color: "#64748b", interval: 0 },
+    },
+    yAxis: {
+      type: "value",
+      axisLabel: {
+        fontSize: 10,
+        color: "#94a3b8",
+        formatter: (v) => fmtMoeda.format(v),
+      },
+      splitLine: { lineStyle: { color: "rgba(148, 163, 184, 0.25)" } },
+    },
+    series: [
+      {
+        name: rotulosGrafico.orcamento,
+        type: "bar",
+        barGap: 0,
+        itemStyle: { color: COR_GRAFICO_ORCAMENTO, borderRadius: [4, 4, 0, 0] },
+        data: [g.agrupadas.orcamento, g.estratificadas.orcamento],
+      },
+      {
+        name: rotulosGrafico.pagamento,
+        type: "bar",
+        itemStyle: { color: COR_GRAFICO_PAGAMENTO, borderRadius: [4, 4, 0, 0] },
+        data: [g.agrupadas.pagamento, g.estratificadas.pagamento],
+      },
+    ],
+  };
+}
+
+function renderizarGrafico(totais) {
+  if (!el.grafico || typeof echarts === "undefined") return;
+
+  if (chartComparativo) {
+    chartComparativo.dispose();
+    chartComparativo = null;
+  }
+
+  chartComparativo = echarts.init(el.grafico, null, { renderer: "canvas" });
+  chartComparativo.setOption(opcoesGrafico(totais));
+}
+
+function calcularPercentualPago(orcNum, pagNum) {
+  if (!orcNum || orcNum <= 0) return null;
+  return Math.min(100, Math.max(0, (pagNum / orcNum) * 100));
+}
+
+function htmlBarraProgressoPago(orcNum, pagNum) {
+  const pct = calcularPercentualPago(orcNum, pagNum);
+  if (pct == null) return "";
+  const pctInt = Math.round(pct);
+  return `<div class="orcamento-geral-progress-pago" role="progressbar" aria-valuenow="${pctInt}" aria-valuemin="0" aria-valuemax="100" title="${pctInt}% pago">
+    <div class="orcamento-geral-progress-pago-track" aria-hidden="true">
+      <div class="orcamento-geral-progress-pago-fill" style="width:${pctInt}%"></div>
+    </div>
+  </div>`;
+}
+
+function htmlCelulaAPagar(r) {
+  return `<div class="orcamento-geral-celula-apagar">
+    <span class="orcamento-tabela-celula-direita orcamento-geral-valor-apagar">${exibirMoeda(r.aPagar)}</span>
+    ${htmlBarraProgressoPago(r.orcNum, r.pagNum)}
+  </div>`;
+}
+
 function triggerPopoverTabela() {
   return window.matchMedia("(hover: hover) and (pointer: fine)").matches
     ? "hover focus"
@@ -192,6 +323,8 @@ function triggerPopoverTabela() {
 function htmlPopoverConteudo(r) {
   const item = exibirTexto(r.item) || "—";
   const orc = exibirMoeda(r.orcamento);
+  const pag = exibirMoeda(r.pagamento);
+  const apagar = exibirMoeda(r.aPagar);
 
   return `<div class="orcamento-geral-popover-corpo">
     <div class="orcamento-geral-popover-titulo">${item}</div>
@@ -201,6 +334,20 @@ function htmlPopoverConteudo(r) {
         orçamento
       </span>
       <span class="orcamento-geral-popover-valor">${orc}</span>
+    </div>
+    <div class="orcamento-geral-popover-item">
+      <span class="orcamento-geral-popover-rotulo orcamento-geral-popover-rotulo--com-marcador">
+        <span class="orcamento-geral-popover-marcador orcamento-geral-popover-marcador--pagamento" aria-hidden="true"></span>
+        pagamento
+      </span>
+      <span class="orcamento-geral-popover-valor">${pag}</span>
+    </div>
+    <div class="orcamento-geral-popover-item">
+      <span class="orcamento-geral-popover-rotulo orcamento-geral-popover-rotulo--com-marcador">
+        <span class="orcamento-geral-popover-marcador orcamento-geral-popover-marcador--apagar" aria-hidden="true"></span>
+        a pagar
+      </span>
+      <span class="orcamento-geral-popover-valor">${apagar}</span>
     </div>
   </div>`;
 }
@@ -241,16 +388,18 @@ function renderizarLinha(r) {
     : "orcamento-geral-linha-agrupada";
 
   const itemHtml = `<span class="orcamento-geral-col-item-inner">${exibirTexto(r.item)}</span>`;
-  const orcHtml = exibirMoeda(r.orcamento);
 
   return `<tr class="orcamento-geral-linha-popover ${tipoLinha}" tabindex="0" aria-label="detalhes da despesa">
     <td class="orcamento-geral-col-item">${itemHtml}</td>
-    <td class="text-end orcamento-geral-col-num orcamento-geral-col-orcamento orcamento-tabela-desktop-col">${orcHtml}</td>
+    <td class="text-end orcamento-geral-col-num orcamento-geral-col-orcamento orcamento-tabela-desktop-col">${exibirMoeda(r.orcamento)}</td>
+    <td class="text-end orcamento-geral-col-num orcamento-tabela-desktop-col">${exibirMoeda(r.pagamento)}</td>
     <td class="text-end orcamento-tabela-stack-col">
       <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">
-        <span class="orcamento-tabela-stack-valor orcamento-tabela-stack-valor--orcamento">${orcHtml}</span>
+        <span class="orcamento-tabela-stack-valor orcamento-tabela-stack-valor--orcamento">${exibirMoeda(r.orcamento)}</span>
+        <span class="orcamento-tabela-stack-valor orcamento-tabela-stack-valor--pagamento">${exibirMoeda(r.pagamento)}</span>
       </div>
     </td>
+    <td class="orcamento-geral-col-apagar orcamento-geral-a-pagar">${htmlCelulaAPagar(r)}</td>
   </tr>`;
 }
 
@@ -260,11 +409,16 @@ function renderizarTabela(valores, indices, linhas) {
     destruirPopoversTabela();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum registro na planilha.</td></tr>`;
+    if (chartComparativo) {
+      chartComparativo.dispose();
+      chartComparativo = null;
+    }
     return;
   }
 
-  const totais = calcularTotais(valores, indices);
+  const totais = calcularTotais(valores, indices, linhas);
   atualizarKpis(totais);
+  renderizarGrafico(totais);
   el.corpo.innerHTML = linhas.map(renderizarLinha).join("");
   inicializarPopoversTabela(linhas);
 }
@@ -288,8 +442,12 @@ function alinharColunasTabela() {
 function aposRender() {
   requestAnimationFrame(() => {
     alinharColunasTabela();
+    chartComparativo?.resize();
     notificarAlturaFrame();
-    requestAnimationFrame(alinharColunasTabela);
+    requestAnimationFrame(() => {
+      alinharColunasTabela();
+      chartComparativo?.resize();
+    });
   });
 }
 
@@ -322,6 +480,10 @@ async function carregarOrcamentoGeral() {
     destruirPopoversTabela();
     el.corpo.innerHTML = "";
     limparKpis();
+    if (chartComparativo) {
+      chartComparativo.dispose();
+      chartComparativo = null;
+    }
   } finally {
     notificarAlturaFrame();
   }
@@ -335,11 +497,16 @@ function initOrcamentoGeral() {
     kpiTotal: document.getElementById("kpiTotal"),
     kpiAgrupadas: document.getElementById("kpiAgrupadas"),
     kpiEstratificadas: document.getElementById("kpiEstratificadas"),
+    grafico: document.getElementById("graficoComparativo"),
     corpo: document.getElementById("corpoOrcamentoGeral"),
   };
   if (!el.corpo) return;
 
-  window.addEventListener("resize", alinharColunasTabela);
+  window.addEventListener("resize", () => {
+    alinharColunasTabela();
+    chartComparativo?.resize();
+  });
+
   carregarOrcamentoGeral();
 }
 

@@ -14,15 +14,13 @@ const ApoiadoresLookup = {
   CAMPOS: [
     { prop: "lideranca", chave: "LIDERANCA", aliases: ["lideranca", "liderança"] },
     { prop: "municipio", chave: "MUNICIPIO", aliases: ["municipio", "município"] },
-    { prop: "apoiadorLider", chave: "APOIADOR_LIDER", aliases: ["apoiador-lider", "apoiador lider"] },
-    { prop: "apoiador30", chave: "APOIADOR_30", aliases: ["apoiador-30", "apoiador 30"] },
-    { prop: "apoiador45", chave: "APOIADOR_45", aliases: ["apoiador-45", "apoiador 45"] },
-    { prop: "apoiador60", chave: "APOIADOR_60", aliases: ["apoiador-60", "apoiador 60", "60 dias"] },
-    { prop: "apoiador90", chave: "APOIADOR_90", aliases: ["apoiador-90", "apoiador 90", "90 dias"] },
+    { prop: "apoiadorLider", chave: "APOIADOR_LIDER", aliases: ["apoiador-lider", "apoiador lider", "lider"] },
+    { prop: "apoiadorIntegral", chave: "APOIADOR_INTEGRAL", aliases: ["apoiador-integral", "apoiador integral", "integral"] },
+    { prop: "apoiadorMeio", chave: "APOIADOR_MEIO", aliases: ["apoiador-meio", "apoiador meio", "meio"] },
     {
       prop: "apoiadorCustomizado",
       chave: "APOIADOR_CUSTOMIZADO",
-      aliases: ["apoiador-customizado", "apoiador customizado", "apoiador-livre", "apoiador livre"],
+      aliases: ["apoiador-customizado", "apoiador customizado", "apoiador-livre", "apoiador livre", "customizado"],
     },
   ],
 
@@ -152,10 +150,8 @@ const ApoiadoresLookup = {
         lideranca: this.valorCampo(linha, indices.lideranca),
         municipio,
         apoiadorLider: this.valorCampo(linha, indices.apoiadorLider),
-        apoiador30: this.valorCampo(linha, indices.apoiador30),
-        apoiador45: this.valorCampo(linha, indices.apoiador45),
-        apoiador60: this.valorCampo(linha, indices.apoiador60),
-        apoiador90: this.valorCampo(linha, indices.apoiador90),
+        apoiadorIntegral: this.valorCampo(linha, indices.apoiadorIntegral),
+        apoiadorMeio: this.valorCampo(linha, indices.apoiadorMeio),
         apoiadorCustomizado: this.valorCampo(linha, indices.apoiadorCustomizado),
         pessoal: this.valorCampo(linha, indices.pessoal),
         combustivel: this.valorCampo(linha, indices.combustivel),
@@ -269,24 +265,14 @@ const ApoiadoresLookup = {
         "popover-marcador--apoiador-lider"
       ),
       PopoverTabela.item(
-        "30 dias",
-        this.exibirCelula(registro.apoiador30) || "—",
-        "popover-marcador--apoiador-30"
+        "integral",
+        this.exibirCelula(registro.apoiadorIntegral) || "—",
+        "popover-marcador--apoiador-integral"
       ),
       PopoverTabela.item(
-        "45 dias",
-        this.exibirCelula(registro.apoiador45) || "—",
-        "popover-marcador--apoiador-45"
-      ),
-      PopoverTabela.item(
-        "60 dias",
-        this.exibirCelula(registro.apoiador60) || "—",
-        "popover-marcador--apoiador-60"
-      ),
-      PopoverTabela.item(
-        "90 dias",
-        this.exibirCelula(registro.apoiador90) || "—",
-        "popover-marcador--apoiador-90"
+        "meio",
+        this.exibirCelula(registro.apoiadorMeio) || "—",
+        "popover-marcador--apoiador-meio"
       ),
       PopoverTabela.item(
         "customizado",

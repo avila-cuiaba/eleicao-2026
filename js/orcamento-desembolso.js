@@ -1,21 +1,22 @@
-// Página desembolso: planilha orcamento-desembolso (item B, orçamento C, prazos J–M).
+// Página desembolso: planilha orcamento-desembolso (item B, orçamento C, datas J–N).
 
 const fmtMoeda = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
 const cfg = CONFIG.DESEMBOLSO;
-const COLS_TABELA = 9;
-const CAMPOS_PRAZO = [
-  { prop: "dias5", idxKey: "dias5" },
-  { prop: "dias15", idxKey: "dias15" },
-  { prop: "dias30", idxKey: "dias30" },
-  { prop: "dias45", idxKey: "dias45" },
-];
+const PERIODOS = cfg.PERIODOS || [];
+const COLS_TABELA = 2 + PERIODOS.length + 3;
+const STACK_MOBILE_B = ["ago30", "set30"];
+const AGRUPAMENTO_MOBILE_JUL_AGO15 = {
+  slug: "ago15",
+  props: ["jul30", "ago15"],
+};
 
 let el = {};
 let popoversTabela = [];
 let handlerCliqueForaPopover = null;
+let ultimasLinhas = [];
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -79,24 +80,21 @@ function resolverIndices(cabecalho) {
   const indices = {
     item: cols.ITEM,
     orcamento: cols.ORCAMENTO,
-    dias5: cols.DIAS_5,
-    dias15: cols.DIAS_15,
-    dias30: cols.DIAS_30,
-    dias45: cols.DIAS_45,
   };
 
-  Object.entries(cfg.CAMPOS || {}).forEach(([prop, campo]) => {
+  PERIODOS.forEach((p) => {
+    indices[p.prop] = cols[p.chave];
+  });
+
+  Object.entries(cfg.CAMPOS || {}).forEach(([chave, campo]) => {
     const idx = normalizados.findIndex((n) =>
       campo.aliases.some((alias) => normalizarChave(alias) === n)
     );
-    if (idx !== -1) {
-      if (prop === "ITEM") indices.item = idx;
-      if (prop === "ORCAMENTO") indices.orcamento = idx;
-      if (prop === "DIAS_5") indices.dias5 = idx;
-      if (prop === "DIAS_15") indices.dias15 = idx;
-      if (prop === "DIAS_30") indices.dias30 = idx;
-      if (prop === "DIAS_45") indices.dias45 = idx;
-    }
+    if (idx === -1) return;
+    if (chave === "ITEM") indices.item = idx;
+    if (chave === "ORCAMENTO") indices.orcamento = idx;
+    const periodo = PERIODOS.find((p) => p.chave === chave);
+    if (periodo) indices[periodo.prop] = idx;
   });
 
   return indices;
@@ -109,10 +107,15 @@ function valorCampo(linha, idx) {
 
 function exibirMoeda(val) {
   const s = String(val ?? "").trim();
-  if (!s) return "";
+  if (!s || s === "-" || s === "—") return "";
   const n = parseNumero(val);
-  if (Number.isFinite(n)) return fmtMoeda.format(n);
-  return escapeHtml(s);
+  if (!Number.isFinite(n) || n === 0) return "";
+  return fmtMoeda.format(n);
+}
+
+function exibirMoedaKpi(val) {
+  const n = typeof val === "number" ? val : parseNumero(val);
+  return fmtMoeda.format(Number.isFinite(n) ? n : 0);
 }
 
 function exibirTexto(val) {
@@ -122,13 +125,7 @@ function exibirTexto(val) {
 
 function linhaVazia(linha, indices, item) {
   if (item) return false;
-  const campos = [
-    indices.orcamento,
-    indices.dias5,
-    indices.dias15,
-    indices.dias30,
-    indices.dias45,
-  ];
+  const campos = [indices.orcamento, ...PERIODOS.map((p) => indices[p.prop])];
   return !campos.some((idx) => celulaPreenchida(valorCampo(linha, idx)));
 }
 
@@ -150,55 +147,53 @@ function extrairDados(valores) {
     if (!item) continue;
 
     const orcamento = valorCampo(linha, indices.orcamento);
-    const dias5 = valorCampo(linha, indices.dias5);
-    const dias15 = valorCampo(linha, indices.dias15);
-    const dias30 = valorCampo(linha, indices.dias30);
-    const dias45 = valorCampo(linha, indices.dias45);
-
-    linhas.push({
+    const registro = {
       linha1,
       item,
       orcamento,
       orcNum: parseNumero(orcamento),
-      dias5,
-      num5: parseNumero(dias5),
-      dias15,
-      num15: parseNumero(dias15),
-      dias30,
-      num30: parseNumero(dias30),
-      dias45,
-      num45: parseNumero(dias45),
+    };
+
+    PERIODOS.forEach((p) => {
+      const val = valorCampo(linha, indices[p.prop]);
+      registro[p.prop] = val;
+      registro[p.numProp] = parseNumero(val);
     });
+
+    linhas.push(registro);
   }
 
   return { linhas, indices, cabecalho };
 }
 
-function somarProp(linhas, prop) {
-  return linhas.reduce((acc, r) => acc + (r[prop] || 0), 0);
+function telasMenoresDesembolso() {
+  return window.matchMedia("(max-width: 991.98px)").matches;
 }
 
 function calcularTotais(linhas) {
-  return {
-    kpi5: somarProp(linhas, "num5"),
-    kpi15: somarProp(linhas, "num15"),
-    kpi30: somarProp(linhas, "num30"),
-    kpi45: somarProp(linhas, "num45"),
-  };
+  const totais = {};
+  PERIODOS.forEach((p) => {
+    totais[p.kpiId] = linhas.reduce((acc, r) => acc + (r[p.numProp] || 0), 0);
+  });
+  return totais;
 }
 
 function limparKpis() {
-  el.kpi5.textContent = "—";
-  el.kpi15.textContent = "—";
-  el.kpi30.textContent = "—";
-  el.kpi45.textContent = "—";
+  PERIODOS.forEach((p) => {
+    if (el[p.kpiId]) el[p.kpiId].textContent = "";
+  });
 }
 
 function atualizarKpis(totais) {
-  el.kpi5.textContent = fmtMoeda.format(totais.kpi5);
-  el.kpi15.textContent = fmtMoeda.format(totais.kpi15);
-  el.kpi30.textContent = fmtMoeda.format(totais.kpi30);
-  el.kpi45.textContent = fmtMoeda.format(totais.kpi45);
+  const mobile = telasMenoresDesembolso();
+  PERIODOS.forEach((p) => {
+    if (!el[p.kpiId]) return;
+    let val = totais[p.kpiId] || 0;
+    if (mobile && p.prop === "ago15") {
+      val += totais.kpiJul30 || 0;
+    }
+    el[p.kpiId].textContent = exibirMoedaKpi(val);
+  });
 }
 
 function triggerPopoverTabela() {
@@ -207,12 +202,12 @@ function triggerPopoverTabela() {
     : "click";
 }
 
-function htmlPopoverPrazo(prazo, rotulo, valor) {
-  const exibicao = exibirMoeda(valor) || "—";
+function htmlPopoverPrazo(periodo, valor) {
+  const exibicao = exibirMoeda(valor);
   return `<div class="orcamento-desembolso-popover-subitem">
     <span class="orcamento-desembolso-popover-rotulo orcamento-geral-popover-rotulo--com-marcador">
-      <span class="orcamento-geral-popover-marcador orcamento-desembolso-popover-marcador--${prazo}" aria-hidden="true"></span>
-      ${rotulo}
+      <span class="orcamento-geral-popover-marcador orcamento-desembolso-popover-marcador--${periodo.slug}" aria-hidden="true"></span>
+      ${escapeHtml(periodo.rotulo)}
     </span>
     <span class="orcamento-geral-popover-valor">${exibicao}</span>
   </div>`;
@@ -220,7 +215,8 @@ function htmlPopoverPrazo(prazo, rotulo, valor) {
 
 function htmlPopoverConteudo(r) {
   const item = exibirTexto(r.item) || "—";
-  const orc = exibirMoeda(r.orcamento) || "—";
+  const orc = exibirMoeda(r.orcamento);
+  const prazos = PERIODOS.map((p) => htmlPopoverPrazo(p, r[p.prop])).join("");
 
   return `<div class="orcamento-desembolso-popover-corpo">
     <div class="orcamento-desembolso-popover-titulo">${item}</div>
@@ -232,10 +228,7 @@ function htmlPopoverConteudo(r) {
       <span class="orcamento-geral-popover-valor">${orc}</span>
     </div>
     <div class="orcamento-desembolso-popover-secao">desembolso</div>
-    ${htmlPopoverPrazo("5", "5 dias", r.dias5)}
-    ${htmlPopoverPrazo("15", "15 dias", r.dias15)}
-    ${htmlPopoverPrazo("30", "30 dias", r.dias30)}
-    ${htmlPopoverPrazo("45", "45 dias", r.dias45)}
+    ${prazos}
   </div>`;
 }
 
@@ -290,37 +283,93 @@ function inicializarPopoversTabela(linhas) {
   document.addEventListener("click", handlerCliqueForaPopover, true);
 }
 
-function valorPrazoStack(prazo, valor) {
-  if (!celulaPreenchida(valor)) {
+function somaJulAgo15(r) {
+  return (r.numJul30 || 0) + (r.numAgo15 || 0);
+}
+
+function temValorJulAgo15(r) {
+  return celulaPreenchida(r.jul30) || celulaPreenchida(r.ago15);
+}
+
+function valorPrazoStackAgrupado(slug, soma, temValor) {
+  if (!temValor && soma <= 0) {
+    return `<span class="orcamento-desembolso-stack-valor-linha orcamento-desembolso-stack-valor-linha--vazio"></span>`;
+  }
+  const exibicao = soma === 0 ? "" : fmtMoeda.format(soma);
+  if (!exibicao) {
     return `<span class="orcamento-desembolso-stack-valor-linha orcamento-desembolso-stack-valor-linha--vazio"></span>`;
   }
   return `<span class="orcamento-desembolso-stack-valor-linha">
-      <span class="orcamento-tabela-stack-valor">${exibirMoeda(valor)}</span>
-      <span class="orcamento-desembolso-prazo-ponto orcamento-desembolso-prazo-ponto--${prazo}" aria-hidden="true"></span>
+      <span class="orcamento-tabela-stack-valor">${exibicao}</span>
+      <span class="orcamento-desembolso-prazo-ponto orcamento-desembolso-prazo-ponto--${slug}" aria-hidden="true"></span>
     </span>`;
 }
 
+function valorPrazoStack(periodo, valor) {
+  const exibicao = exibirMoeda(valor);
+  if (!exibicao) {
+    return `<span class="orcamento-desembolso-stack-valor-linha orcamento-desembolso-stack-valor-linha--vazio"></span>`;
+  }
+  return `<span class="orcamento-desembolso-stack-valor-linha">
+      <span class="orcamento-tabela-stack-valor">${exibicao}</span>
+      <span class="orcamento-desembolso-prazo-ponto orcamento-desembolso-prazo-ponto--${periodo.slug}" aria-hidden="true"></span>
+    </span>`;
+}
+
+function periodosStack(stack) {
+  return PERIODOS.filter((p) => p.stack === stack);
+}
+
+function stackMobileProps(props, r) {
+  return props
+    .map((prop) => PERIODOS.find((p) => p.prop === prop))
+    .filter(Boolean)
+    .map((p) => valorPrazoStack(p, r[p.prop]))
+    .join("");
+}
+
+function stacksMobile(r) {
+  const set15 = PERIODOS.find((p) => p.prop === "set15");
+  const stackA =
+    valorPrazoStackAgrupado(AGRUPAMENTO_MOBILE_JUL_AGO15.slug, somaJulAgo15(r), temValorJulAgo15(r)) +
+    (set15 ? valorPrazoStack(set15, r.set15) : "");
+  return {
+    stackA,
+    stackB: stackMobileProps(STACK_MOBILE_B, r),
+  };
+}
+
 function renderizarLinha(r) {
-  const prazosDesktop = CAMPOS_PRAZO.map(
-    (c) =>
-      `<td class="text-end orcamento-desembolso-col-prazo apoiadores-celula-num orcamento-tabela-desktop-col">${exibirMoeda(r[c.prop])}</td>`
+  const prazosDesktop = PERIODOS.map(
+    (p) =>
+      `<td class="text-end orcamento-desembolso-col-prazo apoiadores-celula-num orcamento-tabela-desktop-col">${exibirMoeda(r[p.prop])}</td>`
   ).join("");
 
-  const stackPrazoA = `${valorPrazoStack("5", r.dias5)}
-        ${valorPrazoStack("30", r.dias30)}`;
-  const stackPrazoB = `${valorPrazoStack("15", r.dias15)}
-        ${valorPrazoStack("45", r.dias45)}`;
+  const stacks = telasMenoresDesembolso()
+    ? stacksMobile(r)
+    : {
+        stackA: periodosStack("a")
+          .map((p) => valorPrazoStack(p, r[p.prop]))
+          .join(""),
+        stackB: periodosStack("b")
+          .map((p) => valorPrazoStack(p, r[p.prop]))
+          .join(""),
+      };
+  const stackPrazoA = stacks.stackA;
+  const stackPrazoB = stacks.stackB;
+
+  const orcBadge = exibirMoeda(r.orcamento);
 
   return `<tr class="orcamento-desembolso-linha-popover" tabindex="0" aria-label="detalhes da despesa">
     <td class="orcamento-desembolso-col-item orcamento-tabela-desktop-col">
       <span class="orcamento-desembolso-col-item-inner">${exibirTexto(r.item)}</span>
     </td>
-    <td class="text-end orcamento-desembolso-col-orcamento apoiadores-celula-num orcamento-tabela-desktop-col">${exibirMoeda(r.orcamento)}</td>
+    <td class="text-end orcamento-desembolso-col-orcamento apoiadores-celula-num orcamento-tabela-desktop-col">${orcBadge}</td>
     ${prazosDesktop}
     <td class="orcamento-desembolso-col-stack-item orcamento-tabela-stack-col">
       <div class="orcamento-desembolso-celula-item-stack">
         <span class="orcamento-desembolso-col-item-inner">${exibirTexto(r.item)}</span>
-        <span class="orcamento-desembolso-orcamento-badge">${exibirMoeda(r.orcamento)}</span>
+        ${orcBadge ? `<span class="orcamento-desembolso-orcamento-badge">${orcBadge}</span>` : ""}
       </div>
     </td>
     <td class="text-end orcamento-desembolso-col-stack-prazo-a orcamento-tabela-stack-col">
@@ -337,6 +386,7 @@ function renderizarLinha(r) {
 }
 
 function renderizarTabela(linhas) {
+  ultimasLinhas = linhas;
   if (!linhas.length) {
     limparKpis();
     destruirPopoversTabela();
@@ -411,16 +461,32 @@ async function carregarDesembolso() {
 
 window.atualizarPagina = carregarDesembolso;
 
+function reapresentarDesembolso() {
+  if (!ultimasLinhas.length) return;
+  const totais = calcularTotais(ultimasLinhas);
+  atualizarKpis(totais);
+  el.corpo.innerHTML = ultimasLinhas.map(renderizarLinha).join("");
+  inicializarPopoversTabela(ultimasLinhas);
+  aposRender();
+}
+
 function initDesembolso() {
   el = {
     status: document.getElementById("status"),
-    kpi5: document.getElementById("kpi5"),
-    kpi15: document.getElementById("kpi15"),
-    kpi30: document.getElementById("kpi30"),
-    kpi45: document.getElementById("kpi45"),
     corpo: document.getElementById("corpoDesembolso"),
   };
+  PERIODOS.forEach((p) => {
+    el[p.kpiId] = document.getElementById(p.kpiId);
+  });
   if (!el.corpo) return;
+
+  const mqMobile = window.matchMedia("(max-width: 991.98px)");
+  const aoMudarViewport = () => reapresentarDesembolso();
+  if (mqMobile.addEventListener) {
+    mqMobile.addEventListener("change", aoMudarViewport);
+  } else {
+    mqMobile.addListener(aoMudarViewport);
+  }
 
   window.addEventListener("resize", alinharColunasTabela);
   carregarDesembolso();

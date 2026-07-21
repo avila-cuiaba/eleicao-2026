@@ -31,6 +31,11 @@ window.APP_ICON_SVG = {
     "</svg>",
   orcamento:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
+    '<path d="M21 12a9 9 0 1 1-9-9c0 1.5.36 2.92 1 4.18V12a4 4 0 0 0 4 4h4.82A9 9 0 0 1 21 12z"/>' +
+    '<path d="M12 3v9h9"/>' +
+    "</svg>",
+  pagamentos:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
     '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' +
     "</svg>",
   agenda:
@@ -89,8 +94,17 @@ window.APP_MENU = [
     label: "orçamento",
     filhos: [
       { id: "orcamento-geral", label: "geral" },
-      { id: "orcamento-estratificado", label: "estratificado" },
+      { id: "orcamento-estratificado", label: "por município" },
+      { id: "orcamento-pessoal-apoiadores", label: "por liderança" },
       { id: "orcamento-desembolso", label: "desembolso" },
+    ],
+  },
+  {
+    id: "pagamentos",
+    label: "pagamentos",
+    filhos: [
+      { id: "pagamentos-geral", label: "geral" },
+      { id: "pagamentos-lideranca", label: "por liderança" },
     ],
   },
   { id: "agenda", label: "agenda" },
@@ -112,9 +126,13 @@ window.APP_ICONE = {
     if (
       paginaId === "orcamento-geral" ||
       paginaId === "orcamento-estratificado" ||
+      paginaId === "orcamento-pessoal-apoiadores" ||
       paginaId === "orcamento-desembolso"
     ) {
       return "orcamento";
+    }
+    if (paginaId === "pagamentos-geral" || paginaId === "pagamentos-lideranca") {
+      return "pagamentos";
     }
     if (paginaId === "dashboard") {
       return "desempenho";

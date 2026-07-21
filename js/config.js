@@ -261,24 +261,27 @@ const CONFIG = {
     COLUNAS: {
       ITEM: 1,        // B — item da despesa
       ORCAMENTO: 2,   // C — orçamento
-      DIAS_5: 9,      // J
-      DIAS_15: 10,    // K
-      DIAS_30: 11,    // L
-      DIAS_45: 12,    // M
+      JUL_30: 13,     // N — 30 Jul
+      AGO_15: 14,     // O — 15 Ago
+      AGO_30: 15,     // P — 30 Ago
+      SET_15: 16,     // Q — 15 Set
+      SET_30: 17,     // R — 30 Set
     },
     CAMPOS: {
       ITEM: { aliases: ["item da despesa", "item despesa", "item", "despesa"] },
       ORCAMENTO: { aliases: ["orcamento", "orçamento"] },
-      DIAS_5: { aliases: ["5 dias", "5d", "5"] },
-      DIAS_15: { aliases: ["15 dias", "15d", "15"] },
-      DIAS_30: { aliases: ["30 dias", "30d", "30"] },
-      DIAS_45: { aliases: ["45 dias", "45d", "45"] },
+      JUL_30: { aliases: ["30 jul", "30/jul", "jul 30"] },
+      AGO_15: { aliases: ["15 ago", "15/ago", "ago 15"] },
+      AGO_30: { aliases: ["30 ago", "30/ago", "ago 30"] },
+      SET_15: { aliases: ["15 set", "15/set", "set 15"] },
+      SET_30: { aliases: ["30 set", "30/set", "set 30"] },
     },
     PERIODOS: [
-      { prop: "dias5", rotulo: "5 dias", kpi: "kpi5" },
-      { prop: "dias15", rotulo: "15 dias", kpi: "kpi15" },
-      { prop: "dias30", rotulo: "30 dias", kpi: "kpi30" },
-      { prop: "dias45", rotulo: "45 dias", kpi: "kpi45" },
+      { prop: "jul30", chave: "JUL_30", slug: "jul30", rotulo: "30 Jul", kpiId: "kpiJul30", numProp: "numJul30", stack: "a" },
+      { prop: "ago15", chave: "AGO_15", slug: "ago15", rotulo: "15 Ago", kpiId: "kpiAgo15", numProp: "numAgo15", stack: "b" },
+      { prop: "ago30", chave: "AGO_30", slug: "ago30", rotulo: "30 Ago", kpiId: "kpiAgo30", numProp: "numAgo30", stack: "a" },
+      { prop: "set15", chave: "SET_15", slug: "set15", rotulo: "15 Set", kpiId: "kpiSet15", numProp: "numSet15", stack: "b" },
+      { prop: "set30", chave: "SET_30", slug: "set30", rotulo: "30 Set", kpiId: "kpiSet30", numProp: "numSet30", stack: "a" },
     ],
   },
 
@@ -293,12 +296,14 @@ const CONFIG = {
       ITEM: 0,         // A — item despesa
       VALOR_B: 1,        // B
       ORCAMENTO: 2,      // C — orçamento
-      PAGAMENTO: 7,      // H — pagamento
+      PAGAMENTO: 11,     // L — pagamento
+      A_PAGAR: 12,       // M — a pagar
     },
     CAMPOS: {
       ITEM: { aliases: ["item despesa", "item", "despesa"] },
       ORCAMENTO: { aliases: ["orcamento", "orçamento"] },
       PAGAMENTO: { aliases: ["pagamento"] },
+      A_PAGAR: { aliases: ["a pagar", "apagar", "a-pagar"] },
     },
   },
 
@@ -351,32 +356,37 @@ const CONFIG = {
       COLUNAS: {
         LIDERANCA: 0,             // A
         MUNICIPIO: 1,             // B
-        APOIADOR_LIDER: 2,        // C
-        APOIADOR_30: 3,           // D
-        APOIADOR_45: 4,           // E
+        PROPRIO_APOIADOR: 3,      // D
+        APOIADOR_LIDER: 4,        // E
         FIN_LIDER: 5,             // F
-        FIN_30: 7,                // H
-        FIN_45: 9,                // J
-        APOIADOR_60: 10,          // K
-        FIN_60: 11,               // L
-        APOIADOR_90: 12,          // M
-        FIN_90: 13,               // N
-        APOIADOR_CUSTOMIZADO: 14, // O
-        FIN_CUSTOMIZADO: 15,      // P
-        FIN_TOTAL: 17,            // R
-        DESP_PESSOAL: 9,
-        DESP_DIVERSOS: 11,
+        APOIADOR_INTEGRAL: 6,     // G
+        FIN_INTEGRAL: 7,          // H
+        APOIADOR_MEIO: 8,         // I
+        FIN_MEIO: 9,              // J
+        APOIADOR_CUSTOMIZADO: 10, // K
+        FIN_CUSTOMIZADO: 11,      // L
       },
       COLUNAS_DESPACHO: [
-        { prop: "pessoal", chave: "DESP_PESSOAL", indice: 9, aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
+        { prop: "pessoal", chave: "DESP_PESSOAL", aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
         {
           prop: "combustivel",
           chave: "DESP_COMBUSTIVEL",
           aliases: ["combustivel", "combustível", "orcamento-combustivel", "orcamento combustivel"],
         },
-        { prop: "diversos", chave: "DESP_DIVERSOS", indice: 11, aliases: ["diversos", "orcamento-diversos"] },
+        { prop: "diversos", chave: "DESP_DIVERSOS", aliases: ["diversos", "orcamento-diversos"] },
         { prop: "diaD", chave: "DESP_DIA_D", aliases: ["dia d", "dia-d", "diad", "orcamento-diad", "orcamento dia d"] },
       ],
+    },
+    ORCAMENTO_POR_LIDERANCA: {
+      LINHA_INICIO_DADOS: 2,
+      COLUNAS: {
+        LIDERANCA: 0,       // A
+        MUNICIPIO: 1,       // B
+        PESSOAL: 13,        // N
+        COMBUSTIVEL: 20,    // U
+        DIVERSOS: 21,       // V
+        DIA_D: 22,          // W
+      },
     },
     PARCERIAS: {
       LINHA_INICIO_DADOS: 2,

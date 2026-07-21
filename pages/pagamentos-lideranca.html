@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="apoiadores-page orcamento-page">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pagamentos — por liderança</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="bg-light page-frame-body page-orcamento page-orcamento-pessoal-apoiadores page-apoiadores page-pagamentos-lideranca">
+  <div class="page-frame-content">
+    <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
+
+    <div class="card shadow-sm border-0 mb-3 dashboard-kpis-wrap apoiadores-kpi-wrap">
+      <div class="card-body py-3">
+        <div class="row g-2 g-sm-3 align-items-start apoiadores-micro-row">
+          <div class="col-5 col-lg-4">
+            <div id="filtroRegioes" class="dashboard-filtro-regioes" role="group" aria-label="Filtrar por região"></div>
+          </div>
+          <div class="col-7 col-lg-8">
+            <div class="orcamento-kpi-layout">
+              <div class="row g-2 g-sm-3 justify-content-center orcamento-kpi-row-total">
+                <div class="col-12 col-sm-4">
+                  <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-kpi-card-total">
+                    <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                      <div class="dashboard-kpi-rotulo">total</div>
+                      <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-total" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                      </div>
+                      <strong id="kpiTotal" class="dashboard-kpi-valor orcamento-kpi-valor-total">—</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row g-2 g-sm-3 orcamento-kpi-row-detalhe">
+                <div class="col-6 col-sm-3">
+                  <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-total">
+                    <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                      <div class="dashboard-kpi-rotulo">pessoal</div>
+                      <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-pessoal" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                          <circle cx="9" cy="7" r="4"/>
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                      </div>
+                      <strong id="kpiPessoal" class="dashboard-kpi-valor">—</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                  <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-30">
+                    <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                      <div class="dashboard-kpi-rotulo">diversos</div>
+                      <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-diversos" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                          <path d="M3.27 6.96 12 12.01 20.73 6.96M12 22.08V12"/>
+                        </svg>
+                      </div>
+                      <strong id="kpiDiversos" class="dashboard-kpi-valor">—</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                  <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-lider">
+                    <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                      <div class="dashboard-kpi-rotulo">combustível</div>
+                      <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-combustivel" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <path d="M3 22V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/>
+                          <path d="M3 22h10"/>
+                          <path d="M14 10h2a2 2 0 0 1 2 2v2"/>
+                          <path d="M18 14v8"/>
+                          <path d="M18 22h2"/>
+                          <path d="M7 10h4"/>
+                        </svg>
+                      </div>
+                      <strong id="kpiCombustivel" class="dashboard-kpi-valor">—</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                  <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-custom">
+                    <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                      <div class="dashboard-kpi-rotulo">dia D</div>
+                      <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-diad" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <rect x="3" y="4" width="18" height="18" rx="2"/>
+                          <path d="M16 2v4M8 2v4M3 10h18"/>
+                          <path d="M8 14h.01M12 14h.01M16 14h.01M12 18h4"/>
+                        </svg>
+                      </div>
+                      <strong id="kpiDiaD" class="dashboard-kpi-valor">—</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 dashboard-tabela-card apoiadores-tabela-card">
+      <div class="card-body p-0 dashboard-tabela-panel">
+        <div class="dashboard-tabela-head table-light">
+          <table class="table mb-0 apoiadores-tabela orcamento-lideranca-tabela">
+            <colgroup>
+              <col class="apoiadores-col-ident" />
+              <col class="apoiadores-col-municipio" />
+              <col class="apoiadores-col-orc-pessoal" />
+              <col class="apoiadores-col-orc-combustivel" />
+              <col class="apoiadores-col-orc-diversos" />
+              <col class="apoiadores-col-orc-diad" />
+              <col class="apoiadores-col-orc-stack-pessoal" />
+              <col class="apoiadores-col-orc-stack-diversos" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col" class="apoiadores-col-ident apoiadores-th-ident dashboard-th-base">
+                  <div class="apoiadores-th-ident-inner apoiadores-th-ident-inner--master">
+                    <button type="button" class="agenda-btn-nova agenda-btn-nova--tabela d-none" id="btnIncluirApoiador" title="incluir" aria-label="incluir">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>
+                    </button>
+                    <span class="apoiadores-th-titulo apoiadores-th-desktop">liderança</span>
+                    <span class="apoiadores-th-mobile">
+                      <span class="dashboard-th-principal">liderança</span>
+                      <span class="dashboard-th-sub text-muted apoiadores-th-sub-municipio">município</span>
+                    </span>
+                    <label class="apoiadores-busca-campo" for="buscaLideranca">
+                      <span class="visually-hidden">buscar liderança</span>
+                      <span class="apoiadores-busca-inner">
+                        <span class="apoiadores-busca-icone" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7" />
+                            <path d="M20 20l-3.5-3.5" />
+                          </svg>
+                        </span>
+                        <input
+                          type="search"
+                          id="buscaLideranca"
+                          class="form-control form-control-sm apoiadores-busca-input"
+                          placeholder="liderança"
+                          autocomplete="off"
+                        />
+                      </span>
+                    </label>
+                  </div>
+                </th>
+                <th scope="col" class="apoiadores-col-municipio dashboard-th-base apoiadores-th-municipio">
+                  <span class="apoiadores-th-desktop">município</span>
+                </th>
+                <th scope="col" class="text-end apoiadores-col-orc-pessoal apoiadores-col-separador orcamento-tabela-desktop-col">
+                  <span class="orcamento-estratificado-th-campo-linha">
+                    <span>pessoal</span>
+                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--pessoal" aria-hidden="true"></span>
+                  </span>
+                </th>
+                <th scope="col" class="text-end apoiadores-col-orc-combustivel orcamento-tabela-desktop-col">
+                  <span class="orcamento-estratificado-th-campo-linha">
+                    <span>combustível</span>
+                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--combustivel" aria-hidden="true"></span>
+                  </span>
+                </th>
+                <th scope="col" class="text-end apoiadores-col-orc-diversos orcamento-tabela-desktop-col">
+                  <span class="orcamento-estratificado-th-campo-linha">
+                    <span>diversos</span>
+                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--diversos" aria-hidden="true"></span>
+                  </span>
+                </th>
+                <th scope="col" class="text-end apoiadores-col-orc-diad orcamento-th-diad orcamento-tabela-desktop-col">
+                  <span class="orcamento-estratificado-th-campo-linha">
+                    <span class="orcamento-th-diad">dia D</span>
+                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--diad" aria-hidden="true"></span>
+                  </span>
+                </th>
+                <th scope="col" class="text-end apoiadores-col-orc-stack-pessoal orcamento-tabela-stack-col apoiadores-col-separador">
+                  <div class="orcamento-tabela-stack-head" aria-hidden="true">
+                    <span>pessoal</span>
+                    <span>combustível</span>
+                  </div>
+                </th>
+                <th scope="col" class="text-end apoiadores-col-orc-stack-diversos orcamento-tabela-stack-col">
+                  <div class="orcamento-tabela-stack-head" aria-hidden="true">
+                    <span>diversos</span>
+                    <span class="orcamento-th-diad">dia D</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        <div class="dashboard-tabela-body-scroll">
+          <table class="table table-hover mb-0 apoiadores-tabela orcamento-lideranca-tabela">
+            <colgroup>
+              <col class="apoiadores-col-ident" />
+              <col class="apoiadores-col-municipio" />
+              <col class="apoiadores-col-orc-pessoal" />
+              <col class="apoiadores-col-orc-combustivel" />
+              <col class="apoiadores-col-orc-diversos" />
+              <col class="apoiadores-col-orc-diad" />
+              <col class="apoiadores-col-orc-stack-pessoal" />
+              <col class="apoiadores-col-orc-stack-diversos" />
+            </colgroup>
+            <tbody id="corpoApoiadores">
+              <tr>
+                <td colspan="8" class="text-center text-secondary py-4">Carregando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="vazio" class="text-secondary text-center py-4 mb-0" hidden>
+          Nenhum registro encontrado.
+        </p>
+      </div>
+    </div>
+
+    <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
+      <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
+      <span class="visually-hidden">Carregando</span>
+    </div>
+  </div>
+
+  <div class="modal fade master-crud-modal" id="modalApoiadorCrud" tabindex="-1" aria-labelledby="modalApoiadorTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalApoiadorTitulo">orçamento por liderança</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="fechar"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formApoiadorCrud" class="row g-3">
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoApLideranca">liderança</label>
+              <input type="text" class="form-control form-control-sm" id="campoApLideranca" required />
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoApMunicipio">município</label>
+              <select class="form-select form-select-sm" id="campoApMunicipio" required>
+                <option value="">selecione</option>
+              </select>
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoApPessoal">pessoal</label>
+              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApPessoal" inputmode="decimal" placeholder="R$ 0,00" />
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoApCombustivel">combustível</label>
+              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApCombustivel" inputmode="decimal" placeholder="R$ 0,00" />
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoApDiversos">diversos</label>
+              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApDiversos" inputmode="decimal" placeholder="R$ 0,00" />
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label" for="campoApDiaD">dia D</label>
+              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApDiaD" inputmode="decimal" placeholder="R$ 0,00" />
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">cancelar</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btnSalvarApoiador">salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/page-loader.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/planilha-api.js"></script>
+  <script src="../js/master-crud.js"></script>
+  <script src="../js/popover-tabela.js"></script>
+  <script src="../js/pagamentos-lideranca.js"></script>
+</body>
+</html>

@@ -11,36 +11,44 @@
   <div class="page-frame-content">
     <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
 
-    <div class="row g-2 g-sm-3 mb-3 orcamento-desembolso-topo">
-      <div class="col-6 col-lg-3">
-        <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-desembolso-kpi-card orcamento-desembolso-kpi-5">
+    <div class="row g-2 g-sm-3 mb-3 orcamento-desembolso-topo orcamento-desembolso-kpi-row">
+      <div class="col-6 col-lg orcamento-desembolso-kpi-mobile-oculto">
+        <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-desembolso-kpi-card orcamento-desembolso-kpi-jul30">
           <div class="card-body orcamento-desembolso-kpi-body py-2 px-2 px-sm-3">
-            <div class="dashboard-kpi-rotulo">5 dias</div>
-            <strong id="kpi5" class="dashboard-kpi-valor">—</strong>
+            <div class="dashboard-kpi-rotulo orcamento-desembolso-kpi-rotulo-data">30 Jul</div>
+            <strong id="kpiJul30" class="dashboard-kpi-valor">—</strong>
           </div>
         </div>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-desembolso-kpi-card orcamento-desembolso-kpi-15">
+      <div class="col-6 col-lg">
+        <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-desembolso-kpi-card orcamento-desembolso-kpi-ago15">
           <div class="card-body orcamento-desembolso-kpi-body py-2 px-2 px-sm-3">
-            <div class="dashboard-kpi-rotulo">15 dias</div>
-            <strong id="kpi15" class="dashboard-kpi-valor">—</strong>
+            <div class="dashboard-kpi-rotulo orcamento-desembolso-kpi-rotulo-data">15 Ago</div>
+            <strong id="kpiAgo15" class="dashboard-kpi-valor">—</strong>
           </div>
         </div>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-desembolso-kpi-card orcamento-desembolso-kpi-30">
+      <div class="col-6 col-lg">
+        <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-desembolso-kpi-card orcamento-desembolso-kpi-ago30">
           <div class="card-body orcamento-desembolso-kpi-body py-2 px-2 px-sm-3">
-            <div class="dashboard-kpi-rotulo">30 dias</div>
-            <strong id="kpi30" class="dashboard-kpi-valor">—</strong>
+            <div class="dashboard-kpi-rotulo orcamento-desembolso-kpi-rotulo-data">30 Ago</div>
+            <strong id="kpiAgo30" class="dashboard-kpi-valor">—</strong>
           </div>
         </div>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-desembolso-kpi-card orcamento-desembolso-kpi-45">
+      <div class="col-6 col-lg">
+        <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-desembolso-kpi-card orcamento-desembolso-kpi-set15">
           <div class="card-body orcamento-desembolso-kpi-body py-2 px-2 px-sm-3">
-            <div class="dashboard-kpi-rotulo">45 dias</div>
-            <strong id="kpi45" class="dashboard-kpi-valor">—</strong>
+            <div class="dashboard-kpi-rotulo orcamento-desembolso-kpi-rotulo-data">15 Set</div>
+            <strong id="kpiSet15" class="dashboard-kpi-valor">—</strong>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-desembolso-kpi-card orcamento-desembolso-kpi-set30">
+          <div class="card-body orcamento-desembolso-kpi-body py-2 px-2 px-sm-3">
+            <div class="dashboard-kpi-rotulo orcamento-desembolso-kpi-rotulo-data">30 Set</div>
+            <strong id="kpiSet30" class="dashboard-kpi-valor">—</strong>
           </div>
         </div>
       </div>
@@ -57,6 +65,7 @@
               <col class="orcamento-desembolso-col-prazo orcamento-tabela-desktop-col" />
               <col class="orcamento-desembolso-col-prazo orcamento-tabela-desktop-col" />
               <col class="orcamento-desembolso-col-prazo orcamento-tabela-desktop-col" />
+              <col class="orcamento-desembolso-col-prazo orcamento-tabela-desktop-col" />
               <col class="orcamento-desembolso-col-stack-item orcamento-tabela-stack-col" />
               <col class="orcamento-desembolso-col-stack-prazo-a orcamento-tabela-stack-col" />
               <col class="orcamento-desembolso-col-stack-prazo-b orcamento-tabela-stack-col" />
@@ -65,7 +74,7 @@
               <tr>
                 <th rowspan="2" scope="col" class="orcamento-desembolso-col-item orcamento-tabela-desktop-col">item despesa</th>
                 <th rowspan="2" scope="col" class="text-end orcamento-desembolso-col-orcamento orcamento-tabela-desktop-col">orçamento</th>
-                <th colspan="4" scope="colgroup" class="text-center orcamento-desembolso-th-desembolso orcamento-tabela-desktop-col">desembolso</th>
+                <th colspan="5" scope="colgroup" class="text-center orcamento-desembolso-th-desembolso orcamento-tabela-desktop-col">desembolso</th>
                 <th rowspan="2" scope="col" class="orcamento-desembolso-col-stack-item orcamento-tabela-stack-col">
                   <div class="orcamento-desembolso-th-stack-head" aria-hidden="true">
                     <span>item despesa</span>
@@ -75,20 +84,21 @@
                 <th colspan="2" scope="colgroup" class="text-center orcamento-desembolso-th-desembolso orcamento-tabela-stack-col">desembolso</th>
               </tr>
               <tr>
-                <th scope="col" class="text-end orcamento-desembolso-col-prazo orcamento-tabela-desktop-col">5 dias</th>
-                <th scope="col" class="text-end orcamento-desembolso-col-prazo orcamento-tabela-desktop-col">15 dias</th>
-                <th scope="col" class="text-end orcamento-desembolso-col-prazo orcamento-tabela-desktop-col">30 dias</th>
-                <th scope="col" class="text-end orcamento-desembolso-col-prazo orcamento-tabela-desktop-col">45 dias</th>
+                <th scope="col" class="text-end orcamento-desembolso-col-prazo orcamento-desembolso-th-data orcamento-tabela-desktop-col">30 Jul</th>
+                <th scope="col" class="text-end orcamento-desembolso-col-prazo orcamento-desembolso-th-data orcamento-tabela-desktop-col">15 Ago</th>
+                <th scope="col" class="text-end orcamento-desembolso-col-prazo orcamento-desembolso-th-data orcamento-tabela-desktop-col">30 Ago</th>
+                <th scope="col" class="text-end orcamento-desembolso-col-prazo orcamento-desembolso-th-data orcamento-tabela-desktop-col">15 Set</th>
+                <th scope="col" class="text-end orcamento-desembolso-col-prazo orcamento-desembolso-th-data orcamento-tabela-desktop-col">30 Set</th>
                 <th scope="col" class="text-end orcamento-desembolso-col-stack-prazo-a orcamento-tabela-stack-col">
                   <div class="orcamento-tabela-stack-head" aria-hidden="true">
-                    <span>5 dias</span>
-                    <span>30 dias</span>
+                    <span class="orcamento-desembolso-th-data">30 Jul/15 Ago</span>
+                    <span class="orcamento-desembolso-th-data">15 Set</span>
                   </div>
                 </th>
                 <th scope="col" class="text-end orcamento-desembolso-col-stack-prazo-b orcamento-tabela-stack-col">
                   <div class="orcamento-tabela-stack-head" aria-hidden="true">
-                    <span>15 dias</span>
-                    <span>45 dias</span>
+                    <span class="orcamento-desembolso-th-data">30 Ago</span>
+                    <span class="orcamento-desembolso-th-data">30 Set</span>
                   </div>
                 </th>
               </tr>
@@ -104,13 +114,14 @@
               <col class="orcamento-desembolso-col-prazo orcamento-tabela-desktop-col" />
               <col class="orcamento-desembolso-col-prazo orcamento-tabela-desktop-col" />
               <col class="orcamento-desembolso-col-prazo orcamento-tabela-desktop-col" />
+              <col class="orcamento-desembolso-col-prazo orcamento-tabela-desktop-col" />
               <col class="orcamento-desembolso-col-stack-item orcamento-tabela-stack-col" />
               <col class="orcamento-desembolso-col-stack-prazo-a orcamento-tabela-stack-col" />
               <col class="orcamento-desembolso-col-stack-prazo-b orcamento-tabela-stack-col" />
             </colgroup>
             <tbody id="corpoDesembolso">
               <tr>
-                <td colspan="9" class="text-center text-secondary py-4">carregando...</td>
+                <td colspan="10" class="text-center text-secondary py-4">carregando...</td>
               </tr>
             </tbody>
           </table>

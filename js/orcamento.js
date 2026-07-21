@@ -154,10 +154,15 @@ function valorCampo(linha, idx) {
 
 function exibirMoeda(val) {
   const s = String(val ?? "").trim();
-  if (!s) return "";
+  if (!s || s === "-" || s === "—") return "";
   const n = parseNumero(val);
-  if (Number.isFinite(n)) return fmtMoeda.format(n);
-  return escapeHtml(s);
+  if (!Number.isFinite(n) || n === 0) return "";
+  return fmtMoeda.format(n);
+}
+
+function exibirMoedaKpi(val) {
+  const n = typeof val === "number" ? val : parseNumero(val);
+  return fmtMoeda.format(Number.isFinite(n) ? n : 0);
 }
 
 function ordenarRegioes(a, b) {
@@ -300,28 +305,27 @@ function somarTotalGeral(filtradas) {
 }
 
 function atualizarKpis(filtradas) {
-  el.kpiPessoal.textContent = fmtMoeda.format(somarNumerico(filtradas, "pessoal"));
-  el.kpiCombustivel.textContent = fmtMoeda.format(somarNumerico(filtradas, "combustivel"));
-  el.kpiDiversos.textContent = fmtMoeda.format(somarNumerico(filtradas, "diversos"));
-  el.kpiDiaD.textContent = fmtMoeda.format(somarNumerico(filtradas, "diaD"));
-  el.kpiTotal.textContent = fmtMoeda.format(somarTotalGeral(filtradas));
+  el.kpiPessoal.textContent = exibirMoedaKpi(somarNumerico(filtradas, "pessoal"));
+  el.kpiCombustivel.textContent = exibirMoedaKpi(somarNumerico(filtradas, "combustivel"));
+  el.kpiDiversos.textContent = exibirMoedaKpi(somarNumerico(filtradas, "diversos"));
+  el.kpiDiaD.textContent = exibirMoedaKpi(somarNumerico(filtradas, "diaD"));
+  el.kpiTotal.textContent = exibirMoedaKpi(somarTotalGeral(filtradas));
 }
 
 function limparKpis() {
-  const vazio = "—";
-  el.kpiPessoal.textContent = vazio;
-  el.kpiCombustivel.textContent = vazio;
-  el.kpiDiversos.textContent = vazio;
-  el.kpiDiaD.textContent = vazio;
-  el.kpiTotal.textContent = vazio;
+  el.kpiPessoal.textContent = "";
+  el.kpiCombustivel.textContent = "";
+  el.kpiDiversos.textContent = "";
+  el.kpiDiaD.textContent = "";
+  el.kpiTotal.textContent = "";
 }
 
 function zerarKpis() {
-  el.kpiPessoal.textContent = fmtMoeda.format(0);
-  el.kpiCombustivel.textContent = fmtMoeda.format(0);
-  el.kpiDiversos.textContent = fmtMoeda.format(0);
-  el.kpiDiaD.textContent = fmtMoeda.format(0);
-  el.kpiTotal.textContent = fmtMoeda.format(0);
+  el.kpiPessoal.textContent = "";
+  el.kpiCombustivel.textContent = "";
+  el.kpiDiversos.textContent = "";
+  el.kpiDiaD.textContent = "";
+  el.kpiTotal.textContent = "";
 }
 
 function sincronizarLargurasColunasOrcamento(headTable, bodyTable) {
@@ -359,7 +363,7 @@ function aposRenderTabela() {
 }
 
 function valorPopoverMoeda(val) {
-  return exibirMoeda(val) || "—";
+  return exibirMoeda(val);
 }
 
 function htmlPopoverOrcamento(r) {
@@ -374,7 +378,7 @@ function htmlPopoverOrcamento(r) {
       ),
       PopoverTabela.item("diversos", valorPopoverMoeda(r.diversos), "popover-marcador--orc-diversos"),
       PopoverTabela.item("dia D", valorPopoverMoeda(r.diaD), "popover-marcador--orc-diad"),
-      PopoverTabela.item("total", fmtMoeda.format(totalLinha(r))),
+      PopoverTabela.item("total", exibirMoeda(totalLinha(r))),
     ].join("")
   );
 }
@@ -411,6 +415,7 @@ function renderizarLinha(r) {
   ).join("");
 
   const total = totalLinha(r);
+  const totalExib = exibirMoeda(total);
   const stackPessoal =
     valorCampoStack("pessoal", r.pessoal) + valorCampoStack("combustivel", r.combustivel);
   const stackDiversos =
@@ -422,13 +427,13 @@ function renderizarLinha(r) {
         <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
         <span class="dashboard-municipio-texto">
           <span class="dashboard-municipio-nome">${municipioHtml}</span>
-          <span class="orcamento-municipio-total-mobile orcamento-total-badge">${fmtMoeda.format(total)}</span>
+          ${totalExib ? `<span class="orcamento-municipio-total-mobile orcamento-total-badge">${totalExib}</span>` : ""}
         </span>
       </span>
     </td>
     ${colsNum}
     <td class="text-end orcamento-col-total apoiadores-celula-num orcamento-tabela-desktop-col">
-      <span class="orcamento-tabela-celula-direita">${fmtMoeda.format(total)}</span>
+      ${totalExib ? `<span class="orcamento-tabela-celula-direita">${totalExib}</span>` : ""}
     </td>
     <td class="text-end orcamento-col-stack-pessoal orcamento-tabela-stack-col">
       <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">

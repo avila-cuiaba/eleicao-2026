@@ -74,12 +74,33 @@ const PAGINAS = {
     atualizar: true,
     menuGrupo: "orcamento",
   },
+  "orcamento-pessoal-apoiadores": {
+    titulo: "orçamento",
+    subtitulo: "por liderança",
+    arquivo: "pages/orcamento-pessoal-apoiadores.html",
+    atualizar: true,
+    menuGrupo: "orcamento",
+  },
   "orcamento-desembolso": {
     titulo: "orçamento",
     subtitulo: "desembolso",
     arquivo: "pages/orcamento-desembolso.html",
     atualizar: true,
     menuGrupo: "orcamento",
+  },
+  "pagamentos-geral": {
+    titulo: "pagamentos",
+    subtitulo: "geral",
+    arquivo: "pages/pagamentos-geral.html",
+    atualizar: true,
+    menuGrupo: "pagamentos",
+  },
+  "pagamentos-lideranca": {
+    titulo: "pagamentos",
+    subtitulo: "por liderança",
+    arquivo: "pages/pagamentos-lideranca.html",
+    atualizar: true,
+    menuGrupo: "pagamentos",
   },
   agenda: {
     titulo: "agenda",
@@ -219,11 +240,14 @@ function ajustarAlturaFrame() {
       doc.body?.classList.contains("page-dashboard") ||
       doc.body?.classList.contains("page-pessoal") ||
       doc.body?.classList.contains("page-apoiadores") ||
+      doc.body?.classList.contains("page-orcamento-pessoal-apoiadores") ||
       doc.body?.classList.contains("page-apoiador-federal") ||
       doc.body?.classList.contains("page-parcerias") ||
       doc.body?.classList.contains("page-orcamento") ||
       doc.body?.classList.contains("page-orcamento-geral") ||
       doc.body?.classList.contains("page-orcamento-desembolso") ||
+      doc.body?.classList.contains("page-pagamentos-geral") ||
+      doc.body?.classList.contains("page-pagamentos-lideranca") ||
       doc.body?.classList.contains("page-mobilizacao-estrutura-resumo") ||
       doc.body?.classList.contains("page-mobilizacao-estrutura") ||
       doc.body?.classList.contains("page-mobilizacao");
