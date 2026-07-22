@@ -475,5 +475,97 @@ function initDashboard() {
   carregarDashboard();
 }
 
+function normalizarRotuloKpiRelatorio(rotuloEl) {
+  if (!rotuloEl) return;
+  const desktop =
+    rotuloEl.querySelector(".d-none.d-lg-inline, .d-none.d-lg-block") ||
+    rotuloEl.querySelector("span:not(.d-lg-none)");
+  if (desktop) rotuloEl.textContent = desktop.textContent.trim();
+}
+
+function htmlCardsRelatorioPagina(doc) {
+  const grid = doc.querySelector(".dashboard-resumo-kpis");
+  if (!grid) return "";
+
+  function prepararCelula(seletor) {
+    const el = grid.querySelector(seletor);
+    if (!el) return "";
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"));
+    clone
+      .querySelectorAll(".dashboard-kpi-votacao-titulo, .d-lg-none, .d-md-none, .d-sm-none")
+      .forEach((node) => node.remove());
+    clone.querySelectorAll(".dashboard-kpi-rotulo").forEach(normalizarRotuloKpiRelatorio);
+    return clone.outerHTML;
+  }
+
+  const linhaResumo =
+    prepararCelula(".dashboard-kpi-municipios") +
+    prepararCelula(".dashboard-kpi-populacao") +
+    prepararCelula(".dashboard-kpi-eleitores");
+  const linhaVotacao =
+    prepararCelula(".dashboard-kpi-minima") + prepararCelula(".dashboard-kpi-ideal");
+
+  if (!linhaResumo && !linhaVotacao) return "";
+
+  return (
+    '<section class="rel-secao rel-secao-indicadores"><h2>indicadores</h2>' +
+    '<div class="rel-dashboard-kpis">' +
+    (linhaResumo
+      ? '<div class="rel-dashboard-kpis-linha rel-dashboard-kpis-linha--resumo">' + linhaResumo + "</div>"
+      : "") +
+    (linhaVotacao
+      ? '<div class="rel-dashboard-kpis-linha rel-dashboard-kpis-linha--votacao">' + linhaVotacao + "</div>"
+      : "") +
+    "</div></section>"
+  );
+}
+
+function estilosRelatorioPagina() {
+  return (
+    ".page-dashboard .rel-secao{margin:0.45rem 0 0.55rem;page-break-inside:auto;}" +
+    ".page-dashboard .rel-secao h2{margin-bottom:0.3rem;padding-bottom:0.15rem;}" +
+    ".page-dashboard .rel-secao-indicadores{margin-bottom:0.25rem;page-break-after:avoid;break-after:avoid-page;}" +
+    ".page-dashboard .rel-secao + .rel-secao + .rel-secao{page-break-before:avoid;break-before:avoid-page;margin-top:0.2rem;}" +
+    ".page-dashboard .rel-dashboard-kpis{margin-top:0.2rem;display:flex;flex-direction:column;align-items:center;gap:8px;}" +
+    ".page-dashboard .rel-dashboard-kpis-linha{display:flex;flex-wrap:nowrap;gap:8px;width:98%;max-width:100%;}" +
+    ".page-dashboard .rel-dashboard-kpis-linha--resumo .dashboard-kpi-cell{flex:1 1 0;min-width:0;padding:0;}" +
+    ".page-dashboard .rel-dashboard-kpis-linha--votacao{justify-content:center;}" +
+    ".page-dashboard .rel-dashboard-kpis-linha--votacao .dashboard-kpi-cell{flex:0 0 30%;max-width:30%;min-width:0;padding:0;}" +
+    ".page-dashboard .rel-dashboard-kpis-linha .dashboard-kpi-card{width:100%;height:100%;border-radius:8px;}" +
+    ".page-dashboard .rel-dashboard-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;}" +
+    ".page-dashboard .rel-dashboard-kpis .dashboard-kpi-card .card-body{padding:0.35rem 0.3rem;text-align:center;}" +
+    ".page-dashboard .rel-dashboard-kpis .dashboard-kpi-rotulo{font-size:7pt;font-weight:600;color:#64748b;margin-bottom:0.1rem;line-height:1.15;}" +
+    ".page-dashboard .rel-dashboard-kpis .dashboard-kpi-valor{font-size:9pt;font-weight:700;line-height:1.1;color:#1e293b;}" +
+    ".page-dashboard .rel-dashboard-kpis .dashboard-kpi-card{background-color:rgba(31,78,140,0.07);background-image:none;border:1px solid rgba(31,78,140,0.14);}" +
+    ".page-dashboard .rel-dashboard-kpis .dashboard-kpi-card.kpi-minima{background-color:rgba(202,161,74,0.22);border-color:rgba(202,161,74,0.32);}" +
+    ".page-dashboard .rel-dashboard-kpis .dashboard-kpi-card.kpi-minima .dashboard-kpi-valor{color:#7a5c1a;}" +
+    ".page-dashboard .rel-dashboard-kpis .dashboard-kpi-card.kpi-ideal{background-color:rgba(27,122,67,0.18);border-color:rgba(27,122,67,0.28);}" +
+    ".page-dashboard .rel-dashboard-kpis .dashboard-kpi-card.kpi-ideal .dashboard-kpi-valor{color:#145a32;}" +
+    ".page-dashboard table.rel-tabela .dashboard-municipio-eleitores{display:none!important;}" +
+    ".page-dashboard table.rel-tabela .dashboard-col-eleitores{display:table-cell!important;}" +
+    ".page-dashboard table.rel-tabela .dashboard-th-desktop-only{display:table-cell!important;}" +
+    ".page-dashboard table.rel-tabela .dashboard-th-sub-eleitores{display:none!important;}" +
+    ".page-dashboard table.rel-tabela th.dashboard-col-municipio,.page-dashboard table.rel-tabela td.dashboard-col-municipio{text-align:left;}" +
+    ".page-dashboard table.rel-tabela th.dashboard-col-eleitores,.page-dashboard table.rel-tabela td.dashboard-col-eleitores," +
+    ".page-dashboard table.rel-tabela th.dashboard-col-2022,.page-dashboard table.rel-tabela td.dashboard-col-2022," +
+    ".page-dashboard table.rel-tabela th.dashboard-col-minima,.page-dashboard table.rel-tabela td.dashboard-col-minima," +
+    ".page-dashboard table.rel-tabela th.dashboard-col-ideal,.page-dashboard table.rel-tabela td.dashboard-col-ideal{text-align:right;font-variant-numeric:tabular-nums;}" +
+    ".page-dashboard table.rel-tabela th.dashboard-th-votacao{text-align:center;}" +
+    ".page-dashboard table.rel-tabela td.dashboard-col-2022{border-left:2px solid rgba(100,116,139,0.35);}" +
+    ".page-dashboard table.rel-tabela{margin-top:0.15rem;}" +
+    "@media print{" +
+    ".page-dashboard h1{font-size:14pt;margin-bottom:0.1rem;}" +
+    ".page-dashboard .rel-gerado{margin-bottom:0.35rem;}" +
+    ".page-dashboard .rel-dashboard-kpis .dashboard-kpi-card{" +
+    "-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
+    ".page-dashboard table.rel-tabela{font-size:8pt;}" +
+    "}"
+  );
+}
+
+window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
+window.estilosRelatorioPagina = estilosRelatorioPagina;
+
 AUTH.exigir();
 document.addEventListener("DOMContentLoaded", initDashboard);

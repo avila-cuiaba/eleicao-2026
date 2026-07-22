@@ -177,6 +177,7 @@ function tituloPagina(id) {
 }
 
 function paginaTemRelatorio(cfg) {
+  if (typeof AUTH !== "undefined" && !AUTH.ehAvilaMaster()) return false;
   if (cfg.relatorio === false) return false;
   return cfg.relatorio === true || !!cfg.atualizar;
 }

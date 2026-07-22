@@ -317,10 +317,96 @@ function initMicroRegiao() {
   carregarDados();
 }
 
+function htmlMunicipiosPorRegiaoRelatorio() {
+  if (!linhasTabela.length) return "";
+
+  const blocos = linhasTabela
+    .map((regiao) => {
+      const lista = municipios
+        .filter((m) => m.regiaoNorm === regiao.regiaoNorm)
+        .sort((a, b) => a.municipio.localeCompare(b.municipio, "pt-BR"));
+
+      const cor = indiceCorRegiao(regiao.regiaoNorm);
+      const nome = escapeHtml(regiao.regiao);
+      let corpoTabela = "";
+
+      if (lista.length) {
+        corpoTabela =
+          '<table class="rel-tabela micro-regiao-modal-tabela">' +
+          "<thead><tr>" +
+          "<th scope=\"col\">município</th>" +
+          "<th scope=\"col\" class=\"text-end\">habitantes</th>" +
+          "<th scope=\"col\" class=\"text-end\">eleitores</th>" +
+          "</tr></thead><tbody>" +
+          renderizarModalMunicipios(lista) +
+          "</tbody></table>";
+      } else {
+        corpoTabela =
+          '<p class="rel-vazio">nenhum município encontrado para esta região.</p>';
+      }
+
+      return (
+        '<div class="rel-micro-regiao-bloco">' +
+        '<h3 class="rel-micro-regiao-titulo">' +
+        `<span class="micro-regiao-modal-badge micro-regiao-modal-cor--${cor}">${nome}</span>` +
+        "</h3>" +
+        corpoTabela +
+        "</div>"
+      );
+    })
+    .join("");
+
+  if (!blocos) return "";
+
+  return (
+    '<section class="rel-secao rel-secao-micro-detalhes"><h2>municípios por região</h2>' +
+    blocos +
+    "</section>"
+  );
+}
+
+function montarHtmlRelatorioPagina(opcoes) {
+  const Rel = window.Relatorio;
+  if (!Rel) return "";
+
+  const meta = opcoes || {};
+  const doc = meta.documento || document;
+  const gerado = new Date().toLocaleString("pt-BR");
+  const tabela = doc.getElementById("tabelaMicroRegiao");
+  const htmlResumo = tabela ? Rel.htmlTabelaClonada(tabela) : "";
+  const htmlDetalhes = htmlMunicipiosPorRegiaoRelatorio();
+
+  if (!htmlResumo && !htmlDetalhes) return "";
+
+  const corpo =
+    '<p class="rel-gerado">relatório gerado em ' +
+    escapeHtml(gerado) +
+    "</p>" +
+    '<section class="rel-secao"><h2>filtros</h2>' +
+    Rel.htmlFiltros(Rel.coletarFiltros(doc)) +
+    "</section>" +
+    (htmlResumo
+      ? '<section class="rel-secao rel-secao-micro-resumo"><h2>resumo</h2>' + htmlResumo + "</section>"
+      : "") +
+    htmlDetalhes +
+    Rel.scriptImpressaoRelatorio();
+
+  return Rel.htmlDocumento(meta, corpo);
+}
+
 function estilosRelatorioPagina() {
   return (
+    ".page-micro-regiao .rel-secao{margin:0.45rem 0 0.55rem;page-break-inside:auto;}" +
+    ".page-micro-regiao .rel-secao h2{margin-bottom:0.3rem;padding-bottom:0.15rem;}" +
+    ".page-micro-regiao .rel-secao-micro-resumo{margin-bottom:0.4rem;page-break-after:avoid;break-after:avoid-page;}" +
+    ".page-micro-regiao .rel-secao-micro-detalhes{margin-top:0.65rem;page-break-before:avoid;break-before:avoid-page;}" +
+    ".page-micro-regiao .rel-micro-regiao-bloco{margin:0.45rem 0 0.65rem;page-break-inside:avoid;break-inside:avoid-page;}" +
+    ".page-micro-regiao .rel-micro-regiao-titulo{margin:0 0 0.35rem;font-size:10pt;font-weight:600;}" +
+    ".page-micro-regiao .micro-regiao-modal-badge{font-size:8.5pt;padding:0.25rem 0.65rem;}" +
     ".page-micro-regiao table.rel-tabela.micro-regiao-tabela th:nth-child(n+2)," +
-    ".page-micro-regiao table.rel-tabela.micro-regiao-tabela td:nth-child(n+2){" +
+    ".page-micro-regiao table.rel-tabela.micro-regiao-tabela td:nth-child(n+2)," +
+    ".page-micro-regiao table.rel-tabela.micro-regiao-modal-tabela th:nth-child(n+2)," +
+    ".page-micro-regiao table.rel-tabela.micro-regiao-modal-tabela td:nth-child(n+2){" +
     "text-align:right;" +
     "padding-top:0.4rem;" +
     "padding-bottom:0.4rem;" +
@@ -328,10 +414,24 @@ function estilosRelatorioPagina() {
     "padding-right:2.4rem;" +
     "font-variant-numeric:tabular-nums;" +
     "white-space:nowrap;" +
+    "}" +
+    ".page-micro-regiao table.rel-tabela.micro-regiao-tabela{margin-top:0.15rem;}" +
+    ".page-micro-regiao .micro-regiao-modal-cor--0{background-color:rgba(249,115,22,0.16);border:1px solid rgba(249,115,22,0.22);}" +
+    ".page-micro-regiao .micro-regiao-modal-cor--1{background-color:rgba(59,130,246,0.16);border:1px solid rgba(59,130,246,0.2);}" +
+    ".page-micro-regiao .micro-regiao-modal-cor--2{background-color:rgba(20,184,166,0.16);border:1px solid rgba(20,184,166,0.2);}" +
+    ".page-micro-regiao .micro-regiao-modal-cor--3{background-color:rgba(168,85,247,0.16);border:1px solid rgba(168,85,247,0.2);}" +
+    ".page-micro-regiao .micro-regiao-modal-cor--4{background-color:rgba(225,29,72,0.16);border:1px solid rgba(225,29,72,0.2);}" +
+    "@media print{" +
+    ".page-micro-regiao h1{font-size:14pt;margin-bottom:0.1rem;}" +
+    ".page-micro-regiao .rel-gerado{margin-bottom:0.35rem;}" +
+    ".page-micro-regiao .rel-secao-micro-resumo table.rel-tabela{margin-bottom:0.1rem;}" +
+    ".page-micro-regiao .micro-regiao-modal-badge{" +
+    "-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
     "}"
   );
 }
 
+window.montarHtmlRelatorioPagina = montarHtmlRelatorioPagina;
 window.estilosRelatorioPagina = estilosRelatorioPagina;
 
 AUTH.exigir();

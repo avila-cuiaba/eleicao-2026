@@ -420,11 +420,16 @@ function estilosRelatorioImpressao() {
     ".mob-rel-segmento-resumo{margin:0 0 0.5rem;font-size:9.5pt;}" +
     "th.mob-rel-texto,td.mob-rel-texto{text-align:left;}" +
     "td.mob-rel-num{text-align:right;font-variant-numeric:tabular-nums;}" +
+    ".mob-rel-segmento-apoiador table th.mob-rel-num,.mob-rel-segmento-apoiador table td.mob-rel-num{text-align:center;}" +
+    ".mob-rel-segmento-apoiador table{table-layout:fixed;width:100%;margin-bottom:0;}" +
+    ".mob-rel-segmento-apoiador table .mob-rel-col-segmento{width:70%;}" +
+    ".mob-rel-segmento-apoiador table .mob-rel-col-votos{width:30%;}" +
+    ".mob-rel-segmento-apoiador table th.mob-rel-texto,.mob-rel-segmento-apoiador table td.mob-rel-texto{width:70%;}" +
+    ".mob-rel-segmento-apoiador table th.mob-rel-num,.mob-rel-segmento-apoiador table td.mob-rel-num{width:30%;}" +
     ".mob-rel-segmento-vazio{margin:0;font-size:9pt;color:#64748b;}" +
     ".mob-rel-segmento-apoiador{margin:0.65rem 0 0.85rem;page-break-inside:avoid;}" +
     ".mob-rel-segmento-apoiador h3{font-size:10pt;margin:0 0 0.25rem;text-align:left;}" +
     ".mob-rel-segmento-apoiador-total{font-size:9pt;font-weight:600;color:#4338ca;}" +
-    ".mob-rel-segmento-apoiador table{margin-bottom:0;}" +
     ".mob-rel-regional{margin-top:1rem;page-break-inside:avoid;}" +
     ".mob-rel-regional h2{font-size:12pt;margin:0 0 0.5rem;border-bottom:1px solid #e2e8f0;padding-bottom:0.25rem;}" +
     ".mob-rel-regional-meta{font-size:10pt;font-weight:600;color:#4338ca;}" +
@@ -530,6 +535,7 @@ function htmlTabelaSegmentoImpressao(registros) {
         MobComum.fmt.format(g.totalVotos) +
         " votos)</span></h3>" +
         "<table>" +
+        "<colgroup><col class=\"mob-rel-col-segmento\" /><col class=\"mob-rel-col-votos\" /></colgroup>" +
         "<thead><tr>" +
         '<th class="mob-rel-texto">segmento</th>' +
         '<th class="mob-rel-num">votos</th>' +
@@ -583,7 +589,9 @@ function montarHtmlRelatorio() {
     htmlBlocoSegmentoImpressao(registros) +
     "<h2>estrutura por regional</h2>" +
     (detalhes || "<p>nenhum local com registro.</p>") +
-    "<script>window.addEventListener('load',function(){window.focus();window.print();});</script>" +
+    (window.Relatorio && typeof Relatorio.scriptImpressaoRelatorio === "function"
+      ? Relatorio.scriptImpressaoRelatorio()
+      : '<script>(function(){function fechar(){try{window.close();}catch(e){}}window.addEventListener("afterprint",fechar);window.addEventListener("load",function(){window.focus();window.print();});})();</script>') +
     "</body></html>"
   );
 }

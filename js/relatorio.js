@@ -206,6 +206,9 @@
       ".registros-only-mobile",
       ".entregas-thead-mobile",
       ".mob-persp-thead-mobile",
+      ".dashboard-municipio-eleitores",
+      ".dashboard-th-sub-eleitores",
+      ".dashboard-kpi-votacao-titulo",
       ".d-lg-none",
       ".d-md-none",
       ".d-sm-none",
@@ -453,6 +456,15 @@
       ".rel-card{flex:1 1 140px;min-width:120px;border:1px solid #e2e8f0;border-radius:6px;padding:0.45rem 0.55rem;background:#f8fafc;}" +
       ".rel-card-rotulo{font-size:8.5pt;color:#64748b;text-transform:lowercase;}" +
       ".rel-card-valor{display:block;font-size:12pt;font-weight:700;color:#1f4e8c;margin-top:0.15rem;}" +
+      ".rel-graficos{display:flex;flex-wrap:wrap;gap:0.85rem;margin-top:0.5rem;}" +
+      ".rel-grafico-bloco{flex:1 1 280px;min-width:240px;border:1px solid #e2e8f0;border-radius:8px;padding:0.55rem 0.65rem;background:#fff;page-break-inside:avoid;}" +
+      ".rel-grafico-bloco h3{font-size:9.5pt;font-weight:600;color:#334155;margin:0 0 0.45rem;text-transform:lowercase;}" +
+      ".rel-grafico-img{display:block;width:100%;max-width:100%;height:auto;}" +
+      ".rel-grafico-meta-layout{display:flex;flex-wrap:wrap;align-items:center;gap:0.65rem;}" +
+      ".rel-grafico-meta-layout .rel-grafico-img{flex:1 1 180px;max-width:220px;}" +
+      ".rel-grafico-legenda{flex:1 1 140px;min-width:120px;margin:0;padding:0;list-style:none;font-size:8.5pt;}" +
+      ".rel-grafico-legenda li{display:flex;align-items:center;gap:0.35rem;margin:0.15rem 0;}" +
+      ".rel-grafico-legenda-cor{display:inline-block;width:0.55rem;height:0.55rem;border-radius:999px;flex-shrink:0;}" +
       "table.rel-tabela{border-collapse:collapse;width:100%;margin:0.35rem 0 0.75rem;font-size:8.5pt;}" +
       "table.rel-tabela th,table.rel-tabela td{border:1px solid #cbd5e1;padding:0.28rem 0.35rem;vertical-align:middle;}" +
       "table.rel-tabela th{background:#f1f5f9;font-weight:600;}" +
@@ -462,7 +474,14 @@
       "table.rel-tabela .apoiadores-celula-num,table.rel-tabela .pessoal-celula-num{font-variant-numeric:tabular-nums;}" +
       ".rel-vazio{font-size:9pt;color:#64748b;margin:0;}" +
       ".rel-bloco-texto{font-size:9pt;}" +
-      "@media print{body{margin:0.8cm;} .rel-secao{page-break-inside:avoid;}}" +
+      "html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}" +
+      ".home-kpi-card,.home-kpi-ilustra,.rel-grafico-bloco,.rel-card,table.rel-tabela th{" +
+      "-webkit-print-color-adjust:exact;print-color-adjust:exact;}" +
+      "@media print{" +
+      "body{margin:0.8cm;}" +
+      ".rel-secao{page-break-inside:avoid;}" +
+      "*,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
+      "}" +
       extra +
       "</style>"
     );
@@ -473,6 +492,17 @@
     if (!body) return "rel-body";
     const pagina = Array.from(body.classList).find((c) => c.startsWith("page-") && c !== "page-frame-body");
     return pagina ? "rel-body " + pagina : "rel-body";
+  },
+
+  scriptImpressaoRelatorio() {
+    return (
+      '<scr' +
+      'ipt>(function(){function fechar(){try{window.close();}catch(e){}}' +
+      'window.addEventListener("afterprint",fechar);' +
+      'window.addEventListener("load",function(){window.focus();window.print();});' +
+      '})();</scr' +
+      "ipt>"
+    );
   },
 
   htmlDocumento(opcoes, conteudoBody) {
@@ -532,6 +562,25 @@
     return '<ul class="rel-filtros">' + resumo + linhas + "</ul>";
   },
 
+  htmlExtras(extras) {
+    const html = String(extras || "").trim();
+    if (!html) return "";
+    return html;
+  },
+
+  coletarExtras(doc, opcoes) {
+    const meta = opcoes || {};
+    if (meta.extras) return meta.extras;
+    if (typeof global.conteudoExtraRelatorioPagina === "function") {
+      try {
+        return global.conteudoExtraRelatorioPagina(doc) || "";
+      } catch (e) {
+        return "";
+      }
+    }
+    return "";
+  },
+
   htmlCards(cards) {
     if (!cards.length) return "";
     const itens = cards
@@ -566,18 +615,25 @@
 
     const filtros = meta.filtros || this.coletarFiltros(doc);
     const cards = meta.cards || this.coletarCards(doc);
+    const cardsHtml =
+      typeof global.htmlCardsRelatorioPagina === "function"
+        ? global.htmlCardsRelatorioPagina(doc) || ""
+        : this.htmlCards(cards);
+    const extras = this.htmlExtras(meta.extras || this.coletarExtras(doc, meta));
     const tabelas = meta.tabelas || this.coletarTabelas(doc);
     const listasAgenda = this.coletarListasAgenda(doc);
     const todosBlocos = tabelas.concat(listasAgenda);
+    const temCards = String(cardsHtml || "").trim().length > 0;
 
     const corpo =
       '<section class="rel-secao"><h2>filtros</h2>' +
       this.htmlFiltros(filtros) +
       "</section>" +
-      this.htmlCards(cards) +
+      cardsHtml +
+      extras +
       this.htmlTabelas(todosBlocos);
 
-    if (!cards.length && !todosBlocos.length) {
+    if (!temCards && !todosBlocos.length && !extras) {
       return this.htmlDocumento(
         meta,
         '<p class="rel-gerado">relatório gerado em ' +
@@ -594,9 +650,7 @@
           this.escapeHtml(gerado) +
           "</p>" +
           corpo +
-          '<scr' +
-          'ipt>window.addEventListener("load",function(){window.focus();window.print();});</scr' +
-          "ipt>"
+          this.scriptImpressaoRelatorio()
       )
     );
   },

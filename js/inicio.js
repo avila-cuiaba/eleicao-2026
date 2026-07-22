@@ -1058,6 +1058,153 @@ async function carregarInicio(animarGrafico) {
 
 window.atualizarPagina = () => carregarInicio(true);
 
+function htmlCardsRelatorioPagina(doc) {
+  const grid = doc.querySelector(".home-kpi-col-dir");
+  if (!grid) return "";
+
+  const clone = grid.cloneNode(true);
+  clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+  aplicarCoresSvgCardsRelatorio(clone);
+
+  return (
+    '<section class="rel-secao"><h2>indicadores</h2>' +
+    '<div class="rel-inicio-kpis">' +
+    clone.outerHTML +
+    "</div></section>"
+  );
+}
+
+function aplicarCoresSvgCardsRelatorio(root) {
+  const mapa = [
+    [".home-kpi-ilustra-populacao svg", "#ffffff"],
+    [".home-kpi-ilustra-eleitores svg", "#ffffff"],
+    [".home-kpi-ilustra-equipe svg", "#ffffff"],
+    [".home-kpi-ilustra-orcamento svg", "#ffffff"],
+  ];
+  mapa.forEach(([sel, cor]) => {
+    root.querySelectorAll(sel).forEach((svg) => {
+      svg.setAttribute("stroke", cor);
+      svg.querySelectorAll("[fill='currentColor']").forEach((el) => el.setAttribute("fill", cor));
+    });
+  });
+}
+
+function prepararGraficosRelatorio() {
+  pararAnimacoesGrafico();
+  if (!chartInicio) return;
+  const idx = indiceAnoDestaque(chartInicio);
+  const val = valorFinalColuna2026(chartInicio);
+  if (chartInicio.data?.datasets?.[0]?.data) {
+    chartInicio.data.datasets[0].data[idx] = val;
+  }
+  setFaseDestaque(chartInicio, FASE_DESTAQUE.FIXO);
+  chartInicio.update("none");
+}
+
+function imagemGraficoVotacao() {
+  if (!chartInicio) return "";
+  try {
+    const origem = chartInicio.canvas;
+    if (!origem) return "";
+
+    const largura = origem.width || origem.clientWidth;
+    const altura = origem.height || origem.clientHeight;
+    if (!largura || !altura) {
+      return typeof chartInicio.toBase64Image === "function"
+        ? chartInicio.toBase64Image("image/png", 1)
+        : "";
+    }
+
+    const destino = document.createElement("canvas");
+    destino.width = largura;
+    destino.height = altura;
+    const ctx = destino.getContext("2d");
+    const gradiente = ctx.createLinearGradient(0, 0, largura, altura);
+    gradiente.addColorStop(0, "#dbeafe");
+    gradiente.addColorStop(0.48, "#e0e7ff");
+    gradiente.addColorStop(1, "#a5f3fc");
+    ctx.fillStyle = gradiente;
+    ctx.fillRect(0, 0, largura, altura);
+    ctx.drawImage(origem, 0, 0, largura, altura);
+    return destino.toDataURL("image/png", 1);
+  } catch (e) {
+    if (typeof chartInicio.toBase64Image === "function") {
+      return chartInicio.toBase64Image("image/png", 1);
+    }
+    return "";
+  }
+}
+
+function conteudoExtraRelatorioPagina() {
+  prepararGraficosRelatorio();
+
+  const imgVotos = imagemGraficoVotacao();
+  if (!imgVotos) return "";
+
+  return (
+    '<section class="rel-secao rel-secao-inicio-graficos"><h2>gráficos</h2>' +
+    '<div class="rel-graficos rel-graficos--inicio">' +
+    '<div class="rel-grafico-bloco rel-grafico-bloco--votacao home-votacao-card rel-home-votacao-card">' +
+    '<div class="home-kpi-titulo home-votacao-titulo">votação</div>' +
+    '<img class="rel-grafico-img" src="' +
+    imgVotos +
+    '" alt="gráfico de votação" />' +
+    "</div></div></section>"
+  );
+}
+
+function estilosRelatorioPagina() {
+  return (
+    ".page-inicio .rel-inicio-kpis{margin-top:0.35rem;}" +
+    ".page-inicio .home-kpi-col-dir{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:auto;gap:6px;max-width:none;}" +
+    ".page-inicio .home-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;}" +
+    ".page-inicio .home-kpi-card .card-body{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.25rem;padding:0.4rem 0.25rem;}" +
+    ".page-inicio .home-kpi-titulo{font-size:7.5pt;font-weight:600;letter-spacing:0.01em;line-height:1.15;}" +
+    ".page-inicio .home-kpi-ilustra{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;}" +
+    ".page-inicio .home-kpi-ilustra svg{width:18px;height:18px;}" +
+    ".page-inicio .home-kpi-valor{font-size:9.5pt;font-weight:700;line-height:1.1;}" +
+    ".page-inicio .home-kpi-card-populacao{background-color:#dbeafe;background-image:linear-gradient(155deg,#eff6ff 0%,#dbeafe 50%,#bfdbfe 100%);border:1px solid rgba(37,99,235,0.16);box-shadow:0 2px 8px rgba(37,99,235,0.1);}" +
+    ".page-inicio .home-kpi-card-populacao .home-kpi-titulo{color:#1d4ed8;}" +
+    ".page-inicio .home-kpi-card-populacao .home-kpi-valor{color:#1e40af;}" +
+    ".page-inicio .home-kpi-card-populacao .home-kpi-ilustra-populacao{background-color:#2563eb;background-image:linear-gradient(145deg,#60a5fa,#2563eb);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.3);}" +
+    ".page-inicio .home-kpi-card-eleitores{background-color:#ccfbf1;background-image:linear-gradient(155deg,#f0fdfa 0%,#ccfbf1 50%,#99f6e4 100%);border:1px solid rgba(20,184,166,0.16);box-shadow:0 2px 8px rgba(20,184,166,0.1);}" +
+    ".page-inicio .home-kpi-card-eleitores .home-kpi-titulo{color:#0f766e;}" +
+    ".page-inicio .home-kpi-card-eleitores .home-kpi-valor{color:#115e59;}" +
+    ".page-inicio .home-kpi-card-eleitores .home-kpi-ilustra-eleitores{background-color:#0d9488;background-image:linear-gradient(145deg,#2dd4bf,#0d9488);color:#fff;box-shadow:0 2px 8px rgba(13,148,136,0.3);}" +
+    ".page-inicio .home-kpi-card-equipe{background-color:#e0e7ff;background-image:linear-gradient(155deg,#eef2ff 0%,#e0e7ff 50%,#c7d2fe 100%);border:1px solid rgba(99,102,241,0.16);box-shadow:0 2px 8px rgba(99,102,241,0.1);}" +
+    ".page-inicio .home-kpi-card-equipe .home-kpi-titulo{color:#4338ca;}" +
+    ".page-inicio .home-kpi-card-equipe .home-kpi-valor-equipe{color:#3730a3;}" +
+    ".page-inicio .home-kpi-card-equipe .home-kpi-ilustra-equipe{background-color:#4f46e5;background-image:linear-gradient(145deg,#818cf8,#4f46e5);color:#fff;box-shadow:0 2px 8px rgba(79,70,229,0.3);}" +
+    ".page-inicio .home-kpi-card-orcamento{background-color:#cffafe;background-image:linear-gradient(155deg,#ecfeff 0%,#cffafe 50%,#a5f3fc 100%);border:1px solid rgba(14,116,144,0.16);box-shadow:0 2px 8px rgba(14,116,144,0.1);}" +
+    ".page-inicio .home-kpi-card-orcamento .home-kpi-titulo{color:#0e7490;}" +
+    ".page-inicio .home-kpi-card-orcamento .home-kpi-valor-orcamento{color:#155e75;font-size:10pt;font-weight:700;line-height:1.15;word-break:break-word;}" +
+    ".page-inicio .home-kpi-card-orcamento .home-kpi-ilustra-orcamento{background-color:#0891b2;background-image:linear-gradient(145deg,#22d3ee,#0891b2);color:#fff;box-shadow:0 2px 8px rgba(8,145,178,0.3);}" +
+    ".page-inicio .rel-graficos--inicio{display:block;width:100%;margin-top:0.35rem;}" +
+    ".page-inicio .rel-grafico-bloco--votacao{width:100%;max-width:none;min-width:0;flex:none;margin:0;box-sizing:border-box;}" +
+    ".page-inicio .rel-home-votacao-card{background-color:#dbeafe;background-image:linear-gradient(155deg,#dbeafe 0%,#e0e7ff 48%,#a5f3fc 100%);border:1px solid rgba(99,102,241,0.22);box-shadow:0 2px 10px rgba(99,102,241,0.14);padding:0.55rem 0.65rem;}" +
+    ".page-inicio .rel-home-votacao-card .home-votacao-titulo{color:#4338ca;font-weight:600;margin-bottom:0.35rem;}" +
+    ".page-inicio .rel-home-votacao-card .rel-grafico-img{display:block;width:100%;max-width:100%;height:auto;margin:0 auto;border-radius:6px;}" +
+    "@media print{" +
+    ".page-inicio h1{font-size:14pt;margin-bottom:0.1rem;}" +
+    ".page-inicio .rel-gerado{margin-bottom:0.45rem;}" +
+    ".page-inicio .rel-secao{margin:0.4rem 0 0.55rem;}" +
+    ".page-inicio .rel-secao h2{margin-bottom:0.3rem;padding-bottom:0.15rem;}" +
+    ".page-inicio .rel-secao-inicio-graficos{page-break-inside:avoid;break-inside:avoid-page;}" +
+    ".page-inicio .rel-graficos--inicio{display:flex;justify-content:center;width:100%;}" +
+    ".page-inicio .rel-grafico-bloco--votacao{width:100%;max-width:100%;}" +
+    ".page-inicio table.rel-tabela{margin-top:0.2rem;font-size:8pt;}" +
+    ".page-inicio table.rel-tabela th,.page-inicio table.rel-tabela td{padding:0.2rem 0.28rem;}" +
+    ".page-inicio .home-kpi-card,.page-inicio .home-kpi-ilustra,.page-inicio .rel-home-votacao-card{" +
+    "-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
+    ".page-inicio .home-kpi-ilustra svg{stroke:#fff!important;}" +
+    "}"
+  );
+}
+
+window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
+window.conteudoExtraRelatorioPagina = conteudoExtraRelatorioPagina;
+window.estilosRelatorioPagina = estilosRelatorioPagina;
+
 function initInicio() {
   carregarInicio(true);
 }
