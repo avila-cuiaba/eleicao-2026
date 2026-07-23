@@ -499,6 +499,7 @@ function initParcerias() {
   if (!el.corpo || !el.filtroRegioes) return;
 
   el.buscaParceria?.addEventListener("input", renderizarTabela);
+  initPageSmTabs(alinharColunasTabela);
   window.addEventListener("resize", alinharColunasTabela);
   alinharColunasTabela();
   carregarParcerias();

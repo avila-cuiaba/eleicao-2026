@@ -931,6 +931,7 @@ function initApoiadores() {
   el.corpo.addEventListener("click", aoClicarTabelaApoiador);
 
   el.buscaLideranca?.addEventListener("input", renderizarTabela);
+  initPageSmTabs(alinharColunasTabela);
   window.addEventListener("resize", alinharColunasTabela);
   alinharColunasTabela();
   carregarApoiadores();

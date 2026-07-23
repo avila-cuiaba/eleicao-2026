@@ -73,6 +73,22 @@
     return this.tituloRelatorioPagina(titulo, comSufixo) + " (" + gerado + ")";
   },
 
+  textoCabecalhoRelatorio(metaPagina) {
+    const titulo = String(metaPagina?.titulo || "").trim().toLowerCase();
+    const subtitulo = String(metaPagina?.subtitulo || "").trim().toLowerCase();
+    if (titulo && subtitulo) return titulo + " — " + subtitulo;
+    return titulo || subtitulo || "relatório";
+  },
+
+  resolverMetaRelatorio(meta) {
+    const base = meta || {};
+    const metaPagina = this.obterMetaPagina();
+    return {
+      titulo: base.titulo || metaPagina.titulo,
+      subtitulo: base.subtitulo !== undefined ? base.subtitulo : metaPagina.subtitulo,
+    };
+  },
+
   coletarCards(doc) {
     const cards = [];
     const vistos = new Set();
@@ -479,10 +495,16 @@
 
     return (
       "<style>" +
-      "body{font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;margin:1.2cm;font-size:10pt;line-height:1.4;}" +
-      ".rel-cabecalho{font-size:11pt;font-weight:600;color:#1f4e8c;margin:0 0 1rem;padding-bottom:0.35rem;border-bottom:1px solid #e2e8f0;}" +
-      ".rel-conteudo{padding-bottom:1.6rem;}" +
-      ".rel-rodape{position:fixed;left:0;right:0;bottom:0;padding:0.3rem 1.2cm;font-size:8pt;color:#64748b;background:#fff;}" +
+      "body{font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;margin:0.8cm 0.8cm 0.5cm;font-size:10pt;line-height:1.4;}" +
+      "table.rel-print-shell{width:100%;border-collapse:collapse;border-spacing:0;}" +
+      "table.rel-print-shell thead{display:table-header-group;}" +
+      "table.rel-print-shell tfoot{display:table-footer-group;}" +
+      "table.rel-print-shell tbody{display:table-row-group;}" +
+      "table.rel-print-shell td.rel-print-celula{border:0;padding:0;vertical-align:top;}" +
+      "table.rel-print-shell td.rel-print-celula-rodape{vertical-align:bottom;padding-top:0.45rem;}" +
+      ".rel-cabecalho{font-size:12pt;font-weight:600;color:#1f4e8c;margin:0 0 0.75rem;padding-bottom:0.35rem;border-bottom:1px solid #e2e8f0;line-height:1.25;}" +
+      ".rel-conteudo{padding:0;}" +
+      ".rel-rodape{display:none!important;}" +
       "h1{font-size:16pt;margin:0 0 0.2rem;color:#1f4e8c;}" +
       ".rel-subtitulo{font-size:11pt;color:#475569;margin:0 0 0.35rem;}" +
       ".rel-gerado{display:none!important;}" +
@@ -519,8 +541,7 @@
       ".home-kpi-card,.home-kpi-ilustra,.rel-grafico-bloco,.rel-card,table.rel-tabela th{" +
       "-webkit-print-color-adjust:exact;print-color-adjust:exact;}" +
       "@media print{" +
-      "body{margin:0.8cm 0.8cm 1.35cm;}" +
-      ".rel-rodape{position:fixed;left:0;right:0;bottom:0;padding:0.25rem 0.8cm;}" +
+      "body{margin:0.8cm 0.8cm 0.45cm;}" +
       ".rel-secao{page-break-inside:avoid;}" +
       "*,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
       "}" +
@@ -540,40 +561,46 @@
     return (
       '<scr' +
       'ipt>(function(){function fechar(){try{window.close();}catch(e){}}' +
+      'function imprimir(){try{document.title=" ";}catch(e){}window.focus();window.print();}' +
       'window.addEventListener("afterprint",fechar);' +
-      'window.addEventListener("load",function(){window.focus();window.print();});' +
+      'window.addEventListener("load",imprimir);' +
       '})();</scr' +
       "ipt>"
     );
   },
 
+  htmlEnvelopeImpressao(cabecalhoHtml, conteudoHtml) {
+    return (
+      '<table class="rel-print-shell">' +
+      "<thead><tr><td class=\"rel-print-celula\">" +
+      cabecalhoHtml +
+      "</td></tr></thead>" +
+      "<tbody><tr><td class=\"rel-print-celula rel-print-celula-corpo\">" +
+      conteudoHtml +
+      "</td></tr></tbody>" +
+      "</table>"
+    );
+  },
+
   htmlDocumento(opcoes, conteudoBody) {
     const meta = opcoes || {};
-    const titulo = meta.titulo || this.obterMetaPagina().titulo;
     const doc = meta.documento || document;
     const bodyClass = this.classeBodyRelatorio(doc);
-    const gerado = meta.gerado || this.formatarDataHoraRelatorio(new Date());
-    const comSufixo =
-      !(conteudoBody.includes("rel-vazio") && !conteudoBody.includes("rel-secao"));
+    const metaRel = this.resolverMetaRelatorio(meta);
+    const textoCabecalho = this.textoCabecalhoRelatorio(metaRel);
+    const cabecalho =
+      '<div class="rel-cabecalho">' + this.escapeHtml(textoCabecalho) + "</div>";
 
     return (
       "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\" />" +
       "<title>" +
-      this.escapeHtml(this.TITULO_CAMPANHA) +
+      this.escapeHtml(textoCabecalho) +
       "</title>" +
       this.estilos(meta) +
       "</head><body class=\"" +
       this.escapeHtml(bodyClass) +
       "\">" +
-      '<header class="rel-cabecalho">' +
-      this.escapeHtml(this.TITULO_CAMPANHA) +
-      "</header>" +
-      '<div class="rel-conteudo">' +
-      conteudoBody +
-      "</div>" +
-      '<footer class="rel-rodape">' +
-      this.escapeHtml(this.textoRodapeRelatorio(titulo, gerado, comSufixo)) +
-      "</footer>" +
+      this.htmlEnvelopeImpressao(cabecalho, conteudoBody) +
       "</body></html>"
     );
   },
@@ -655,8 +682,7 @@
   montarHtml(opcoes) {
     const meta = opcoes || {};
     const doc = meta.documento || document;
-    const titulo = meta.titulo || this.obterMetaPagina().titulo;
-    const gerado = this.formatarDataHoraRelatorio(new Date());
+    const metaRel = this.resolverMetaRelatorio(meta);
 
     const filtros = meta.filtros || this.coletarFiltros(doc);
     const cards = meta.cards || this.coletarCards(doc);
@@ -684,14 +710,14 @@
 
     if (!temCards && !todosBlocos.length && !extras) {
       return this.htmlDocumento(
-        { ...meta, titulo, gerado },
+        { ...meta, ...metaRel, documento: doc },
         '<p class="rel-vazio">nenhum dado disponível para impressão nesta página.</p>'
       );
     }
 
     return (
       this.htmlDocumento(
-        { ...meta, titulo, gerado },
+        { ...meta, ...metaRel, documento: doc },
         corpo + this.scriptImpressaoRelatorio()
       )
     );
@@ -700,23 +726,12 @@
   abrirJanelaRelatorio(html) {
     if (!html) return false;
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const janela = window.open(url, "_blank");
-    if (!janela) {
-      URL.revokeObjectURL(url);
-      return false;
-    }
+    const janela = window.open("", "_blank");
+    if (!janela) return false;
 
-    const liberar = () => {
-      try {
-        URL.revokeObjectURL(url);
-      } catch (e) {
-        /* ignorar */
-      }
-    };
-    janela.addEventListener("load", () => setTimeout(liberar, 1500));
-    setTimeout(liberar, 15000);
+    janela.document.open();
+    janela.document.write(html);
+    janela.document.close();
     return true;
   },
 

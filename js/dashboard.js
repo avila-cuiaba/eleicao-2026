@@ -336,6 +336,16 @@ function htmlPopoverDashboard(r) {
   );
 }
 
+function celulaValorComEdicao(linha, valor) {
+  return (
+    '<span class="dashboard-valor-celula-wrap">' +
+    MasterCrud.acoesLinha(linha, { somenteEditar: true }) +
+    '<span class="dashboard-valor-celula-num">' +
+    fmt.format(valor) +
+    "</span></span>"
+  );
+}
+
 function renderizarLinhaDashboard(r) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
@@ -350,14 +360,9 @@ function renderizarLinhaDashboard(r) {
       </span>
     </td>
     <td class="text-end dashboard-col-eleitores">${fmt.format(r.eleitores)}</td>
-    <td class="text-end dashboard-col-2022">${fmt.format(r.votos2022)}</td>
+    <td class="text-end dashboard-col-2022">${celulaValorComEdicao(r._linha, r.votos2022)}</td>
     <td class="text-end dashboard-col-minima">${fmt.format(r.minima)}</td>
-    <td class="text-end dashboard-col-ideal">
-      <span class="dashboard-valor-celula-wrap">
-        <span>${fmt.format(r.ideal)}</span>
-        ${MasterCrud.acoesLinha(r._linha, { somenteEditar: true })}
-      </span>
-    </td>
+    <td class="text-end dashboard-col-ideal">${fmt.format(r.ideal)}</td>
   </tr>`;
 }
 
@@ -469,6 +474,8 @@ function initDashboard() {
   if (el.modalEl) modalCrud = bootstrap.Modal.getOrCreateInstance(el.modalEl);
   el.btnSalvar?.addEventListener("click", salvarDashboardCrud);
   el.corpoTabela.addEventListener("click", aoClicarTabelaDashboard);
+
+  initPageSmTabs(alinharColunasTabela);
 
   window.addEventListener("resize", alinharColunasTabela);
   requestAnimationFrame(() => notificarAlturaFrame());

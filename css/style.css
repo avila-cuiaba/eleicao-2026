@@ -897,12 +897,14 @@ body.page-pagamentos-lideranca .orcamento-kpi-row-total .orcamento-kpi-card-tota
   color: #64748b;
 }
 
-body.page-pagamentos-lideranca .pag-lideranca-tabela .orcamento-tabela-stack-col {
-  display: none !important;
-}
-
 body.page-pagamentos-lideranca .pag-lideranca-tabela tfoot {
   display: table-row-group;
+}
+
+@media (min-width: 992px) {
+  body.page-pagamentos-lideranca .pag-lideranca-tabela .orcamento-tabela-stack-col {
+    display: none !important;
+  }
 }
 
 body.page-pagamentos-lideranca .pag-lideranca-celula-par {
@@ -1158,6 +1160,70 @@ body.page-pagamentos-lideranca .pag-lideranca-th-titulo--case {
   text-transform: none;
 }
 
+body.page-pagamentos-lideranca .pag-lideranca-tabela th .orcamento-estratificado-th-campo-linha {
+  width: 100%;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-tabela .apoiadores-col-separador {
+  border-left: 2px solid rgba(100, 116, 139, 0.5);
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-stack-linha .pag-lideranca-col-marcador {
+  width: 3px;
+  min-width: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-col-marcador--pessoal {
+  background: #16a34a;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-col-marcador--combustivel {
+  background: #ea580c;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-col-marcador--diversos {
+  background: #7c3aed;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-col-marcador--diad {
+  background: #dc2626;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-badges-ident {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.14rem;
+  margin-top: 0.1rem;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-badges-ident .orcamento-total-badge {
+  font-size: 0.6rem;
+  padding: 0.06rem 0.32rem;
+  line-height: 1.1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-badge-orc {
+  background: linear-gradient(155deg, #fef2f2 0%, #fee2e2 50%, #fecaca 100%);
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.22);
+  box-shadow: 0 2px 6px rgba(185, 28, 28, 0.1);
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-badge-pgto {
+  background: linear-gradient(155deg, #ecfeff 0%, #cffafe 50%, #a5f3fc 100%);
+  color: #155e75;
+  border-color: rgba(8, 145, 178, 0.22);
+  box-shadow: 0 2px 6px rgba(8, 145, 178, 0.1);
+}
+
+body.page-pagamentos-lideranca .apoiadores-ident-stack .pag-lideranca-badges-ident {
+  width: 100%;
+}
+
 body.page-pagamentos-lideranca .pag-lideranca-linha-total td {
   border-top: 2px solid rgba(148, 163, 184, 0.45);
   vertical-align: top;
@@ -1176,14 +1242,26 @@ body.page-pagamentos-lideranca .pag-lideranca-celula-par--total .pag-lideranca-c
   font-weight: 700;
 }
 
-body.page-pagamentos-lideranca .pag-lideranca-stack-kpi {
+body.page-pagamentos-lideranca .pag-lideranca-stack-linha {
   display: flex;
+  flex-direction: row;
+  align-items: stretch;
   justify-content: flex-end;
+  gap: 0.28rem;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
-body.page-pagamentos-lideranca .pag-lideranca-stack-kpi .pag-lideranca-celula-par {
-  width: 100%;
+body.page-pagamentos-lideranca .pag-lideranca-stack-linha--vazio {
+  display: block;
+  min-height: 1.25rem;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-stack-linha .pag-lideranca-celula-par {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: flex-end;
 }
 
 body.page-pagamentos-lideranca .pag-lideranca-popover-secao {
@@ -1895,63 +1973,23 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
     padding-bottom: 0.45rem;
   }
 
-  body.page-orcamento-pessoal-apoiadores.page-pagamentos-lideranca .pag-lideranca-tabela th.apoiadores-th-ident {
-    max-width: 138px !important;
-    width: 138px !important;
-    overflow: hidden;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela {
-    table-layout: fixed !important;
-    width: 586px !important;
-    max-width: 586px !important;
-    min-width: 586px !important;
-  }
-
-  body.page-pagamentos-lideranca .dashboard-tabela-head .pag-lideranca-tabela,
-  body.page-pagamentos-lideranca .dashboard-tabela-body-scroll .pag-lideranca-tabela {
-    width: 586px !important;
-    max-width: 586px !important;
-    min-width: 586px !important;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela .orcamento-tabela-stack-col {
-    display: none !important;
-    width: 0 !important;
-    max-width: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    overflow: hidden !important;
-    visibility: hidden !important;
-  }
-
   body.page-pagamentos-lideranca .pag-lideranca-tabela col.apoiadores-col-ident {
-    width: 138px !important;
+    width: 50% !important;
   }
 
-  body.page-pagamentos-lideranca .pag-lideranca-tabela col.pag-lideranca-col-par,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela col.orcamento-tabela-desktop-col.pag-lideranca-col-par {
-    width: 88px !important;
+  body.page-pagamentos-lideranca .pag-lideranca-tabela col.apoiadores-col-municipio,
+  body.page-pagamentos-lideranca .pag-lideranca-tabela col.pag-lideranca-col-par {
+    width: 0 !important;
   }
 
-  body.page-pagamentos-lideranca .pag-lideranca-tabela col.pag-lideranca-col-total,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela col.orcamento-tabela-desktop-col.pag-lideranca-col-total {
-    width: 96px !important;
+  body.page-pagamentos-lideranca .pag-lideranca-tabela col.apoiadores-col-orc-stack-pessoal,
+  body.page-pagamentos-lideranca .pag-lideranca-tabela col.apoiadores-col-orc-stack-diversos {
+    width: 25% !important;
   }
 
-  body.page-pagamentos-lideranca .dashboard-tabela-head {
-    overflow-x: auto;
-    overflow-y: hidden;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  body.page-pagamentos-lideranca .dashboard-tabela-head::-webkit-scrollbar {
-    display: none;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela th.apoiadores-col-municipio,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela td.apoiadores-col-municipio {
+  body.page-pagamentos-lideranca .pag-lideranca-tabela th.pag-lideranca-col-desk,
+  body.page-pagamentos-lideranca .pag-lideranca-tabela td.pag-lideranca-col-desk,
+  body.page-pagamentos-lideranca .pag-lideranca-tabela tfoot td.pag-lideranca-col-desk {
     width: 0 !important;
     max-width: 0 !important;
     min-width: 0 !important;
@@ -1961,101 +1999,49 @@ body.page-orcamento-geral .orcamento-geral-tabela-card .dashboard-tabela-panel {
     visibility: hidden !important;
     font-size: 0 !important;
     line-height: 0 !important;
-    white-space: nowrap;
   }
 
-  body.page-pagamentos-lideranca .pag-lideranca-tabela td.apoiadores-col-municipio > * {
+  body.page-pagamentos-lideranca .pag-lideranca-tabela th.pag-lideranca-col-desk > *,
+  body.page-pagamentos-lideranca .pag-lideranca-tabela td.pag-lideranca-col-desk > * {
     display: none !important;
   }
 
-  body.page-pagamentos-lideranca .pag-lideranca-tabela col.apoiadores-col-municipio {
-    width: 0 !important;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela th.apoiadores-col-ident,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela td.apoiadores-col-ident {
-    width: 138px !important;
-    max-width: 138px !important;
-    min-width: 138px !important;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela th.pag-lideranca-col-par,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela td.pag-lideranca-col-par {
-    width: 88px !important;
-    max-width: 88px !important;
-    min-width: 88px !important;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela th.pag-lideranca-col-total,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela td.pag-lideranca-col-total {
-    width: 96px !important;
-    max-width: 96px !important;
-    min-width: 96px !important;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela th.pag-lideranca-col-desk,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela td.pag-lideranca-col-desk,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela th.orcamento-tabela-desktop-col,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela td.orcamento-tabela-desktop-col,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela tfoot td.orcamento-tabela-desktop-col {
+  body.page-pagamentos-lideranca .pag-lideranca-tabela .orcamento-tabela-stack-col {
     display: table-cell !important;
     visibility: visible !important;
-    padding: 0.35rem 0.2rem !important;
-    overflow: hidden !important;
+    vertical-align: top;
+    padding: 0.4rem 0.25rem !important;
     font-size: 0.72rem !important;
     line-height: 1.15 !important;
+    overflow: hidden;
+  }
+
+  body.page-pagamentos-lideranca .pag-lideranca-tabela .orcamento-tabela-stack-head span {
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.15;
     white-space: nowrap;
-    vertical-align: top;
   }
 
-  body.page-pagamentos-lideranca .pag-lideranca-tabela th.orcamento-tabela-desktop-col > *,
-  body.page-pagamentos-lideranca .pag-lideranca-tabela td.orcamento-tabela-desktop-col > * {
-    visibility: visible !important;
-    font-size: inherit !important;
-    line-height: inherit !important;
+  body.page-pagamentos-lideranca .pag-lideranca-tabela .orcamento-tabela-stack-valores {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.32rem;
+    width: 100%;
+    min-width: 0;
   }
 
-  body.page-pagamentos-lideranca .pag-lideranca-tabela td.orcamento-tabela-desktop-col > .pag-lideranca-celula-par {
-    display: flex !important;
+  body.page-pagamentos-lideranca .apoiadores-sub-municipio {
+    display: block !important;
+    margin-top: 0;
+    font-size: 0.68rem;
+    color: #64748b;
+    line-height: 1.15;
   }
 
-  body.page-pagamentos-lideranca .pag-lideranca-tabela th.orcamento-tabela-desktop-col > .pag-lideranca-th-titulo {
-    display: inline-block !important;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela th.apoiadores-th-ident {
-    vertical-align: middle;
-    white-space: normal;
-    overflow: hidden;
-    max-width: 138px !important;
-    width: 138px !important;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela td.apoiadores-col-ident {
-    vertical-align: top;
-    overflow: hidden;
-    max-width: 138px !important;
-    width: 138px !important;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela .apoiadores-ident-nome {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela .orcamento-total-badge {
-    display: none !important;
-  }
-
-  body.page-pagamentos-lideranca .pag-lideranca-tabela th.pag-lideranca-th-titulo {
-    font-size: 0.64rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+  body.page-pagamentos-lideranca .apoiadores-th-sub-municipio {
+    display: block !important;
   }
 
   body.page-pagamentos-lideranca .pag-lideranca-celula-orc {
@@ -3288,9 +3274,14 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela th .orcamento
 }
 
 @media (max-width: 991.98px) {
-  body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela .apoiadores-th-sub-municipio,
-  body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela .apoiadores-sub-municipio {
+  body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela:not(.pag-lideranca-tabela) .apoiadores-th-sub-municipio,
+  body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela:not(.pag-lideranca-tabela) .apoiadores-sub-municipio {
     display: none !important;
+  }
+
+  body.page-orcamento-pessoal-apoiadores.page-pagamentos-lideranca .pag-lideranca-tabela .apoiadores-th-sub-municipio,
+  body.page-orcamento-pessoal-apoiadores.page-pagamentos-lideranca .pag-lideranca-tabela .apoiadores-sub-municipio {
+    display: block !important;
   }
 }
 
@@ -3798,8 +3789,16 @@ body.page-dashboard .page-frame-content {
 
 body.page-dashboard .dashboard-topo,
 body.page-dashboard .dashboard-kpis-wrap,
+body.page-dashboard .dashboard-sm-tabs,
 body.page-dashboard #status:not(.d-none) {
   flex-shrink: 0;
+}
+
+body.page-dashboard .dashboard-sm-layout {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 body.page-dashboard .dashboard-tabela-card {
@@ -5825,6 +5824,25 @@ button.lista-evento-acao:focus-visible {
   vertical-align: bottom;
 }
 
+/* Dashboard — coluna 2022: ícone à esquerda, valor à direita */
+body.page-dashboard .dashboard-tabela td.dashboard-col-2022 .dashboard-valor-celula-wrap {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 0.1rem;
+}
+
+body.page-dashboard .dashboard-tabela td.dashboard-col-2022 .crud-acoes-icones {
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+body.page-dashboard .dashboard-tabela td.dashboard-col-2022 .dashboard-valor-celula-num {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .dashboard-th-base,
 .dashboard-th-municipio-composto,
 th.dashboard-col-eleitores.dashboard-th-desktop-only {
@@ -6249,7 +6267,7 @@ th.dashboard-col-eleitores.dashboard-th-desktop-only {
   }
 
   body.page-dashboard .dashboard-tabela col.dashboard-col-municipio {
-    width: 46%;
+    width: 36%;
   }
 
   body.page-dashboard .dashboard-tabela col.dashboard-col-eleitores {
@@ -6259,7 +6277,7 @@ th.dashboard-col-eleitores.dashboard-th-desktop-only {
   body.page-dashboard .dashboard-tabela col.dashboard-col-2022,
   body.page-dashboard .dashboard-tabela col.dashboard-col-minima,
   body.page-dashboard .dashboard-tabela col.dashboard-col-ideal {
-    width: 18%;
+    width: 21.33%;
   }
 
   body.page-dashboard .dashboard-col-eleitores {
@@ -6274,11 +6292,6 @@ th.dashboard-col-eleitores.dashboard-th-desktop-only {
   body.page-dashboard .dashboard-tabela td.dashboard-col-minima,
   body.page-dashboard .dashboard-tabela td.dashboard-col-ideal {
     background: transparent;
-  }
-
-  body.page-dashboard .dashboard-tabela td.dashboard-col-ideal .dashboard-valor-celula-wrap {
-    width: 100%;
-    justify-content: flex-end;
   }
 }
 
@@ -7682,6 +7695,179 @@ body.page-pessoal .dashboard-tabela-panel {
   color: var(--brand, #1f4e8c);
   background: transparent;
   border-bottom-color: var(--brand, #1f4e8c);
+}
+
+/* Abas marcadores/registros em telas menores */
+.dashboard-sm-tabs {
+  border-bottom: 1px solid #e2e8f0;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+}
+
+.dashboard-sm-tabs .nav-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0.45rem 0.85rem;
+  margin-bottom: -1px;
+  text-transform: lowercase;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.dashboard-sm-tabs .nav-link:hover {
+  color: var(--brand, #1f4e8c);
+  border-bottom-color: rgba(31, 78, 140, 0.25);
+  isolation: isolate;
+}
+
+.dashboard-sm-tabs .nav-link.active {
+  color: var(--brand, #1f4e8c);
+  background: transparent;
+  border-bottom-color: var(--brand, #1f4e8c);
+}
+
+body.page-dashboard .dashboard-sm-tabs,
+body.page-pessoal .dashboard-sm-tabs,
+body.page-apoiadores .dashboard-sm-tabs,
+body.page-parcerias .dashboard-sm-tabs,
+body.page-orcamento .dashboard-sm-tabs,
+body.page-orcamento-geral .dashboard-sm-tabs,
+body.page-pagamentos-geral .dashboard-sm-tabs,
+body.page-pagamentos-lideranca .dashboard-sm-tabs {
+  flex-shrink: 0;
+}
+
+body.page-dashboard .dashboard-sm-layout,
+body.page-pessoal .dashboard-sm-layout,
+body.page-apoiadores .dashboard-sm-layout,
+body.page-parcerias .dashboard-sm-layout,
+body.page-orcamento .dashboard-sm-layout,
+body.page-orcamento-geral .dashboard-sm-layout,
+body.page-pagamentos-geral .dashboard-sm-layout,
+body.page-pagamentos-lideranca .dashboard-sm-layout {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+@media (min-width: 992px) {
+  body.page-dashboard .dashboard-sm-layout > .dashboard-sm-pane,
+  body.page-pessoal .dashboard-sm-layout > .dashboard-sm-pane,
+  body.page-apoiadores .dashboard-sm-layout > .dashboard-sm-pane,
+  body.page-parcerias .dashboard-sm-layout > .dashboard-sm-pane,
+  body.page-orcamento .dashboard-sm-layout > .dashboard-sm-pane,
+  body.page-orcamento-geral .dashboard-sm-layout > .dashboard-sm-pane,
+  body.page-pagamentos-geral .dashboard-sm-layout > .dashboard-sm-pane,
+  body.page-pagamentos-lideranca .dashboard-sm-layout > .dashboard-sm-pane {
+    display: flex !important;
+    flex-direction: column;
+    opacity: 1 !important;
+    min-height: 0;
+  }
+
+  body.page-dashboard .dashboard-sm-layout > .dashboard-sm-pane.fade:not(.show),
+  body.page-pessoal .dashboard-sm-layout > .dashboard-sm-pane.fade:not(.show),
+  body.page-apoiadores .dashboard-sm-layout > .dashboard-sm-pane.fade:not(.show),
+  body.page-parcerias .dashboard-sm-layout > .dashboard-sm-pane.fade:not(.show),
+  body.page-orcamento .dashboard-sm-layout > .dashboard-sm-pane.fade:not(.show),
+  body.page-orcamento-geral .dashboard-sm-layout > .dashboard-sm-pane.fade:not(.show),
+  body.page-pagamentos-geral .dashboard-sm-layout > .dashboard-sm-pane.fade:not(.show),
+  body.page-pagamentos-lideranca .dashboard-sm-layout > .dashboard-sm-pane.fade:not(.show) {
+    opacity: 1 !important;
+  }
+
+  #pagePainelMarcadores {
+    flex-shrink: 0;
+  }
+
+  #pagePainelRegistros {
+    flex: 1 1 0%;
+  }
+}
+
+@media (max-width: 991.98px) {
+  body.page-dashboard .dashboard-sm-layout,
+  body.page-pessoal .dashboard-sm-layout,
+  body.page-apoiadores .dashboard-sm-layout,
+  body.page-parcerias .dashboard-sm-layout,
+  body.page-orcamento .dashboard-sm-layout,
+  body.page-orcamento-geral .dashboard-sm-layout,
+  body.page-pagamentos-geral .dashboard-sm-layout,
+  body.page-pagamentos-lideranca .dashboard-sm-layout {
+    overflow: hidden;
+  }
+
+  body.page-dashboard .dashboard-sm-layout > .tab-pane,
+  body.page-pessoal .dashboard-sm-layout > .tab-pane,
+  body.page-apoiadores .dashboard-sm-layout > .tab-pane,
+  body.page-parcerias .dashboard-sm-layout > .tab-pane,
+  body.page-orcamento .dashboard-sm-layout > .tab-pane,
+  body.page-orcamento-geral .dashboard-sm-layout > .tab-pane,
+  body.page-pagamentos-geral .dashboard-sm-layout > .tab-pane,
+  body.page-pagamentos-lideranca .dashboard-sm-layout > .tab-pane {
+    height: 100%;
+    min-height: 0;
+  }
+
+  body.page-dashboard .dashboard-sm-layout > .tab-pane.active,
+  body.page-pessoal .dashboard-sm-layout > .tab-pane.active,
+  body.page-apoiadores .dashboard-sm-layout > .tab-pane.active,
+  body.page-parcerias .dashboard-sm-layout > .tab-pane.active,
+  body.page-orcamento .dashboard-sm-layout > .tab-pane.active,
+  body.page-orcamento-geral .dashboard-sm-layout > .tab-pane.active,
+  body.page-pagamentos-geral .dashboard-sm-layout > .tab-pane.active,
+  body.page-pagamentos-lideranca .dashboard-sm-layout > .tab-pane.active {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #pagePainelMarcadores.active {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #pagePainelMarcadores .dashboard-kpis-wrap,
+  #pagePainelMarcadores .orcamento-geral-topo {
+    margin-bottom: 0;
+  }
+
+  #pagePainelRegistros.active {
+    overflow: hidden;
+  }
+
+  #pagePainelRegistros .dashboard-tabela-card,
+  #pagePainelRegistros .apoiadores-tabela-card,
+  #pagePainelRegistros .orcamento-geral-tabela-card,
+  #pagePainelRegistros .parcerias-tabela-card,
+  #pagePainelRegistros .orcamento-tabela-card {
+    flex: 1 1 0%;
+    min-height: 0;
+    margin-bottom: 0;
+  }
+}
+
+@media (min-width: 576px) and (max-width: 991.98px) {
+  body.page-dashboard .dashboard-tabela col.dashboard-col-municipio {
+    width: 22%;
+  }
+
+  body.page-dashboard .dashboard-tabela col.dashboard-col-eleitores {
+    width: 10%;
+  }
+
+  body.page-dashboard .dashboard-tabela col.dashboard-col-2022 {
+    width: 20%;
+  }
+
+  body.page-dashboard .dashboard-tabela col.dashboard-col-minima,
+  body.page-dashboard .dashboard-tabela col.dashboard-col-ideal {
+    width: 24%;
+  }
 }
 
 .entregas-por-ano-card {

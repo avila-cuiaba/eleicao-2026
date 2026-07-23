@@ -584,6 +584,11 @@ function initOrcamentoGeral() {
   };
   if (!el.corpo) return;
 
+  initPageSmTabs(() => {
+    alinharColunasTabela();
+    chartComparativo?.resize();
+  });
+
   window.addEventListener("resize", () => {
     alinharColunasTabela();
     chartComparativo?.resize();

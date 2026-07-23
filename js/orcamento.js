@@ -640,6 +640,7 @@ function initOrcamento() {
   if (!el.corpo || !el.filtroRegioes) return;
 
   el.buscaMunicipio?.addEventListener("input", renderizarTabela);
+  initPageSmTabs(alinharColunasTabela);
   window.addEventListener("resize", alinharColunasTabela);
   alinharColunasTabela();
   carregarOrcamento();

@@ -11,6 +11,17 @@
   <div class="page-frame-content">
     <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
 
+    <ul class="nav nav-tabs dashboard-sm-tabs d-lg-none" id="pageSmTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pageTabMarcadores" data-bs-toggle="tab" data-bs-target="#pagePainelMarcadores" type="button" role="tab" aria-controls="pagePainelMarcadores" aria-selected="true">marcadores</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pageTabRegistros" data-bs-toggle="tab" data-bs-target="#pagePainelRegistros" type="button" role="tab" aria-controls="pagePainelRegistros" aria-selected="false">registros</button>
+      </li>
+    </ul>
+
+    <div class="tab-content dashboard-sm-layout" id="pageSmTabContent">
+      <div class="tab-pane fade show active dashboard-sm-pane" id="pagePainelMarcadores" role="tabpanel" aria-labelledby="pageTabMarcadores" tabindex="0">
     <div class="card shadow-sm border-0 mb-3 dashboard-kpis-wrap apoiadores-kpi-wrap">
       <div class="card-body py-3">
         <div class="row g-2 g-sm-3 align-items-start apoiadores-micro-row">
@@ -143,7 +154,9 @@
         </div>
       </div>
     </div>
+      </div>
 
+      <div class="tab-pane fade dashboard-sm-pane" id="pagePainelRegistros" role="tabpanel" aria-labelledby="pageTabRegistros" tabindex="0">
     <div class="card shadow-sm border-0 dashboard-tabela-card apoiadores-tabela-card">
       <div class="card-body p-0 dashboard-tabela-panel">
         <div class="dashboard-tabela-head table-light">
@@ -155,7 +168,8 @@
               <col class="pag-lideranca-col-par" />
               <col class="pag-lideranca-col-par" />
               <col class="pag-lideranca-col-par" />
-              <col class="pag-lideranca-col-total" />
+              <col class="apoiadores-col-orc-stack-pessoal" />
+              <col class="apoiadores-col-orc-stack-diversos" />
             </colgroup>
             <thead>
               <tr>
@@ -193,19 +207,40 @@
                   <span class="apoiadores-th-desktop">município</span>
                 </th>
                 <th scope="col" class="text-end pag-lideranca-col-par pag-lideranca-col-desk apoiadores-col-separador orcamento-tabela-desktop-col">
-                  <span class="pag-lideranca-th-titulo">pessoal</span>
+                  <span class="orcamento-estratificado-th-campo-linha">
+                    <span class="pag-lideranca-th-titulo">pessoal</span>
+                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--pessoal" aria-hidden="true"></span>
+                  </span>
                 </th>
                 <th scope="col" class="text-end pag-lideranca-col-par pag-lideranca-col-desk orcamento-tabela-desktop-col">
-                  <span class="pag-lideranca-th-titulo">combustível</span>
+                  <span class="orcamento-estratificado-th-campo-linha">
+                    <span class="pag-lideranca-th-titulo">combustível</span>
+                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--combustivel" aria-hidden="true"></span>
+                  </span>
                 </th>
                 <th scope="col" class="text-end pag-lideranca-col-par pag-lideranca-col-desk orcamento-tabela-desktop-col">
-                  <span class="pag-lideranca-th-titulo">diversos</span>
+                  <span class="orcamento-estratificado-th-campo-linha">
+                    <span class="pag-lideranca-th-titulo">diversos</span>
+                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--diversos" aria-hidden="true"></span>
+                  </span>
                 </th>
                 <th scope="col" class="text-end pag-lideranca-col-par pag-lideranca-col-desk orcamento-tabela-desktop-col">
-                  <span class="pag-lideranca-th-titulo pag-lideranca-th-titulo--case">dia D</span>
+                  <span class="orcamento-estratificado-th-campo-linha">
+                    <span class="pag-lideranca-th-titulo pag-lideranca-th-titulo--case">dia D</span>
+                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--diad" aria-hidden="true"></span>
+                  </span>
                 </th>
-                <th scope="col" class="text-end pag-lideranca-col-total pag-lideranca-col-desk orcamento-tabela-desktop-col">
-                  <span class="pag-lideranca-th-titulo">total</span>
+                <th scope="col" class="text-end apoiadores-col-orc-stack-pessoal orcamento-tabela-stack-col apoiadores-col-separador">
+                  <div class="orcamento-tabela-stack-head" aria-hidden="true">
+                    <span>pessoal</span>
+                    <span>combustível</span>
+                  </div>
+                </th>
+                <th scope="col" class="text-end apoiadores-col-orc-stack-diversos orcamento-tabela-stack-col">
+                  <div class="orcamento-tabela-stack-head" aria-hidden="true">
+                    <span>diversos</span>
+                    <span class="orcamento-th-diad">dia D</span>
+                  </div>
                 </th>
               </tr>
             </thead>
@@ -220,11 +255,12 @@
               <col class="pag-lideranca-col-par" />
               <col class="pag-lideranca-col-par" />
               <col class="pag-lideranca-col-par" />
-              <col class="pag-lideranca-col-total" />
+              <col class="apoiadores-col-orc-stack-pessoal" />
+              <col class="apoiadores-col-orc-stack-diversos" />
             </colgroup>
             <tbody id="corpoApoiadores">
               <tr>
-                <td colspan="7" class="text-center text-secondary py-4">Carregando...</td>
+                <td colspan="8" class="text-center text-secondary py-4">Carregando...</td>
               </tr>
             </tbody>
             <tfoot id="rodapePagamentosLideranca" class="table-light fw-semibold"></tfoot>
@@ -233,6 +269,8 @@
         <p id="vazio" class="text-secondary text-center py-4 mb-0" hidden>
           Nenhum registro encontrado.
         </p>
+      </div>
+    </div>
       </div>
     </div>
 

@@ -407,9 +407,14 @@ function htmlRegionalImpressao(reg, polos) {
 function estilosRelatorioImpressao() {
   const base =
     "body{font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;margin:1.2rem;font-size:11pt;line-height:1.4;}" +
-    ".rel-cabecalho{font-size:11pt;font-weight:600;color:#1f4e8c;margin:0 0 1rem;padding-bottom:0.35rem;border-bottom:1px solid #e2e8f0;}" +
-    ".rel-conteudo{padding-bottom:1.6rem;}" +
-    ".rel-rodape{position:fixed;left:0;right:0;bottom:0;padding:0.3rem 1.2rem;font-size:8pt;color:#64748b;background:#fff;}" +
+    "table.rel-print-shell{width:100%;border-collapse:collapse;border-spacing:0;}" +
+    "table.rel-print-shell thead{display:table-header-group;}" +
+    "table.rel-print-shell tfoot{display:table-footer-group;}" +
+    "table.rel-print-shell tbody{display:table-row-group;}" +
+    "table.rel-print-shell td.rel-print-celula{border:0;padding:0;vertical-align:top;}" +
+    "table.rel-print-shell td.rel-print-celula-rodape{vertical-align:bottom;padding-top:0.45rem;}" +
+    ".rel-cabecalho{font-size:12pt;font-weight:600;color:#1f4e8c;margin:0 0 0.75rem;padding-bottom:0.35rem;border-bottom:1px solid #e2e8f0;line-height:1.25;}" +
+    ".rel-rodape{display:none!important;}" +
     "h1{font-size:16pt;margin:0 0 0.35rem;text-align:center;}" +
     ".mob-rel-gerado{display:none!important;}" +
     "table{border-collapse:collapse;width:100%;margin:0.5rem 0 1rem;font-size:9pt;}" +
@@ -442,7 +447,7 @@ function estilosRelatorioImpressao() {
     ".mob-rel-polo li{margin:0.15rem 0;}" +
     ".mob-rel-votos{color:#4338ca;font-weight:600;}" +
     ".mob-rel-resp{margin:0.25rem 0 0;font-size:9pt;color:#64748b;}" +
-    "@media print{body{margin:0.8cm 0.8cm 1.35cm;} .rel-rodape{position:fixed;left:0;right:0;bottom:0;padding:0.25rem 0.8cm;} .mob-rel-regional{page-break-inside:avoid;}}";
+    "@media print{body{margin:0.8cm 0.8cm 0.45cm;} .mob-rel-regional{page-break-inside:avoid;}}";
   return "<style>" + base + "</style>";
 }
 
@@ -570,35 +575,38 @@ function montarHtmlRelatorio() {
   const registros = perspectivaRegistros;
   const titulo = cfgResumo.TITULO || "Cuiabá / Várzea Grande";
   const Rel = window.Relatorio;
-  const gerado = Rel?.formatarDataHoraRelatorio
-    ? Rel.formatarDataHoraRelatorio(new Date())
-    : new Date().toLocaleString("pt-BR");
-  const campanha = Rel?.TITULO_CAMPANHA || "Eleição 2026 · deputado estadual Dr. Eugênio";
-  const tituloRodape = Rel?.textoRodapeRelatorio
-    ? Rel.textoRodapeRelatorio("mobilização — " + titulo, gerado)
-    : "mobilização — " + titulo + " — relatório (" + gerado + ")";
+  const metaPagina = Rel?.resolverMetaRelatorio ? Rel.resolverMetaRelatorio() : { titulo: titulo, subtitulo: "estrutura — visão hierárquica" };
+  const textoCabecalho = Rel?.textoCabecalhoRelatorio
+    ? Rel.textoCabecalhoRelatorio(metaPagina)
+    : String(titulo).toLowerCase();
   const detalhes = regionais.map((reg) => htmlRegionalImpressao(reg, porRegional.get(reg) || [])).join("");
 
-  return (
-    "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\" />" +
-    "<title>" +
-    MobComum.escapeHtml(campanha) +
-    "</title>" +
-    estilosRelatorioImpressao() +
-    "</head><body>" +
-    '<header class="rel-cabecalho">' +
-    MobComum.escapeHtml(campanha) +
-    "</header>" +
-    '<div class="rel-conteudo">' +
+  const conteudo =
     "<h2>origem do voto por localidade</h2>" +
     htmlTabelaResumoImpressao(regionais, porRegional, registros) +
     htmlBlocoSegmentoImpressao(registros) +
     "<h2>estrutura por regional</h2>" +
-    (detalhes || "<p>nenhum local com registro.</p>") +
-    "</div>" +
-    '<footer class="rel-rodape">' +
-    MobComum.escapeHtml(tituloRodape) +
-    "</footer>" +
+    (detalhes || "<p>nenhum local com registro.</p>");
+
+  const envelope = Rel?.htmlEnvelopeImpressao
+    ? Rel.htmlEnvelopeImpressao(
+        '<div class="rel-cabecalho">' + MobComum.escapeHtml(textoCabecalho) + "</div>",
+        conteudo
+      )
+    :
+        '<div class="rel-cabecalho">' +
+        MobComum.escapeHtml(textoCabecalho) +
+        "</div>" +
+        conteudo;
+
+  return (
+    "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\" />" +
+    "<title>" +
+    MobComum.escapeHtml(textoCabecalho) +
+    "</title>" +
+    estilosRelatorioImpressao() +
+    "</head><body>" +
+    envelope +
     (window.Relatorio && typeof Relatorio.scriptImpressaoRelatorio === "function"
       ? Relatorio.scriptImpressaoRelatorio()
       : '<script>(function(){function fechar(){try{window.close();}catch(e){}}window.addEventListener("afterprint",fechar);window.addEventListener("load",function(){window.focus();window.print();});})();</script>') +

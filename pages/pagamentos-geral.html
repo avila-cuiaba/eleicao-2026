@@ -11,6 +11,17 @@
   <div class="page-frame-content">
     <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
 
+    <ul class="nav nav-tabs dashboard-sm-tabs d-lg-none" id="pageSmTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pageTabMarcadores" data-bs-toggle="tab" data-bs-target="#pagePainelMarcadores" type="button" role="tab" aria-controls="pagePainelMarcadores" aria-selected="true">marcadores</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pageTabRegistros" data-bs-toggle="tab" data-bs-target="#pagePainelRegistros" type="button" role="tab" aria-controls="pagePainelRegistros" aria-selected="false">registros</button>
+      </li>
+    </ul>
+
+    <div class="tab-content dashboard-sm-layout" id="pageSmTabContent">
+      <div class="tab-pane fade show active dashboard-sm-pane" id="pagePainelMarcadores" role="tabpanel" aria-labelledby="pageTabMarcadores" tabindex="0">
     <div class="row g-2 g-sm-3 mb-3 orcamento-geral-topo">
       <div class="col-12 col-md-6">
         <div class="orcamento-kpi-layout orcamento-geral-kpi-layout">
@@ -75,7 +86,9 @@
         </div>
       </div>
     </div>
+      </div>
 
+      <div class="tab-pane fade dashboard-sm-pane" id="pagePainelRegistros" role="tabpanel" aria-labelledby="pageTabRegistros" tabindex="0">
     <div class="card shadow-sm border-0 dashboard-tabela-card orcamento-geral-tabela-card">
       <div class="card-body p-0 dashboard-tabela-panel">
         <div class="dashboard-tabela-head table-light">
@@ -121,6 +134,8 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
       </div>
     </div>
 

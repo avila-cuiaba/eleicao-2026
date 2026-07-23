@@ -8,7 +8,7 @@ const cfg = CONFIG.PAGAMENTOS_LIDERANCA;
 const cfgPessoal = CONFIG.PESSOAL;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
 const COLUNAS_EDITAVEIS = new Set(cfg.COLUNAS_EDITAVEIS || []);
-const COLS_TABELA = 7;
+const COLS_TABELA = 8;
 
 const CAMPOS_IDENT = [
   { prop: "lideranca", chave: "LIDERANCA", aliases: ["lideranca", "liderança"] },
@@ -929,6 +929,12 @@ function htmlCelulaPar(r, par, { destaque = false } = {}) {
   );
 }
 
+function classeCelulaParDesktop(idx) {
+  const base =
+    "text-end pag-lideranca-col-par pag-lideranca-col-desk apoiadores-celula-num orcamento-tabela-desktop-col";
+  return idx === 0 ? base + " apoiadores-col-separador" : base;
+}
+
 const PAR_COLUNA_TOTAL = { propOrc: "colunaTotalOrc", propPgto: "colunaTotalPgto" };
 
 function calcularTotaisColuna(r) {
@@ -950,42 +956,78 @@ function htmlCelulaColunaTotal(r, { destaque = false } = {}) {
   return htmlCelulaPar(objetoColunaTotal(r), PAR_COLUNA_TOTAL, { destaque });
 }
 
-function badgeFinTotalHtml(r) {
-  const total = parseNumero(r.finTotal);
-  if (total <= 0) return "";
-  return `<span class="orcamento-total-badge">${fmtMoeda.format(total)}</span>`;
+function classeMarcadorStack(kpi) {
+  if (kpi === "diaD") return "diad";
+  return kpi;
+}
+
+function valorCampoStackKpi(par, r, { destaque = false } = {}) {
+  const html = htmlCelulaPar(r, par, { destaque });
+  if (!html) {
+    return '<span class="pag-lideranca-stack-linha pag-lideranca-stack-linha--vazio"></span>';
+  }
+  const marcador = classeMarcadorStack(par.kpi);
+  return (
+    '<span class="pag-lideranca-stack-linha pag-lideranca-stack-linha--' +
+    marcador +
+    '">' +
+    html +
+    '<span class="pag-lideranca-col-marcador pag-lideranca-col-marcador--' +
+    marcador +
+    '" aria-hidden="true"></span>' +
+    "</span>"
+  );
+}
+
+function montarStackPessoal(r, { destaque = false } = {}) {
+  return (
+    valorCampoStackKpi(CAMPOS_KPI[0], r, { destaque }) +
+    valorCampoStackKpi(CAMPOS_KPI[1], r, { destaque })
+  );
+}
+
+function montarStackDiversos(r, { destaque = false } = {}) {
+  return (
+    valorCampoStackKpi(CAMPOS_KPI[2], r, { destaque }) +
+    valorCampoStackKpi(CAMPOS_KPI[3], r, { destaque })
+  );
+}
+
+function badgesTotaisIdentHtml(r, { destaque = false } = {}) {
+  const { orc, pgto } = calcularTotaisColuna(r);
+  const badges = [];
+  if (orc > 0 || destaque) {
+    badges.push(
+      `<span class="orcamento-total-badge pag-lideranca-badge-orc">${fmtMoeda.format(orc)}</span>`
+    );
+  }
+  if (pgto > 0 || destaque) {
+    badges.push(
+      `<span class="orcamento-total-badge pag-lideranca-badge-pgto">${fmtMoeda.format(pgto)}</span>`
+    );
+  }
+  if (!badges.length) return "";
+  return `<span class="pag-lideranca-badges-ident">${badges.join("")}</span>`;
 }
 
 function largurasColunas() {
   const mobile = window.matchMedia("(max-width: 991.98px)").matches;
   if (mobile) {
     return {
-      "apoiadores-col-ident": "138px",
+      "apoiadores-col-ident": "50%",
       "apoiadores-col-municipio": "0",
-      "pag-lideranca-col-par": "88px",
-      "pag-lideranca-col-total": "96px",
+      "pag-lideranca-col-par": "0",
+      "apoiadores-col-orc-stack-pessoal": "25%",
+      "apoiadores-col-orc-stack-diversos": "25%",
     };
   }
   return {
-    "apoiadores-col-ident": "24%",
+    "apoiadores-col-ident": "22%",
     "apoiadores-col-municipio": "18%",
-    "pag-lideranca-col-par": "10%",
-    "pag-lideranca-col-total": "18%",
+    "pag-lideranca-col-par": "15%",
+    "apoiadores-col-orc-stack-pessoal": "0",
+    "apoiadores-col-orc-stack-diversos": "0",
   };
-}
-
-const LARGURA_MINIMA_TABELA_MOBILE = 138 + 88 * 4 + 96;
-
-function vincularScrollCabecalhoTabela() {
-  if (el.scrollCabecalhoVinculado) return;
-  const panel = document.querySelector(".apoiadores-tabela-card .dashboard-tabela-panel");
-  const headWrap = panel?.querySelector(".dashboard-tabela-head");
-  const bodyScroll = panel?.querySelector(".dashboard-tabela-body-scroll");
-  if (!headWrap || !bodyScroll) return;
-  bodyScroll.addEventListener("scroll", () => {
-    headWrap.scrollLeft = bodyScroll.scrollLeft;
-  });
-  el.scrollCabecalhoVinculado = true;
 }
 
 function sincronizarLargurasColunas(headTable, bodyTable) {
@@ -996,11 +1038,8 @@ function sincronizarLargurasColunas(headTable, bodyTable) {
       const cls = Array.from(col.classList).find(
         (c) => c.startsWith("apoiadores-col-") || c.startsWith("pag-lideranca-col-")
       );
-      if (!cls) return;
-      if (mobile && larguras[cls] != null) {
-        col.style.setProperty("width", larguras[cls], "important");
-      } else if (!mobile) {
-        col.style.width = larguras[cls] != null ? larguras[cls] : "";
+      if (mobile && cls && larguras[cls] != null) {
+        col.style.width = larguras[cls];
       } else {
         col.style.width = "";
       }
@@ -1016,26 +1055,16 @@ function alinharColunasTabela() {
   const bodyTable = bodyScroll?.querySelector("table");
   if (!panel || !headWrap || !bodyScroll || !headTable || !bodyTable) return;
 
-  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
-  if (mobile) {
-    const largura = LARGURA_MINIMA_TABELA_MOBILE;
-    headTable.style.setProperty("width", largura + "px", "important");
-    bodyTable.style.setProperty("width", largura + "px", "important");
-    headTable.style.minWidth = largura + "px";
-    bodyTable.style.minWidth = largura + "px";
-    headWrap.style.paddingRight = "0px";
-    vincularScrollCabecalhoTabela();
-  } else {
-    const largura = bodyScroll.clientWidth;
-    headTable.style.removeProperty("width");
-    bodyTable.style.removeProperty("width");
-    headTable.style.width = largura + "px";
-    bodyTable.style.width = largura + "px";
-    headTable.style.minWidth = "";
-    bodyTable.style.minWidth = "";
-    const barra = bodyScroll.offsetWidth - bodyScroll.clientWidth;
-    headWrap.style.paddingRight = barra > 0 ? barra + "px" : "0px";
-  }
+  const largura = bodyScroll.clientWidth;
+  headTable.style.removeProperty("width");
+  bodyTable.style.removeProperty("width");
+  headTable.style.width = largura + "px";
+  bodyTable.style.width = largura + "px";
+  headTable.style.minWidth = "";
+  bodyTable.style.minWidth = "";
+
+  const barra = bodyScroll.offsetWidth - bodyScroll.clientWidth;
+  headWrap.style.paddingRight = barra > 0 ? barra + "px" : "0px";
 
   sincronizarLargurasColunas(headTable, bodyTable);
 }
@@ -1105,18 +1134,28 @@ function montarTotaisKpi(filtradas) {
 
 function renderizarRodapeTabela(filtradas) {
   const total = montarTotaisKpi(filtradas);
-  const cols = CAMPOS_KPI.map((campo) => {
-    return `<td class="text-end pag-lideranca-col-par pag-lideranca-col-desk apoiadores-celula-num orcamento-tabela-desktop-col">${htmlCelulaPar(total, campo, { destaque: true })}</td>`;
+  const cols = CAMPOS_KPI.map((campo, idx) => {
+    return `<td class="${classeCelulaParDesktop(idx)}">${htmlCelulaPar(total, campo, { destaque: true })}</td>`;
   }).join("");
-  const colTotal = `<td class="text-end pag-lideranca-col-total pag-lideranca-col-desk apoiadores-celula-num orcamento-tabela-desktop-col">${htmlCelulaColunaTotal(total, { destaque: true })}</td>`;
+  const stackPessoal = montarStackPessoal(total, { destaque: true });
+  const stackDiversos = montarStackDiversos(total, { destaque: true });
+  const badges = badgesTotaisIdentHtml(total, { destaque: true });
 
   return `<tr class="pag-lideranca-linha-total">
     <td class="apoiadores-col-ident">
-      <span class="pag-lideranca-total-rotulo">total</span>
+      <span class="apoiadores-ident-stack">
+        <span class="pag-lideranca-total-rotulo">total</span>
+        ${badges}
+      </span>
     </td>
     <td class="apoiadores-col-municipio"></td>
     ${cols}
-    ${colTotal}
+    <td class="text-end apoiadores-col-orc-stack-pessoal orcamento-tabela-stack-col apoiadores-col-separador">
+      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackPessoal}</div>
+    </td>
+    <td class="text-end apoiadores-col-orc-stack-diversos orcamento-tabela-stack-col">
+      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackDiversos}</div>
+    </td>
   </tr>`;
 }
 
@@ -1135,16 +1174,17 @@ function renderizarLinha(r) {
   const municipioHtml = escapeHtml(r.municipio);
   const liderancaHtml = exibirTexto(r.lideranca);
   const acoesMaster = MasterCrud.acoesLinha(r._linha);
-  const finBadge = badgeFinTotalHtml(r);
+  const badgesIdent = badgesTotaisIdentHtml(r);
   const municipioMobile = r.municipio
     ? `<span class="apoiadores-sub-municipio">${municipioHtml}</span>`
     : "";
 
   const colsPares = CAMPOS_KPI.map(
-    (par) =>
-      `<td class="text-end pag-lideranca-col-par pag-lideranca-col-desk apoiadores-celula-num orcamento-tabela-desktop-col">${htmlCelulaPar(r, par)}</td>`
+    (par, idx) =>
+      `<td class="${classeCelulaParDesktop(idx)}">${htmlCelulaPar(r, par)}</td>`
   ).join("");
-  const colTotal = `<td class="text-end pag-lideranca-col-total pag-lideranca-col-desk apoiadores-celula-num orcamento-tabela-desktop-col">${htmlCelulaColunaTotal(r)}</td>`;
+  const stackPessoal = montarStackPessoal(r);
+  const stackDiversos = montarStackDiversos(r);
 
   return `<tr class="apoiadores-linha-popover" tabindex="0" aria-label="detalhes dos pagamentos">
     <td class="apoiadores-col-ident">
@@ -1152,7 +1192,7 @@ function renderizarLinha(r) {
         <span class="apoiadores-celula-texto-wrap">
           <span class="apoiadores-ident-stack">
             <span class="apoiadores-ident-nome">${liderancaHtml}</span>
-            ${finBadge}
+            ${badgesIdent}
           </span>
           ${acoesMaster}
         </span>
@@ -1165,7 +1205,7 @@ function renderizarLinha(r) {
               <span class="apoiadores-ident-stack">
                 <span class="apoiadores-ident-nome">${liderancaHtml || "—"}</span>
                 ${municipioMobile}
-                ${finBadge}
+                ${badgesIdent}
               </span>
               ${acoesMaster}
             </span>
@@ -1182,7 +1222,12 @@ function renderizarLinha(r) {
       </span>
     </td>
     ${colsPares}
-    ${colTotal}
+    <td class="text-end apoiadores-col-orc-stack-pessoal orcamento-tabela-stack-col apoiadores-col-separador">
+      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackPessoal}</div>
+    </td>
+    <td class="text-end apoiadores-col-orc-stack-diversos orcamento-tabela-stack-col">
+      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackDiversos}</div>
+    </td>
   </tr>`;
 }
 
@@ -1349,10 +1394,6 @@ function ajustarTabelaRelatorioPagina(table) {
     cel.className = "text-end pag-lideranca-col-par apoiadores-celula-num";
   });
 
-  table.querySelectorAll("th.pag-lideranca-col-total, td.pag-lideranca-col-total").forEach((cel) => {
-    cel.className = "text-end pag-lideranca-col-total apoiadores-celula-num";
-  });
-
   const tfoot = table.querySelector("tfoot");
   const tbody = table.querySelector("tbody");
   if (tfoot && tbody) {
@@ -1415,9 +1456,7 @@ function estilosRelatorioPagina() {
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.apoiadores-col-municipio," +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.apoiadores-col-municipio{text-align:left;vertical-align:middle;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-par," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-par{width:10%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-total," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-total{width:12%;text-align:right;padding:0.4rem 0.5rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-par{width:15%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-th-titulo{display:inline-block;font-size:7pt;font-weight:700;color:#475569;text-transform:lowercase;line-height:1.2;white-space:nowrap;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-th-titulo--case{text-transform:none;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par{display:flex;flex-direction:column;align-items:flex-end;gap:0.1rem;line-height:1.15;}" +
@@ -1495,6 +1534,7 @@ function initPagamentosLideranca() {
   el.btnSalvar?.addEventListener("click", salvarCrud);
   el.corpo.addEventListener("click", aoClicarTabela);
   el.buscaLideranca?.addEventListener("input", renderizarTabela);
+  initPageSmTabs(alinharColunasTabela);
   window.addEventListener("resize", alinharColunasTabela);
   carregarDados();
 }

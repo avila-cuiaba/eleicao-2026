@@ -491,6 +491,7 @@ function initPessoal() {
   };
   if (!el.corpoTabela) return;
 
+  initPageSmTabs(alinharColunasTabela);
   window.addEventListener("resize", alinharColunasTabela);
   requestAnimationFrame(() => notificarAlturaFrame());
   carregarPessoal();

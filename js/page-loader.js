@@ -105,6 +105,21 @@ function notificarAlturaFrame() {
 
 window.notificarAlturaFrame = notificarAlturaFrame;
 
+function initPageSmTabs(aoMostrarAba) {
+  const tabs = document.getElementById("pageSmTabs");
+  if (!tabs) return;
+  tabs.querySelectorAll('button[data-bs-toggle="tab"]').forEach((btn) => {
+    btn.addEventListener("shown.bs.tab", () => {
+      requestAnimationFrame(() => {
+        if (typeof aoMostrarAba === "function") aoMostrarAba(btn);
+        notificarAlturaFrame();
+      });
+    });
+  });
+}
+
+window.initPageSmTabs = initPageSmTabs;
+
 function montarHtmlRelatorioNoIframe() {
   if (typeof window.obterHtmlRelatorioPagina === "function") {
     return window.obterHtmlRelatorioPagina();
