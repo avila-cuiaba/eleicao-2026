@@ -38,6 +38,7 @@ const CONFIG = {
     { chave: "orcamento", titulo: "Orçamento" },
     { chave: "orcamento-geral", titulo: "Orçamento — Geral" },
     { chave: "orcamento-desembolso", titulo: "Orçamento — Desembolso" },
+    { chave: "pagamentos-lideranca", titulo: "Pagamentos — por liderança" },
     { chave: "entregas", titulo: "Entregas" },
     { chave: "contratos", titulo: "Contratos" },
     { chave: "mobilizacao-estrutura", titulo: "Mobilização — Estrutura" },
@@ -63,6 +64,7 @@ const CONFIG = {
     // A aba auditoria-contratos é só para log; não usar aqui.
     ABA: "",
     LINHA_INICIO_DADOS: 2,
+    REGIOES_FILTRO_INICIAL: ["alto araguaia", "medio araguaia", "norte araguaia"],
     // Cabeçalhos atuais da planilha cadastro-colaboradores (kebab-case).
     COLUNA_NOME: [
       "nome-completo",
@@ -282,6 +284,47 @@ const CONFIG = {
       { prop: "ago30", chave: "AGO_30", slug: "ago30", rotulo: "30 Ago", kpiId: "kpiAgo30", numProp: "numAgo30", stack: "a" },
       { prop: "set15", chave: "SET_15", slug: "set15", rotulo: "15 Set", kpiId: "kpiSet15", numProp: "numSet15", stack: "b" },
       { prop: "set30", chave: "SET_30", slug: "set30", rotulo: "30 Set", kpiId: "kpiSet30", numProp: "numSet30", stack: "a" },
+    ],
+  },
+
+  PAGAMENTOS_LIDERANCA: {
+    PLANILHA: "pagamentos-lideranca",
+    ABA: "",
+    LINHA_INICIO_DADOS: 2,
+    COLUNAS: {
+      LIDERANCA: 0,           // A
+      MUNICIPIO: 1,           // B
+      PROPRIO_VALOR: 2,       // C — PROPRIO-APOIADOR-VALOR
+      PROPRIO_PGTO: 3,        // D — PROPRIO-APOIADOR-PGTO
+      LIDER_VALOR: 4,         // E — LIDER-VALOR
+      LIDER_PGTO: 5,          // F — LIDER-PGTO
+      INTEGRAL_VALOR: 6,      // G — INTEGRAL-VALOR
+      INTEGRAL_PGTO: 7,       // H — INTEGRAL-PGTO
+      MEIO_VALOR: 8,          // I — MEIO-VALOR
+      MEIO_PGTO: 9,           // J — MEIO-PGTO
+      CUSTOMIZADO_VALOR: 10,  // K — CUSTOMIZADO-VALOR
+      CUSTOMIZADO_PGTO: 11,   // L — CUSTOMIZADO-PGTO
+      PESSOAL_ORC: 12,        // M
+      PESSOAL_PGTO: 13,       // N
+      COMBUSTIVEL_ORC: 14,    // O — ORCAMENTO-COMBUSTIVEL
+      COMBUSTIVEL_PGTO: 15,   // P — COMBUSTIVEL-PGTO
+      DIVERSOS_ORC: 16,       // Q — ORCAMENTO-DIVERSOS
+      DIVERSOS_PGTO: 17,      // R — DIVERSOS-PGTO
+      DIA_D_ORC: 18,          // S — ORCAMENTO-DIA-D
+      DIA_D_PGTO: 19,         // T — DIA-D-PGTO
+      OBSERVACAO: 20,         // U
+    },
+    // Somente estas colunas podem ser alteradas pelo formulário (letras D F H J L P R T U).
+    COLUNAS_EDITAVEIS: [
+      "PROPRIO_PGTO",      // D
+      "LIDER_PGTO",        // F
+      "INTEGRAL_PGTO",     // H
+      "MEIO_PGTO",         // J
+      "CUSTOMIZADO_PGTO",  // L
+      "COMBUSTIVEL_PGTO",  // P
+      "DIVERSOS_PGTO",     // R
+      "DIA_D_PGTO",        // T
+      "OBSERVACAO",        // U
     ],
   },
 

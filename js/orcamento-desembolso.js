@@ -461,6 +461,63 @@ async function carregarDesembolso() {
 
 window.atualizarPagina = carregarDesembolso;
 
+function htmlCardsRelatorioPagina(doc) {
+  const row = (doc || document).querySelector(".orcamento-desembolso-kpi-row");
+  if (!row) return "";
+
+  const clone = row.cloneNode(true);
+  clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+  clone.classList.remove("mb-3");
+
+  return (
+    '<section class="rel-secao rel-secao-indicadores"><h2>indicadores</h2>' +
+    '<div class="rel-desembolso-kpis">' +
+    clone.outerHTML +
+    "</div></section>"
+  );
+}
+
+function estilosRelatorioPagina() {
+  return (
+    ".page-orcamento-desembolso .rel-secao{margin:0.45rem 0 0.55rem;page-break-inside:auto;}" +
+    ".page-orcamento-desembolso .rel-secao h2{margin-bottom:0.3rem;padding-bottom:0.15rem;}" +
+    ".page-orcamento-desembolso .rel-secao-indicadores{margin-bottom:0.25rem;page-break-after:avoid;break-after:avoid-page;}" +
+    ".page-orcamento-desembolso .rel-secao + .rel-secao + .rel-secao{page-break-before:avoid;break-before:avoid-page;margin-top:0.2rem;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis{margin-top:0.2rem;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-row{display:flex;flex-wrap:nowrap;gap:6px;width:100%;margin:0;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-row > [class*='col-']{flex:1 1 0;min-width:0;padding:0;max-width:none;width:auto;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-mobile-oculto{display:block!important;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-body{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.1rem;padding:0.25rem 0.2rem;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-rotulo," +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-valor{text-align:center;width:100%;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-rotulo{font-size:6.5pt;font-weight:700;line-height:1.1;text-transform:none;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-valor{font-size:7.5pt;font-weight:700;line-height:1.1;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-jul30{background:linear-gradient(155deg,#ecfeff 0%,#cffafe 55%,#a5f3fc 100%)!important;border:1px solid rgba(8,145,178,0.22)!important;border-left:4px solid #06b6d4!important;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-jul30 .dashboard-kpi-rotulo{color:#0e7490;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-jul30 .dashboard-kpi-valor{color:#0891b2;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-ago15{background:linear-gradient(155deg,#f0fdfa 0%,#ccfbf1 55%,#99f6e4 100%)!important;border:1px solid rgba(13,148,136,0.22)!important;border-left:4px solid #14b8a6!important;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-ago15 .dashboard-kpi-rotulo{color:#0f766e;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-ago15 .dashboard-kpi-valor{color:#0d9488;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-ago30{background:linear-gradient(155deg,#faf6f1 0%,#e8dcc8 55%,#d4b896 100%)!important;border:1px solid rgba(146,64,14,0.22)!important;border-left:4px solid #a16207!important;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-ago30 .dashboard-kpi-rotulo{color:#78350f;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-ago30 .dashboard-kpi-valor{color:#92400e;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-set15{background:linear-gradient(155deg,#fff7ed 0%,#fed7aa 55%,#fdba74 100%)!important;border:1px solid rgba(234,88,12,0.24)!important;border-left:4px solid #ea580c!important;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-set15 .dashboard-kpi-rotulo{color:#c2410c;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-set15 .dashboard-kpi-valor{color:#ea580c;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-set30{background:linear-gradient(155deg,#f5f3ff 0%,#ddd6fe 55%,#c4b5fd 100%)!important;border:1px solid rgba(124,58,237,0.24)!important;border-left:4px solid #7c3aed!important;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-set30 .dashboard-kpi-rotulo{color:#6d28d9;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-set30 .dashboard-kpi-valor{color:#7c3aed;}" +
+    ".page-orcamento-desembolso table.rel-tabela .orcamento-tabela-stack-col{display:none!important;}" +
+    "@media print{" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-card{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
+    "}"
+  );
+}
+
+window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
+window.estilosRelatorioPagina = estilosRelatorioPagina;
+
 function reapresentarDesembolso() {
   if (!ultimasLinhas.length) return;
   const totais = calcularTotais(ultimasLinhas);

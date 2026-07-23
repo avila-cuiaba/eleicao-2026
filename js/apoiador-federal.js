@@ -730,6 +730,78 @@ async function carregar() {
 
 window.atualizarPagina = carregar;
 
+function htmlCardsRelatorioPagina(doc) {
+  const root = doc || document;
+  const grid = root.querySelector(".afederal-kpi-grid");
+  if (!grid) return "";
+
+  const clone = grid.cloneNode(true);
+  clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+
+  return (
+    '<section class="rel-secao rel-secao-indicadores"><h2>indicadores</h2>' +
+    '<div class="rel-afederal-kpis">' +
+    clone.outerHTML +
+    "</div></section>"
+  );
+}
+
+function coletarTabelasRelatorioPagina(doc) {
+  const Rel = window.Relatorio;
+  if (!Rel) return [];
+
+  const root = doc || document;
+  const blocos = [];
+
+  const painelDetalhe = root.querySelector("#painelAfDetalhe .dashboard-tabela-panel");
+  if (painelDetalhe) {
+    const mesclada = Rel.mesclarTabelaDashboard(painelDetalhe);
+    if (mesclada) {
+      blocos.push({
+        titulo: "federal por liderança",
+        html: Rel.htmlTabelaClonada(mesclada),
+      });
+    }
+  }
+
+  const painelResumo = root.querySelector("#painelAfResumo .dashboard-tabela-panel");
+  if (painelResumo) {
+    const tabela = painelResumo.querySelector("table");
+    if (tabela) {
+      blocos.push({
+        titulo: "por federal",
+        html: Rel.htmlTabelaClonada(tabela),
+      });
+    }
+  }
+
+  return blocos;
+}
+
+function estilosRelatorioPagina() {
+  return (
+    ".page-apoiador-federal .rel-secao{margin:0.45rem 0 0.55rem;page-break-inside:auto;}" +
+    ".page-apoiador-federal .rel-secao h2{margin-bottom:0.3rem;padding-bottom:0.15rem;}" +
+    ".page-apoiador-federal .rel-secao-indicadores{margin-bottom:0.25rem;page-break-after:avoid;break-after:avoid-page;}" +
+    ".page-apoiador-federal .rel-secao + .rel-secao + .rel-secao," +
+    ".page-apoiador-federal .rel-secao + .rel-secao + .rel-secao + .rel-secao{" +
+    "page-break-before:avoid;break-before:avoid-page;margin-top:0.2rem;}" +
+    ".page-apoiador-federal .rel-afederal-kpis{margin-top:0.2rem;}" +
+    ".page-apoiador-federal .rel-afederal-kpis > .afederal-kpi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}" +
+    ".page-apoiador-federal .rel-afederal-kpis .apoiadores-kpi-slot{min-width:0;}" +
+    ".page-apoiador-federal .rel-afederal-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;border:1px solid rgba(31,78,140,0.14);}" +
+    ".page-apoiador-federal .rel-afederal-kpis .dashboard-kpi-card .card-body{padding:0.35rem 0.3rem;text-align:center;}" +
+    ".page-apoiador-federal .rel-afederal-kpis .dashboard-kpi-rotulo{font-size:7pt;font-weight:600;color:#64748b;margin-bottom:0.1rem;line-height:1.15;}" +
+    ".page-apoiador-federal .rel-afederal-kpis .dashboard-kpi-valor{font-size:9pt;font-weight:700;line-height:1.1;color:#1e293b;}" +
+    ".page-apoiador-federal .rel-afederal-kpis .apoiadores-kpi-total .dashboard-kpi-card{border-left:3px solid #1f4e8c!important;}" +
+    ".page-apoiador-federal .rel-afederal-kpis .apoiadores-kpi-lider .dashboard-kpi-card{border-left:3px solid #4f46e5!important;}"
+  );
+}
+
+window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
+window.coletarTabelasRelatorioPagina = coletarTabelasRelatorioPagina;
+window.estilosRelatorioPagina = estilosRelatorioPagina;
+
 function init() {
   el = {
     status: document.getElementById("status"),

@@ -496,5 +496,65 @@ function initPessoal() {
   carregarPessoal();
 }
 
+function htmlCardsRelatorioPagina(doc) {
+  const grid = doc.querySelector(".pessoal-kpi-grid");
+  if (!grid) return "";
+
+  const clone = grid.cloneNode(true);
+  clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+
+  return (
+    '<section class="rel-secao rel-secao-indicadores"><h2>indicadores</h2>' +
+    '<div class="rel-pessoal-kpis">' +
+    clone.outerHTML +
+    "</div></section>"
+  );
+}
+
+function estilosRelatorioPagina() {
+  return (
+    ".page-pessoal .rel-secao{margin:0.45rem 0 0.55rem;page-break-inside:auto;}" +
+    ".page-pessoal .rel-secao h2{margin-bottom:0.3rem;padding-bottom:0.15rem;}" +
+    ".page-pessoal .rel-secao-indicadores{margin-bottom:0.25rem;page-break-after:avoid;break-after:avoid-page;}" +
+    ".page-pessoal .rel-secao + .rel-secao + .rel-secao{page-break-before:avoid;break-before:avoid-page;margin-top:0.2rem;}" +
+    ".page-pessoal .rel-pessoal-kpis{margin-top:0.2rem;}" +
+    ".page-pessoal .rel-pessoal-kpis > .pessoal-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:auto auto;gap:8px;align-items:stretch;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot{min-width:0;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--total{grid-column:1;grid-row:2;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--prefeito{grid-column:2;grid-row:1;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--vereador{grid-column:3;grid-row:1;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--agente{grid-column:2;grid-row:2;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--assessor{grid-column:3;grid-row:2;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--parceiros{grid-column:4;grid-row:1;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--apoiadores{grid-column:4;grid-row:2;}" +
+    ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;background-color:rgba(31,78,140,0.07);border:1px solid rgba(31,78,140,0.14);}" +
+    ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-card .card-body{padding:0.35rem 0.3rem;text-align:center;}" +
+    ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-rotulo{font-size:7pt;font-weight:600;color:#64748b;margin-bottom:0.1rem;line-height:1.15;}" +
+    ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-valor{font-size:9pt;font-weight:700;line-height:1.1;color:#1e293b;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-total .dashboard-kpi-card{background-color:rgba(31,78,140,0.16);border:1px solid rgba(31,78,140,0.3);border-left:4px solid #1f4e8c;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-total .dashboard-kpi-rotulo{color:#1f4e8c;font-weight:700;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-total .dashboard-kpi-valor{color:#1f4e8c;font-size:10pt;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-prefeito .dashboard-kpi-card{border-left:3px solid #6366f1;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-vereador .dashboard-kpi-card{border-left:3px solid #1f4e8c;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-agente .dashboard-kpi-card{border-left:3px solid #1a6f85;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-assessor .dashboard-kpi-card{border-left:3px solid #64748b;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-apoiadores .dashboard-kpi-card{border-left:3px solid #0f766e;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-parceiros .dashboard-kpi-card{border-left:3px solid #7c3aed;}" +
+    ".page-pessoal table.rel-tabela.pessoal-tabela th.pessoal-col-municipio,.page-pessoal table.rel-tabela.pessoal-tabela td.pessoal-col-municipio{text-align:left;}" +
+    ".page-pessoal table.rel-tabela.pessoal-tabela th:not(.pessoal-col-municipio),.page-pessoal table.rel-tabela.pessoal-tabela td:not(.pessoal-col-municipio){text-align:right;padding-top:0.4rem;padding-bottom:0.4rem;padding-left:2.4rem;padding-right:2.4rem;font-variant-numeric:tabular-nums;white-space:nowrap;}" +
+    ".page-pessoal table.rel-tabela.pessoal-tabela{margin-top:0.15rem;}" +
+    "@media print{" +
+    ".page-pessoal h1{font-size:14pt;margin-bottom:0.1rem;}" +
+    ".page-pessoal .rel-gerado{margin-bottom:0.35rem;}" +
+    ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-card,.page-pessoal .rel-pessoal-kpis .pessoal-kpi-total .dashboard-kpi-card{" +
+    "-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
+    ".page-pessoal table.rel-tabela.pessoal-tabela{font-size:8pt;}" +
+    "}"
+  );
+}
+
+window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
+window.estilosRelatorioPagina = estilosRelatorioPagina;
+
 AUTH.exigir();
 document.addEventListener("DOMContentLoaded", initPessoal);

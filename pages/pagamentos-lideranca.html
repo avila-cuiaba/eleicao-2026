@@ -29,7 +29,15 @@
                           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                         </svg>
                       </div>
-                      <strong id="kpiTotal" class="dashboard-kpi-valor orcamento-kpi-valor-total">—</strong>
+                      <div class="pag-lideranca-kpi-duplo">
+                        <div class="pag-lideranca-kpi-linha pag-lideranca-kpi-orc">
+                          <strong id="kpiTotalOrc" class="dashboard-kpi-valor orcamento-kpi-valor-total">—</strong>
+                        </div>
+                        <div class="pag-lideranca-kpi-linha pag-lideranca-kpi-pgto">
+                          <strong id="kpiTotalPgto" class="dashboard-kpi-valor orcamento-kpi-valor-total">—</strong>
+                        </div>
+                      </div>
+                      <div id="kpiTotalProgress" class="pag-lideranca-kpi-progress" aria-hidden="true"></div>
                     </div>
                   </div>
                 </div>
@@ -46,7 +54,15 @@
                           <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
                       </div>
-                      <strong id="kpiPessoal" class="dashboard-kpi-valor">—</strong>
+                      <div class="pag-lideranca-kpi-duplo">
+                        <div class="pag-lideranca-kpi-linha pag-lideranca-kpi-orc">
+                          <strong id="kpiPessoalOrc" class="dashboard-kpi-valor">—</strong>
+                        </div>
+                        <div class="pag-lideranca-kpi-linha pag-lideranca-kpi-pgto">
+                          <strong id="kpiPessoalPgto" class="dashboard-kpi-valor">—</strong>
+                        </div>
+                      </div>
+                      <div id="kpiPessoalProgress" class="pag-lideranca-kpi-progress" aria-hidden="true"></div>
                     </div>
                   </div>
                 </div>
@@ -60,7 +76,15 @@
                           <path d="M3.27 6.96 12 12.01 20.73 6.96M12 22.08V12"/>
                         </svg>
                       </div>
-                      <strong id="kpiDiversos" class="dashboard-kpi-valor">—</strong>
+                      <div class="pag-lideranca-kpi-duplo">
+                        <div class="pag-lideranca-kpi-linha pag-lideranca-kpi-orc">
+                          <strong id="kpiDiversosOrc" class="dashboard-kpi-valor">—</strong>
+                        </div>
+                        <div class="pag-lideranca-kpi-linha pag-lideranca-kpi-pgto">
+                          <strong id="kpiDiversosPgto" class="dashboard-kpi-valor">—</strong>
+                        </div>
+                      </div>
+                      <div id="kpiDiversosProgress" class="pag-lideranca-kpi-progress" aria-hidden="true"></div>
                     </div>
                   </div>
                 </div>
@@ -78,7 +102,15 @@
                           <path d="M7 10h4"/>
                         </svg>
                       </div>
-                      <strong id="kpiCombustivel" class="dashboard-kpi-valor">—</strong>
+                      <div class="pag-lideranca-kpi-duplo">
+                        <div class="pag-lideranca-kpi-linha pag-lideranca-kpi-orc">
+                          <strong id="kpiCombustivelOrc" class="dashboard-kpi-valor">—</strong>
+                        </div>
+                        <div class="pag-lideranca-kpi-linha pag-lideranca-kpi-pgto">
+                          <strong id="kpiCombustivelPgto" class="dashboard-kpi-valor">—</strong>
+                        </div>
+                      </div>
+                      <div id="kpiCombustivelProgress" class="pag-lideranca-kpi-progress" aria-hidden="true"></div>
                     </div>
                   </div>
                 </div>
@@ -93,7 +125,15 @@
                           <path d="M8 14h.01M12 14h.01M16 14h.01M12 18h4"/>
                         </svg>
                       </div>
-                      <strong id="kpiDiaD" class="dashboard-kpi-valor">—</strong>
+                      <div class="pag-lideranca-kpi-duplo">
+                        <div class="pag-lideranca-kpi-linha pag-lideranca-kpi-orc">
+                          <strong id="kpiDiaDOrc" class="dashboard-kpi-valor">—</strong>
+                        </div>
+                        <div class="pag-lideranca-kpi-linha pag-lideranca-kpi-pgto">
+                          <strong id="kpiDiaDPgto" class="dashboard-kpi-valor">—</strong>
+                        </div>
+                      </div>
+                      <div id="kpiDiaDProgress" class="pag-lideranca-kpi-progress" aria-hidden="true"></div>
                     </div>
                   </div>
                 </div>
@@ -107,16 +147,15 @@
     <div class="card shadow-sm border-0 dashboard-tabela-card apoiadores-tabela-card">
       <div class="card-body p-0 dashboard-tabela-panel">
         <div class="dashboard-tabela-head table-light">
-          <table class="table mb-0 apoiadores-tabela orcamento-lideranca-tabela">
+          <table class="table mb-0 apoiadores-tabela orcamento-lideranca-tabela pag-lideranca-tabela">
             <colgroup>
               <col class="apoiadores-col-ident" />
               <col class="apoiadores-col-municipio" />
-              <col class="apoiadores-col-orc-pessoal" />
-              <col class="apoiadores-col-orc-combustivel" />
-              <col class="apoiadores-col-orc-diversos" />
-              <col class="apoiadores-col-orc-diad" />
-              <col class="apoiadores-col-orc-stack-pessoal" />
-              <col class="apoiadores-col-orc-stack-diversos" />
+              <col class="pag-lideranca-col-par" />
+              <col class="pag-lideranca-col-par" />
+              <col class="pag-lideranca-col-par" />
+              <col class="pag-lideranca-col-par" />
+              <col class="pag-lideranca-col-total" />
             </colgroup>
             <thead>
               <tr>
@@ -153,63 +192,42 @@
                 <th scope="col" class="apoiadores-col-municipio dashboard-th-base apoiadores-th-municipio">
                   <span class="apoiadores-th-desktop">município</span>
                 </th>
-                <th scope="col" class="text-end apoiadores-col-orc-pessoal apoiadores-col-separador orcamento-tabela-desktop-col">
-                  <span class="orcamento-estratificado-th-campo-linha">
-                    <span>pessoal</span>
-                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--pessoal" aria-hidden="true"></span>
-                  </span>
+                <th scope="col" class="text-end pag-lideranca-col-par pag-lideranca-col-desk apoiadores-col-separador orcamento-tabela-desktop-col">
+                  <span class="pag-lideranca-th-titulo">pessoal</span>
                 </th>
-                <th scope="col" class="text-end apoiadores-col-orc-combustivel orcamento-tabela-desktop-col">
-                  <span class="orcamento-estratificado-th-campo-linha">
-                    <span>combustível</span>
-                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--combustivel" aria-hidden="true"></span>
-                  </span>
+                <th scope="col" class="text-end pag-lideranca-col-par pag-lideranca-col-desk orcamento-tabela-desktop-col">
+                  <span class="pag-lideranca-th-titulo">combustível</span>
                 </th>
-                <th scope="col" class="text-end apoiadores-col-orc-diversos orcamento-tabela-desktop-col">
-                  <span class="orcamento-estratificado-th-campo-linha">
-                    <span>diversos</span>
-                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--diversos" aria-hidden="true"></span>
-                  </span>
+                <th scope="col" class="text-end pag-lideranca-col-par pag-lideranca-col-desk orcamento-tabela-desktop-col">
+                  <span class="pag-lideranca-th-titulo">diversos</span>
                 </th>
-                <th scope="col" class="text-end apoiadores-col-orc-diad orcamento-th-diad orcamento-tabela-desktop-col">
-                  <span class="orcamento-estratificado-th-campo-linha">
-                    <span class="orcamento-th-diad">dia D</span>
-                    <span class="orcamento-estratificado-campo-ponto orcamento-estratificado-campo-ponto--diad" aria-hidden="true"></span>
-                  </span>
+                <th scope="col" class="text-end pag-lideranca-col-par pag-lideranca-col-desk orcamento-tabela-desktop-col">
+                  <span class="pag-lideranca-th-titulo pag-lideranca-th-titulo--case">dia D</span>
                 </th>
-                <th scope="col" class="text-end apoiadores-col-orc-stack-pessoal orcamento-tabela-stack-col apoiadores-col-separador">
-                  <div class="orcamento-tabela-stack-head" aria-hidden="true">
-                    <span>pessoal</span>
-                    <span>combustível</span>
-                  </div>
-                </th>
-                <th scope="col" class="text-end apoiadores-col-orc-stack-diversos orcamento-tabela-stack-col">
-                  <div class="orcamento-tabela-stack-head" aria-hidden="true">
-                    <span>diversos</span>
-                    <span class="orcamento-th-diad">dia D</span>
-                  </div>
+                <th scope="col" class="text-end pag-lideranca-col-total pag-lideranca-col-desk orcamento-tabela-desktop-col">
+                  <span class="pag-lideranca-th-titulo">total</span>
                 </th>
               </tr>
             </thead>
           </table>
         </div>
         <div class="dashboard-tabela-body-scroll">
-          <table class="table table-hover mb-0 apoiadores-tabela orcamento-lideranca-tabela">
+          <table class="table table-hover mb-0 apoiadores-tabela orcamento-lideranca-tabela pag-lideranca-tabela">
             <colgroup>
               <col class="apoiadores-col-ident" />
               <col class="apoiadores-col-municipio" />
-              <col class="apoiadores-col-orc-pessoal" />
-              <col class="apoiadores-col-orc-combustivel" />
-              <col class="apoiadores-col-orc-diversos" />
-              <col class="apoiadores-col-orc-diad" />
-              <col class="apoiadores-col-orc-stack-pessoal" />
-              <col class="apoiadores-col-orc-stack-diversos" />
+              <col class="pag-lideranca-col-par" />
+              <col class="pag-lideranca-col-par" />
+              <col class="pag-lideranca-col-par" />
+              <col class="pag-lideranca-col-par" />
+              <col class="pag-lideranca-col-total" />
             </colgroup>
             <tbody id="corpoApoiadores">
               <tr>
-                <td colspan="8" class="text-center text-secondary py-4">Carregando...</td>
+                <td colspan="7" class="text-center text-secondary py-4">Carregando...</td>
               </tr>
             </tbody>
+            <tfoot id="rodapePagamentosLideranca" class="table-light fw-semibold"></tfoot>
           </table>
         </div>
         <p id="vazio" class="text-secondary text-center py-4 mb-0" hidden>
@@ -224,40 +242,79 @@
     </div>
   </div>
 
-  <div class="modal fade master-crud-modal" id="modalApoiadorCrud" tabindex="-1" aria-labelledby="modalApoiadorTitulo" aria-hidden="true">
+  <div class="modal fade master-crud-modal pag-lideranca-modal" id="modalApoiadorCrud" tabindex="-1" aria-labelledby="modalApoiadorTitulo" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalApoiadorTitulo">orçamento por liderança</h5>
+        <div class="modal-header border-0 pb-0">
+          <div class="pag-lideranca-modal-ident w-100">
+            <div id="modalLiderancaNome" class="pag-lideranca-modal-lideranca"></div>
+            <div id="modalMunicipioNome" class="pag-lideranca-modal-municipio"></div>
+          </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="fechar"></button>
         </div>
-        <div class="modal-body">
-          <form id="formApoiadorCrud" class="row g-3">
-            <div class="col-12 col-sm-6">
-              <label class="form-label" for="campoApLideranca">liderança</label>
-              <input type="text" class="form-control form-control-sm" id="campoApLideranca" required />
+        <div class="modal-body pt-2">
+          <h5 class="visually-hidden" id="modalApoiadorTitulo">editar pagamentos</h5>
+          <form id="formApoiadorCrud">
+            <ul class="nav nav-tabs pag-lideranca-modal-tabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tabPagPessoalBtn" data-bs-toggle="tab" data-bs-target="#tabPagPessoal" type="button" role="tab" aria-controls="tabPagPessoal" aria-selected="true">pessoal</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tabPagGeralBtn" data-bs-toggle="tab" data-bs-target="#tabPagGeral" type="button" role="tab" aria-controls="tabPagGeral" aria-selected="false">geral</button>
+              </li>
+            </ul>
+
+            <div class="pag-lideranca-modal-colunas" aria-hidden="true">
+              <span></span>
+              <span class="pag-lideranca-modal-col-orc">orçamento</span>
+              <span class="pag-lideranca-modal-col-pgto">pagamento</span>
             </div>
-            <div class="col-12 col-sm-6">
-              <label class="form-label" for="campoApMunicipio">município</label>
-              <select class="form-select form-select-sm" id="campoApMunicipio" required>
-                <option value="">selecione</option>
-              </select>
+
+            <div class="tab-content pag-lideranca-modal-tabs-content">
+              <div class="tab-pane fade show active" id="tabPagPessoal" role="tabpanel" aria-labelledby="tabPagPessoalBtn" tabindex="0">
+                <div class="pag-lideranca-modal-grid">
+                  <span class="pag-lideranca-modal-rotulo">próprio apoiador</span>
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-orc" id="campoApProprioValor" disabled tabindex="-1" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-pgto" id="campoApProprioPgto" inputmode="decimal" placeholder="R$ 0,00" />
+
+                  <span class="pag-lideranca-modal-rotulo">líder</span>
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-orc" id="campoApLiderValor" disabled tabindex="-1" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-pgto" id="campoApLiderPgto" inputmode="decimal" placeholder="R$ 0,00" />
+
+                  <span class="pag-lideranca-modal-rotulo">período integral</span>
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-orc" id="campoApIntegralValor" disabled tabindex="-1" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-pgto" id="campoApIntegralPgto" inputmode="decimal" placeholder="R$ 0,00" />
+
+                  <span class="pag-lideranca-modal-rotulo">meio período</span>
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-orc" id="campoApMeioValor" disabled tabindex="-1" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-pgto" id="campoApMeioPgto" inputmode="decimal" placeholder="R$ 0,00" />
+
+                  <span class="pag-lideranca-modal-rotulo">customizado</span>
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-orc" id="campoApCustomValor" disabled tabindex="-1" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-pgto" id="campoApCustomPgto" inputmode="decimal" placeholder="R$ 0,00" />
+                </div>
+              </div>
+
+              <div class="tab-pane fade" id="tabPagGeral" role="tabpanel" aria-labelledby="tabPagGeralBtn" tabindex="0">
+                <div class="pag-lideranca-modal-grid">
+                  <span class="pag-lideranca-modal-rotulo">combustível</span>
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-orc" id="campoApCombustivelOrc" disabled tabindex="-1" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-pgto" id="campoApCombustivelPgto" inputmode="decimal" placeholder="R$ 0,00" />
+
+                  <span class="pag-lideranca-modal-rotulo">diversos</span>
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-orc" id="campoApDiversosOrc" disabled tabindex="-1" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-pgto" id="campoApDiversosPgto" inputmode="decimal" placeholder="R$ 0,00" />
+
+                  <span class="pag-lideranca-modal-rotulo">dia D</span>
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-orc" id="campoApDiaDOrc" disabled tabindex="-1" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin pag-lideranca-modal-pgto" id="campoApDiaDPgto" inputmode="decimal" placeholder="R$ 0,00" />
+                </div>
+              </div>
             </div>
-            <div class="col-12 col-sm-6">
-              <label class="form-label" for="campoApPessoal">pessoal</label>
-              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApPessoal" inputmode="decimal" placeholder="R$ 0,00" />
-            </div>
-            <div class="col-12 col-sm-6">
-              <label class="form-label" for="campoApCombustivel">combustível</label>
-              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApCombustivel" inputmode="decimal" placeholder="R$ 0,00" />
-            </div>
-            <div class="col-12 col-sm-6">
-              <label class="form-label" for="campoApDiversos">diversos</label>
-              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApDiversos" inputmode="decimal" placeholder="R$ 0,00" />
-            </div>
-            <div class="col-12 col-sm-6">
-              <label class="form-label" for="campoApDiaD">dia D</label>
-              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApDiaD" inputmode="decimal" placeholder="R$ 0,00" />
+
+            <div class="pag-lideranca-modal-obs">
+              <label class="form-label" for="campoApObservacao">observação</label>
+              <textarea class="form-control form-control-sm" id="campoApObservacao" rows="2" placeholder="anotações"></textarea>
             </div>
           </form>
         </div>

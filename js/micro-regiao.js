@@ -371,7 +371,8 @@ function montarHtmlRelatorioPagina(opcoes) {
 
   const meta = opcoes || {};
   const doc = meta.documento || document;
-  const gerado = new Date().toLocaleString("pt-BR");
+  const gerado = Rel.formatarDataHoraRelatorio(new Date());
+  const titulo = Rel.obterMetaPagina().titulo || doc.title || "relatório";
   const tabela = doc.getElementById("tabelaMicroRegiao");
   const htmlResumo = tabela ? Rel.htmlTabelaClonada(tabela) : "";
   const htmlDetalhes = htmlMunicipiosPorRegiaoRelatorio();
@@ -379,9 +380,6 @@ function montarHtmlRelatorioPagina(opcoes) {
   if (!htmlResumo && !htmlDetalhes) return "";
 
   const corpo =
-    '<p class="rel-gerado">relatório gerado em ' +
-    escapeHtml(gerado) +
-    "</p>" +
     '<section class="rel-secao"><h2>filtros</h2>' +
     Rel.htmlFiltros(Rel.coletarFiltros(doc)) +
     "</section>" +
@@ -391,7 +389,7 @@ function montarHtmlRelatorioPagina(opcoes) {
     htmlDetalhes +
     Rel.scriptImpressaoRelatorio();
 
-  return Rel.htmlDocumento(meta, corpo);
+  return Rel.htmlDocumento({ ...meta, titulo, gerado, documento: doc }, corpo);
 }
 
 function estilosRelatorioPagina() {

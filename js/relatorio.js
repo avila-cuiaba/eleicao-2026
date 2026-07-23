@@ -5,6 +5,8 @@
   if (global.Relatorio) return;
 
   const Relatorio = {
+  TITULO_CAMPANHA: "Eleição 2026 · deputado estadual Dr. Eugênio",
+
   escapeHtml(txt) {
     const div = document.createElement("div");
     div.textContent = txt == null ? "" : String(txt);
@@ -43,6 +45,32 @@
       /* iframe cross-origin */
     }
     return meta;
+  },
+
+  formatarDataHoraRelatorio(data) {
+    const d = data instanceof Date ? data : new Date(data);
+    const p = (n) => String(n).padStart(2, "0");
+    return (
+      p(d.getDate()) +
+      "/" +
+      p(d.getMonth() + 1) +
+      "/" +
+      String(d.getFullYear()).slice(-2) +
+      "  " +
+      p(d.getHours()) +
+      ":" +
+      p(d.getMinutes())
+    );
+  },
+
+  tituloRelatorioPagina(titulo, comSufixo) {
+    const base = String(titulo || "relatório").trim() || "relatório";
+    if (comSufixo === false) return base;
+    return /relat[oó]rio\s*$/i.test(base) ? base : base + " — relatório";
+  },
+
+  textoRodapeRelatorio(titulo, gerado, comSufixo = true) {
+    return this.tituloRelatorioPagina(titulo, comSufixo) + " (" + gerado + ")";
   },
 
   coletarCards(doc) {
@@ -200,6 +228,8 @@
       ".apoiadores-celula-mobile",
       ".apoiadores-sub-municipio",
       ".apoiadores-th-sub-municipio",
+      ".apoiadores-sub-fin-total",
+      ".apoiadores-fin-badge",
       ".orcamento-municipio-total-mobile",
       ".pessoal-th-label-sm",
       ".registros-th-regiao-mobile",
@@ -259,6 +289,13 @@
     const clone = this.limparNo(table.cloneNode(true));
     clone.classList.add("rel-tabela");
     clone.removeAttribute("id");
+    if (typeof global.ajustarTabelaRelatorioPagina === "function") {
+      try {
+        global.ajustarTabelaRelatorioPagina(clone);
+      } catch (e) {
+        /* ignorar */
+      }
+    }
     return clone.outerHTML;
   },
 
@@ -267,8 +304,9 @@
     const bodyTable = card.querySelector(".dashboard-tabela-body-scroll table");
     if (!headTable && !bodyTable) return null;
 
+    const origem = headTable || bodyTable;
     const table = document.createElement("table");
-    table.className = "rel-tabela";
+    table.className = origem.className || "table mb-0";
 
     const thead = headTable?.querySelector("thead") || bodyTable?.querySelector("thead");
     if (thead) table.appendChild(thead.cloneNode(true));
@@ -442,9 +480,12 @@
     return (
       "<style>" +
       "body{font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;margin:1.2cm;font-size:10pt;line-height:1.4;}" +
+      ".rel-cabecalho{font-size:11pt;font-weight:600;color:#1f4e8c;margin:0 0 1rem;padding-bottom:0.35rem;border-bottom:1px solid #e2e8f0;}" +
+      ".rel-conteudo{padding-bottom:1.6rem;}" +
+      ".rel-rodape{position:fixed;left:0;right:0;bottom:0;padding:0.3rem 1.2cm;font-size:8pt;color:#64748b;background:#fff;}" +
       "h1{font-size:16pt;margin:0 0 0.2rem;color:#1f4e8c;}" +
       ".rel-subtitulo{font-size:11pt;color:#475569;margin:0 0 0.35rem;}" +
-      ".rel-gerado{font-size:9pt;color:#64748b;margin:0 0 1rem;}" +
+      ".rel-gerado{display:none!important;}" +
       ".rel-secao{margin:1rem 0 1.25rem;page-break-inside:avoid;}" +
       ".rel-secao h2{font-size:11pt;margin:0 0 0.5rem;border-bottom:1px solid #e2e8f0;padding-bottom:0.25rem;color:#334155;}" +
       ".rel-filtros{margin:0;padding:0;list-style:none;}" +
@@ -478,7 +519,8 @@
       ".home-kpi-card,.home-kpi-ilustra,.rel-grafico-bloco,.rel-card,table.rel-tabela th{" +
       "-webkit-print-color-adjust:exact;print-color-adjust:exact;}" +
       "@media print{" +
-      "body{margin:0.8cm;}" +
+      "body{margin:0.8cm 0.8cm 1.35cm;}" +
+      ".rel-rodape{position:fixed;left:0;right:0;bottom:0;padding:0.25rem 0.8cm;}" +
       ".rel-secao{page-break-inside:avoid;}" +
       "*,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
       "}" +
@@ -508,26 +550,30 @@
   htmlDocumento(opcoes, conteudoBody) {
     const meta = opcoes || {};
     const titulo = meta.titulo || this.obterMetaPagina().titulo;
-    const subtitulo = meta.subtitulo || this.obterMetaPagina().subtitulo;
     const doc = meta.documento || document;
     const bodyClass = this.classeBodyRelatorio(doc);
-    const sufixoTitulo = conteudoBody.includes("rel-vazio") && !conteudoBody.includes("rel-secao") ? "" : " — relatório";
+    const gerado = meta.gerado || this.formatarDataHoraRelatorio(new Date());
+    const comSufixo =
+      !(conteudoBody.includes("rel-vazio") && !conteudoBody.includes("rel-secao"));
 
     return (
       "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\" />" +
       "<title>" +
-      this.escapeHtml(titulo) +
-      sufixoTitulo +
+      this.escapeHtml(this.TITULO_CAMPANHA) +
       "</title>" +
       this.estilos(meta) +
       "</head><body class=\"" +
       this.escapeHtml(bodyClass) +
       "\">" +
-      "<h1>" +
-      this.escapeHtml(titulo) +
-      "</h1>" +
-      (subtitulo ? '<p class="rel-subtitulo">' + this.escapeHtml(subtitulo) + "</p>" : "") +
+      '<header class="rel-cabecalho">' +
+      this.escapeHtml(this.TITULO_CAMPANHA) +
+      "</header>" +
+      '<div class="rel-conteudo">' +
       conteudoBody +
+      "</div>" +
+      '<footer class="rel-rodape">' +
+      this.escapeHtml(this.textoRodapeRelatorio(titulo, gerado, comSufixo)) +
+      "</footer>" +
       "</body></html>"
     );
   },
@@ -610,8 +656,7 @@
     const meta = opcoes || {};
     const doc = meta.documento || document;
     const titulo = meta.titulo || this.obterMetaPagina().titulo;
-    const subtitulo = meta.subtitulo || this.obterMetaPagina().subtitulo;
-    const gerado = new Date().toLocaleString("pt-BR");
+    const gerado = this.formatarDataHoraRelatorio(new Date());
 
     const filtros = meta.filtros || this.coletarFiltros(doc);
     const cards = meta.cards || this.coletarCards(doc);
@@ -620,7 +665,11 @@
         ? global.htmlCardsRelatorioPagina(doc) || ""
         : this.htmlCards(cards);
     const extras = this.htmlExtras(meta.extras || this.coletarExtras(doc, meta));
-    const tabelas = meta.tabelas || this.coletarTabelas(doc);
+    const tabelas =
+      meta.tabelas ||
+      (typeof global.coletarTabelasRelatorioPagina === "function"
+        ? global.coletarTabelasRelatorioPagina(doc)
+        : this.coletarTabelas(doc));
     const listasAgenda = this.coletarListasAgenda(doc);
     const todosBlocos = tabelas.concat(listasAgenda);
     const temCards = String(cardsHtml || "").trim().length > 0;
@@ -635,24 +684,40 @@
 
     if (!temCards && !todosBlocos.length && !extras) {
       return this.htmlDocumento(
-        meta,
-        '<p class="rel-gerado">relatório gerado em ' +
-          this.escapeHtml(gerado) +
-          "</p>" +
-          '<p class="rel-vazio">nenhum dado disponível para impressão nesta página.</p>'
+        { ...meta, titulo, gerado },
+        '<p class="rel-vazio">nenhum dado disponível para impressão nesta página.</p>'
       );
     }
 
     return (
       this.htmlDocumento(
-        meta,
-        '<p class="rel-gerado">relatório gerado em ' +
-          this.escapeHtml(gerado) +
-          "</p>" +
-          corpo +
-          this.scriptImpressaoRelatorio()
+        { ...meta, titulo, gerado },
+        corpo + this.scriptImpressaoRelatorio()
       )
     );
+  },
+
+  abrirJanelaRelatorio(html) {
+    if (!html) return false;
+
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const janela = window.open(url, "_blank");
+    if (!janela) {
+      URL.revokeObjectURL(url);
+      return false;
+    }
+
+    const liberar = () => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        /* ignorar */
+      }
+    };
+    janela.addEventListener("load", () => setTimeout(liberar, 1500));
+    setTimeout(liberar, 15000);
+    return true;
   },
 
   imprimir(opcoes) {
@@ -671,15 +736,10 @@
       /* origem cruzada */
     }
 
-    const janela = window.open("", "_blank");
-    if (!janela) {
-      this.mostrarErro("permita pop-ups para gerar o PDF.");
-      return false;
-    }
-    janela.document.open();
-    janela.document.write(html);
-    janela.document.close();
-    return true;
+    if (this.abrirJanelaRelatorio(html)) return true;
+
+    this.mostrarErro("permita pop-ups para gerar o PDF.");
+    return false;
   },
 
   mostrarErro(msg) {

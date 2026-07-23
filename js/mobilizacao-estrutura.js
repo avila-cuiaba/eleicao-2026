@@ -405,11 +405,13 @@ function htmlRegionalImpressao(reg, polos) {
 }
 
 function estilosRelatorioImpressao() {
-  return (
-    "<style>" +
+  const base =
     "body{font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;margin:1.2rem;font-size:11pt;line-height:1.4;}" +
+    ".rel-cabecalho{font-size:11pt;font-weight:600;color:#1f4e8c;margin:0 0 1rem;padding-bottom:0.35rem;border-bottom:1px solid #e2e8f0;}" +
+    ".rel-conteudo{padding-bottom:1.6rem;}" +
+    ".rel-rodape{position:fixed;left:0;right:0;bottom:0;padding:0.3rem 1.2rem;font-size:8pt;color:#64748b;background:#fff;}" +
     "h1{font-size:16pt;margin:0 0 0.35rem;text-align:center;}" +
-    ".mob-rel-gerado{font-size:9pt;color:#64748b;text-align:center;margin:0 0 1rem;}" +
+    ".mob-rel-gerado{display:none!important;}" +
     "table{border-collapse:collapse;width:100%;margin:0.5rem 0 1rem;font-size:9pt;}" +
     "th,td{border:1px solid #cbd5e1;padding:0.3rem 0.4rem;text-align:center;}" +
     "th{background:#f1f5f9;font-weight:600;}" +
@@ -440,9 +442,8 @@ function estilosRelatorioImpressao() {
     ".mob-rel-polo li{margin:0.15rem 0;}" +
     ".mob-rel-votos{color:#4338ca;font-weight:600;}" +
     ".mob-rel-resp{margin:0.25rem 0 0;font-size:9pt;color:#64748b;}" +
-    "@media print{body{margin:0.8cm;} .mob-rel-regional{page-break-inside:avoid;}}" +
-    "</style>"
-  );
+    "@media print{body{margin:0.8cm 0.8cm 1.35cm;} .rel-rodape{position:fixed;left:0;right:0;bottom:0;padding:0.25rem 0.8cm;} .mob-rel-regional{page-break-inside:avoid;}}";
+  return "<style>" + base + "</style>";
 }
 
 function htmlTabelaResumoImpressao(regionais, porRegional, registros) {
@@ -568,27 +569,36 @@ function montarHtmlRelatorio() {
   const { regionais, porRegional } = organogramaContexto;
   const registros = perspectivaRegistros;
   const titulo = cfgResumo.TITULO || "Cuiabá / Várzea Grande";
-  const gerado = new Date().toLocaleString("pt-BR");
+  const Rel = window.Relatorio;
+  const gerado = Rel?.formatarDataHoraRelatorio
+    ? Rel.formatarDataHoraRelatorio(new Date())
+    : new Date().toLocaleString("pt-BR");
+  const campanha = Rel?.TITULO_CAMPANHA || "Eleição 2026 · deputado estadual Dr. Eugênio";
+  const tituloRodape = Rel?.textoRodapeRelatorio
+    ? Rel.textoRodapeRelatorio("mobilização — " + titulo, gerado)
+    : "mobilização — " + titulo + " — relatório (" + gerado + ")";
   const detalhes = regionais.map((reg) => htmlRegionalImpressao(reg, porRegional.get(reg) || [])).join("");
 
   return (
     "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\" />" +
-    "<title>mobilização — " +
-    MobComum.escapeHtml(titulo) +
+    "<title>" +
+    MobComum.escapeHtml(campanha) +
     "</title>" +
     estilosRelatorioImpressao() +
     "</head><body>" +
-    "<h1>" +
-    MobComum.escapeHtml(titulo) +
-    "</h1>" +
-    '<p class="mob-rel-gerado">relatório gerado em ' +
-    MobComum.escapeHtml(gerado) +
-    "</p>" +
+    '<header class="rel-cabecalho">' +
+    MobComum.escapeHtml(campanha) +
+    "</header>" +
+    '<div class="rel-conteudo">' +
     "<h2>origem do voto por localidade</h2>" +
     htmlTabelaResumoImpressao(regionais, porRegional, registros) +
     htmlBlocoSegmentoImpressao(registros) +
     "<h2>estrutura por regional</h2>" +
     (detalhes || "<p>nenhum local com registro.</p>") +
+    "</div>" +
+    '<footer class="rel-rodape">' +
+    MobComum.escapeHtml(tituloRodape) +
+    "</footer>" +
     (window.Relatorio && typeof Relatorio.scriptImpressaoRelatorio === "function"
       ? Relatorio.scriptImpressaoRelatorio()
       : '<script>(function(){function fechar(){try{window.close();}catch(e){}}window.addEventListener("afterprint",fechar);window.addEventListener("load",function(){window.focus();window.print();});})();</script>') +
@@ -612,15 +622,9 @@ function imprimirRelatorio() {
     /* origem cruzada */
   }
 
-  const janela = window.open("", "_blank");
-  if (!janela) {
-    mostrarStatus("permita pop-ups para gerar o PDF.", "erro");
-    return;
-  }
+  if (window.Relatorio?.abrirJanelaRelatorio?.(html)) return;
 
-  janela.document.open();
-  janela.document.write(html);
-  janela.document.close();
+  mostrarStatus("permita pop-ups para gerar o PDF.", "erro");
 }
 
 function montarHtmlRelatorioPagina() {

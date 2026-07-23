@@ -541,6 +541,89 @@ async function carregarOrcamento() {
 
 window.atualizarPagina = carregarOrcamento;
 
+function htmlCardsRelatorioPagina(doc) {
+  const layout = (doc || document).querySelector(".orcamento-kpi-layout");
+  if (!layout) return "";
+
+  const clone = layout.cloneNode(true);
+  clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+
+  return (
+    '<section class="rel-secao rel-secao-indicadores"><h2>indicadores</h2>' +
+    '<div class="rel-orcamento-kpis">' +
+    clone.outerHTML +
+    "</div></section>"
+  );
+}
+
+function ajustarTabelaRelatorioPagina(table) {
+  if (!table?.classList?.contains("orcamento-estratificado-tabela")) return;
+
+  const thMun = table.querySelector("thead th.orcamento-col-municipio");
+  if (thMun) {
+    thMun.className = "orcamento-col-municipio";
+    thMun.textContent = "município";
+  }
+}
+
+function estilosRelatorioPagina() {
+  return (
+    ".page-orcamento .rel-secao{margin:0.45rem 0 0.55rem;page-break-inside:auto;}" +
+    ".page-orcamento .rel-secao h2{margin-bottom:0.3rem;padding-bottom:0.15rem;}" +
+    ".page-orcamento .rel-secao-indicadores{margin-bottom:0.25rem;page-break-after:avoid;break-after:avoid-page;}" +
+    ".page-orcamento .rel-secao + .rel-secao + .rel-secao{page-break-before:avoid;break-before:avoid-page;margin-top:0.2rem;}" +
+    ".page-orcamento .rel-orcamento-kpis{margin-top:0.2rem;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-layout{display:flex;flex-direction:column;gap:8px;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-total{display:flex;justify-content:center;width:100%;margin:0;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-total > .col-12{flex:0 0 33%;max-width:33%;width:33%;padding:0;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-detalhe{display:flex;gap:8px;width:100%;margin:0;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-detalhe > [class*='col-']{flex:1 1 0;min-width:0;padding:0;max-width:none;width:auto;}" +
+    ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;border:1px solid rgba(31,78,140,0.14);}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-card-body{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.2rem;padding:0.35rem 0.3rem;}" +
+    ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-rotulo," +
+    ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-valor{text-align:center;width:100%;}" +
+    ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-rotulo{font-size:7pt;font-weight:600;color:#64748b;margin-bottom:0.1rem;line-height:1.15;}" +
+    ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-valor{font-size:9pt;font-weight:700;line-height:1.1;color:#1e293b;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra{display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:8px;width:28px;height:28px;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra svg{width:16px;height:16px;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-card-total{background:linear-gradient(155deg,#ecfeff 0%,#cffafe 50%,#a5f3fc 100%)!important;border:1px solid rgba(8,145,178,0.22)!important;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-card-total .dashboard-kpi-rotulo{font-weight:700;color:#0e7490;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-valor-total{font-size:10pt;font-weight:800!important;color:#0e7490;line-height:1.1;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra-total{background:linear-gradient(145deg,#22d3ee,#0891b2);color:#fff;width:32px;height:32px;box-shadow:0 2px 6px rgba(8,145,178,0.22);}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra-total svg{width:18px;height:18px;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-detalhe .dashboard-kpi-card{background:#f8fafc!important;}" +
+    ".page-orcamento .rel-orcamento-kpis .apoiadores-kpi-total .dashboard-kpi-card{border-left:3px solid #16a34a!important;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra-pessoal{background:linear-gradient(145deg,#4ade80,#16a34a);color:#fff;box-shadow:0 2px 6px rgba(22,163,74,0.22);}" +
+    ".page-orcamento .rel-orcamento-kpis .apoiadores-kpi-30 .dashboard-kpi-card{border-left:3px solid #1f4e8c!important;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra-diversos{background:linear-gradient(145deg,#a78bfa,#7c3aed);color:#fff;box-shadow:0 2px 6px rgba(124,58,237,0.22);}" +
+    ".page-orcamento .rel-orcamento-kpis .apoiadores-kpi-lider .dashboard-kpi-card{border-left:3px solid #4f46e5!important;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra-combustivel{background:linear-gradient(145deg,#fbbf24,#ea580c);color:#fff;box-shadow:0 2px 6px rgba(234,88,12,0.22);}" +
+    ".page-orcamento .rel-orcamento-kpis .apoiadores-kpi-custom .dashboard-kpi-card{border-left:3px solid #0f766e!important;}" +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra-diad{background:linear-gradient(145deg,#f87171,#dc2626);color:#fff;box-shadow:0 2px 6px rgba(220,38,38,0.22);}" +
+    ".page-orcamento table.rel-tabela .orcamento-tabela-stack-col{display:none!important;}" +
+    ".page-orcamento table.rel-tabela th.orcamento-col-municipio," +
+    ".page-orcamento table.rel-tabela td.orcamento-col-municipio{text-align:left;}" +
+    ".page-orcamento table.rel-tabela th.orcamento-col-pessoal," +
+    ".page-orcamento table.rel-tabela td.orcamento-col-pessoal," +
+    ".page-orcamento table.rel-tabela th.orcamento-col-combustivel," +
+    ".page-orcamento table.rel-tabela td.orcamento-col-combustivel," +
+    ".page-orcamento table.rel-tabela th.orcamento-col-diversos," +
+    ".page-orcamento table.rel-tabela td.orcamento-col-diversos," +
+    ".page-orcamento table.rel-tabela th.orcamento-col-diad," +
+    ".page-orcamento table.rel-tabela td.orcamento-col-diad," +
+    ".page-orcamento table.rel-tabela th.orcamento-col-total," +
+    ".page-orcamento table.rel-tabela td.orcamento-col-total{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}" +
+    "@media print{" +
+    ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-card," +
+    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
+    "}"
+  );
+}
+
+window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
+window.estilosRelatorioPagina = estilosRelatorioPagina;
+window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
+
 function initOrcamento() {
   el = {
     status: document.getElementById("status"),

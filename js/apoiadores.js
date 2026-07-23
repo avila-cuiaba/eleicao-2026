@@ -936,5 +936,108 @@ function initApoiadores() {
   carregarApoiadores();
 }
 
+function ajustarTabelaRelatorioPagina(table) {
+  const ehApoiadores =
+    table?.classList?.contains("apoiadores-tabela") ||
+    table?.querySelector(".apoiadores-col-ident, .apoiadores-col-lider");
+  if (!ehApoiadores) return;
+
+  let colgroups = table.querySelectorAll("colgroup");
+  if (!colgroups.length) {
+    const cg = document.createElement("colgroup");
+    for (let i = 0; i < 6; i++) cg.appendChild(document.createElement("col"));
+    table.insertBefore(cg, table.firstElementChild);
+    colgroups = table.querySelectorAll("colgroup");
+  }
+
+  colgroups.forEach((cg) => {
+    const col = document.createElement("col");
+    col.className = "apoiadores-col-valor";
+    cg.appendChild(col);
+  });
+
+  const row1 = table.querySelector("thead tr.apoiadores-thead-row1");
+  if (row1) {
+    const th = document.createElement("th");
+    th.scope = "col";
+    th.rowSpan = 2;
+    th.className = "text-end apoiadores-col-valor dashboard-th-base";
+    th.textContent = "valor";
+    row1.appendChild(th);
+  }
+
+  const dados = [...linhasFiltradas()].sort(ordenarPorLideranca);
+  table.querySelectorAll("tbody tr").forEach((tr, i) => {
+    const r = dados[i];
+    const td = document.createElement("td");
+    td.className = "text-end apoiadores-col-valor apoiadores-celula-num";
+    const valor = r ? exibirMoeda(r.finTotal) : "";
+    td.textContent = valor || "—";
+    tr.appendChild(td);
+  });
+}
+
+function htmlCardsRelatorioPagina(doc) {
+  const painel = doc.querySelector(".apoiadores-kpi-painel");
+  if (!painel) return "";
+
+  const clone = painel.cloneNode(true);
+  clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+
+  return (
+    '<section class="rel-secao rel-secao-indicadores"><h2>indicadores</h2>' +
+    '<div class="rel-apoiadores-kpis">' +
+    clone.outerHTML +
+    "</div></section>"
+  );
+}
+
+function estilosRelatorioPagina() {
+  return (
+    ".page-apoiadores .rel-secao{margin:0.45rem 0 0.55rem;page-break-inside:auto;}" +
+    ".page-apoiadores .rel-secao h2{margin-bottom:0.3rem;padding-bottom:0.15rem;}" +
+    ".page-apoiadores .rel-secao-indicadores{margin-bottom:0.25rem;page-break-after:avoid;break-after:avoid-page;}" +
+    ".page-apoiadores .rel-secao + .rel-secao + .rel-secao{page-break-before:avoid;break-before:avoid-page;margin-top:0.2rem;}" +
+    ".page-apoiadores .rel-apoiadores-kpis{margin-top:0.2rem;}" +
+    ".page-apoiadores .rel-apoiadores-kpis > .apoiadores-kpi-painel{display:flex;flex-direction:column;gap:8px;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .apoiadores-kpi-painel-linha{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .apoiadores-kpi-slot{min-width:0;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;border:1px solid rgba(31,78,140,0.14);}" +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-card .card-body{padding:0.35rem 0.3rem;text-align:center;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-rotulo{font-size:7pt;font-weight:600;color:#64748b;margin-bottom:0.1rem;line-height:1.15;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-valor{font-size:9pt;font-weight:700;line-height:1.1;color:#1e293b;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-card.apoiadores-kpi-card--principal{border:1px solid rgba(13,148,136,0.32)!important;border-left:5px solid #0d9488!important;background:linear-gradient(135deg,rgba(13,148,136,0.16),rgba(13,148,136,0.05))!important;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .apoiadores-kpi-slot--principal .dashboard-kpi-rotulo{font-weight:700;color:#0f766e;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .apoiadores-kpi-slot--principal .dashboard-kpi-valor{font-size:10pt;color:#0d5f56;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-card.apoiadores-kpi-card--destaque{border:1px solid rgba(31,78,140,0.2)!important;border-left:4px solid #1f4e8c!important;background:rgba(31,78,140,0.08)!important;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .apoiadores-kpi-slot--destaque .dashboard-kpi-rotulo{color:#1e3a5f;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .apoiadores-kpi-slot--destaque .dashboard-kpi-valor{font-size:9.5pt;color:#0f172a;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-card.apoiadores-kpi-apoiador{border:1px solid rgba(31,78,140,0.28)!important;border-left:3px solid #1f4e8c!important;background:rgba(31,78,140,0.1)!important;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-card.apoiadores-kpi-apoiador .dashboard-kpi-valor{color:#1f4e8c;}" +
+    ".page-apoiadores table.rel-tabela.apoiadores-tabela th.apoiadores-col-ident,.page-apoiadores table.rel-tabela.apoiadores-tabela td.apoiadores-col-ident," +
+    ".page-apoiadores table.rel-tabela.apoiadores-tabela th.apoiadores-col-municipio,.page-apoiadores table.rel-tabela.apoiadores-tabela td.apoiadores-col-municipio{text-align:left;}" +
+    ".page-apoiadores table.rel-tabela.apoiadores-tabela th.apoiadores-col-lider,.page-apoiadores table.rel-tabela.apoiadores-tabela td.apoiadores-col-lider," +
+    ".page-apoiadores table.rel-tabela.apoiadores-tabela th.apoiadores-col-integral,.page-apoiadores table.rel-tabela.apoiadores-tabela td.apoiadores-col-integral," +
+    ".page-apoiadores table.rel-tabela.apoiadores-tabela th.apoiadores-col-meio,.page-apoiadores table.rel-tabela.apoiadores-tabela td.apoiadores-col-meio," +
+    ".page-apoiadores table.rel-tabela.apoiadores-tabela th.apoiadores-col-custom,.page-apoiadores table.rel-tabela.apoiadores-tabela td.apoiadores-col-custom{text-align:center;padding-top:0.4rem;padding-bottom:0.4rem;padding-left:1.5rem;padding-right:1.5rem;font-variant-numeric:tabular-nums;}" +
+    ".page-apoiadores table.rel-tabela.apoiadores-tabela th.apoiadores-col-valor,.page-apoiadores table.rel-tabela.apoiadores-tabela td.apoiadores-col-valor{text-align:right;padding-top:0.4rem;padding-bottom:0.4rem;padding-left:2.4rem;padding-right:2.4rem;font-variant-numeric:tabular-nums;white-space:nowrap;}" +
+    ".page-apoiadores table.rel-tabela.apoiadores-tabela td.apoiadores-col-ident .apoiadores-ident-nome{display:block;}" +
+    ".page-apoiadores table.rel-tabela.apoiadores-tabela{margin-top:0.15rem;}" +
+    "@media print{" +
+    ".page-apoiadores h1{font-size:14pt;margin-bottom:0.1rem;}" +
+    ".page-apoiadores .rel-gerado{margin-bottom:0.35rem;}" +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-card.apoiadores-kpi-card--principal," +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-card.apoiadores-kpi-card--destaque," +
+    ".page-apoiadores .rel-apoiadores-kpis .dashboard-kpi-card.apoiadores-kpi-apoiador{" +
+    "-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
+    ".page-apoiadores table.rel-tabela.apoiadores-tabela{font-size:8pt;}" +
+    "}"
+  );
+}
+
+window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
+window.estilosRelatorioPagina = estilosRelatorioPagina;
+window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
+
 AUTH.exigir();
 document.addEventListener("DOMContentLoaded", initApoiadores);

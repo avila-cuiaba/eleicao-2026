@@ -220,15 +220,9 @@ function executarAtualizarShell() {
 
 function abrirRelatorioHtml(html) {
   if (!html) return false;
-  const janela = window.open("", "_blank");
-  if (!janela) {
-    window.alert("permita pop-ups para gerar o PDF.");
-    return false;
-  }
-  janela.document.open();
-  janela.document.write(html);
-  janela.document.close();
-  return true;
+  if (window.Relatorio?.abrirJanelaRelatorio?.(html)) return true;
+  window.alert("permita pop-ups para gerar o PDF.");
+  return false;
 }
 
 window.abrirRelatorioHtml = abrirRelatorioHtml;
@@ -475,9 +469,14 @@ window.addEventListener("message", (event) => {
     }
 
     if (event.data.html) {
-      janela.document.open();
-      janela.document.write(event.data.html);
-      janela.document.close();
+      if (janela && !janela.closed) {
+        try {
+          janela.close();
+        } catch (e) {
+          /* ignorar */
+        }
+      }
+      abrirRelatorioHtml(event.data.html);
       return;
     }
 

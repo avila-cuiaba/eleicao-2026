@@ -84,6 +84,11 @@ function criarCadastroPlanilhas() {
     gid: 0,
   };
   p["orcamento-desembolso"] = p["orcamento-geral"];
+  // Pagamentos por liderança (orçamento × pagamento por categoria).
+  p["pagamentos-lideranca"] = {
+    id: "1CsSofzZpuEx61r9VnMa9AcTq-QLk-LL3pAeujOwvEXE",
+    gid: 195528017,
+  };
   p["pessoal-municipio-aba1"] = p["pessoal-municipio"];
   p["pessoal-municipio-aba2"] = p.apoiadores;
   p.municipios = {
@@ -944,6 +949,22 @@ function valorDadosColuna(dados, col) {
 const DASHBOARD_COL_MINIMA = 9; // I (1-based)
 const DASHBOARD_COL_IDEAL = 10; // J (1-based)
 
+// Pagamentos por liderança: somente colunas D F H J L P R T U (índices 0-based).
+const PAGAMENTOS_LIDERANCA_COLS_EDITAVEIS = [3, 5, 7, 9, 11, 15, 17, 19, 20];
+
+function atualizarLinhaPagamentosLideranca(sheet, numLinha, existente, cabecalhos, dados) {
+  const novaLinha = existente.slice();
+  PAGAMENTOS_LIDERANCA_COLS_EDITAVEIS.forEach(function (i) {
+    if (i >= cabecalhos.length) return;
+    const col = cabecalhos[i];
+    const val = valorDadosColuna(dados, col);
+    if (val === undefined) return;
+    sheet.getRange(numLinha, i + 1).setValue(val);
+    novaLinha[i] = val;
+  });
+  return novaLinha;
+}
+
 function atualizarLinhaDashboard(sheet, numLinha, existente, dados) {
   const novaLinha = existente.slice();
   if (dados && Object.prototype.hasOwnProperty.call(dados, "minima")) {
@@ -1014,6 +1035,8 @@ function doPostPlanilha(corpo) {
     let novaLinha;
     if (origemAuditoria === "dashboard") {
       novaLinha = atualizarLinhaDashboard(sheet, numLinha, existente, dados);
+    } else if (origemAuditoria === "pagamentos-lideranca" || planilha === "pagamentos-lideranca") {
+      novaLinha = atualizarLinhaPagamentosLideranca(sheet, numLinha, existente, cabecalhos, dados);
     } else {
       novaLinha = cabecalhos.map(function (col, i) {
         const val = valorDadosColuna(dados, col);

@@ -256,6 +256,24 @@ function restaurarFiltros(regioesMarcadas, municipiosNorm) {
   montarFiltroMunicipios(municipiosDasRegioesSelecionadas());
 }
 
+function regioesFiltroInicial() {
+  const lista = cfg.REGIOES_FILTRO_INICIAL || [];
+  const disponiveis = new Set(regioes.map((r) => r.norm));
+  return lista
+    .map((regiao) => PlanilhaApi.normalizarChave(regiao))
+    .filter((norm) => disponiveis.has(norm));
+}
+
+function aplicarFiltrosRegiaoIniciais() {
+  const padrao = regioesFiltroInicial();
+  if (!padrao.length) {
+    municipiosSelecionados = new Set();
+    montarFiltroMunicipios([]);
+    return;
+  }
+  restaurarFiltros(padrao, []);
+}
+
 function selecaoAtiva() {
   return regioesSelecionadas().length > 0;
 }
@@ -1022,6 +1040,8 @@ async function carregarContratos(silencioso) {
     montarFiltrosRegioes(extrairRegioesDoCadastro());
     if (silencioso && regioesAntes.length) {
       restaurarFiltros(regioesAntes, municipiosAntes);
+    } else if (!silencioso) {
+      aplicarFiltrosRegiaoIniciais();
     } else {
       municipiosSelecionados = new Set();
       montarFiltroMunicipios([]);
@@ -1069,6 +1089,33 @@ function init() {
   window.atualizarPagina = () => carregarContratos(false);
   carregarContratos(false);
 }
+
+function ajustarTabelaRelatorioPagina(table) {
+  if (!table?.classList?.contains("contratos-tabela")) return;
+
+  table.querySelectorAll(".contratos-thead-mobile").forEach((tr) => tr.remove());
+  table
+    .querySelectorAll(".contratos-col-nome-mae, .contratos-col-acoes, .crud-col-acoes")
+    .forEach((el) => el.remove());
+
+  const ordem = [
+    "contratos-col-nome",
+    "contratos-col-cpf",
+    "contratos-col-vinculo",
+    "contratos-col-municipio",
+  ];
+
+  const reordenarLinha = (tr) => {
+    ordem.forEach((cls) => {
+      const cel = tr.querySelector(`:scope > .${cls}`);
+      if (cel) tr.appendChild(cel);
+    });
+  };
+
+  table.querySelectorAll("thead tr, tbody tr").forEach(reordenarLinha);
+}
+
+window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
 
 AUTH.exigir();
 document.addEventListener("DOMContentLoaded", init);
