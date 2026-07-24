@@ -64,7 +64,6 @@ const CONFIG = {
     // A aba auditoria-contratos é só para log; não usar aqui.
     ABA: "",
     LINHA_INICIO_DADOS: 2,
-    REGIOES_FILTRO_INICIAL: ["alto araguaia", "medio araguaia", "norte araguaia"],
     // Cabeçalhos atuais da planilha cadastro-colaboradores (kebab-case).
     COLUNA_NOME: [
       "nome-completo",
@@ -85,6 +84,18 @@ const CONFIG = {
       "vinculacao",
       "vinculação",
     ],
+    COLUNA_LANCAR_SISTEMA: [
+      "lancamento-sistema",
+      "lancamento sistema",
+      "lançamento sistema",
+      "lançar sistema",
+      "lancar sistema",
+    ],
+    COLUNA_VALOR_CONTRATO: [
+      "valor-contrato",
+      "valor contrato",
+      "valor do contrato",
+    ],
     // Fallback por índice (A=0) quando o cabeçalho não bater com os aliases.
     INDICES: {
       NOME: 0,
@@ -97,7 +108,8 @@ const CONFIG = {
       LANCAMENTO_SISTEMA: 9,
       TIPO_CONTRATO: 10,
       NOME_PAI: 11,
-      CHAVE_PIX: 12,
+      VALOR_CONTRATO: 12,
+      CHAVE_PIX: 13,
     },
     // Modelo Google Docs "modelo-contrato" — ver apps-script/AUTORIZAR-IMPRESSAO.md
     CONTRATO_TEMPLATE_DOC_ID: "1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s",
@@ -110,8 +122,8 @@ const CONFIG = {
       CARGO_CANDIDATO: "DEPUTADO ESTADUAL",
     },
     OPCOES_TIPO_CONTRATO: [
-      "apoiador 30 dias",
-      "apoiador 45 dias",
+      "apoiador meio período",
+      "apoiador período integral",
       "apoiador líder",
       "apoiador customizado",
     ],
@@ -121,6 +133,7 @@ const CONFIG = {
       CPF: "CPF",
       MUNICIPIO: "município",
       VINCULO: "coordenador",
+      VALOR_CONTRATO: "valor contrato",
     },
     CAMPOS_FORMULARIO: [
       {
@@ -230,10 +243,19 @@ const CONFIG = {
         grupo: "sistema",
       },
       {
+        id: "valor-contrato",
+        aliases: ["valor-contrato", "valor contrato", "valor do contrato"],
+        rotulo: "valor contrato",
+        tipo: "moeda",
+        indice: 12,
+        largura: 6,
+        grupo: "sistema",
+      },
+      {
         id: "chave-pix",
         aliases: ["chave-pix", "chave pix", "pix"],
         rotulo: "chave pix",
-        indice: 12,
+        indice: 13,
         largura: 12,
       },
     ],
@@ -252,6 +274,8 @@ const CONFIG = {
       "vínculo",
       "nome-pai",
       "tipo-contrato",
+      "valor-contrato",
+      "valor contrato",
     ],
   },
 

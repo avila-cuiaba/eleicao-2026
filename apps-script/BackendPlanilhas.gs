@@ -718,6 +718,7 @@ function camposMarcadoresContrato() {
       aliases: ["recebe-bolsa-familia", "recebe bolsa familia"],
     },
     { id: "lancamento-sistema", aliases: ["lancamento-sistema", "lancamento sistema"] },
+    { id: "valor-contrato", aliases: ["valor-contrato", "valor contrato", "valor do contrato"] },
     { id: "chave-pix", aliases: ["chave-pix", "chave pix", "pix"] },
     { id: "titulo-eleicoes", aliases: [] },
     { id: "ano-campanha", aliases: [] },

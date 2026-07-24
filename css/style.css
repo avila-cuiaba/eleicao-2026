@@ -8133,6 +8133,43 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
   line-height: 1.25;
 }
 
+.contratos-stack-linha-dupla {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.contratos-th-linha-dupla span {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.contratos-th-linha-dupla span:last-child {
+  text-align: right;
+}
+
+.contratos-stack-linha-dupla .contratos-stack-cpf {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.contratos-stack-linha-dupla .contratos-stack-valor {
+  flex: 0 0 auto;
+  margin-top: 0;
+  width: auto;
+  text-align: right;
+}
+
+.contratos-stack-linha-dupla .contratos-valor-celula {
+  width: auto;
+  justify-content: flex-end;
+}
+
 .contratos-th-stack-head span {
   display: block;
   font-size: 0.72rem;
@@ -8145,6 +8182,70 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
   font-weight: 600;
   color: #1e293b;
   word-break: break-word;
+}
+
+.contratos-valor-celula {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.contratos-valor-texto {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.contratos-stack-valor {
+  display: block;
+  margin-top: 0.12rem;
+  width: 100%;
+  text-align: right;
+}
+
+.contratos-icone-pagamento {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.contratos-icone-pagamento svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.contratos-icone-pagamento--banco {
+  color: #0f766e;
+}
+
+.contratos-icone-pagamento--moeda {
+  color: #d97706;
+}
+
+.contratos-tabela th.contratos-col-nome,
+.contratos-tabela td.contratos-col-nome {
+  text-align: left;
+  vertical-align: middle;
+}
+
+.contratos-tabela th.contratos-col-valor,
+.contratos-tabela td.contratos-col-valor {
+  text-align: right;
+  vertical-align: middle;
+}
+
+.contratos-tabela td.contratos-col-valor {
+  white-space: nowrap;
+}
+
+.contratos-tabela th.contratos-col-acoes {
+  text-align: center;
 }
 
 .contratos-stack-cpf {
@@ -8280,22 +8381,18 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
     padding-right: 0.35rem;
   }
 
-  .contratos-tabela .contratos-col-nome-cpf.contratos-tabela-mobile-col {
-    width: 38%;
-  }
-
-  .contratos-tabela .contratos-col-coord-mun.contratos-tabela-mobile-col {
-    width: 47%;
+  .contratos-tabela .contratos-col-stack.contratos-tabela-mobile-col {
+    width: auto;
   }
 
   .contratos-tabela .contratos-col-acoes.contratos-tabela-mobile-col {
-    width: 15%;
-    min-width: 0;
+    width: 4.75rem;
+    min-width: 4.75rem;
     padding-left: 0.15rem;
     padding-right: 0.15rem;
   }
 
-  .contratos-tabela td.contratos-col-nome-cpf {
+  .contratos-tabela td.contratos-col-stack {
     font-size: 0.78rem;
   }
 }

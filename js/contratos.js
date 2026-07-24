@@ -18,6 +18,16 @@ const ICONE_IMPRIMIR =
   '<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>' +
   '<path d="M6 14h12v8H6z"/>' +
   "</svg>";
+const ICONE_BANCO =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+  '<path d="M3 21h18M3 10h18M5 6l7-4 7 4M6 10v8M10 10v8M14 10v8M18 10v8"/>' +
+  "</svg>";
+const ICONE_MOEDA_PAPEL =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+  '<rect x="2" y="6" width="20" height="12" rx="2"/>' +
+  '<circle cx="12" cy="12" r="2"/>' +
+  '<path d="M6 12h.01M18 12h.01"/>' +
+  "</svg>";
 
 let el = {};
 let colunas = [];
@@ -30,9 +40,8 @@ let colunaNomeMae = null;
 let colunaCpf = null;
 let colunaMunicipio = null;
 let colunaVinculo = null;
-let regioes = [];
-let municipiosPorRegiao = new Map();
-let municipiosSelecionados = new Set();
+let colunaLancarSistema = null;
+let colunaValorContrato = null;
 let listaMunicipiosForm = [];
 let coordenadoresPorMunicipio = new Map();
 
@@ -72,210 +81,39 @@ function celula(valores, linha1, col0) {
   return linha[col0];
 }
 
+function numeroMoeda(val) {
+  if (val == null || val === "") return null;
+  if (typeof val === "number" && !Number.isNaN(val)) return val;
+  let s = String(val).trim();
+  if (!s) return null;
+  s = s.replace(/[^\d,.-]/g, "");
+  if (s.includes(",")) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  }
+  const n = Number(s);
+  return Number.isNaN(n) ? null : n;
+}
+
+function formatarValorContratoExibir(val) {
+  const bruto = String(val ?? "").trim();
+  if (!bruto) return '<span class="text-muted">—</span>';
+  const n = numeroMoeda(val);
+  if (n == null) return escapeHtml(bruto);
+  return escapeHtml(
+    n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+  );
+}
+
+function valorMoedaGravar(valor) {
+  const s = String(valor ?? "").trim();
+  if (!s) return "";
+  const n = numeroMoeda(s);
+  if (n == null) return s;
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function municipioEhMt(municipioNorm) {
   return municipioNorm === "mt";
-}
-
-function montarCadastroMunicipios(valoresMunicipios) {
-  municipiosPorRegiao = new Map();
-  if (!valoresMunicipios?.length) return;
-
-  const cols = cfgMun.COLUNAS;
-  for (let linha = cfgMun.LINHA_INICIO_DADOS; linha <= valoresMunicipios.length; linha++) {
-    const municipio = String(celula(valoresMunicipios, linha, cols.MUNICIPIO) ?? "").trim();
-    if (!municipio) continue;
-
-    const regiao = String(celula(valoresMunicipios, linha, cols.REGIAO) ?? "").trim();
-    const regiaoNorm = PlanilhaApi.normalizarChave(regiao);
-    const municipioNorm = PlanilhaApi.normalizarChave(municipio);
-    if (municipioEhMt(municipioNorm)) continue;
-
-    if (!municipiosPorRegiao.has(regiaoNorm)) {
-      municipiosPorRegiao.set(regiaoNorm, { rotulo: regiao, municipios: [] });
-    }
-    municipiosPorRegiao.get(regiaoNorm).municipios.push({ norm: municipioNorm, rotulo: municipio });
-  }
-
-  municipiosPorRegiao.forEach((info) => {
-    info.municipios.sort((a, b) =>
-      a.rotulo.localeCompare(b.rotulo, "pt-BR", { sensitivity: "base" })
-    );
-  });
-}
-
-function ordenarRegioes(a, b) {
-  const ordem = cfgPessoal.ORDEM_REGIOES || [];
-  const indice = (norm) => {
-    const i = ordem.indexOf(norm);
-    return i === -1 ? ordem.length + 1 : i;
-  };
-  const diff = indice(a.norm) - indice(b.norm);
-  if (diff !== 0) return diff;
-  return a.rotulo.localeCompare(b.rotulo, "pt-BR");
-}
-
-function indiceCorRegiao(regiaoNorm) {
-  const ordem = cfgPessoal.ORDEM_REGIOES || [];
-  const i = ordem.indexOf(regiaoNorm);
-  return i === -1 ? 0 : i % 5;
-}
-
-function extrairRegioesDoCadastro() {
-  return Array.from(municipiosPorRegiao.entries())
-    .map(([norm, info]) => ({ norm, rotulo: info.rotulo || norm }))
-    .sort(ordenarRegioes);
-}
-
-function regioesSelecionadas() {
-  if (!el.filtroRegioes) return [];
-  return Array.from(el.filtroRegioes.querySelectorAll('input[type="checkbox"]:checked')).map(
-    (cb) => cb.value
-  );
-}
-
-function municipiosDasRegioesSelecionadas() {
-  const selecionadas = regioesSelecionadas();
-  const mapa = new Map();
-
-  selecionadas.forEach((regiaoNorm) => {
-    (municipiosPorRegiao.get(regiaoNorm)?.municipios || []).forEach((mun) => {
-      if (municipioEhMt(mun.norm)) return;
-      if (!mapa.has(mun.norm)) {
-        mapa.set(mun.norm, { ...mun, regiaoNorm });
-      }
-    });
-  });
-
-  return Array.from(mapa.values()).sort((a, b) =>
-    a.rotulo.localeCompare(b.rotulo, "pt-BR", { sensitivity: "base" })
-  );
-}
-
-function montarFiltrosRegioes(listaRegioes) {
-  regioes = listaRegioes;
-  if (!el.filtroRegioes) return;
-
-  el.filtroRegioes.innerHTML = "";
-  if (!listaRegioes.length) {
-    el.filtroRegioes.closest(".contratos-filtro-wrap")?.classList.add("d-none");
-    return;
-  }
-
-  el.filtroRegioes.closest(".contratos-filtro-wrap")?.classList.remove("d-none");
-  listaRegioes.forEach((reg) => {
-    const id = "ctr-regiao-" + reg.norm.replace(/[^a-z0-9]+/g, "-");
-    const label = document.createElement("label");
-    label.className = "dashboard-filtro-item dashboard-filtro-cor--" + indiceCorRegiao(reg.norm);
-    label.innerHTML =
-      `<input type="checkbox" class="visually-hidden" id="${id}" value="${escapeHtml(reg.norm)}">` +
-      `<span class="dashboard-filtro-badge">${escapeHtml(reg.rotulo)}</span>`;
-    el.filtroRegioes.appendChild(label);
-  });
-
-  el.filtroRegioes.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
-    cb.addEventListener("change", onRegiaoAlterada);
-  });
-}
-
-function municipiosSelecionadosLista() {
-  return Array.from(municipiosSelecionados);
-}
-
-function municipiosFiltroAtivos() {
-  const disponiveis = municipiosDasRegioesSelecionadas();
-  const disponiveisNorm = new Set(disponiveis.map((m) => m.norm));
-
-  if (municipiosSelecionados.size > 0) {
-    return municipiosSelecionadosLista().filter((norm) => disponiveisNorm.has(norm));
-  }
-
-  return Array.from(disponiveisNorm);
-}
-
-function sincronizarAtivoMunicipios() {
-  if (!el.filtroMunicipios) return;
-  el.filtroMunicipios.querySelectorAll(".entregas-municipio-item").forEach((item) => {
-    const val = item.querySelector("input")?.value;
-    item.classList.toggle("is-active", Boolean(val && municipiosSelecionados.has(val)));
-  });
-}
-
-function onRegiaoAlterada() {
-  const disponiveis = municipiosDasRegioesSelecionadas();
-  const disponiveisNorm = new Set(disponiveis.map((m) => m.norm));
-  municipiosSelecionados.forEach((norm) => {
-    if (!disponiveisNorm.has(norm)) municipiosSelecionados.delete(norm);
-  });
-  montarFiltroMunicipios(disponiveis);
-  atualizarPainelTabela();
-}
-
-function montarFiltroMunicipios(lista) {
-  if (!el.filtroMunicipios || !el.municipiosWrap) return;
-
-  el.filtroMunicipios.innerHTML = "";
-  if (!lista.length) {
-    el.municipiosWrap.classList.add("d-none");
-    return;
-  }
-
-  el.municipiosWrap.classList.remove("d-none");
-  lista.forEach((mun) => {
-    const id = "ctr-mun-" + mun.norm.replace(/[^a-z0-9]+/g, "-");
-    const ativo = municipiosSelecionados.has(mun.norm);
-    const corIdx = indiceCorRegiao(mun.regiaoNorm);
-    const label = document.createElement("label");
-    label.className =
-      "entregas-municipio-item entregas-municipio-cor--" +
-      corIdx +
-      (ativo ? " is-active" : "");
-    label.innerHTML =
-      `<input type="checkbox" class="visually-hidden" id="${id}" value="${escapeHtml(mun.norm)}"${ativo ? " checked" : ""}>` +
-      `<span class="entregas-municipio-badge">${escapeHtml(mun.rotulo)}</span>`;
-    el.filtroMunicipios.appendChild(label);
-  });
-
-  el.filtroMunicipios.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
-    cb.addEventListener("change", () => {
-      if (cb.checked) municipiosSelecionados.add(cb.value);
-      else municipiosSelecionados.delete(cb.value);
-      sincronizarAtivoMunicipios();
-      atualizarPainelTabela();
-    });
-  });
-}
-
-function restaurarFiltros(regioesMarcadas, municipiosNorm) {
-  if (!el.filtroRegioes) return;
-  el.filtroRegioes.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
-    cb.checked = regioesMarcadas.includes(cb.value);
-  });
-  municipiosSelecionados = new Set(
-    Array.isArray(municipiosNorm) ? municipiosNorm : municipiosNorm ? [municipiosNorm] : []
-  );
-  montarFiltroMunicipios(municipiosDasRegioesSelecionadas());
-}
-
-function regioesFiltroInicial() {
-  const lista = cfg.REGIOES_FILTRO_INICIAL || [];
-  const disponiveis = new Set(regioes.map((r) => r.norm));
-  return lista
-    .map((regiao) => PlanilhaApi.normalizarChave(regiao))
-    .filter((norm) => disponiveis.has(norm));
-}
-
-function aplicarFiltrosRegiaoIniciais() {
-  const padrao = regioesFiltroInicial();
-  if (!padrao.length) {
-    municipiosSelecionados = new Set();
-    montarFiltroMunicipios([]);
-    return;
-  }
-  restaurarFiltros(padrao, []);
-}
-
-function selecaoAtiva() {
-  return regioesSelecionadas().length > 0;
 }
 
 function termoBusca() {
@@ -299,26 +137,7 @@ function aplicarBusca(lista) {
 }
 
 function linhasFiltradas() {
-  if (!selecaoAtiva()) return [];
-
-  const alvoMunicipios = new Set(municipiosFiltroAtivos());
-  if (!alvoMunicipios.size) return [];
-
-  let lista = linhas.slice();
-  if (colunaMunicipio) {
-    lista = lista.filter((item) =>
-      alvoMunicipios.has(PlanilhaApi.normalizarChave(valorItem(item, colunaMunicipio)))
-    );
-  }
-
-  return aplicarBusca(lista);
-}
-
-function atualizarPainelTabela() {
-  const mostrar = selecaoAtiva();
-  el.tabelaCard?.classList.toggle("d-none", !mostrar);
-  el.selecioneMsg?.classList.toggle("d-none", mostrar);
-  renderizarTabela();
+  return aplicarBusca(linhas.slice());
 }
 
 function cpfSomenteDigitos(valor) {
@@ -580,6 +399,14 @@ function criarCampoCpf(campo, dados) {
   return wrap;
 }
 
+function criarCampoMoeda(campo, dados) {
+  const valor = dados && campo.coluna ? dados[campo.coluna.chave] : "";
+  const exibicao = valorMoedaGravar(valor) || String(valor ?? "").trim();
+  const dadosExibicao = dados ? { ...dados } : {};
+  if (campo.coluna) dadosExibicao[campo.coluna.chave] = exibicao;
+  return criarCampoTexto(campo, dadosExibicao, ' inputmode="decimal"');
+}
+
 function criarCampoSelect(campo, dados, opcoes) {
   const id = "campo-" + campo.id;
   const valor = dados && campo.coluna ? String(dados[campo.coluna.chave] ?? "").trim() : "";
@@ -648,6 +475,8 @@ function montarFormulario(dados) {
         col.appendChild(criarCampoCheckbox(campo, dados));
       } else if (campo.tipo === "cpf") {
         col.appendChild(criarCampoCpf(campo, dados));
+      } else if (campo.tipo === "moeda") {
+        col.appendChild(criarCampoMoeda(campo, dados));
       } else if (campo.tipo === "select") {
         col.appendChild(criarCampoSelect(campo, dados, opcoesCampoSelect(campo, dados)));
       } else {
@@ -673,6 +502,8 @@ function lerFormulario() {
       dados[chave] = valorCheckboxGravar(campo, input.checked);
     } else if (campo.tipo === "cpf") {
       dados[chave] = formatarCpf(input.value);
+    } else if (campo.tipo === "moeda") {
+      dados[chave] = valorMoedaGravar(input.value);
     } else {
       dados[chave] = input.value.trim();
     }
@@ -776,6 +607,64 @@ function resolverColunas() {
   colunaCpf = PlanilhaApi.acharColuna(colunas, cfg.COLUNA_CPF, idx.CPF);
   colunaMunicipio = PlanilhaApi.acharColuna(colunas, cfg.COLUNA_MUNICIPIO, idx.MUNICIPIO);
   colunaVinculo = PlanilhaApi.acharColuna(colunas, cfg.COLUNA_VINCULO, idx.VINCULO);
+  colunaLancarSistema = PlanilhaApi.acharColuna(
+    colunas,
+    cfg.COLUNA_LANCAR_SISTEMA,
+    idx.LANCAMENTO_SISTEMA
+  );
+  colunaValorContrato = PlanilhaApi.acharColuna(
+    colunas,
+    cfg.COLUNA_VALOR_CONTRATO,
+    idx.VALOR_CONTRATO
+  );
+}
+
+function itemLancarSistema(item) {
+  return valorCheckboxSim(valorItem(item, colunaLancarSistema));
+}
+
+function htmlIconePagamento(item) {
+  const noSistema = itemLancarSistema(item);
+  const classe = noSistema
+    ? "contratos-icone-pagamento contratos-icone-pagamento--banco"
+    : "contratos-icone-pagamento contratos-icone-pagamento--moeda";
+  const icone = noSistema ? ICONE_BANCO : ICONE_MOEDA_PAPEL;
+  return `<span class="${classe}" aria-hidden="true">${icone}</span>`;
+}
+
+function htmlCelulaValorContrato(item) {
+  return (
+    '<span class="contratos-valor-celula">' +
+    `<span class="contratos-valor-texto">${formatarValorContratoExibir(valorItem(item, colunaValorContrato))}</span>` +
+    htmlIconePagamento(item) +
+    "</span>"
+  );
+}
+
+function htmlMobileStackCabecalho() {
+  return (
+    '<div class="contratos-th-stack-head">' +
+    `<span>${escapeHtml(rotuloTabela("NOME"))}</span>` +
+    `<span>${escapeHtml(rotuloTabela("MUNICIPIO"))}</span>` +
+    '<div class="contratos-stack-linha-dupla contratos-th-linha-dupla">' +
+    `<span>${escapeHtml(rotuloTabela("CPF"))}</span>` +
+    `<span>${escapeHtml(rotuloTabela("VALOR_CONTRATO"))}</span>` +
+    "</div>" +
+    "</div>"
+  );
+}
+
+function htmlMobileStackCorpo(item) {
+  return (
+    '<div class="contratos-celula-stack">' +
+    `<span class="contratos-stack-nome">${exibirValor(valorItem(item, colunaNome))}</span>` +
+    `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
+    '<div class="contratos-stack-linha-dupla">' +
+    `<span class="contratos-stack-cpf">${exibirValor(valorItem(item, colunaCpf))}</span>` +
+    `<span class="contratos-stack-valor">${htmlCelulaValorContrato(item)}</span>` +
+    "</div>" +
+    "</div>"
+  );
 }
 
 function criarTh(texto, classes) {
@@ -793,28 +682,28 @@ function criarTdHtml(html, classes) {
   return td;
 }
 
-function htmlAcoesDesktop() {
-  return (
-    '<button type="button" class="btn btn-sm btn-outline-secondary crud-btn-acao" data-acao="imprimir">imprimir</button> ' +
-    '<button type="button" class="btn btn-sm btn-outline-primary crud-btn-acao" data-acao="editar">editar</button> ' +
-    '<button type="button" class="btn btn-sm btn-outline-danger crud-btn-acao" data-acao="excluir">excluir</button>'
-  );
-}
-
-function htmlAcoesMobile() {
+function htmlBotoesAcoes() {
   return (
     '<div class="crud-acoes-icones">' +
-    '<button type="button" class="crud-acao-icone crud-acao-icone--imprimir" data-acao="imprimir" aria-label="imprimir contrato">' +
+    '<button type="button" class="crud-acao-icone crud-acao-icone--imprimir" data-acao="imprimir" aria-label="imprimir contrato" title="imprimir">' +
     ICONE_IMPRIMIR +
     "</button>" +
-    '<button type="button" class="crud-acao-icone crud-acao-icone--editar" data-acao="editar" aria-label="editar">' +
+    '<button type="button" class="crud-acao-icone crud-acao-icone--editar" data-acao="editar" aria-label="editar" title="editar">' +
     ICONE_EDITAR +
     "</button>" +
-    '<button type="button" class="crud-acao-icone crud-acao-icone--excluir" data-acao="excluir" aria-label="excluir">' +
+    '<button type="button" class="crud-acao-icone crud-acao-icone--excluir" data-acao="excluir" aria-label="excluir" title="excluir">' +
     ICONE_EXCLUIR +
     "</button>" +
     "</div>"
   );
+}
+
+function htmlAcoesDesktop() {
+  return htmlBotoesAcoes();
+}
+
+function htmlAcoesMobile() {
+  return htmlBotoesAcoes();
 }
 
 function montarDadosImpressao(item) {
@@ -878,27 +767,21 @@ function montarCabecalhoTabela() {
     criarTh(rotuloTabela("MUNICIPIO"), "contratos-col-municipio contratos-tabela-desktop-col")
   );
   trDesktop.appendChild(
-    criarTh("ações", "crud-col-acoes text-end contratos-col-acoes contratos-tabela-desktop-col")
+    criarTh(
+      rotuloTabela("VALOR_CONTRATO"),
+      "contratos-col-valor contratos-tabela-desktop-col"
+    )
+  );
+  trDesktop.appendChild(
+    criarTh("ações", "crud-col-acoes contratos-col-acoes contratos-tabela-desktop-col")
   );
 
-  const thStack = criarTh("", "contratos-col-nome-cpf contratos-tabela-mobile-col");
-  thStack.innerHTML =
-    '<div class="contratos-th-stack-head">' +
-    `<span>${escapeHtml(rotuloTabela("NOME"))}</span>` +
-    `<span>${escapeHtml(rotuloTabela("CPF"))}</span>` +
-    "</div>";
+  const thStack = criarTh("", "contratos-col-stack contratos-tabela-mobile-col");
+  thStack.innerHTML = htmlMobileStackCabecalho();
   trMobile.appendChild(thStack);
 
-  const thCoordMun = criarTh("", "contratos-col-coord-mun contratos-tabela-mobile-col");
-  thCoordMun.innerHTML =
-    '<div class="contratos-th-stack-head">' +
-    `<span>${escapeHtml(rotuloTabela("VINCULO"))}</span>` +
-    `<span>${escapeHtml(rotuloTabela("MUNICIPIO"))}</span>` +
-    "</div>";
-  trMobile.appendChild(thCoordMun);
-
   trMobile.appendChild(
-    criarTh("ações", "text-end contratos-col-acoes contratos-tabela-mobile-col")
+    criarTh("ações", "contratos-col-acoes contratos-tabela-mobile-col")
   );
 }
 
@@ -932,6 +815,12 @@ function criarLinhaTabela(item) {
       "contratos-col-municipio contratos-tabela-desktop-col"
     )
   );
+  tr.appendChild(
+    criarTdHtml(
+      htmlCelulaValorContrato(item),
+      "contratos-col-valor contratos-tabela-desktop-col"
+    )
+  );
 
   const tdAcoesDesktop = criarTdHtml(
     htmlAcoesDesktop(),
@@ -940,21 +829,9 @@ function criarLinhaTabela(item) {
   vincularAcoes(tdAcoesDesktop, item);
   tr.appendChild(tdAcoesDesktop);
 
-  const tdStack = criarTdHtml("", "contratos-col-nome-cpf contratos-tabela-mobile-col");
-  tdStack.innerHTML =
-    '<div class="contratos-celula-stack">' +
-    `<span class="contratos-stack-nome">${exibirValor(valorItem(item, colunaNome))}</span>` +
-    `<span class="contratos-stack-cpf">${exibirValor(valorItem(item, colunaCpf))}</span>` +
-    "</div>";
+  const tdStack = criarTdHtml("", "contratos-col-stack contratos-tabela-mobile-col");
+  tdStack.innerHTML = htmlMobileStackCorpo(item);
   tr.appendChild(tdStack);
-
-  const tdCoordMun = criarTdHtml("", "contratos-col-coord-mun contratos-tabela-mobile-col");
-  tdCoordMun.innerHTML =
-    '<div class="contratos-celula-stack">' +
-    `<span class="contratos-stack-coord">${exibirValor(valorItem(item, colunaVinculo))}</span>` +
-    `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
-    "</div>";
-  tr.appendChild(tdCoordMun);
 
   const tdAcoesMobile = criarTdHtml(
     htmlAcoesMobile(),
@@ -970,18 +847,11 @@ function renderizarTabela() {
   const filtradas = linhasFiltradas();
   el.corpo.innerHTML = "";
 
-  if (!selecaoAtiva()) {
-    el.vazio.hidden = false;
-    el.vazio.textContent = "selecione uma região para ver os contratos.";
-    notificarAlturaFrame();
-    return;
-  }
-
   if (!filtradas.length) {
     el.vazio.hidden = false;
-    el.vazio.textContent = municipiosSelecionados.size
-      ? "nenhum contrato encontrado para os municípios selecionados."
-      : "nenhum contrato encontrado para esta região.";
+    el.vazio.textContent = termoBusca()
+      ? "nenhum contrato encontrado para a busca."
+      : "nenhum contrato encontrado.";
     notificarAlturaFrame();
     return;
   }
@@ -1003,9 +873,6 @@ async function carregarContratos(silencioso) {
   if (!silencioso) mostrarStatus("Carregando contratos...", "carregando");
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-  const regioesAntes = regioesSelecionadas();
-  const municipiosAntes = municipiosSelecionadosLista();
-
   try {
     const [dados, jsonMun, jsonAp] = await Promise.all([
       PlanilhaApi.ler(cfg.PLANILHA, cfg.ABA, cfg.LINHA_INICIO_DADOS),
@@ -1019,10 +886,8 @@ async function carregarContratos(silencioso) {
     if (!dados) return;
 
     if (AUTH.tratarResposta(jsonMun) && jsonMun?.ok && jsonMun.valores) {
-      montarCadastroMunicipios(jsonMun.valores);
       listaMunicipiosForm = extrairListaMunicipios(jsonMun.valores);
     } else {
-      municipiosPorRegiao = new Map();
       listaMunicipiosForm = [];
     }
 
@@ -1037,17 +902,7 @@ async function carregarContratos(silencioso) {
     resolverColunas();
 
     montarCabecalhoTabela();
-    montarFiltrosRegioes(extrairRegioesDoCadastro());
-    if (silencioso && regioesAntes.length) {
-      restaurarFiltros(regioesAntes, municipiosAntes);
-    } else if (!silencioso) {
-      aplicarFiltrosRegiaoIniciais();
-    } else {
-      municipiosSelecionados = new Set();
-      montarFiltroMunicipios([]);
-    }
-
-    atualizarPainelTabela();
+    renderizarTabela();
     if (!silencioso) limparStatus();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
@@ -1056,10 +911,6 @@ async function carregarContratos(silencioso) {
 
 function init() {
   el = {
-    filtroRegioes: document.getElementById("filtroRegioes"),
-    municipiosWrap: document.getElementById("municipiosWrap"),
-    filtroMunicipios: document.getElementById("filtroMunicipios"),
-    selecioneMsg: document.getElementById("contratosSelecione"),
     tabelaCard: document.getElementById("tabelaCard"),
     busca: document.getElementById("buscaContrato"),
     cabecalhoDesktop: document.getElementById("cabecalhoDesktop"),
@@ -1082,7 +933,7 @@ function init() {
   }
 
   modal = bootstrap.Modal.getOrCreateInstance(el.modalEl);
-  el.busca?.addEventListener("input", atualizarPainelTabela);
+  el.busca?.addEventListener("input", renderizarTabela);
   el.btnNovo?.addEventListener("click", abrirNovo);
   el.form?.addEventListener("submit", salvarFormulario);
 
@@ -1103,6 +954,7 @@ function ajustarTabelaRelatorioPagina(table) {
     "contratos-col-cpf",
     "contratos-col-vinculo",
     "contratos-col-municipio",
+    "contratos-col-valor",
   ];
 
   const reordenarLinha = (tr) => {
