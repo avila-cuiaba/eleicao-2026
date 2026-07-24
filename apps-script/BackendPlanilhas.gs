@@ -71,6 +71,11 @@ function criarCadastroPlanilhas() {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1242262181,
   };
+  // Referência de valor por tipo de contrato (células C2:D4).
+  p["contratos-valor-referencia"] = {
+    id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
+    gid: 1225905245,
+  };
   // Mesma aba apoiadores (colunas B liderança, C município, N federal).
   p["apoiador-federal"] = p.apoiadores;
   // Aba orçamento estratificado (por município).
@@ -222,6 +227,7 @@ var PLANILHAS_SOMENTE_CONTRATOS = {
   contratos: true,
   "cadastro-colaboradores": true,
   "auditoria-contratos": true,
+  "contratos-valor-referencia": true,
 };
 
 function validarChave(chave) {
@@ -294,6 +300,13 @@ function respostaNaoAutorizado() {
   return responder({ ok: false, naoAutorizado: true, erro: "Acesso negado" });
 }
 
+function mensagemErroParaCliente(erro) {
+  let msg = "";
+  if (erro && erro.message) msg = String(erro.message);
+  else msg = String(erro);
+  return msg.replace(/^Error:\s*/i, "").trim() || "Erro desconhecido.";
+}
+
 // ===================== ROTEAMENTO =====================
 
 function doGet(e) {
@@ -319,7 +332,7 @@ function doGet(e) {
     if (recurso === "agenda") return doGetAgenda(p);
     return doGetPlanilha(p);
   } catch (erro) {
-    return responder({ ok: false, erro: String(erro) });
+    return responder({ ok: false, erro: mensagemErroParaCliente(erro) });
   }
 }
 
@@ -337,7 +350,7 @@ function doPost(e) {
     if (recurso === "agenda") return doPostAgenda(corpo);
     return doPostPlanilha(corpo);
   } catch (erro) {
-    return responder({ ok: false, erro: String(erro) });
+    return responder({ ok: false, erro: mensagemErroParaCliente(erro) });
   }
 }
 
@@ -966,6 +979,72 @@ function atualizarLinhaPagamentosLideranca(sheet, numLinha, existente, cabecalho
   return novaLinha;
 }
 
+// Colaboradores (contratos): coluna N — saldo com fórmula; nunca regravar na atualização.
+function ehColunaSaldoContratoPlanilha(col, indiceZero) {
+  if (indiceZero === 13) return true;
+  const norm = normalizarChavePlanilha(col);
+  return norm === "saldo-contrato" || norm === "saldo contrato" || norm === "saldo do contrato";
+}
+
+function atualizarLinhaContratos(sheet, numLinha, existente, cabecalhos, dados) {
+  const novaLinha = existente.slice();
+  cabecalhos.forEach(function (col, i) {
+    if (ehColunaSaldoContratoPlanilha(col, i)) return;
+    const val = valorDadosColuna(dados, col);
+    if (val === undefined) return;
+    sheet.getRange(numLinha, i + 1).setValue(val);
+    novaLinha[i] = val;
+  });
+  return novaLinha;
+}
+
+function indicesColunasAtualizadasContratos(cabecalhos, dados) {
+  const indices = [];
+  cabecalhos.forEach(function (col, i) {
+    if (ehColunaSaldoContratoPlanilha(col, i)) return;
+    if (valorDadosColuna(dados, col) !== undefined) indices.push(i);
+  });
+  return indices;
+}
+
+function reverterColunasLinhaContratos(sheet, numLinha, existente, indices) {
+  (indices || []).forEach(function (i) {
+    sheet.getRange(numLinha, i + 1).setValue(existente[i] != null ? existente[i] : "");
+  });
+  SpreadsheetApp.flush();
+}
+
+function indiceSaldoContratoCabecalho(cabecalhos) {
+  for (let i = 0; i < cabecalhos.length; i++) {
+    if (ehColunaSaldoContratoPlanilha(cabecalhos[i], i)) return i;
+  }
+  return cabecalhos.length > 13 ? 13 : -1;
+}
+
+function valorNumericoSaldoContrato(val) {
+  if (val == null || val === "") return null;
+  if (typeof val === "number" && !isNaN(val)) return val;
+  let s = String(val).trim();
+  if (!s) return null;
+  s = s.replace(/[^\d,.-]/g, "");
+  if (s.indexOf(",") !== -1) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  }
+  const n = Number(s);
+  return isNaN(n) ? null : n;
+}
+
+function validarSaldoContratoNaoNegativo(sheet, numLinha, cabecalhos) {
+  const idx = indiceSaldoContratoCabecalho(cabecalhos);
+  if (idx < 0) return;
+  SpreadsheetApp.flush();
+  const val = sheet.getRange(numLinha, idx + 1).getValue();
+  const n = valorNumericoSaldoContrato(val);
+  if (n != null && n < 0) {
+    throw new Error("O saldo contrato não pode ficar negativo.");
+  }
+}
+
 function atualizarLinhaDashboard(sheet, numLinha, existente, dados) {
   const novaLinha = existente.slice();
   if (dados && Object.prototype.hasOwnProperty.call(dados, "minima")) {
@@ -1038,6 +1117,16 @@ function doPostPlanilha(corpo) {
       novaLinha = atualizarLinhaDashboard(sheet, numLinha, existente, dados);
     } else if (origemAuditoria === "pagamentos-lideranca" || planilha === "pagamentos-lideranca") {
       novaLinha = atualizarLinhaPagamentosLideranca(sheet, numLinha, existente, cabecalhos, dados);
+    } else if (deveAuditarContratos(planilha)) {
+      const indicesAtualizados = indicesColunasAtualizadasContratos(cabecalhos, dados);
+      novaLinha = atualizarLinhaContratos(sheet, numLinha, existente, cabecalhos, dados);
+      try {
+        validarSaldoContratoNaoNegativo(sheet, numLinha, cabecalhos);
+      } catch (erroSaldo) {
+        reverterColunasLinhaContratos(sheet, numLinha, existente, indicesAtualizados);
+        throw erroSaldo;
+      }
+      novaLinha = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
     } else {
       novaLinha = cabecalhos.map(function (col, i) {
         const val = valorDadosColuna(dados, col);
@@ -1081,6 +1170,14 @@ function doPostPlanilha(corpo) {
 
   sheet.appendRow(linha);
   const numLinhaInserida = sheet.getLastRow();
+  if (deveAuditarContratos(planilha)) {
+    try {
+      validarSaldoContratoNaoNegativo(sheet, numLinhaInserida, cabecalhos);
+    } catch (erroSaldo) {
+      sheet.deleteRow(numLinhaInserida);
+      throw erroSaldo;
+    }
+  }
   if (auditar) {
     registrarAuditoriaContratos(
       planilha,

@@ -7980,6 +7980,33 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
   gap: 0.5rem 0.75rem;
 }
 
+.crud-toolbar-btn-icone {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.crud-toolbar-btn-icone .fa-solid {
+  font-size: 0.95em;
+  opacity: 0.9;
+}
+
+.crud-paginacao-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.crud-paginacao-indicador {
+  pointer-events: none;
+  min-width: 7.5rem;
+  text-align: center;
+  opacity: 1 !important;
+  color: var(--bs-body-color, #212529) !important;
+}
+
 .crud-busca-campo {
   flex: 1 1 12rem;
   min-width: 0;
@@ -8133,41 +8160,20 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
   line-height: 1.25;
 }
 
-.contratos-stack-linha-dupla {
-  display: flex;
+.contratos-stack-valor-linha {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  width: 100%;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  max-width: 100%;
   min-width: 0;
 }
 
-.contratos-th-linha-dupla span {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.contratos-th-linha-dupla span:last-child {
-  text-align: right;
-}
-
-.contratos-stack-linha-dupla .contratos-stack-cpf {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  text-align: left;
-}
-
-.contratos-stack-linha-dupla .contratos-stack-valor {
-  flex: 0 0 auto;
-  margin-top: 0;
-  width: auto;
-  text-align: right;
-}
-
-.contratos-stack-linha-dupla .contratos-valor-celula {
-  width: auto;
-  justify-content: flex-end;
+.contratos-stack-valor-linha .contratos-valor-texto {
+  white-space: nowrap;
+  font-size: 0.72rem;
+  color: #1e293b;
+  font-weight: 600;
 }
 
 .contratos-th-stack-head span {
@@ -8220,17 +8226,29 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
   height: 1.05rem;
 }
 
+.contratos-icone-pagamento .fa-solid {
+  font-size: 1.05rem;
+  line-height: 1;
+  display: block;
+}
+
 .contratos-icone-pagamento--banco {
-  color: #0f766e;
+  color: #b8956c;
 }
 
 .contratos-icone-pagamento--moeda {
-  color: #d97706;
+  color: #1f4e8c;
 }
 
 .contratos-tabela th.contratos-col-nome,
 .contratos-tabela td.contratos-col-nome {
   text-align: left;
+  vertical-align: middle;
+}
+
+.contratos-tabela th.contratos-col-cpf,
+.contratos-tabela td.contratos-col-cpf {
+  text-align: center;
   vertical-align: middle;
 }
 
@@ -8244,8 +8262,230 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
   white-space: nowrap;
 }
 
+.contratos-tabela th.contratos-col-saldo,
+.contratos-tabela td.contratos-col-saldo {
+  text-align: right;
+  vertical-align: middle;
+}
+
+.contratos-tabela td.contratos-col-saldo {
+  white-space: nowrap;
+}
+
+.contratos-campo-leitura-valor {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--bs-light, #f8f9fa);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 0.25rem;
+  min-height: calc(1.5em + 0.5rem + 2px);
+}
+
+.contratos-campo-form.contratos-campo-form--bloqueado {
+  width: 100%;
+}
+
+.contratos-campo-controle-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.contratos-campo-controle-linha .form-control,
+.contratos-campo-controle-linha .form-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.contratos-campo-controle-linha .contratos-form-check {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.contratos-btn-cadeado-campo,
+.contratos-btn-desbloquear-campo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: #64748b;
+  text-decoration: none;
+}
+
+.contratos-btn-cadeado-campo:hover,
+.contratos-btn-cadeado-campo:focus,
+.contratos-btn-desbloquear-campo:hover,
+.contratos-btn-desbloquear-campo:focus {
+  color: #1f4e8c;
+}
+
+.contratos-btn-cadeado-campo i,
+.contratos-btn-desbloquear-campo svg {
+  font-size: 0.95rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.contratos-btn-cadeado-campo--fechado {
+  color: #64748b;
+}
+
+.contratos-btn-cadeado-campo--aberto {
+  color: #1f4e8c;
+}
+
+.contratos-form-campos input:disabled:not(.form-check-input),
+.contratos-form-campos select:disabled {
+  background-color: var(--bs-light, #f8f9fa);
+  cursor: not-allowed;
+}
+
+.contratos-form-campos .form-check-input:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.contratos-form-campos .form-check-input:disabled:not(:checked) {
+  background-color: var(--bs-light, #f8f9fa);
+}
+
+.contratos-form-campos .form-check-input:disabled:checked {
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.contratos-form-campos .col-6 {
+  min-width: 0;
+}
+
+.contratos-form-campos .col-6 .form-label,
+.contratos-form-campos .col-6 .form-check-label {
+  font-size: 0.8rem;
+}
+
+.contratos-form-campos .col-6 .contratos-campo-controle-linha {
+  gap: 0.15rem;
+}
+
+.contratos-form-campos .col-6 .contratos-btn-cadeado-campo,
+.contratos-form-campos .col-6 .contratos-btn-desbloquear-campo {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.pagamentos-selecao-tabela th,
+.pagamentos-selecao-tabela td {
+  vertical-align: middle;
+}
+
+.pagamentos-selecao-col-check {
+  width: 2.5rem;
+}
+
+.pagamentos-selecao-celula {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  line-height: 1.3;
+}
+
+.pagamentos-selecao-linha1 {
+  font-weight: 500;
+}
+
+.pagamentos-selecao-linha2 {
+  font-size: 0.85rem;
+}
+
+.pagamentos-selecao-celula--cabecalho .pagamentos-selecao-linha1 {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.pagamentos-selecao-celula--cabecalho-end {
+  align-items: flex-end;
+}
+
+.pagamentos-selecao-col-valores .pagamentos-selecao-linha1,
+.pagamentos-selecao-col-valores .pagamentos-selecao-linha2 {
+  font-variant-numeric: tabular-nums;
+}
+
+.pagamentos-selecao-col-valor-pix {
+  width: 7.5rem;
+  min-width: 7.5rem;
+}
+
+.pagamentos-selecao-valor-pix {
+  font-variant-numeric: tabular-nums;
+  min-width: 6.5rem;
+}
+
+.pagamentos-cpf-pix-celula {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.pagamentos-cpf-pix-texto {
+  font-variant-numeric: tabular-nums;
+}
+
+.pagamentos-cpf-pix-icone {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.pagamentos-cpf-pix-icone--ok {
+  color: #15803d;
+}
+
+.pagamentos-cpf-pix-icone--erro {
+  color: #b91c1c;
+}
+
+.pagamentos-selecao-bar .form-label {
+  color: #64748b;
+}
+
+.pagamentos-selecao-modal-footer {
+  border-top: 1px solid var(--bs-border-color, #dee2e6);
+}
+
 .contratos-tabela th.contratos-col-acoes {
   text-align: center;
+}
+
+.contratos-tabela td.contratos-col-acoes {
+  padding-right: 0.5rem;
+  overflow: hidden;
+}
+
+@keyframes contratosLinhaSalvaFade {
+  0% {
+    background-color: rgba(31, 78, 140, 0.34);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.contratos-tabela tbody tr.contratos-linha-salva > td {
+  animation: contratosLinhaSalvaFade 3s ease-out forwards;
+}
+
+.contratos-tabela .contratos-col-acoes .crud-acoes-icones {
+  max-width: 100%;
+  justify-content: flex-end;
 }
 
 .contratos-stack-cpf {
@@ -8386,10 +8626,20 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
   }
 
   .contratos-tabela .contratos-col-acoes.contratos-tabela-mobile-col {
-    width: 4.75rem;
-    min-width: 4.75rem;
-    padding-left: 0.15rem;
-    padding-right: 0.15rem;
+    width: 5.85rem;
+    min-width: 5.85rem;
+    padding-left: 0.1rem;
+    padding-right: 0.45rem;
+  }
+
+  .contratos-tabela .contratos-col-acoes .crud-acao-icone {
+    width: 1.55rem;
+    height: 1.55rem;
+  }
+
+  .contratos-tabela .contratos-col-acoes .crud-acao-icone svg {
+    width: 0.9rem;
+    height: 0.9rem;
   }
 
   .contratos-tabela td.contratos-col-stack {
@@ -8401,6 +8651,10 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
   .crud-tabela th,
   .crud-tabela td {
     white-space: normal;
+  }
+
+  .page-contratos .contratos-tabela .contratos-col-acoes.contratos-tabela-mobile-col {
+    padding-right: 0.55rem;
   }
 
   .contratos-tabela .crud-col-acoes {

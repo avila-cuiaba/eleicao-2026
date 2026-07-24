@@ -13,6 +13,11 @@ const PlanilhaApi = {
     return url.toString();
   },
 
+  mensagemErro(erro) {
+    let msg = erro?.message != null ? String(erro.message) : String(erro ?? "");
+    return msg.replace(/^Error:\s*/i, "").trim() || "Falha na operação.";
+  },
+
   normalizarChave(texto) {
     return String(texto ?? "")
       .trim()

@@ -1,6 +1,6 @@
-// Página contratos: CRUD na planilha contratos (colunas dinâmicas).
+// Página pessoal — pagamentos (mesma planilha de contratos; tabela diferente).
 
-const cfg = CONFIG.CONTRATOS;
+const cfg = CONFIG.PESSOAL_PAGAMENTOS;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
 const cfgPessoal = CONFIG.PESSOAL;
 const cfgAp = cfgPessoal.APOIADORES;
@@ -24,6 +24,10 @@ const ICONE_BANCO =
   "</svg>";
 const ICONE_NAO_LANCAR_SISTEMA =
   '<i class="fa-solid fa-hand-holding-circle-dollar" aria-hidden="true"></i>';
+const ICONE_CADEADO_ABERTO =
+  '<i class="fa-solid fa-lock-open" aria-hidden="true"></i>';
+const ICONE_CADEADO_FECHADO =
+  '<i class="fa-solid fa-lock" aria-hidden="true"></i>';
 
 let el = {};
 let colunas = [];
@@ -38,11 +42,17 @@ let colunaMunicipio = null;
 let colunaVinculo = null;
 let colunaLancarSistema = null;
 let colunaValorContrato = null;
+let colunaSaldoContrato = null;
+let colunaChavePix = null;
 let listaMunicipiosForm = [];
 let coordenadoresPorMunicipio = new Map();
 let cacheValoresReferenciaContrato = null;
 let promessaValoresReferenciaContrato = null;
 let linhaParaDestaqueSalvo = null;
+let camposDesbloqueadosFormulario = new Set();
+let linhasSelecionadasModal = new Set();
+let valorPixModalPorLinha = new Map();
+let modalSelecao = null;
 let paginaAtualTabela = 1;
 
 function tamanhoPaginaTabela() {
@@ -105,6 +115,114 @@ function irParaPaginaTabela(pagina) {
   renderizarTabela({ preservarPagina: true });
 }
 
+function campoEstaBloqueado(campo) {
+  if (campo.desabilitadoPermanente) return true;
+  if (campo.edicaoComConfirmacao && !camposDesbloqueadosFormulario.has(campo.id)) return true;
+  return false;
+}
+
+function campoIncluirNoSalvar(campo) {
+  if (campo.somenteLeitura) return false;
+  if (campo.desabilitadoPermanente) return false;
+  if (campo.edicaoComConfirmacao && !camposDesbloqueadosFormulario.has(campo.id)) return false;
+  return true;
+}
+
+function mensagemConfirmarEdicaoCampo(campo) {
+  return `Tem certeza de que deseja editar o campo "${campo.rotulo}"?`;
+}
+
+function controleCampoFormulario(campoId) {
+  return document.getElementById("campo-" + campoId);
+}
+
+function atualizarBotaoCadeadoCampo(btn, desbloqueado, rotulo) {
+  if (!btn) return;
+  btn.innerHTML = desbloqueado ? ICONE_CADEADO_ABERTO : ICONE_CADEADO_FECHADO;
+  btn.title = desbloqueado ? "bloquear" : "desbloquear";
+  btn.setAttribute(
+    "aria-label",
+    desbloqueado ? `Bloquear ${rotulo}` : `Desbloquear ${rotulo}`
+  );
+  btn.classList.toggle("contratos-btn-cadeado-campo--aberto", desbloqueado);
+  btn.classList.toggle("contratos-btn-cadeado-campo--fechado", !desbloqueado);
+}
+
+function alternarBloqueioCampoFormulario(campo) {
+  if (!campo?.edicaoComConfirmacao) return;
+
+  const desbloqueado = camposDesbloqueadosFormulario.has(campo.id);
+  const wrap = el.formCampos?.querySelector(`[data-campo-form="${campo.id}"]`);
+  const btn = wrap?.querySelector(".contratos-btn-cadeado-campo");
+  const input = controleCampoFormulario(campo.id);
+
+  if (!desbloqueado) {
+    if (!window.confirm(mensagemConfirmarEdicaoCampo(campo))) return;
+    camposDesbloqueadosFormulario.add(campo.id);
+    if (input) input.disabled = false;
+    wrap?.classList.add("contratos-campo-form--desbloqueado");
+    if (campo.id === "tipo-contrato") vincularSugestaoValorContrato();
+  } else {
+    camposDesbloqueadosFormulario.delete(campo.id);
+    if (input) input.disabled = true;
+    wrap?.classList.remove("contratos-campo-form--desbloqueado");
+  }
+
+  atualizarBotaoCadeadoCampo(btn, camposDesbloqueadosFormulario.has(campo.id), campo.rotulo);
+}
+
+function vincularFormatacaoMoedaInput(input) {
+  if (!input || input.dataset.moedaFormatada === "1") return;
+  input.dataset.moedaFormatada = "1";
+  input.placeholder = "0,00";
+  input.addEventListener("blur", () => {
+    const formatado = valorMoedaGravar(input.value);
+    input.value = formatado || "";
+  });
+}
+
+function envolverCampoFormulario(campo, conteudo) {
+  if (!campo.edicaoComConfirmacao) return conteudo;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className =
+    "btn btn-sm btn-link contratos-btn-cadeado-campo contratos-btn-cadeado-campo--fechado";
+  atualizarBotaoCadeadoCampo(btn, false, campo.rotulo);
+  btn.addEventListener("click", () => alternarBloqueioCampoFormulario(campo));
+
+  const linha = document.createElement("div");
+  linha.className = "contratos-campo-controle-linha";
+
+  const check = conteudo.querySelector(".form-check.contratos-form-check");
+  const control = conteudo.querySelector("input.form-control, select.form-select");
+
+  if (check) {
+    check.remove();
+    linha.appendChild(check);
+    linha.appendChild(btn);
+    conteudo.appendChild(linha);
+  } else if (control) {
+    control.remove();
+    linha.appendChild(control);
+    linha.appendChild(btn);
+    const label = conteudo.querySelector("label");
+    if (label) label.insertAdjacentElement("afterend", linha);
+    else conteudo.appendChild(linha);
+  } else {
+    conteudo.appendChild(btn);
+  }
+
+  conteudo.classList.add("contratos-campo-form", "contratos-campo-form--bloqueado");
+  conteudo.dataset.campoForm = campo.id;
+  return conteudo;
+}
+
+function aplicarBloqueioNoControle(campo, controle) {
+  if (!controle || !campoEstaBloqueado(campo)) return;
+  controle.disabled = true;
+}
+
 function mostrarStatus(mensagem, tipo) {
   if (tipo === "carregando") {
     PageLoader.show();
@@ -159,9 +277,7 @@ function formatarValorContratoExibir(val) {
   if (!bruto) return '<span class="text-muted">—</span>';
   const n = numeroMoeda(val);
   if (n == null) return escapeHtml(bruto);
-  return escapeHtml(
-    n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-  );
+  return escapeHtml(valorMoedaGravar(n));
 }
 
 function valorMoedaGravar(valor) {
@@ -170,6 +286,35 @@ function valorMoedaGravar(valor) {
   const n = numeroMoeda(s);
   if (n == null) return s;
   return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function planilhaDataParaInputDate(val) {
+  if (val == null || val === "") return "";
+  if (val instanceof Date && !Number.isNaN(val.getTime())) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, "0");
+    const d = String(val.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(val).trim();
+  if (!s) return "";
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (br) {
+    const d = br[1].padStart(2, "0");
+    const m = br[2].padStart(2, "0");
+    return `${br[3]}-${m}-${d}`;
+  }
+  return "";
+}
+
+function inputDateParaPlanilha(val) {
+  const s = String(val ?? "").trim();
+  if (!s) return "";
+  const p = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!p) return s;
+  return `${p[3]}/${p[2]}/${p[1]}`;
 }
 
 function municipioEhMt(municipioNorm) {
@@ -197,7 +342,7 @@ function aplicarBusca(lista) {
 }
 
 function linhasFiltradas() {
-  return aplicarBusca(linhas.slice());
+  return ordenarLinhasPorNome(aplicarBusca(linhas.slice()));
 }
 
 function cpfSomenteDigitos(valor) {
@@ -506,6 +651,7 @@ function criarCampoTexto(campo, dados, attrs) {
   wrap.innerHTML =
     `<label class="${classeRotulo(campo)}" for="${id}">${escapeHtml(campo.rotulo)}</label>` +
     `<input type="text" class="form-control form-control-sm" id="${id}" name="${escapeHtml(chaveGravacao(campo.coluna))}" value="${escapeHtml(String(valor ?? ""))}" autocomplete="off"${attrs || ""}>`;
+  aplicarBloqueioNoControle(campo, wrap.querySelector("input"));
   return wrap;
 }
 
@@ -531,7 +677,40 @@ function criarCampoMoeda(campo, dados) {
   const exibicao = valorMoedaGravar(valor) || String(valor ?? "").trim();
   const dadosExibicao = dados ? { ...dados } : {};
   if (campo.coluna) dadosExibicao[campo.coluna.chave] = exibicao;
-  return criarCampoTexto(campo, dadosExibicao, ' inputmode="decimal"');
+  const wrap = criarCampoTexto(campo, dadosExibicao, ' inputmode="decimal"');
+  vincularFormatacaoMoedaInput(wrap.querySelector("input"));
+  return wrap;
+}
+
+function criarCampoSomenteLeitura(campo, dados) {
+  const id = "campo-" + campo.id;
+  let valorHtml;
+  if (campo.tipo === "cpf") {
+    const bruto = dados && campo.coluna ? dados[campo.coluna.chave] : "";
+    const fmt = formatarCpf(bruto);
+    valorHtml = fmt ? escapeHtml(fmt) : '<span class="text-muted">—</span>';
+  } else {
+    const s = dados && campo.coluna ? String(dados[campo.coluna.chave] ?? "").trim() : "";
+    valorHtml = s ? escapeHtml(s) : '<span class="text-muted">—</span>';
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "mb-1 contratos-campo-somente-leitura";
+  wrap.innerHTML =
+    `<div class="${classeRotulo(campo)}">${escapeHtml(campo.rotulo)}</div>` +
+    `<div class="contratos-campo-leitura-valor" id="${id}" aria-readonly="true">${valorHtml}</div>`;
+  return wrap;
+}
+
+function criarCampoData(campo, dados) {
+  const id = "campo-" + campo.id;
+  const valor = dados && campo.coluna ? planilhaDataParaInputDate(dados[campo.coluna.chave]) : "";
+  const wrap = document.createElement("div");
+  wrap.className = "mb-1";
+  wrap.innerHTML =
+    `<label class="${classeRotulo(campo)}" for="${id}">${escapeHtml(campo.rotulo)}</label>` +
+    `<input type="date" class="form-control form-control-sm" id="${id}" name="${escapeHtml(chaveGravacao(campo.coluna))}" value="${escapeHtml(valor)}" autocomplete="off">`;
+  aplicarBloqueioNoControle(campo, wrap.querySelector("input"));
+  return wrap;
 }
 
 function criarCampoSelect(campo, dados, opcoes) {
@@ -542,7 +721,9 @@ function criarCampoSelect(campo, dados, opcoes) {
       ? "selecione o município primeiro"
       : "selecione...";
   const optionsHtml = htmlOpcoesSelect(opcoes, valor, placeholder);
-  const desabilitado = campo.origem === "liderancas" && !municipioSelecionadoNoForm(dados);
+  const desabilitadoLideranca =
+    campo.origem === "liderancas" && !municipioSelecionadoNoForm(dados);
+  const desabilitado = desabilitadoLideranca || campoEstaBloqueado(campo);
 
   const wrap = document.createElement("div");
   wrap.className = "mb-1";
@@ -556,18 +737,55 @@ function criarCampoCheckbox(campo, dados) {
   const id = "campo-" + campo.id;
   const valor = dados && campo.coluna ? dados[campo.coluna.chave] : "";
   const marcado = valorCheckboxSim(valor);
+  const desabilitado = campoEstaBloqueado(campo);
   const wrap = document.createElement("div");
   wrap.className = "mb-1";
   wrap.innerHTML =
     `<div class="form-check contratos-form-check">` +
-    `<input type="checkbox" class="form-check-input" id="${id}" name="${escapeHtml(chaveGravacao(campo.coluna))}"${marcado ? " checked" : ""}>` +
+    `<input type="checkbox" class="form-check-input" id="${id}" name="${escapeHtml(chaveGravacao(campo.coluna))}"${marcado ? " checked" : ""}${desabilitado ? " disabled" : ""}>` +
     `<label class="form-check-label" for="${id}">${escapeHtml(campo.rotulo)}</label>` +
     `</div>`;
   return wrap;
 }
 
+function montarNoCampo(campo, dados) {
+  let no;
+  if (campo.somenteLeitura) {
+    no = criarCampoSomenteLeitura(campo, dados);
+  } else if (campo.tipo === "checkbox") {
+    no = criarCampoCheckbox(campo, dados);
+  } else if (campo.tipo === "cpf") {
+    no = criarCampoCpf(campo, dados);
+  } else if (campo.tipo === "moeda") {
+    no = criarCampoMoeda(campo, dados);
+  } else if (campo.tipo === "data") {
+    no = criarCampoData(campo, dados);
+  } else if (campo.tipo === "select") {
+    no = criarCampoSelect(campo, dados, opcoesCampoSelect(campo, dados));
+  } else {
+    no = criarCampoTexto(campo, dados);
+  }
+
+  if (!campo.somenteLeitura && campo.edicaoComConfirmacao) {
+    return envolverCampoFormulario(campo, no);
+  }
+  return no;
+}
+
+function classeColunaFormulario(campo, camposNoGrupo) {
+  const largura = campo.largura || 12;
+  const grupoPar =
+    camposNoGrupo.length === 2 && camposNoGrupo.every((c) => (c.largura || 12) <= 8);
+  if (grupoPar) {
+    return `col-6 col-md-${largura}`;
+  }
+  if (largura >= 12) return "col-12";
+  return `col-12 col-md-${largura}`;
+}
+
 function montarFormulario(dados) {
   el.formCampos.innerHTML = "";
+  camposDesbloqueadosFormulario = new Set();
   const campos = resolverCamposFormulario();
   if (!campos.length) {
     el.formCampos.innerHTML =
@@ -595,49 +813,43 @@ function montarFormulario(dados) {
     row.className = "row g-2 mb-2";
     grupos.get(chaveGrupo).forEach((campo) => {
       const col = document.createElement("div");
-      const largura = campo.largura || 12;
-      col.className = "col-12 col-md-" + largura;
+      const camposNoGrupo = grupos.get(chaveGrupo);
+      col.className = classeColunaFormulario(campo, camposNoGrupo);
 
-      if (campo.tipo === "checkbox") {
-        col.appendChild(criarCampoCheckbox(campo, dados));
-      } else if (campo.tipo === "cpf") {
-        col.appendChild(criarCampoCpf(campo, dados));
-      } else if (campo.tipo === "moeda") {
-        col.appendChild(criarCampoMoeda(campo, dados));
-      } else if (campo.tipo === "select") {
-        col.appendChild(criarCampoSelect(campo, dados, opcoesCampoSelect(campo, dados)));
-      } else {
-        col.appendChild(criarCampoTexto(campo, dados));
-      }
+      col.appendChild(montarNoCampo(campo, dados));
 
       row.appendChild(col);
     });
     el.formCampos.appendChild(row);
   });
 
-  vincularFiltroCoordenador(dados);
-  vincularSugestaoValorContrato();
-  vincularChavePixComCpf();
-  obterValoresReferenciaContrato();
+  const temCoordenador = campos.some((c) => c.id === "coordenador");
+  if (temCoordenador) vincularFiltroCoordenador(dados);
+  const temTipoContrato = campos.some((c) => c.id === "tipo-contrato");
+  if (temTipoContrato && camposDesbloqueadosFormulario.has("tipo-contrato")) {
+    vincularSugestaoValorContrato();
+    obterValoresReferenciaContrato();
+  }
 }
 
-function vincularChavePixComCpf() {
-  const cpfInput = document.getElementById("campo-cpf");
-  const pixInput = document.getElementById("campo-chave-pix");
-  if (!cpfInput || !pixInput) return;
-
-  if (cpfInput._contratosSyncPix) {
-    cpfInput.removeEventListener("input", cpfInput._contratosSyncPix);
-  }
-  cpfInput._contratosSyncPix = () => {
-    pixInput.value = cpfInput.value;
-  };
-  cpfInput.addEventListener("input", cpfInput._contratosSyncPix);
+function dadosCamposSomenteLeituraEdicao() {
+  const extras = {};
+  if (!itemEdicao || !modoEdicao) return extras;
+  resolverCamposFormulario().forEach((campo) => {
+    if (!campo.somenteLeitura || !campo.coluna) return;
+    const chave = chaveGravacao(campo.coluna);
+    let val = itemEdicao[campo.coluna.chave];
+    if (val == null || String(val).trim() === "") return;
+    if (campo.tipo === "cpf") extras[chave] = formatarCpf(val);
+    else extras[chave] = String(val).trim();
+  });
+  return extras;
 }
 
 function lerFormulario() {
   const dados = {};
   resolverCamposFormulario().forEach((campo) => {
+    if (!campoIncluirNoSalvar(campo)) return;
     const chave = chaveGravacao(campo.coluna);
     const input = document.getElementById("campo-" + campo.id);
     if (!input) return;
@@ -648,14 +860,17 @@ function lerFormulario() {
       dados[chave] = formatarCpf(input.value);
     } else if (campo.tipo === "moeda") {
       dados[chave] = valorMoedaGravar(input.value);
+    } else if (campo.tipo === "data") {
+      dados[chave] = inputDateParaPlanilha(input.value);
     } else {
       dados[chave] = input.value.trim();
     }
   });
-  return dados;
+  return Object.assign({}, dadosCamposSomenteLeituraEdicao(), dados);
 }
 
 function abrirNovo() {
+  if (cfg.SOMENTE_EDICAO) return;
   modoEdicao = null;
   itemEdicao = null;
   el.modalTitulo.textContent = "novo contrato";
@@ -666,7 +881,7 @@ function abrirNovo() {
 function abrirEditar(item) {
   modoEdicao = item._linha;
   itemEdicao = item;
-  el.modalTitulo.textContent = "editar contrato";
+  el.modalTitulo.textContent = "editar pagamento";
   montarFormulario(item);
   modal.show();
 }
@@ -680,7 +895,7 @@ async function confirmarExcluir(item) {
       acao: "excluir",
       linha: item._linha,
       aba: cfg.ABA,
-      origem: "pessoal-contratos",
+      origem: "pessoal-pagamentos",
     });
     if (!json) return;
     mostrarStatus("Registro excluído.", "sucesso");
@@ -699,15 +914,26 @@ function setSalvandoModal(ativo) {
 
 async function salvarFormulario(evento) {
   evento.preventDefault();
+  if (cfg.SOMENTE_EDICAO && !modoEdicao) {
+    AppToast.show("selecione um registro na tabela para editar.", "erro");
+    return;
+  }
   const dados = lerFormulario();
   const acao = modoEdicao ? "atualizar" : "inserir";
 
   const campoCpf = resolverCamposFormulario().find((c) => c.tipo === "cpf");
-  const cpfValor = campoCpf ? dados[chaveGravacao(campoCpf.coluna)] : "";
+  let cpfValor = "";
+  if (campoCpf?.coluna) {
+    if (campoCpf.somenteLeitura && itemEdicao) {
+      cpfValor = itemEdicao[campoCpf.coluna.chave];
+    } else {
+      cpfValor = dados[chaveGravacao(campoCpf.coluna)];
+    }
+  }
   const erroCpf = validarCpfFormulario(cpfValor, modoEdicao);
   if (erroCpf) {
     AppToast.show(erroCpf, "erro");
-    document.getElementById("campo-cpf")?.focus();
+    if (!campoCpf?.somenteLeitura) document.getElementById("campo-cpf")?.focus();
     return;
   }
 
@@ -719,7 +945,7 @@ async function salvarFormulario(evento) {
       linha: modoEdicao,
       dados,
       aba: cfg.ABA,
-      origem: "pessoal-contratos",
+      origem: "pessoal-pagamentos",
     });
     if (!json) return;
 
@@ -733,7 +959,7 @@ async function salvarFormulario(evento) {
     if (linhaSalva) linhaParaDestaqueSalvo = linhaSalva;
     await carregarContratos(true);
   } catch (e) {
-    AppToast.show("Erro ao salvar: " + e.message, "erro");
+    AppToast.show(PlanilhaApi.mensagemErro(e), "erro");
   } finally {
     setSalvandoModal(false);
   }
@@ -764,10 +990,364 @@ function resolverColunas() {
     cfg.COLUNA_VALOR_CONTRATO,
     idx.VALOR_CONTRATO
   );
+  colunaSaldoContrato = PlanilhaApi.acharColuna(
+    colunas,
+    cfg.COLUNA_SALDO_CONTRATO,
+    idx.SALDO_CONTRATO
+  );
+  colunaChavePix = PlanilhaApi.acharColuna(
+    colunas,
+    ["chave-pix", "chave pix", "pix"],
+    idx.CHAVE_PIX
+  );
+}
+
+function textoMoedaExibir(val) {
+  const n = numeroMoeda(val);
+  if (n == null) {
+    const s = String(val ?? "").trim();
+    return s || "";
+  }
+  return valorMoedaGravar(n);
+}
+
+function htmlCelulaModalDupla(linha1, linha2, opcoes) {
+  const opts = opcoes || {};
+  const l1 = String(linha1 ?? "").trim();
+  const l2 = String(linha2 ?? "").trim();
+  const cls2 = opts.linha2Muted ? "pagamentos-selecao-linha2 text-muted" : "pagamentos-selecao-linha2";
+  return (
+    '<div class="pagamentos-selecao-celula">' +
+    `<span class="pagamentos-selecao-linha1">${l1 ? escapeHtml(l1) : '<span class="text-muted">—</span>'}</span>` +
+    `<span class="${cls2}">${l2 ? escapeHtml(l2) : '<span class="text-muted">—</span>'}</span>` +
+    "</div>"
+  );
+}
+
+function ordenarLinhasPorNome(lista) {
+  return lista.slice().sort((a, b) => {
+    const na = String(valorItem(a, colunaNome) ?? "").trim();
+    const nb = String(valorItem(b, colunaNome) ?? "").trim();
+    return na.localeCompare(nb, "pt-BR", { sensitivity: "base" });
+  });
 }
 
 function itemLancarSistema(item) {
   return valorCheckboxSim(valorItem(item, colunaLancarSistema));
+}
+
+function saldoContratoElegivelPix(item) {
+  const n = numeroMoeda(valorItem(item, colunaSaldoContrato));
+  if (n == null) return false;
+  return n > 0;
+}
+
+function itemElegivelModalPagamentosPix(item) {
+  return itemLancarSistema(item) && cpfEIgualChavePix(item) && saldoContratoElegivelPix(item);
+}
+
+function linhasParaModalPagamentosPix() {
+  return linhas.filter(itemElegivelModalPagamentosPix);
+}
+
+function alternarSelecaoLinhaModal(linha, marcado) {
+  if (marcado) linhasSelecionadasModal.add(linha);
+  else linhasSelecionadasModal.delete(linha);
+}
+
+function idsLinhasListaSelecao() {
+  return ordenarLinhasPorNome(linhasParaModalPagamentosPix()).map((item) => item._linha);
+}
+
+function atualizarCheckboxMarcarTodos() {
+  const master = el.selecaoMarcarTodos;
+  if (!master) return;
+  const ids = idsLinhasListaSelecao();
+  if (!ids.length) {
+    master.checked = false;
+    master.indeterminate = false;
+    master.disabled = true;
+    return;
+  }
+  master.disabled = false;
+  const marcados = ids.filter((id) => linhasSelecionadasModal.has(id)).length;
+  master.checked = marcados === ids.length;
+  master.indeterminate = marcados > 0 && marcados < ids.length;
+}
+
+function marcarDesmarcarTodosSelecao(marcar) {
+  idsLinhasListaSelecao().forEach((id) => {
+    if (marcar) linhasSelecionadasModal.add(id);
+    else linhasSelecionadasModal.delete(id);
+  });
+  el.corpoSelecaoPagamentos?.querySelectorAll(".pagamentos-selecao-check").forEach((input) => {
+    input.checked = marcar;
+  });
+  atualizarCheckboxMarcarTodos();
+}
+
+function valorPixSugeridoDeSaldo(item) {
+  const saldo = valorItem(item, colunaSaldoContrato);
+  const n = numeroMoeda(saldo);
+  if (n == null) return "";
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatarValorPixInput(valorTexto) {
+  const s = String(valorTexto ?? "").trim();
+  if (!s) return "";
+  return valorMoedaGravar(s) || s;
+}
+
+function cpfEIgualChavePix(item) {
+  const cpfDigitos = cpfSomenteDigitos(valorItem(item, colunaCpf));
+  const pix = String(valorItem(item, colunaChavePix) ?? "").trim();
+  if (!cpfDigitos || !pix) return false;
+  const pixDigitos = cpfSomenteDigitos(pix);
+  if (pixDigitos.length === 11) return cpfDigitos === pixDigitos;
+  const cpfFmt = formatarCpf(cpfDigitos);
+  return (
+    pix === cpfFmt ||
+    pix === cpfDigitos ||
+    PlanilhaApi.normalizarChave(pix) === PlanilhaApi.normalizarChave(cpfFmt)
+  );
+}
+
+function htmlCelulaCpfChavePix(item) {
+  const cpfFmt = formatarCpf(valorItem(item, colunaCpf));
+  const cpfExibir = cpfFmt ? escapeHtml(cpfFmt) : '<span class="text-muted">—</span>';
+  const conferem = cpfEIgualChavePix(item);
+  const titulo = conferem ? "CPF e chave PIX conferem" : "CPF e chave PIX diferentes";
+  const icone = conferem
+    ? '<i class="fa-solid fa-circle-check pagamentos-cpf-pix-icone pagamentos-cpf-pix-icone--ok" aria-hidden="true"></i>'
+    : '<i class="fa-solid fa-circle-xmark pagamentos-cpf-pix-icone pagamentos-cpf-pix-icone--erro" aria-hidden="true"></i>';
+  return (
+    '<span class="pagamentos-cpf-pix-celula">' +
+    `<span class="pagamentos-cpf-pix-texto">${cpfExibir}</span>` +
+    `<span class="pagamentos-cpf-pix-icone-wrap" title="${escapeHtml(titulo)}">${icone}</span>` +
+    "</span>"
+  );
+}
+
+function obterValorPixLinha(numLinha, item) {
+  if (valorPixModalPorLinha.has(numLinha)) {
+    return valorPixModalPorLinha.get(numLinha);
+  }
+  return valorPixSugeridoDeSaldo(item);
+}
+
+function lerValorPixInput(numLinha) {
+  const input = el.corpoSelecaoPagamentos?.querySelector(
+    `input.pagamentos-selecao-valor-pix[data-linha-pix="${numLinha}"]`
+  );
+  return input ? String(input.value ?? "").trim() : "";
+}
+
+function dataHojeInputDate() {
+  const hoje = new Date();
+  const y = hoje.getFullYear();
+  const m = String(hoje.getMonth() + 1).padStart(2, "0");
+  const d = String(hoje.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function dataPagamentoParaCsv(isoDate) {
+  const p = String(isoDate ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!p) return String(isoDate ?? "").trim();
+  return `${p[3]}/${p[2]}/${p[1]}`;
+}
+
+function inscricaoCsvDeChavePix(pix) {
+  const digitos = cpfSomenteDigitos(pix);
+  if (digitos.length === 11) return digitos;
+  const soDigitos = String(pix ?? "").replace(/\D/g, "");
+  if (soDigitos.length === 11) return soDigitos;
+  return "";
+}
+
+function valorPixParaCsv(valorTexto) {
+  const n = numeroMoeda(valorTexto);
+  if (n == null || n <= 0) return "";
+  return String(Math.round(n));
+}
+
+const CSV_DELIMITER_PIX_BB = ";";
+
+function escapeCampoCsv(texto) {
+  const delim = CSV_DELIMITER_PIX_BB;
+  const t = String(texto ?? "");
+  const precisaAspas = new RegExp(`[${delim}"\\n\\r]`).test(t);
+  if (precisaAspas) return `"${t.replace(/"/g, '""')}"`;
+  return t;
+}
+
+function nomeArquivoRelacaoPagamentosPix() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  const dataHora =
+    `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_` +
+    `${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
+  return `pagamentos_pix_${dataHora}.csv`;
+}
+
+function gerarArquivoCsvPagamentos() {
+  const dataIso = String(el.dataPagamentoSelecao?.value ?? "").trim();
+  if (!dataIso) {
+    AppToast.show("informe a data do pagamento.", "erro");
+    el.dataPagamentoSelecao?.focus();
+    return;
+  }
+
+  const lista = ordenarLinhasPorNome(linhasParaModalPagamentosPix()).filter((item) =>
+    linhasSelecionadasModal.has(item._linha)
+  );
+  if (!lista.length) {
+    AppToast.show("selecione ao menos um colaborador.", "erro");
+    return;
+  }
+
+  const dataCsv = dataPagamentoParaCsv(dataIso);
+  const d = CSV_DELIMITER_PIX_BB;
+  const linhasArquivo = [
+    ["inscricao", "nome", "valor", "data_pagamento", "seu_numero"].join(d),
+  ];
+  let sequencial = 1;
+
+  for (const item of lista) {
+    const numLinha = item._linha;
+    const nome = String(valorItem(item, colunaNome) ?? "").trim();
+    const pix = String(valorItem(item, colunaChavePix) ?? "").trim();
+    const inscricao = inscricaoCsvDeChavePix(pix);
+    if (!inscricao) {
+      AppToast.show(
+        `chave PIX deve ser CPF com 11 dígitos${nome ? ` (${nome})` : ""}.`,
+        "erro"
+      );
+      return;
+    }
+
+    const valorTexto = lerValorPixInput(numLinha) || obterValorPixLinha(numLinha, item);
+    const valor = valorPixParaCsv(valorTexto);
+    if (!valor) {
+      AppToast.show(
+        `valor PIX inválido${nome ? ` em ${nome}` : ""}.`,
+        "erro"
+      );
+      return;
+    }
+
+    linhasArquivo.push(
+      [
+        escapeCampoCsv(inscricao),
+        escapeCampoCsv(nome.toUpperCase()),
+        escapeCampoCsv(valor),
+        escapeCampoCsv(dataCsv),
+        escapeCampoCsv(String(sequencial)),
+      ].join(d)
+    );
+    sequencial += 1;
+  }
+
+  // Sem BOM: o utf-8-sig no Colab/Python quebra o cabeçalho "inscricao".
+  const conteudo = linhasArquivo.join("\n");
+  const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nomeArquivoRelacaoPagamentosPix();
+  link.click();
+  URL.revokeObjectURL(url);
+  AppToast.show("arquivo CSV gerado.", "sucesso");
+}
+
+function renderizarTabelaSelecaoModal() {
+  const corpo = el.corpoSelecaoPagamentos;
+  const vazio = el.vazioSelecaoPagamentos;
+  if (!corpo) return;
+
+  const lista = ordenarLinhasPorNome(linhasParaModalPagamentosPix());
+  corpo.innerHTML = "";
+
+  if (!lista.length) {
+    if (vazio) vazio.hidden = false;
+    atualizarCheckboxMarcarTodos();
+    return;
+  }
+  if (vazio) vazio.hidden = true;
+
+  lista.forEach((item) => {
+    const tr = document.createElement("tr");
+    const numLinha = item._linha;
+    const marcado = linhasSelecionadasModal.has(numLinha);
+
+    const tdCheck = document.createElement("td");
+    tdCheck.className = "pagamentos-selecao-col-check text-center";
+    tdCheck.innerHTML =
+      `<input type="checkbox" class="form-check-input pagamentos-selecao-check" data-linha="${numLinha}"${marcado ? " checked" : ""} aria-label="selecionar linha">`;
+    tr.appendChild(tdCheck);
+
+    const nome = String(valorItem(item, colunaNome) ?? "").trim();
+    const municipio = String(valorItem(item, colunaMunicipio) ?? "").trim();
+    tr.appendChild(
+      criarTdHtml(htmlCelulaModalDupla(nome, municipio, { linha2Muted: true }), "")
+    );
+
+    const cpf = formatarCpf(valorItem(item, colunaCpf));
+    const pix = String(valorItem(item, colunaChavePix) ?? "").trim();
+    tr.appendChild(criarTdHtml(htmlCelulaModalDupla(cpf, pix, { linha2Muted: true }), ""));
+
+    const valor = textoMoedaExibir(valorItem(item, colunaValorContrato));
+    const saldo = textoMoedaExibir(valorItem(item, colunaSaldoContrato));
+    const tdValores = criarTdHtml(
+      htmlCelulaModalDupla(valor || "—", saldo || "—", { linha2Muted: true }),
+      "text-end pagamentos-selecao-col-valores"
+    );
+    tr.appendChild(tdValores);
+
+    const valorPixInicial = formatarValorPixInput(obterValorPixLinha(numLinha, item));
+    const tdValorPix = document.createElement("td");
+    tdValorPix.className = "pagamentos-selecao-col-valor-pix text-end";
+    const inputPix = document.createElement("input");
+    inputPix.type = "text";
+    inputPix.className = "form-control form-control-sm pagamentos-selecao-valor-pix text-end";
+    inputPix.dataset.linhaPix = String(numLinha);
+    inputPix.inputMode = "decimal";
+    inputPix.placeholder = "0,00";
+    inputPix.value = valorPixInicial;
+    inputPix.setAttribute("aria-label", `valor PIX — ${nome || "colaborador"}`);
+    vincularFormatacaoMoedaInput(inputPix);
+    inputPix.addEventListener("input", () => {
+      valorPixModalPorLinha.set(numLinha, inputPix.value);
+    });
+    inputPix.addEventListener("blur", () => {
+      const fmt = formatarValorPixInput(inputPix.value);
+      inputPix.value = fmt;
+      valorPixModalPorLinha.set(numLinha, fmt);
+    });
+    tdValorPix.appendChild(inputPix);
+    tr.appendChild(tdValorPix);
+
+    const input = tdCheck.querySelector("input");
+    input?.addEventListener("change", () => {
+      alternarSelecaoLinhaModal(numLinha, input.checked);
+      atualizarCheckboxMarcarTodos();
+    });
+
+    corpo.appendChild(tr);
+  });
+  atualizarCheckboxMarcarTodos();
+}
+
+function abrirModalSelecao() {
+  if (el.dataPagamentoSelecao && !el.dataPagamentoSelecao.value) {
+    el.dataPagamentoSelecao.value = dataHojeInputDate();
+  }
+  const elegiveis = new Set(linhasParaModalPagamentosPix().map((item) => item._linha));
+  for (const id of [...linhasSelecionadasModal]) {
+    if (!elegiveis.has(id)) linhasSelecionadasModal.delete(id);
+  }
+  renderizarTabelaSelecaoModal();
+  modalSelecao?.show();
 }
 
 function htmlIconePagamento(item) {
@@ -777,6 +1357,14 @@ function htmlIconePagamento(item) {
     : "contratos-icone-pagamento contratos-icone-pagamento--moeda";
   const icone = noSistema ? ICONE_BANCO : ICONE_NAO_LANCAR_SISTEMA;
   return `<span class="${classe}" aria-hidden="true">${icone}</span>`;
+}
+
+function htmlCelulaSaldoContrato(item) {
+  return (
+    '<span class="contratos-valor-texto">' +
+    formatarValorContratoExibir(valorItem(item, colunaSaldoContrato)) +
+    "</span>"
+  );
 }
 
 function htmlCelulaValorContrato(item) {
@@ -789,12 +1377,18 @@ function htmlCelulaValorContrato(item) {
 }
 
 function htmlMobileStackCabecalho() {
+  const partes = [
+    rotuloTabela("NOME"),
+    rotuloTabela("MUNICIPIO"),
+    rotuloTabela("CPF"),
+    rotuloTabela("VALOR_CONTRATO"),
+  ];
+  if (cfg.EXIBIR_COLUNA_SALDO_CONTRATO) {
+    partes.push(rotuloTabela("SALDO_CONTRATO"));
+  }
   return (
     '<div class="contratos-th-stack-head">' +
-    `<span>${escapeHtml(rotuloTabela("NOME"))}</span>` +
-    `<span>${escapeHtml(rotuloTabela("MUNICIPIO"))}</span>` +
-    `<span>${escapeHtml(rotuloTabela("CPF"))}</span>` +
-    `<span>${escapeHtml(rotuloTabela("VALOR_CONTRATO"))}</span>` +
+    partes.map((p) => `<span>${escapeHtml(p)}</span>`).join("") +
     "</div>"
   );
 }
@@ -809,14 +1403,17 @@ function htmlValorContratoMobileStack(item) {
 }
 
 function htmlMobileStackCorpo(item) {
-  return (
+  let html =
     '<div class="contratos-celula-stack">' +
     `<span class="contratos-stack-nome">${exibirValor(valorItem(item, colunaNome))}</span>` +
     `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
-    `<span class="contratos-stack-cpf">${exibirValor(valorItem(item, colunaCpf))}</span>` +
-    htmlValorContratoMobileStack(item) +
-    "</div>"
-  );
+    `<span class="contratos-stack-cpf">${htmlCelulaCpfChavePix(item)}</span>` +
+    htmlValorContratoMobileStack(item);
+  if (cfg.EXIBIR_COLUNA_SALDO_CONTRATO) {
+    html += `<span class="contratos-stack-saldo">${htmlCelulaSaldoContrato(item)}</span>`;
+  }
+  html += "</div>";
+  return html;
 }
 
 function criarTh(texto, classes) {
@@ -877,7 +1474,7 @@ async function imprimirContrato(item) {
       linha: item._linha,
       dados: montarDadosImpressao(item),
       aba: cfg.ABA,
-      origem: "pessoal-contratos",
+      origem: "pessoal-pagamentos",
     });
     if (!json) return;
     const url = json.downloadUrl || json.url;
@@ -912,15 +1509,25 @@ function montarCabecalhoTabela() {
   trDesktop.appendChild(
     criarTh(rotuloTabela("MUNICIPIO"), "contratos-col-municipio contratos-tabela-desktop-col")
   );
-  trDesktop.appendChild(
-    criarTh(rotuloTabela("VINCULO"), "contratos-col-vinculo contratos-tabela-desktop-col")
-  );
+  if (cfg.EXIBIR_COLUNA_LIDERANCA !== false) {
+    trDesktop.appendChild(
+      criarTh(rotuloTabela("VINCULO"), "contratos-col-vinculo contratos-tabela-desktop-col")
+    );
+  }
   trDesktop.appendChild(
     criarTh(
       rotuloTabela("VALOR_CONTRATO"),
       "contratos-col-valor contratos-tabela-desktop-col"
     )
   );
+  if (cfg.EXIBIR_COLUNA_SALDO_CONTRATO) {
+    trDesktop.appendChild(
+      criarTh(
+        rotuloTabela("SALDO_CONTRATO"),
+        "contratos-col-saldo contratos-tabela-desktop-col"
+      )
+    );
+  }
   trDesktop.appendChild(
     criarTh("ações", "crud-col-acoes contratos-col-acoes contratos-tabela-desktop-col")
   );
@@ -945,7 +1552,7 @@ function criarLinhaTabela(item) {
     )
   );
   tr.appendChild(
-    criarTdHtml(exibirValor(valorItem(item, colunaCpf)), "contratos-col-cpf contratos-tabela-desktop-col")
+    criarTdHtml(htmlCelulaCpfChavePix(item), "contratos-col-cpf contratos-tabela-desktop-col")
   );
   tr.appendChild(
     criarTdHtml(
@@ -953,18 +1560,28 @@ function criarLinhaTabela(item) {
       "contratos-col-municipio contratos-tabela-desktop-col"
     )
   );
-  tr.appendChild(
-    criarTdHtml(
-      exibirValor(valorItem(item, colunaVinculo)),
-      "contratos-col-vinculo contratos-tabela-desktop-col"
-    )
-  );
+  if (cfg.EXIBIR_COLUNA_LIDERANCA !== false) {
+    tr.appendChild(
+      criarTdHtml(
+        exibirValor(valorItem(item, colunaVinculo)),
+        "contratos-col-vinculo contratos-tabela-desktop-col"
+      )
+    );
+  }
   tr.appendChild(
     criarTdHtml(
       htmlCelulaValorContrato(item),
       "contratos-col-valor contratos-tabela-desktop-col"
     )
   );
+  if (cfg.EXIBIR_COLUNA_SALDO_CONTRATO) {
+    tr.appendChild(
+      criarTdHtml(
+        htmlCelulaSaldoContrato(item),
+        "contratos-col-saldo contratos-tabela-desktop-col"
+      )
+    );
+  }
 
   const tdAcoesDesktop = criarTdHtml(
     htmlAcoesDesktop(),
@@ -1110,13 +1727,26 @@ function init() {
     modalTitulo: document.getElementById("modalTitulo"),
     modalIcone: document.getElementById("modalIcone"),
     modalEl: document.getElementById("modalContrato"),
+    btnAbrirSelecao: document.getElementById("btnAbrirSelecao"),
+    modalSelecaoEl: document.getElementById("modalSelecaoPagamentos"),
+    corpoSelecaoPagamentos: document.getElementById("corpoSelecaoPagamentos"),
+    vazioSelecaoPagamentos: document.getElementById("vazioSelecaoPagamentos"),
+    selecaoMarcarTodos: document.getElementById("selecaoMarcarTodos"),
+    dataPagamentoSelecao: document.getElementById("dataPagamentoSelecao"),
+    btnGerarCsvPagamentos: document.getElementById("btnGerarCsvPagamentos"),
   };
 
-  if (el.modalIcone && window.APP_ICON_SVG?.pessoal) {
-    el.modalIcone.innerHTML = APP_ICON_SVG.pessoal;
+  if (el.modalIcone && window.APP_ICON_SVG?.pagamentos) {
+    el.modalIcone.innerHTML = APP_ICON_SVG.pagamentos;
   }
 
   modal = bootstrap.Modal.getOrCreateInstance(el.modalEl);
+  if (el.modalSelecaoEl) {
+    modalSelecao = bootstrap.Modal.getOrCreateInstance(el.modalSelecaoEl);
+  }
+  if (cfg.SOMENTE_EDICAO && el.btnNovo) {
+    el.btnNovo.hidden = true;
+  }
   el.busca?.addEventListener("input", () => {
     paginaAtualTabela = 1;
     renderizarTabela();
@@ -1127,6 +1757,11 @@ function init() {
   el.paginacaoUltima?.addEventListener("click", () => {
     irParaPaginaTabela(totalPaginasTabela(linhasFiltradas().length));
   });
+  el.btnAbrirSelecao?.addEventListener("click", abrirModalSelecao);
+  el.selecaoMarcarTodos?.addEventListener("change", () => {
+    marcarDesmarcarTodosSelecao(el.selecaoMarcarTodos.checked);
+  });
+  el.btnGerarCsvPagamentos?.addEventListener("click", gerarArquivoCsvPagamentos);
   el.btnNovo?.addEventListener("click", abrirNovo);
   el.form?.addEventListener("submit", salvarFormulario);
 
@@ -1146,9 +1781,10 @@ function ajustarTabelaRelatorioPagina(table) {
     "contratos-col-nome",
     "contratos-col-cpf",
     "contratos-col-municipio",
-    "contratos-col-vinculo",
-    "contratos-col-valor",
   ];
+  if (cfg.EXIBIR_COLUNA_LIDERANCA !== false) ordem.push("contratos-col-vinculo");
+  ordem.push("contratos-col-valor");
+  if (cfg.EXIBIR_COLUNA_SALDO_CONTRATO) ordem.push("contratos-col-saldo");
 
   const reordenarLinha = (tr) => {
     ordem.forEach((cls) => {

@@ -91,6 +91,7 @@ window.APP_MENU = [
       { id: "pessoal-apoiadores", label: "apoiador" },
       { id: "pessoal-apoiador-federal", label: "apoiador / federal" },
       { id: "pessoal-contratos", label: "contratos" },
+      { id: "pessoal-pagamentos", label: "pagamentos" },
       { id: "pessoal-parcerias", label: "parceria" },
     ],
   },
@@ -132,6 +133,7 @@ window.APP_ICONE = {
       paginaId === "pessoal-apoiadores" ||
       paginaId === "pessoal-apoiador-federal" ||
       paginaId === "pessoal-contratos" ||
+      paginaId === "pessoal-pagamentos" ||
       paginaId === "pessoal-parcerias"
     ) {
       return "pessoal";

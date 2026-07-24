@@ -48,6 +48,13 @@ const PAGINAS = {
     atualizar: true,
     menuGrupo: "pessoal",
   },
+  "pessoal-pagamentos": {
+    titulo: "pessoal",
+    subtitulo: "pagamentos",
+    arquivo: "pages/pessoal-pagamentos.html",
+    atualizar: true,
+    menuGrupo: "pessoal",
+  },
   "pessoal-parcerias": {
     titulo: "pessoal",
     subtitulo: "parceria — contratos",

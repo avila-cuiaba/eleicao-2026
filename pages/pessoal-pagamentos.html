@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>contratos</title>
+  <title>pagamentos</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="../css/style.css" />
   <script src="https://kit.fontawesome.com/905f5bcd47.js" crossorigin="anonymous"></script>
@@ -32,6 +32,15 @@
               />
             </span>
           </label>
+          <button
+            type="button"
+            id="btnAbrirSelecao"
+            class="btn btn-sm btn-outline-secondary crud-toolbar-btn-icone"
+            title="pagamentos com PIX — geração de arquivo CSV"
+          >
+            <i class="fa-solid fa-file-csv" aria-hidden="true"></i>
+            <span>pagamentos com pix</span>
+          </button>
         </div>
       </div>
       <div class="card-body p-0">
@@ -70,6 +79,81 @@
             </div>
           </div>
         </nav>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalSelecaoPagamentos" tabindex="-1" aria-labelledby="modalSelecaoTitulo" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+          <div class="modal-header py-2">
+            <h2 class="modal-title h6 mb-0" id="modalSelecaoTitulo">pagamentos com pix</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body p-0">
+            <div class="pagamentos-selecao-bar px-3 py-2 border-bottom bg-white">
+              <div class="row g-2 align-items-end flex-wrap">
+                <div class="col-auto">
+                  <label class="form-label small mb-0" for="dataPagamentoSelecao">data pagamento</label>
+                  <input
+                    type="date"
+                    id="dataPagamentoSelecao"
+                    class="form-control form-control-sm"
+                    autocomplete="off"
+                  />
+                </div>
+                <div class="col-auto">
+                  <button type="button" id="btnGerarCsvPagamentos" class="btn btn-sm btn-primary">
+                    gerar arquivo csv
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0 pagamentos-selecao-tabela">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col" class="pagamentos-selecao-col-check text-center">
+                      <input
+                        type="checkbox"
+                        id="selecaoMarcarTodos"
+                        class="form-check-input"
+                        aria-label="marcar ou desmarcar todos"
+                      />
+                    </th>
+                    <th scope="col">
+                      <div class="pagamentos-selecao-celula pagamentos-selecao-celula--cabecalho">
+                        <span class="pagamentos-selecao-linha1">colaborador</span>
+                        <span class="pagamentos-selecao-linha2 text-muted">município</span>
+                      </div>
+                    </th>
+                    <th scope="col">
+                      <div class="pagamentos-selecao-celula pagamentos-selecao-celula--cabecalho">
+                        <span class="pagamentos-selecao-linha1">CPF</span>
+                        <span class="pagamentos-selecao-linha2 text-muted">chave PIX</span>
+                      </div>
+                    </th>
+                    <th scope="col" class="text-end pagamentos-selecao-col-valores">
+                      <div class="pagamentos-selecao-celula pagamentos-selecao-celula--cabecalho pagamentos-selecao-celula--cabecalho-end">
+                        <span class="pagamentos-selecao-linha1">valor contrato</span>
+                        <span class="pagamentos-selecao-linha2 text-muted">saldo contrato</span>
+                      </div>
+                    </th>
+                    <th scope="col" class="text-end pagamentos-selecao-col-valor-pix">
+                      <span class="pagamentos-selecao-linha1">valor PIX</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="corpoSelecaoPagamentos"></tbody>
+              </table>
+            </div>
+            <p id="vazioSelecaoPagamentos" class="text-secondary small text-center py-4 mb-0" hidden>
+              Nenhum registro encontrado.
+            </p>
+          </div>
+          <div class="modal-footer py-2 justify-content-center pagamentos-selecao-modal-footer">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">fechar</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -116,6 +200,6 @@
   <script src="../js/toast.js"></script>
   <script src="../js/planilha-api.js"></script>
   <script src="../js/icons.js"></script>
-  <script src="../js/contratos.js"></script>
+  <script src="../js/pessoal-pagamentos.js"></script>
 </body>
 </html>
