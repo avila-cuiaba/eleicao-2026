@@ -8954,6 +8954,11 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
   background: rgba(15, 118, 110, 0.08);
 }
 
+.crud-acao-icone--lupa:hover {
+  color: #0e7490;
+  background: rgba(8, 145, 178, 0.1);
+}
+
 @media (max-width: 991.98px) {
   .contratos-tabela .crud-acao-icone--imprimir {
     color: #0f766e;
@@ -10693,4 +10698,737 @@ body.page-mobilizacao .page-frame-content {
 .swal2-icon {
   margin: 0.5rem auto 0.65rem;
   transform: scale(0.85);
+}
+
+/* Logística — material gráfico */
+.page-material-grafico .page-frame-content {
+  padding-bottom: 4.5rem;
+}
+
+.mat-graf-accordion .accordion-item {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #fff;
+}
+
+.mat-graf-accordion-btn {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  background: #fff;
+  box-shadow: none;
+  gap: 0.5rem;
+  width: 100%;
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.mat-graf-accordion-btn:not(.collapsed) {
+  color: #0e7490;
+  background: linear-gradient(90deg, rgba(8, 145, 178, 0.16), rgba(8, 145, 178, 0.05));
+  border-left-color: #0891b2;
+  box-shadow: inset 0 -1px 0 rgba(8, 145, 178, 0.2);
+}
+
+.mat-graf-accordion-btn:not(.collapsed) .mat-graf-mun-titulo {
+  color: #0e7490;
+  font-weight: 700;
+}
+
+.mat-graf-accordion-btn:focus {
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.mat-graf-accordion-btn:not(.collapsed):focus {
+  border-left-color: #0891b2;
+  box-shadow: inset 0 -1px 0 rgba(8, 145, 178, 0.2);
+}
+
+/* fechado: chevron à direita; aberto: ícone (ms-auto) + chevron depois */
+.mat-graf-accordion-btn.collapsed::after {
+  margin-left: auto;
+}
+
+.mat-graf-accordion-btn:not(.collapsed)::after {
+  margin-left: 0;
+  flex-shrink: 0;
+  filter: brightness(0) saturate(100%) invert(36%) sepia(84%) saturate(742%) hue-rotate(152deg)
+    brightness(92%) contrast(96%);
+}
+
+.mat-graf-mun-titulo {
+  text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mat-graf-mun-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.mat-graf-accordion-btn .mat-graf-btn-entregas {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.15rem;
+  height: 2.15rem;
+  margin-left: auto;
+  margin-right: 0.55rem;
+  border-radius: 0.4rem;
+  color: #0e7490;
+  cursor: pointer;
+}
+
+.mat-graf-accordion-btn:not(.collapsed) .mat-graf-btn-entregas {
+  display: inline-flex;
+}
+
+.mat-graf-accordion-btn .mat-graf-btn-entregas .fa-solid {
+  font-size: 1.35rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.mat-graf-accordion-btn .mat-graf-btn-entregas:hover {
+  background: rgba(8, 145, 178, 0.12);
+}
+
+.mat-graf-tabela {
+  font-size: 0.85rem;
+}
+
+.mat-graf-tabela th {
+  font-weight: 600;
+  color: #64748b;
+  text-transform: lowercase;
+  border-bottom-color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.mat-graf-tabela td {
+  border-bottom-color: #f1f5f9;
+  vertical-align: middle;
+}
+
+.mat-graf-col-item {
+  width: 1%;
+  min-width: 5.5rem;
+  white-space: nowrap;
+  padding-right: 2.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.mat-graf-item-badge {
+  font-variant-numeric: tabular-nums;
+}
+
+.mat-graf-col-peca,
+.mat-graf-col-midia {
+  min-width: 0;
+  word-break: break-word;
+}
+
+.mat-graf-col-qtd,
+.mat-graf-col-entregas {
+  width: 7.5rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mat-graf-col-lupa {
+  width: 2.25rem;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.mat-graf-col-lupa .crud-acao-icone {
+  margin: 0 auto;
+}
+
+.mat-graf-entregas-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.2rem;
+  width: 100%;
+}
+
+.mat-graf-entregas-wrap .mat-graf-qtd-readonly {
+  align-self: flex-end;
+}
+
+.mat-graf-entregas-wrap .mat-graf-progress-linha.orcamento-geral-progress-pago {
+  width: 100%;
+  max-width: none;
+  flex-shrink: 0;
+}
+
+.mat-graf-col-entregas .mat-graf-qtd-readonly {
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.mat-graf-tabela tfoot td {
+  border-bottom: none;
+  padding-top: 0.4rem;
+  padding-bottom: 0.15rem;
+}
+
+.mat-graf-tabela tfoot .mat-graf-col-qtd {
+  text-align: right;
+}
+
+
+/* Modais no iframe: footer (salvar) sempre visível + body com scroll */
+.page-material-grafico .mat-graf-modal-dialog {
+  max-height: calc(100vh - 1rem);
+  margin: 0.5rem auto;
+}
+
+.page-material-grafico .mat-graf-modal-dialog .modal-content {
+  max-height: calc(100vh - 1rem);
+}
+
+.page-material-grafico .mat-graf-modal-dialog .modal-body {
+  min-height: 0;
+}
+
+.page-material-grafico .mat-graf-entrega-lote-scroll {
+  max-height: min(50vh, 22rem);
+  overflow: auto;
+}
+
+.page-material-grafico .modal-footer {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Backdrop entre modal de lista (z~1055) e formulário (z~1065) */
+.mat-graf-backdrop-entre {
+  z-index: 1060;
+}
+
+.page-material-grafico #modalEntregaForm {
+  z-index: 1065;
+}
+
+/* Formulário empilhado: fundo padrão (separação via backdrop entre modais) */
+.page-material-grafico .mat-graf-modal-form .mat-graf-modal-form-content {
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.35);
+}
+
+.mat-graf-entrega-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 11rem;
+}
+
+.mat-graf-entrega-popover-linha {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.mat-graf-entrega-popover-rotulo {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.mat-graf-entrega-popover-valor {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.mat-graf-entrega-popover-bs {
+  --bs-popover-max-width: 16rem;
+  z-index: 1090;
+}
+
+.mat-graf-entregas-tabela th,
+.mat-graf-entregas-form-tabela th {
+  font-size: 0.78rem;
+  text-transform: lowercase;
+  color: #64748b;
+}
+
+.mat-graf-entrega-peca-midia {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.mat-graf-entrega-item {
+  margin-bottom: 0.05rem;
+}
+
+.mat-graf-entrega-peca {
+  font-weight: 600;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.mat-graf-entrega-midia {
+  font-size: 0.8rem;
+  color: #64748b;
+  word-break: break-word;
+}
+
+.mat-graf-mun-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  background: #0891b2;
+  border: 1px solid #0e7490;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 2px rgba(8, 145, 178, 0.35);
+}
+
+.mat-graf-entregas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.mat-graf-consulta-topo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.mat-graf-consulta-item-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+}
+
+.mat-graf-consulta-peca {
+  font-weight: 600;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.mat-graf-consulta-resumo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.mat-graf-consulta-resumo-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 4.5rem;
+}
+
+.mat-graf-consulta-resumo-rotulo {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.mat-graf-consulta-resumo-valor {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+
+.mat-graf-entregas-consulta-tabela th {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: lowercase;
+}
+
+.mat-graf-consulta-lupa-th,
+.mat-graf-consulta-lupa-td {
+  width: 2.25rem;
+}
+
+.mat-graf-entrega-card {
+  display: grid;
+  grid-template-columns: 4.75rem minmax(0, 1fr) 5.5rem auto;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.mat-graf-entrega-card-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.mat-graf-entrega-card-col--item {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+}
+
+.mat-graf-entrega-card-col--qtd {
+  align-items: flex-end;
+}
+
+.mat-graf-entrega-card-data {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #475569;
+}
+
+.mat-graf-entrega-card-qtd {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+
+.mat-graf-entrega-card-acoes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.05rem;
+  flex-shrink: 0;
+}
+
+.mat-graf-entrega-card-acoes .crud-acoes-icones {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.05rem;
+}
+
+@media (max-width: 575.98px) {
+  .mat-graf-entrega-card-col--item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+  }
+}
+
+.mat-graf-entrega-qtd-input {
+  text-align: right;
+  max-width: 6.5rem;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.mat-graf-entrega-qtd-input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.mat-graf-entrega-ok-th {
+  width: 2.25rem;
+}
+
+.mat-graf-entrega-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.35rem;
+  background: #fff;
+  color: #94a3b8;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mat-graf-entrega-toggle .mat-graf-entrega-toggle-ok {
+  display: none;
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.mat-graf-entrega-toggle .mat-graf-entrega-toggle-x {
+  display: inline;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.mat-graf-entrega-linha.is-on .mat-graf-entrega-toggle {
+  border-color: #0d9488;
+  background: #ccfbf1;
+}
+
+.mat-graf-entrega-linha.is-on .mat-graf-entrega-toggle .mat-graf-entrega-toggle-x {
+  display: none;
+}
+
+.mat-graf-entrega-linha.is-on .mat-graf-entrega-toggle .mat-graf-entrega-toggle-ok {
+  display: inline;
+}
+
+.mat-graf-entrega-linha.is-off .mat-graf-entrega-qtd-input {
+  opacity: 0.65;
+}
+
+.mat-graf-qtd-input {
+  text-align: right;
+  max-width: 6.5rem;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.mat-graf-qtd-input.is-dirty {
+  border-color: #f59e0b;
+  background-color: #fffbeb;
+}
+
+.mat-graf-qtd-readonly {
+  display: inline-block;
+  min-width: 2.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.mat-graf-barra-salvar {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  background: #0f172a;
+  color: #f8fafc;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+}
+
+.mat-graf-barra-salvar.d-none {
+  display: none !important;
+}
+
+.mat-graf-barra-texto {
+  font-size: 0.85rem;
+}
+
+.mat-graf-barra-salvar .btn-primary {
+  white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+  .mat-graf-accordion .accordion-body {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .mat-graf-accordion .table-responsive {
+    overflow: visible;
+  }
+
+  .mat-graf-tabela {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .mat-graf-tabela thead th.mat-graf-col-item,
+  .mat-graf-tabela thead th.mat-graf-col-midia {
+    display: none;
+  }
+
+  .mat-graf-tabela thead tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content auto;
+    grid-template-areas:
+      "peca previsto lupa"
+      "peca entregas lupa";
+    column-gap: 0.45rem;
+    row-gap: 0.1rem;
+    align-items: end;
+    padding: 0 0 0.35rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .mat-graf-tabela thead th {
+    border: none;
+    padding: 0;
+  }
+
+  .mat-graf-tabela thead th.mat-graf-col-peca {
+    grid-area: peca;
+    width: auto;
+    align-self: center;
+  }
+
+  .mat-graf-tabela thead th.mat-graf-col-peca::after {
+    content: " / mídia";
+    font-weight: 600;
+  }
+
+  .mat-graf-tabela thead th.mat-graf-col-qtd {
+    grid-area: previsto;
+    width: auto;
+    text-align: right;
+  }
+
+  .mat-graf-tabela thead th.mat-graf-col-entregas {
+    grid-area: entregas;
+    width: auto;
+    text-align: right;
+  }
+
+  .mat-graf-tabela thead th.mat-graf-col-lupa {
+    grid-area: lupa;
+  }
+
+  .mat-graf-tabela tbody tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) max-content auto;
+    grid-template-areas:
+      "peca peca previsto lupa"
+      "item midia entregas lupa";
+    column-gap: 0.35rem;
+    row-gap: 0.2rem;
+    align-items: center;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .mat-graf-tabela tbody td {
+    border: none;
+    padding: 0;
+  }
+
+  .mat-graf-tabela tbody td.mat-graf-col-peca {
+    grid-area: peca;
+    min-width: 0;
+  }
+
+  .mat-graf-tabela tbody td.mat-graf-col-item {
+    grid-area: item;
+    width: auto;
+    padding-right: 0.15rem;
+    white-space: nowrap;
+  }
+
+  .mat-graf-tabela tbody td.mat-graf-col-midia {
+    grid-area: midia;
+    color: #64748b;
+    font-size: 0.8rem;
+    min-width: 0;
+  }
+
+  .mat-graf-tabela tbody td.mat-graf-col-qtd {
+    grid-area: previsto;
+    align-self: center;
+    justify-self: end;
+    width: max-content;
+    max-width: max-content;
+    padding: 0;
+    text-align: right;
+  }
+
+  .mat-graf-tabela tbody td.mat-graf-col-entregas {
+    grid-area: entregas;
+    align-self: center;
+    justify-self: end;
+    width: 4.75rem;
+    min-width: 4.75rem;
+    max-width: 4.75rem;
+    padding: 0;
+    text-align: right;
+  }
+
+  .mat-graf-tabela tbody td.mat-graf-col-lupa {
+    grid-area: lupa;
+    align-self: center;
+    justify-self: center;
+    width: auto;
+    padding: 0;
+  }
+
+  .mat-graf-tabela tfoot tr.mat-graf-salvar-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-areas: ". previsto";
+    column-gap: 0.35rem;
+    padding: 0.35rem 0 0.15rem;
+    border-bottom: none;
+  }
+
+  .mat-graf-tabela tfoot td {
+    display: none;
+    border: none;
+    padding: 0;
+  }
+
+  .mat-graf-tabela tfoot td.mat-graf-col-qtd {
+    display: block;
+    grid-area: previsto;
+    justify-self: end;
+    width: max-content;
+    text-align: right;
+  }
+
+  .mat-graf-item-badge {
+    display: inline-block;
+    padding: 0.12rem 0.4rem;
+    border-radius: 0.35rem;
+    background: #e2e8f0;
+    color: #334155;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .mat-graf-col-qtd {
+    width: auto;
+  }
+
+  .mat-graf-qtd-input {
+    width: 4.25rem;
+    max-width: 4.25rem;
+    min-width: 0;
+    margin-left: 0;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+
+  .mat-graf-qtd-readonly {
+    min-width: 0;
+  }
+
+  .mat-graf-barra-salvar {
+    flex-wrap: wrap;
+  }
 }

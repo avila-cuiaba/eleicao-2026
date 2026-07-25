@@ -117,6 +117,18 @@ function criarCadastroPlanilhas() {
   };
   p.mobilizacao = p["mobilizacao-estrutura"];
 
+  // Logística — material gráfico (distribuição por município).
+  const planilhaMaterialGraficoId = "1LerxpHRVOK7zp1ZnpLePeEgiFvM8F6RQlbedj147He8";
+  p["material-grafico"] = {
+    id: planilhaMaterialGraficoId,
+    gid: 2064669138,
+  };
+  // Entregas de material gráfico (lançamentos por município).
+  p["material-grafico-entregas"] = {
+    id: planilhaMaterialGraficoId,
+    gid: 2007580367,
+  };
+
   // Aliases (nomes antigos — compatibilidade).
   p["planilha-2"] = p.votacao;
   p["planilha-3"] = p["cadastro-colaboradores"];
@@ -639,6 +651,32 @@ function formatarDataContrato(data) {
   return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd/MM/yyyy");
 }
 
+const MESES_NOME_EXTENSO = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
+
+/** Ex.: 24 de julho de 2026 (fuso do script). */
+function formatarDataContratoExtenso(data) {
+  const d = data instanceof Date ? data : new Date(data || Date.now());
+  const tz = Session.getScriptTimeZone();
+  const dia = Number(Utilities.formatDate(d, tz, "d"));
+  const mes = Number(Utilities.formatDate(d, tz, "M")) - 1;
+  const ano = Utilities.formatDate(d, tz, "yyyy");
+  const nomeMes = MESES_NOME_EXTENSO[mes] || "";
+  return dia + " de " + nomeMes + " de " + ano;
+}
+
 function remuneracaoPorTipoContrato(tipoContrato) {
   const chave = normalizarChavePlanilha(tipoContrato || "");
   const mapa = CONTRATO_CAMPANHA.REMUNERACAO_POR_TIPO || {};
@@ -752,6 +790,7 @@ function camposMarcadoresContrato() {
     { id: "foro", aliases: [] },
     { id: "local-assinatura", aliases: [] },
     { id: "data-contrato", aliases: [] },
+    { id: "data-contrato-extenso", aliases: [] },
   ];
 }
 
@@ -783,7 +822,9 @@ function montarMapaSubstituicoesContrato(registro) {
   mapa["data-fim-campanha"] = campanha.DATA_FIM_CAMPANHA;
   mapa["foro"] = campanha.FORO;
   mapa["local-assinatura"] = campanha.LOCAL_ASSINATURA;
-  mapa["data-contrato"] = formatarDataContrato(new Date());
+  const dataContrato = new Date();
+  mapa["data-contrato"] = formatarDataContrato(dataContrato);
+  mapa["data-contrato-extenso"] = formatarDataContratoExtenso(dataContrato);
 
   Object.keys(registro).forEach(function (chave) {
     if (chave === "_linha") return;
@@ -831,39 +872,70 @@ function partesSubstituiveisDocumento(doc) {
 
 function substituirMarcadoresDocumento(doc, mapa) {
   const partes = partesSubstituiveisDocumento(doc);
-  const campos = camposMarcadoresContrato();
 
-  campos.forEach(function (campo) {
-    const valor = mapa[campo.id] != null ? String(mapa[campo.id]) : "";
-    const regex = regexMarcadorCampo(campo.id);
+  Object.keys(mapa).forEach(function (idMarcador) {
+    const valor = mapa[idMarcador] != null ? String(mapa[idMarcador]) : "";
+    const regex = regexMarcadorCampo(idMarcador);
     partes.forEach(function (parte) {
       parte.replaceText(regex, valor);
-    });
-    partes.forEach(function (parte) {
-      parte.replaceText(escaparRegexDocs("{{" + campo.id + "}}"), valor);
-      parte.replaceText(escaparRegexDocs("{ {" + campo.id + "} }"), valor);
-      parte.replaceText(escaparRegexDocs("{{ " + campo.id + " }}"), valor);
-    });
-  });
-
-  Object.keys(registroAliasesExtras(mapa)).forEach(function (marcador) {
-    const valor = mapa[marcador];
-    partes.forEach(function (parte) {
-      parte.replaceText(escaparRegexDocs("{{" + marcador + "}}"), valor);
+      parte.replaceText(escaparRegexDocs("{{" + idMarcador + "}}"), valor);
+      parte.replaceText(escaparRegexDocs("{ {" + idMarcador + "} }"), valor);
+      parte.replaceText(escaparRegexDocs("{{ " + idMarcador + " }}"), valor);
     });
   });
 }
 
-function registroAliasesExtras(mapa) {
-  const ids = {};
-  camposMarcadoresContrato().forEach(function (c) {
-    ids[c.id] = true;
-  });
-  const extras = {};
-  Object.keys(mapa).forEach(function (k) {
-    if (!ids[k]) extras[k] = mapa[k];
-  });
-  return extras;
+function visitarParagrafosContainer(container, callback) {
+  if (!container || !container.getNumChildren) return;
+  const total = container.getNumChildren();
+  for (let i = 0; i < total; i++) {
+    const child = container.getChild(i);
+    const tipo = child.getType();
+    if (tipo === DocumentApp.ElementType.PARAGRAPH) {
+      callback(child.asParagraph());
+    } else if (tipo === DocumentApp.ElementType.LIST_ITEM) {
+      callback(child.asListItem());
+    } else if (tipo === DocumentApp.ElementType.TABLE) {
+      const table = child.asTable();
+      for (let r = 0; r < table.getNumRows(); r++) {
+        for (let c = 0; c < table.getRow(r).getNumCells(); c++) {
+          visitarParagrafosContainer(table.getRow(r).getCell(c), callback);
+        }
+      }
+    }
+  }
+}
+
+function normalizarEspacamentoParagrafoContrato(par) {
+  par.setSpacingBefore(0);
+  par.setSpacingAfter(0);
+  try {
+    par.setAttributes({
+      [DocumentApp.Attribute.LINE_SPACING]: 1.15,
+      [DocumentApp.Attribute.SPACING_BEFORE]: 0,
+      [DocumentApp.Attribute.SPACING_AFTER]: 0,
+    });
+  } catch (e) {
+    par.setLineSpacing(13);
+  }
+}
+
+/**
+ * Corrige espaçamento exagerado no Google Doc modelo (ex.: após colar do Word).
+ * Rode UMA VEZ no editor Apps Script — não é chamada na impressão.
+ */
+function repararEspacamentoModeloContratoNoDrive() {
+  const modelo = obterArquivoModeloContrato();
+  const doc = DocumentApp.openById(modelo.getId());
+  const body = doc.getBody();
+  if (body) {
+    visitarParagrafosContainer(body, normalizarEspacamentoParagrafoContrato);
+  }
+  doc.saveAndClose();
+  Logger.log(
+    "Espaçamento normalizado em: " + modelo.getName() + " (id " + modelo.getId() + ")"
+  );
+  return modelo.getUrl();
 }
 
 /**
@@ -982,6 +1054,22 @@ function atualizarLinhaPagamentosLideranca(sheet, numLinha, existente, cabecalho
     sheet.getRange(numLinha, i + 1).setValue(val);
     novaLinha[i] = val;
   });
+  return novaLinha;
+}
+
+// Material gráfico: A–H (item…saldo) são só leitura no app; editar só I→ (municípios).
+// Saldo (H) costuma ser fórmula na planilha — nunca regravar.
+const MATERIAL_GRAFICO_COL_PRIMEIRO_MUNICIPIO = 8; // I (0-based)
+
+function atualizarLinhaMaterialGrafico(sheet, numLinha, existente, cabecalhos, dados) {
+  const novaLinha = existente.slice();
+  for (let i = MATERIAL_GRAFICO_COL_PRIMEIRO_MUNICIPIO; i < cabecalhos.length; i++) {
+    const col = cabecalhos[i];
+    const val = valorDadosColuna(dados, col);
+    if (val === undefined) continue;
+    sheet.getRange(numLinha, i + 1).setValue(val);
+    novaLinha[i] = val;
+  }
   return novaLinha;
 }
 
@@ -1471,6 +1559,8 @@ function doPostPlanilha(corpo) {
       novaLinha = atualizarLinhaDashboard(sheet, numLinha, existente, dados);
     } else if (origemAuditoria === "pagamentos-lideranca" || planilha === "pagamentos-lideranca") {
       novaLinha = atualizarLinhaPagamentosLideranca(sheet, numLinha, existente, cabecalhos, dados);
+    } else if (origemAuditoria === "material-grafico" || planilha === "material-grafico") {
+      novaLinha = atualizarLinhaMaterialGrafico(sheet, numLinha, existente, cabecalhos, dados);
     } else if (deveAuditarContratos(planilha)) {
       const indicesAtualizados = indicesColunasAtualizadasContratos(cabecalhos, dados);
       novaLinha = atualizarLinhaContratos(sheet, numLinha, existente, cabecalhos, dados);

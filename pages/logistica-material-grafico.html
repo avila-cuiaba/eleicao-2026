@@ -6,22 +6,182 @@
   <title>Logística — material gráfico</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://kit.fontawesome.com/905f5bcd47.js" crossorigin="anonymous"></script>
 </head>
-<body class="bg-light page-frame-body">
+<body class="bg-light page-frame-body page-material-grafico">
   <div class="page-frame-content">
-    <div class="alert alert-secondary mb-0" role="status">
-      Material gráfico — formulário em desenvolvimento.
+    <div id="status" class="alert d-none mb-3" role="status" aria-live="polite"></div>
+
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-6">
+            <label for="buscaMunicipio" class="form-label small text-secondary mb-1">buscar município</label>
+            <input
+              type="search"
+              class="form-control form-control-sm"
+              id="buscaMunicipio"
+              placeholder="nome do município"
+              autocomplete="off"
+            />
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-check mt-2 mt-md-0">
+              <input class="form-check-input" type="checkbox" id="chkOcultarZero" checked />
+              <label class="form-check-label small" for="chkOcultarZero">ocultar previsto zero</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="matGrafAccordion" class="accordion mat-graf-accordion" aria-live="polite"></div>
+    <p id="matGrafVazio" class="text-secondary small d-none mb-0">nenhum município encontrado.</p>
+
+    <div id="matGrafBarraSalvar" class="mat-graf-barra-salvar d-none" role="status" aria-live="polite">
+      <span id="matGrafBarraTexto" class="mat-graf-barra-texto">alterações pendentes</span>
+      <button type="button" class="btn btn-sm btn-primary" id="btnSalvarTodos">salvar alterações</button>
     </div>
 
     <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
       <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
-      <span class="visually-hidden">Carregando</span>
+      <span class="visually-hidden">carregando</span>
+    </div>
+  </div>
+
+  <!-- Modal lista de entregas do município -->
+  <div class="modal fade" id="modalEntregas" tabindex="-1" aria-labelledby="modalEntregasTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-lg mat-graf-modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header py-2">
+          <h2 class="modal-title h6 mb-0" id="modalEntregasTitulo">entregas</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body py-3">
+          <div id="modalEntregasTopoCrud" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div class="d-flex flex-wrap align-items-center gap-2 min-w-0">
+              <span id="modalEntregasMunicipio" class="mat-graf-mun-badge"></span>
+              <span id="modalEntregasItem" class="mat-graf-item-badge d-none"></span>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" id="btnEntregaNovo">incluir</button>
+          </div>
+          <div id="modalEntregasTopoConsulta" class="mat-graf-consulta-topo d-none mb-3">
+            <span id="modalEntregasMunConsulta" class="mat-graf-mun-badge"></span>
+            <div class="mat-graf-consulta-item-linha">
+              <span id="modalEntregasItemConsulta" class="mat-graf-item-badge"></span>
+              <span id="modalEntregasMidiaConsulta" class="mat-graf-entrega-midia"></span>
+            </div>
+            <div id="modalEntregasPecaConsulta" class="mat-graf-consulta-peca"></div>
+            <div class="mat-graf-consulta-resumo" aria-label="resumo do item">
+              <div class="mat-graf-consulta-resumo-item">
+                <span class="mat-graf-consulta-resumo-rotulo">previsto</span>
+                <span id="modalEntregasPrevistoConsulta" class="mat-graf-consulta-resumo-valor">0</span>
+              </div>
+              <div class="mat-graf-consulta-resumo-item">
+                <span class="mat-graf-consulta-resumo-rotulo">entregas</span>
+                <span id="modalEntregasEntregueConsulta" class="mat-graf-consulta-resumo-valor">0</span>
+              </div>
+              <div class="mat-graf-consulta-resumo-item">
+                <span class="mat-graf-consulta-resumo-rotulo">saldo</span>
+                <span id="modalEntregasSaldoConsulta" class="mat-graf-consulta-resumo-valor">0</span>
+              </div>
+            </div>
+          </div>
+          <div id="modalEntregasCorpo" class="mat-graf-entregas-lista"></div>
+          <p id="modalEntregasVazio" class="small text-secondary mb-0 mt-2 d-none">nenhuma entrega registrada.</p>
+        </div>
+        <div class="modal-footer py-2 justify-content-center">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal incluir / editar entrega -->
+  <div
+    class="modal fade mat-graf-modal-form"
+    id="modalEntregaForm"
+    tabindex="-1"
+    aria-labelledby="modalEntregaFormTitulo"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-lg mat-graf-modal-dialog">
+      <div class="modal-content mat-graf-modal-form-content">
+        <div class="modal-header py-2">
+          <h2 class="modal-title h6 mb-0" id="modalEntregaFormTitulo">editar entregas</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body py-3">
+          <div class="mb-2">
+            <span id="modalEntregaFormMunicipio" class="mat-graf-mun-badge d-none"></span>
+          </div>
+          <form id="formEntrega">
+            <div class="row g-2 mb-3">
+              <div class="col-12 col-sm-4">
+                <label for="entregaData" class="form-label small mb-1">data</label>
+                <input type="date" class="form-control form-control-sm" id="entregaData" required />
+              </div>
+              <div class="col-12 col-sm-8">
+                <label for="entregaRecebedor" class="form-label small mb-1">recebedor</label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  id="entregaRecebedor"
+                  required
+                  autocomplete="off"
+                />
+              </div>
+              <div class="col-12 d-none">
+                <p id="entregaFormAjuda" class="small text-muted mb-0"></p>
+              </div>
+            </div>
+
+            <div id="entregaFormLote" class="d-none">
+              <div class="table-responsive mat-graf-entrega-lote-scroll">
+                <table class="table table-sm align-middle mb-0 mat-graf-entregas-form-tabela">
+                  <thead>
+                    <tr>
+                      <th>item / peça / mídia</th>
+                      <th class="text-end">saldo</th>
+                      <th class="text-end">quantidade</th>
+                      <th class="text-center mat-graf-entrega-ok-th" aria-label="confirmar quantidade"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="entregaFormLoteCorpo"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="entregaFormUnico" class="d-none">
+              <div class="row g-2">
+                <div class="col-12 col-sm-8">
+                  <label for="entregaProduto" class="form-label small mb-1">item / peça / mídia</label>
+                  <select class="form-select form-select-sm" id="entregaProduto"></select>
+                </div>
+                <div class="col-12 col-sm-4">
+                  <label for="entregaQtd" class="form-label small mb-1">quantidade</label>
+                  <input type="text" inputmode="numeric" class="form-control form-control-sm" id="entregaQtd" autocomplete="off" />
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer py-2 justify-content-center gap-2 flex-wrap">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal" id="btnEntregaCancelar">cancelar</button>
+          <button type="submit" form="formEntrega" class="btn btn-sm btn-primary" id="btnEntregaSalvar">salvar</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/auth.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/app-confirm.js"></script>
   <script src="../js/page-loader.js"></script>
+  <script src="../js/planilha-api.js"></script>
+  <script src="../js/master-crud.js"></script>
+  <script src="../js/material-grafico.js"></script>
 </body>
 </html>

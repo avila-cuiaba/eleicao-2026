@@ -43,7 +43,48 @@ const CONFIG = {
     { chave: "contratos", titulo: "Contratos" },
     { chave: "mobilizacao-estrutura", titulo: "Mobilização — Estrutura" },
     { chave: "mobilizacao-perspectiva", titulo: "Mobilização — Perspectiva" },
+    { chave: "material-grafico", titulo: "Logística — Material gráfico" },
+    { chave: "material-grafico-entregas", titulo: "Logística — Material gráfico (entregas)" },
   ],
+
+  MATERIAL_GRAFICO: {
+    PLANILHA: "material-grafico",
+    ABA: "",
+    LINHA_CABECALHO: 1,
+    LINHA_INICIO_DADOS: 2,
+    // A–H: identificação e totais; I→: quantitativos por município.
+    COLUNA_ITEM: ["item"],
+    COLUNA_PECA: ["peca", "peça"],
+    COLUNA_MIDIA: ["midia", "mídia"],
+    COLUNA_TIRAGEM_1: ["tiragem 1", "tiragem-1", "tiragem1"],
+    COLUNA_TIRAGEM_2: ["tiragem 2", "tiragem-2", "tiragem2"],
+    COLUNA_TIRAGEM_3: ["tiragem 3", "tiragem-3", "tiragem3"],
+    COLUNA_TIRAGEM_4: ["tiragem 4", "tiragem-4", "tiragem4"],
+    COLUNA_SALDO: ["saldo"],
+    INDICE_PRIMEIRO_MUNICIPIO: 8, // I
+    OCULTAR_ZERO_PADRAO: true,
+    ENTREGAS: {
+      PLANILHA: "material-grafico-entregas",
+      ABA: "",
+      LINHA_INICIO_DADOS: 2,
+      // Cabeçalhos: DATA | PECA | MIDIA | MUNICIPIO | QUANTIDADE | RECEBEDOR | ITEM
+      COLUNA_DATA: ["data", "data-entrega", "data entrega", "dt"],
+      COLUNA_PECA: ["peca", "peça"],
+      COLUNA_MIDIA: ["midia", "mídia"],
+      COLUNA_MUNICIPIO: ["municipio", "município", "cidade"],
+      COLUNA_QUANTIDADE: [
+        "quantidade",
+        "qtd",
+        "qtde",
+        "entrega",
+        "entregas",
+        "qtd-entrega",
+        "qtd entrega",
+      ],
+      COLUNA_RECEBEDOR: ["recebedor", "recebedora", "quem recebeu", "recebeu"],
+      COLUNA_ITEM: ["item"],
+    },
+  },
 
   ENTREGAS: {
     PLANILHA: "entregas",

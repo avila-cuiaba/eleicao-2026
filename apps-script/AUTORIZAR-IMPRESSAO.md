@@ -7,6 +7,8 @@ O botão **imprimir** na página de contratos precisa de permissão para:
 
 O modelo é **um único Google Doc** chamado **`modelo-contrato`** (não monta o texto do zero).
 
+Na **impressão**, o Web App **não lê o `.docx` do repositório**: copia o Google Doc no Drive, troca os `{{marcadores}}` e gera o PDF. **Toda a formatação vem do Google Doc modelo** (o script não altera fonte nem espaçamento na impressão).
+
 Link do modelo:  
 https://docs.google.com/document/d/1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s/edit
 
@@ -17,8 +19,8 @@ https://docs.google.com/document/d/1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s/
 1. No Google Drive, o documento deve se chamar **`modelo-contrato`** (tipo Google Docs).
 2. Renomear **não muda o ID** — o código usa o ID acima e, se falhar, busca pelo nome.
 3. O texto do contrato segue o modelo **`Contrato de Trabalho JOSIMEIRE.doc`** (prestação de serviço para campanha eleitoral), atualizado para **Eleição 2026**.
-4. Para aplicar o texto no Google Doc automaticamente, rode no editor Apps Script a função **`atualizarModeloContratoNoDrive`** (passo 4.4).
-5. Ou copie manualmente o conteúdo de `apps-script/modelo-contrato.txt` para o Google Doc.
+4. Para aplicar o texto no Google Doc automaticamente, rode no editor Apps Script a função **`atualizarModeloContratoNoDrive`** (passo 4.4) — formatação básica (título centralizado, seções em negrito).
+5. **Recomendado:** edite `apps-script/modelo-contrato.docx` no PC e **suba a versão para o Drive** (passo abaixo). O arquivo no Git **não** atualiza o Google Doc sozinho.
 6. Marcadores dinâmicos (substituídos na impressão):
 
    **Colaborador (planilha):**
@@ -34,11 +36,43 @@ https://docs.google.com/document/d/1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s/
    - `{{objeto-servico}}`, `{{carga-horaria}}` — conforme tipo de contrato
    - `{{valor-remuneracao}}`, `{{valor-extenso}}` — conforme tipo de contrato
    - `{{cargo-candidato}}`, `{{data-fim-campanha}}`, `{{foro}}`
-   - `{{local-assinatura}}`, `{{data-contrato}}` — data do dia na impressão
+   - `{{local-assinatura}}`, `{{data-contrato}}` — data do dia na impressão (dd/MM/yyyy)
+   - `{{data-contrato-extenso}}` — mesma data por extenso (ex.: 24 de julho de 2026)
 
 7. **Compartilhar** o `modelo-contrato` com o e-mail da conta que publica o Web App (veja passo 3), com permissão de **Leitor** ou **Editor**.
 
 Dados fixos (CNPJ, endereço, valores por tipo) ficam em **`CONTRATO_CAMPANHA`** no `BackendPlanilhas.gs`.
+
+---
+
+## 1.1. Sincronizar `modelo-contrato.docx` do PC → Google Drive
+
+Se você alterou o `.docx` na pasta do projeto e o PDF **ainda sai com texto antigo**, é porque a impressão usa **só** o Google Doc no Drive (ID fixo em `CONTRATO_TEMPLATE_DOC_ID`), não o arquivo do disco.
+
+**Opção A — substituir o conteúdo do Doc que o sistema já usa (mesmo ID)**
+
+1. Abra o modelo no navegador:  
+   https://docs.google.com/document/d/1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s/edit  
+2. No Google Doc: **Arquivo → Abrir → Fazer upload** → escolha `apps-script/modelo-contrato.docx`.  
+3. Abra o documento **recém-criado** pelo upload (convertido em Google Docs).  
+4. **Ctrl+A** no Doc novo → **Ctrl+C**.  
+5. Volte ao Doc do link do passo 1 → **Ctrl+A** → **Ctrl+V** (substitui todo o texto).  
+6. Confira se os `{{marcadores}}` continuam intactos.  
+7. Teste **imprimir** um contrato na web (não precisa republicar o Web App só por mudança de texto no Doc).
+
+**Opção B — novo arquivo no Drive (trocar o ID no código)**
+
+1. Faça upload do `.docx` no Drive → **Abrir com → Google Documentos**.  
+2. Renomeie para **`modelo-contrato`**.  
+3. Copie o **ID** da URL (`/document/d/ESTE_ID/edit`).  
+4. Em `BackendPlanilhas.gs`, altere `CONTRATO_TEMPLATE_DOC_ID` para esse ID, salve, **reimplante** o Web App.  
+5. Compartilhe o Doc com a conta que executa o script.
+
+**Não use** `atualizarModeloContratoNoDrive()` depois de editar o Word — essa função **apaga** o Doc e grava o texto **antigo** que está fixo no código.
+
+**Relatório da barra do `principal.html`** (ícone imprimir relatório) **não** usa este modelo; é outra coisa (tabela HTML via `relatorio.js`).
+
+**Word / PDF com linhas “esticadas” na página:** costuma ser o **modelo no Google Doc** (espaço entre parágrafos ou colagem do Word). No Doc: **Ctrl+A** → **Formatar → Espaçamento de linha e parágrafo → Simples** e remova espaço antes/depois. Ou rode **uma vez** no Apps Script a função **`repararEspacamentoModeloContratoNoDrive()`** (só no modelo do Drive, não na impressão). Use um parágrafo só para `CONTRATANTE: {{contratante-bloco}}`. No Word, layout vertical **Superior**, não justificado na vertical.
 
 ---
 
@@ -158,7 +192,8 @@ Autorizar no editor **não atualiza** a implantação antiga sozinho.
 | `{{valor-extenso}}` | conforme tipo de contrato |
 | `{{ano-campanha}}` | `CONTRATO_CAMPANHA.ANO` (2026) |
 | `{{data-fim-campanha}}` | fim da campanha (04/10/2026) |
-| `{{data-contrato}}` | data do dia na impressão |
+| `{{data-contrato}}` | data do dia na impressão (dd/MM/yyyy) |
+| `{{data-contrato-extenso}}` | mesma data por extenso (ex.: 24 de julho de 2026) |
 | `{{local-assinatura}}` | ex.: CUIABÁ-MT |
 
 Qualquer cabeçalho da planilha também funciona como `{{nome-da-coluna}}`.
