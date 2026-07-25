@@ -586,7 +586,7 @@ function abrirEditar(reg) {
 
 async function confirmarExcluir(reg) {
   if (!reg?.linha?._linha) return;
-  if (!window.confirm("excluir este registro?")) return;
+  if (!(await AppConfirm.confirm("excluir este registro?", { perigo: true, icon: "warning" }))) return;
 
   mostrarStatus("excluindo…", "carregando");
   try {

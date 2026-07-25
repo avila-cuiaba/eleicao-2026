@@ -51,6 +51,11 @@ function criarCadastroPlanilhas() {
     id: planilhaColaboradoresId,
     nomeAba: "auditoria-contratos",
   };
+  // Lotes de pagamento PIX (CSV) — gid da aba com id-lote, data-lote, colaborador, cpf-pix, valor, contador-lote, col. G.
+  p["pagamentos-pix-lote"] = {
+    id: planilhaColaboradoresId,
+    gid: 1230009778,
+  };
   // Entregas: materiais e distribuição.
   p.entregas = {
     id: "1scoDoh48XsIqHYYNdLMYcvVe-IgSRMzb6AmtRBwLWXY",
@@ -228,6 +233,7 @@ var PLANILHAS_SOMENTE_CONTRATOS = {
   "cadastro-colaboradores": true,
   "auditoria-contratos": true,
   "contratos-valor-referencia": true,
+  "pagamentos-pix-lote": true,
 };
 
 function validarChave(chave) {
@@ -1045,6 +1051,336 @@ function validarSaldoContratoNaoNegativo(sheet, numLinha, cabecalhos) {
   }
 }
 
+function cpfSomenteDigitosLotePix(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function parseDataLotePagamentosPix(dataLote) {
+  const s = String(dataLote || "").trim();
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+  }
+  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (br) {
+    return new Date(Number(br[3]), Number(br[2]) - 1, Number(br[1]));
+  }
+  return s;
+}
+
+function valorNumericoLotePix(valor) {
+  if (valor == null || valor === "") return null;
+  if (typeof valor === "number" && !isNaN(valor)) return valor;
+  let s = String(valor).trim();
+  if (!s) return null;
+  s = s.replace(/[^\d,.-]/g, "");
+  if (s.indexOf(",") !== -1) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  }
+  const n = Number(s);
+  return isNaN(n) ? null : n;
+}
+
+var COL_CONTADOR_LOTE_PIX = 6;
+
+function maxContadorLotePix(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 0;
+  const numRowsDados = lastRow - 1;
+  const valores = sheet.getRange(2, COL_CONTADOR_LOTE_PIX, numRowsDados, 1).getValues();
+  let max = 0;
+  for (let i = 0; i < valores.length; i++) {
+    const n = valorNumericoLotePix(valores[i][0]);
+    if (n != null && n > max) max = Math.floor(n);
+  }
+  return max;
+}
+
+function formatarContadorLotePix(n) {
+  const num = Math.floor(Number(n));
+  if (!num || num < 1) return "100";
+  return String(num).padStart(3, "0");
+}
+
+function proximoContadorLotePix(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 100;
+  const max = maxContadorLotePix(sheet);
+  if (max < 100) return 100;
+  return max + 1;
+}
+
+function registrarLotePagamentosPix(planilhaKey, sheet, payload) {
+  if (planilhaKey !== "pagamentos-pix-lote") {
+    throw new Error("Ação de lote PIX só é permitida na planilha pagamentos-pix-lote.");
+  }
+  const idLote = String((payload && payload.idLote) || "").trim();
+  if (!idLote) {
+    throw new Error("id-lote é obrigatório.");
+  }
+  const dataLote = parseDataLotePagamentosPix(payload && payload.dataLote);
+  const registros = payload && payload.registros;
+  if (!registros || !registros.length) {
+    throw new Error("Nenhum registro para gravar no lote.");
+  }
+
+  const contadorEsperado = proximoContadorLotePix(sheet);
+  let contadorLote = contadorEsperado;
+  if (payload && payload.contadorLote != null && payload.contadorLote !== "") {
+    const informado = Math.floor(Number(payload.contadorLote));
+    if (!informado || informado < 100) {
+      throw new Error("Contador de lote inválido.");
+    }
+    if (informado !== contadorEsperado) {
+      throw new Error("Contador de lote desatualizado. Gere o arquivo novamente.");
+    }
+    contadorLote = informado;
+  }
+
+  const linhas = [];
+  for (let i = 0; i < registros.length; i++) {
+    const r = registros[i] || {};
+    const colaborador = String(r.colaborador || "").trim();
+    const cpf = cpfSomenteDigitosLotePix(r.cpf);
+    const valorN = valorNumericoLotePix(r.valor);
+    if (!colaborador) {
+      throw new Error("Colaborador obrigatório no registro " + (i + 1) + ".");
+    }
+    if (cpf.length !== 11) {
+      throw new Error("CPF inválido no registro " + (i + 1) + ".");
+    }
+    if (valorN == null || valorN <= 0) {
+      throw new Error("Valor PIX inválido no registro " + (i + 1) + ".");
+    }
+    linhas.push([
+      idLote,
+      dataLote,
+      colaborador,
+      String(cpf),
+      valorN,
+      formatarContadorLotePix(contadorLote),
+      "N",
+    ]);
+  }
+
+  const numRows = linhas.length;
+  const inicio = sheet.getLastRow() + 1;
+  const fimLinha = inicio + numRows - 1;
+  const intervalo = "A" + inicio + ":G" + fimLinha;
+  sheet.getRange(inicio, 4, numRows, 1).setNumberFormat("@");
+  sheet.getRange(intervalo).setValues(linhas);
+  return responder({
+    ok: true,
+    linhas: linhas.length,
+    idLote: idLote,
+    contadorLote: contadorLote,
+  });
+}
+
+function celulaValorVaziaContrato(val) {
+  if (val == null || val === "") return true;
+  if (typeof val === "string" && val.trim() === "") return true;
+  return false;
+}
+
+function indicesParesPgtoContratos(cabecalhos) {
+  const defs = [
+    { pgto: ["pgto-1", "pgto 1"], data: ["data-pgto-1", "data pgto 1", "data pgto-1"] },
+    { pgto: ["pgto-2", "pgto 2"], data: ["data-pgto-2", "data pgto 2", "data pgto-2"] },
+    { pgto: ["pgto-3", "pgto 3"], data: ["data-pgto-3", "data pgto 3", "data pgto-3"] },
+    { pgto: ["pgto-4", "pgto 4"], data: ["data-pgto-4", "data pgto 4", "data pgto-4"] },
+  ];
+  // Fallback: colunas O/P, Q/R, S/T, U/V (índice zero).
+  const fallback = [
+    [14, 15],
+    [16, 17],
+    [18, 19],
+    [20, 21],
+  ];
+  const pares = [];
+  for (let i = 0; i < defs.length; i++) {
+    let ip = indiceColunaCabecalho(cabecalhos, defs[i].pgto);
+    let id = indiceColunaCabecalho(cabecalhos, defs[i].data);
+    if (ip < 0) ip = fallback[i][0];
+    if (id < 0) id = fallback[i][1];
+    pares.push({ pgto: ip, data: id });
+  }
+  return pares;
+}
+
+function mapaLinhaPorCpfContratos(sheet, cabecalhos, idxCpf) {
+  const map = Object.create(null);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return map;
+  const numRows = lastRow - 1;
+  const valores = sheet.getRange(2, 1, numRows, cabecalhos.length).getValues();
+  for (let r = 0; r < valores.length; r++) {
+    const cpf = cpfSomenteDigitos(valores[r][idxCpf]);
+    if (cpf.length === 11 && map[cpf] == null) map[cpf] = r + 2;
+  }
+  return map;
+}
+
+function primeiroParPgtoVazio(linhaValores, pares) {
+  for (let i = 0; i < pares.length; i++) {
+    if (celulaValorVaziaContrato(linhaValores[pares[i].pgto])) return pares[i];
+  }
+  return null;
+}
+
+var COL_LANCADO_LOTE_PIX = 7;
+
+function celulaLancadoColaboradorPix(val) {
+  const v = String(val ?? "")
+    .trim()
+    .toUpperCase();
+  return v === "S" || v === "SIM";
+}
+
+function indiceColunaLancadoColaboradorLotePix(sheet) {
+  const ultimaColuna = sheet.getLastColumn();
+  if (ultimaColuna < 1) return COL_LANCADO_LOTE_PIX;
+  const cabecalhos = sheet.getRange(1, 1, 1, ultimaColuna).getValues()[0];
+  const idx = indiceColunaCabecalho(cabecalhos, [
+    "lancado-colaborador",
+    "lancado colaborador",
+    "lancado",
+    "lançado",
+  ]);
+  if (idx >= 0) return idx + 1;
+  return COL_LANCADO_LOTE_PIX;
+}
+
+function marcarLinhasLotePixLancadas(linhasPlanilha) {
+  if (!linhasPlanilha || !linhasPlanilha.length) return;
+  const sheetLote = obterSheet("pagamentos-pix-lote", "");
+  const colLancado = indiceColunaLancadoColaboradorLotePix(sheetLote);
+  const vistos = Object.create(null);
+  for (let i = 0; i < linhasPlanilha.length; i++) {
+    const numLinha = Math.floor(Number(linhasPlanilha[i]));
+    if (numLinha < 2 || vistos[numLinha]) continue;
+    vistos[numLinha] = true;
+    sheetLote.getRange(numLinha, colLancado).setValue("S");
+  }
+}
+
+function registroLotePixJaLancado(sheetLote, numLinha) {
+  const linha = Math.floor(Number(numLinha));
+  if (linha < 2) return false;
+  const colLancado = indiceColunaLancadoColaboradorLotePix(sheetLote);
+  const val = sheetLote.getRange(linha, colLancado).getValue();
+  return celulaLancadoColaboradorPix(val);
+}
+
+function lancarPagamentosPixContratos(sheet, cabecalhos, payload, corpo) {
+  const registros = payload.registros;
+  if (!registros || !registros.length) {
+    throw new Error("Nenhum registro selecionado para lançar.");
+  }
+  const idxCpf = indiceColunaCabecalho(cabecalhos, ["cpf"]);
+  if (idxCpf < 0) {
+    throw new Error("Coluna CPF não encontrada na planilha de contratos.");
+  }
+  const pares = indicesParesPgtoContratos(cabecalhos);
+  const mapCpf = mapaLinhaPorCpfContratos(sheet, cabecalhos, idxCpf);
+  const auditar = deveAuditarContratos("contratos");
+  const origemAuditoria = corpo.origem || "pessoal-pagamentos";
+  const usuarioAuditoria = usuarioDaRequisicao(corpo);
+
+  let processados = 0;
+  const erros = [];
+  const linhasLoteOk = [];
+  const sheetLote = obterSheet("pagamentos-pix-lote", "");
+
+  for (let i = 0; i < registros.length; i++) {
+    const reg = registros[i] || {};
+    const cpf = cpfSomenteDigitos(reg.cpf);
+    const colaborador = String(reg.colaborador || "").trim();
+    const valorN = valorNumericoLotePix(reg.valor);
+    const dataPag = parseDataLotePagamentosPix(reg.dataPagamento);
+    const linhaLote = reg.linhaLote;
+    const rotulo = colaborador || (cpf ? "CPF " + cpf : "registro " + (i + 1));
+
+    if (linhaLote != null && linhaLote !== "") {
+      if (registroLotePixJaLancado(sheetLote, linhaLote)) {
+        erros.push({
+          indice: i,
+          rotulo: rotulo,
+          mensagem: "Registro do lote já consta como lançado (lancado-colaborador = S).",
+        });
+        continue;
+      }
+    }
+
+    if (cpf.length !== 11) {
+      erros.push({ indice: i, rotulo: rotulo, mensagem: "CPF inválido." });
+      continue;
+    }
+    if (valorN == null || valorN <= 0) {
+      erros.push({ indice: i, rotulo: rotulo, mensagem: "Valor inválido." });
+      continue;
+    }
+    const numLinha = mapCpf[cpf];
+    if (!numLinha) {
+      erros.push({
+        indice: i,
+        rotulo: rotulo,
+        mensagem: "Colaborador não encontrado na planilha de contratos.",
+      });
+      continue;
+    }
+
+    const existente = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
+    const par = primeiroParPgtoVazio(existente, pares);
+    if (!par) {
+      erros.push({
+        indice: i,
+        rotulo: rotulo,
+        mensagem: "pgto-1 a pgto-4 já estão preenchidos.",
+      });
+      continue;
+    }
+
+    const dados = {};
+    dados[cabecalhos[par.pgto]] = valorN;
+    dados[cabecalhos[par.data]] = dataPag;
+
+    const antes = linhaParaObjeto(cabecalhos, existente);
+    const indicesAtualizados = indicesColunasAtualizadasContratos(cabecalhos, dados);
+    try {
+      atualizarLinhaContratos(sheet, numLinha, existente, cabecalhos, dados);
+      validarSaldoContratoNaoNegativo(sheet, numLinha, cabecalhos);
+      const novaLinha = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
+      const depois = linhaParaObjeto(cabecalhos, novaLinha);
+      if (auditar) {
+        registrarAuditoriaContratos(
+          "contratos",
+          "atualizar",
+          numLinha,
+          antes,
+          depois,
+          origemAuditoria,
+          usuarioAuditoria
+        );
+      }
+      processados++;
+      if (linhaLote != null && linhaLote !== "") linhasLoteOk.push(linhaLote);
+    } catch (e) {
+      reverterColunasLinhaContratos(sheet, numLinha, existente, indicesAtualizados);
+      erros.push({ indice: i, rotulo: rotulo, mensagem: String(e.message || e) });
+    }
+  }
+
+  if (linhasLoteOk.length) marcarLinhasLotePixLancadas(linhasLoteOk);
+
+  return responder({
+    ok: erros.length === 0,
+    processados: processados,
+    erros: erros,
+    linhasLote: linhasLoteOk,
+  });
+}
+
 function atualizarLinhaDashboard(sheet, numLinha, existente, dados) {
   const novaLinha = existente.slice();
   if (dados && Object.prototype.hasOwnProperty.call(dados, "minima")) {
@@ -1072,6 +1408,24 @@ function doPostPlanilha(corpo) {
 
   if (acao === "imprimir-contrato") {
     return imprimirContratoPdf(corpo);
+  }
+
+  if (acao === "registrar-lote-pagamentos-pix") {
+    return registrarLotePagamentosPix(planilha, sheet, corpo.dados || corpo);
+  }
+
+  if (acao === "proximo-contador-lote-pix") {
+    if (planilha !== "pagamentos-pix-lote") {
+      throw new Error("Consulta de contador só é permitida na planilha pagamentos-pix-lote.");
+    }
+    return responder({ ok: true, contador: proximoContadorLotePix(sheet) });
+  }
+
+  if (acao === "lancar-pagamentos-pix-contratos") {
+    if (planilha !== "contratos") {
+      throw new Error("Lançamento PIX só é permitido na planilha contratos.");
+    }
+    return lancarPagamentosPixContratos(sheet, cabecalhos, corpo.dados || corpo, corpo);
   }
 
   const auditar = deveAuditarContratos(planilha);

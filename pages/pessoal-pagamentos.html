@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../css/style.css" />
   <script src="https://kit.fontawesome.com/905f5bcd47.js" crossorigin="anonymous"></script>
 </head>
-<body class="bg-light page-frame-body page-contratos">
+<body class="bg-light page-frame-body page-contratos page-pessoal-pagamentos">
   <div class="page-frame-content">
     <div id="tabelaCard" class="card shadow-sm border-0 crud-tabela-card">
       <div class="card-header bg-white border-bottom py-2 px-3">
@@ -32,15 +32,48 @@
               />
             </span>
           </label>
-          <button
-            type="button"
-            id="btnAbrirSelecao"
-            class="btn btn-sm btn-outline-secondary crud-toolbar-btn-icone"
-            title="pagamentos com PIX — geração de arquivo CSV"
-          >
-            <i class="fa-solid fa-file-csv" aria-hidden="true"></i>
-            <span>pagamentos com pix</span>
-          </button>
+          <div class="pagamentos-toolbar-resumo-wrap">
+            <div
+              class="pagamentos-toolbar-resumo card border shadow-sm"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <div class="card-body">
+                <div class="pagamentos-toolbar-resumo-item">
+                  <span class="pagamentos-toolbar-resumo-rotulo">total contratos</span>
+                  <span id="resumoToolbarTotalContratos" class="pagamentos-toolbar-resumo-valor">0,00</span>
+                </div>
+                <div class="pagamentos-toolbar-resumo-item">
+                  <span class="pagamentos-toolbar-resumo-rotulo">valor pago</span>
+                  <span id="resumoToolbarValorPago" class="pagamentos-toolbar-resumo-valor">0,00</span>
+                </div>
+                <div class="pagamentos-toolbar-resumo-item">
+                  <span class="pagamentos-toolbar-resumo-rotulo">saldo contratos</span>
+                  <span id="resumoToolbarSaldoContratos" class="pagamentos-toolbar-resumo-valor">0,00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="crud-toolbar-pix-botoes">
+            <button
+              type="button"
+              id="btnAbrirSelecao"
+              class="btn pagamentos-pix-acao-icone pagamentos-pix-acao-icone--csv"
+              title="gerar arquivo lote"
+              aria-label="gerar arquivo lote"
+            >
+              <i class="fa-solid fa-file-csv" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              id="btnAbrirLancarPix"
+              class="btn pagamentos-pix-acao-icone pagamentos-pix-acao-icone--lancar"
+              title="lançar pagamentos com pix"
+              aria-label="lançar pagamentos com pix"
+            >
+              <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
       </div>
       <div class="card-body p-0">
@@ -91,20 +124,43 @@
           </div>
           <div class="modal-body p-0">
             <div class="pagamentos-selecao-bar px-3 py-2 border-bottom bg-white">
-              <div class="row g-2 align-items-end flex-wrap">
-                <div class="col-auto">
-                  <label class="form-label small mb-0" for="dataPagamentoSelecao">data pagamento</label>
-                  <input
-                    type="date"
-                    id="dataPagamentoSelecao"
-                    class="form-control form-control-sm"
-                    autocomplete="off"
-                  />
-                </div>
-                <div class="col-auto">
-                  <button type="button" id="btnGerarCsvPagamentos" class="btn btn-sm btn-primary">
-                    gerar arquivo csv
+              <div class="pagamentos-selecao-bar-inner">
+                <div class="pagamentos-selecao-bar-esq">
+                  <div>
+                    <label class="form-label small mb-0" for="dataPagamentoSelecao">data pagamento</label>
+                    <input
+                      type="date"
+                      id="dataPagamentoSelecao"
+                      class="form-control form-control-sm"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    id="btnGerarCsvPagamentos"
+                    class="btn pagamentos-pix-acao-icone pagamentos-pix-acao-icone--csv pagamentos-csv-btn"
+                    title="gerar arquivo csv"
+                    aria-label="gerar arquivo csv"
+                  >
+                    <span
+                      id="gerarCsvSpinner"
+                      class="spinner-border spinner-border-sm d-none"
+                      role="status"
+                      aria-hidden="true"
+                    ></span>
+                    <i id="gerarCsvIcone" class="fa-solid fa-file-csv" aria-hidden="true"></i>
                   </button>
+                </div>
+                <div
+                  class="pagamentos-selecao-total-card card border shadow-sm"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  <div class="card-body py-2 px-3">
+                    <div class="pagamentos-selecao-total-rotulo small text-muted mb-0">total valor PIX</div>
+                    <div id="pagamentosSelecaoTotalPixValor" class="pagamentos-selecao-total-valor">0,00</div>
+                    <div id="pagamentosSelecaoTotalPixQtd" class="pagamentos-selecao-total-qtd small text-muted">nenhum registro selecionado</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -157,6 +213,82 @@
       </div>
     </div>
 
+    <div class="modal fade" id="modalLancarPagamentosPix" tabindex="-1" aria-labelledby="modalLancarTitulo" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+          <div class="modal-header py-2">
+            <h2 class="modal-title h6 mb-0" id="modalLancarTitulo">lançar pagamentos com pix</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body p-0">
+            <div class="pagamentos-selecao-bar px-3 py-2 border-bottom bg-white">
+              <div class="pagamentos-selecao-bar-inner pagamentos-lancar-bar-inner">
+                <div class="pagamentos-selecao-bar-esq pagamentos-lancar-bar-esq">
+                  <div>
+                    <label class="form-label small mb-0" for="filtroLotePix">lote</label>
+                    <select id="filtroLotePix" class="form-select form-select-sm pagamentos-lancar-filtro-lote">
+                      <option value="">todos os lotes</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    id="btnExecutarLancarPagamentosPix"
+                    class="btn pagamentos-pix-acao-icone pagamentos-pix-acao-icone--lancar pagamentos-lancar-btn-inline"
+                    title="lançar pagamentos"
+                    aria-label="lançar pagamentos"
+                    disabled
+                  >
+                    <span
+                      id="lancarPixSpinner"
+                      class="spinner-border spinner-border-sm d-none"
+                      role="status"
+                      aria-hidden="true"
+                    ></span>
+                    <i id="lancarPixIcone" class="fa-solid fa-building-columns" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <span id="lancarPixIdLote" class="pagamentos-lancar-id-lote small text-muted" hidden></span>
+              </div>
+            </div>
+            <div id="lancarPixCarregando" class="text-secondary small text-center py-3 mb-0" hidden>carregando lotes...</div>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0 pagamentos-selecao-tabela pagamentos-lancar-tabela">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col" class="pagamentos-selecao-col-check text-center">
+                      <input
+                        type="checkbox"
+                        id="lancarMarcarTodos"
+                        class="form-check-input"
+                        aria-label="marcar ou desmarcar todos"
+                      />
+                    </th>
+                    <th scope="col">
+                      <div class="pagamentos-selecao-celula pagamentos-selecao-celula--cabecalho">
+                        <span class="pagamentos-selecao-linha1">colaborador</span>
+                        <span class="pagamentos-selecao-linha2 text-muted">CPF / chave pix</span>
+                      </div>
+                    </th>
+                    <th scope="col" class="text-end pagamentos-selecao-col-valor-pix">
+                      <span class="pagamentos-selecao-linha1">valor PIX</span>
+                    </th>
+                    <th scope="col" class="pagamentos-lancar-col-status" aria-label="situação"></th>
+                  </tr>
+                </thead>
+                <tbody id="corpoLancarPagamentos"></tbody>
+              </table>
+            </div>
+            <p id="vazioLancarPagamentos" class="text-secondary small text-center py-4 mb-0" hidden>
+              Nenhum registro encontrado.
+            </p>
+          </div>
+          <div class="modal-footer py-2 justify-content-center pagamentos-selecao-modal-footer">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="modalContrato" tabindex="-1" aria-labelledby="modalTitulo" aria-hidden="true">
       <div class="modal-dialog modal-dialog-scrollable modal-lg contratos-modal-dialog">
         <div class="modal-content contratos-modal-content">
@@ -198,6 +330,7 @@
   <script src="../js/relatorio.js"></script>
   <script src="../js/page-loader.js"></script>
   <script src="../js/toast.js"></script>
+  <script src="../js/app-confirm.js"></script>
   <script src="../js/planilha-api.js"></script>
   <script src="../js/icons.js"></script>
   <script src="../js/pessoal-pagamentos.js"></script>

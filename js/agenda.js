@@ -869,7 +869,7 @@ async function salvarFormulario(e) {
 
 async function excluirItem() {
   if (!modoEdicao || !ui.evId.value) return;
-  if (!confirm("Excluir este item da agenda?")) return;
+  if (!(await AppConfirm.confirm("Excluir este item da agenda?", { perigo: true, icon: "warning" }))) return;
 
   const ev = todosEventos.find((e) => e.id === ui.evId.value);
   const origem = ev ? normalizarOrigem(ev.origem) : origemAnterior() || origemSelecionada();

@@ -672,7 +672,7 @@ function abrirEditar(item) {
 }
 
 async function confirmarExcluir(item) {
-  if (!window.confirm("Excluir este registro?")) return;
+  if (!(await AppConfirm.confirm("Excluir este registro?", { perigo: true, icon: "warning" }))) return;
 
   mostrarStatus("Excluindo...", "carregando");
   try {

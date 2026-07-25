@@ -18,6 +18,8 @@ const ICONE_IMPRIMIR =
   '<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>' +
   '<path d="M6 14h12v8H6z"/>' +
   "</svg>";
+const ICONE_RELATORIO =
+  (typeof APP_ICON_SVG !== "undefined" && APP_ICON_SVG.relatorio) || ICONE_IMPRIMIR;
 const ICONE_BANCO =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
   '<path d="M3 21h18M3 10h18M5 6l7-4 7 4M6 10v8M10 10v8M14 10v8M18 10v8"/>' +
@@ -44,6 +46,7 @@ let colunaLancarSistema = null;
 let colunaValorContrato = null;
 let colunaSaldoContrato = null;
 let colunaChavePix = null;
+let parcelasRelatorioOV = [];
 let listaMunicipiosForm = [];
 let coordenadoresPorMunicipio = new Map();
 let cacheValoresReferenciaContrato = null;
@@ -53,6 +56,17 @@ let camposDesbloqueadosFormulario = new Set();
 let linhasSelecionadasModal = new Set();
 let valorPixModalPorLinha = new Map();
 let modalSelecao = null;
+let modalLancarPix = null;
+let linhasLotePix = [];
+let colunasLotePix = [];
+let colunaLoteId = null;
+let colunaLoteData = null;
+let colunaLoteColaborador = null;
+let colunaLoteCpf = null;
+let colunaLoteValor = null;
+let colunaLoteContador = null;
+let colunaLoteLancado = null;
+let linhasSelecionadasLancarModal = new Set();
 let paginaAtualTabela = 1;
 
 function tamanhoPaginaTabela() {
@@ -148,7 +162,7 @@ function atualizarBotaoCadeadoCampo(btn, desbloqueado, rotulo) {
   btn.classList.toggle("contratos-btn-cadeado-campo--fechado", !desbloqueado);
 }
 
-function alternarBloqueioCampoFormulario(campo) {
+async function alternarBloqueioCampoFormulario(campo) {
   if (!campo?.edicaoComConfirmacao) return;
 
   const desbloqueado = camposDesbloqueadosFormulario.has(campo.id);
@@ -157,7 +171,7 @@ function alternarBloqueioCampoFormulario(campo) {
   const input = controleCampoFormulario(campo.id);
 
   if (!desbloqueado) {
-    if (!window.confirm(mensagemConfirmarEdicaoCampo(campo))) return;
+    if (!(await AppConfirm.confirm(mensagemConfirmarEdicaoCampo(campo)))) return;
     camposDesbloqueadosFormulario.add(campo.id);
     if (input) input.disabled = false;
     wrap?.classList.add("contratos-campo-form--desbloqueado");
@@ -286,6 +300,32 @@ function valorMoedaGravar(valor) {
   const n = numeroMoeda(s);
   if (n == null) return s;
   return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function totaisContratosPagamentos(lista) {
+  let totalContratos = 0;
+  let totalSaldo = 0;
+  let totalPago = 0;
+  for (const item of lista) {
+    const v = numeroMoeda(valorItem(item, colunaValorContrato));
+    const s = numeroMoeda(valorItem(item, colunaSaldoContrato));
+    if (v != null) totalContratos += v;
+    if (s != null) totalSaldo += s;
+    if (v != null && s != null) totalPago += Math.max(0, v - s);
+  }
+  return { totalContratos, totalPago, totalSaldo };
+}
+
+function atualizarResumoContratosToolbar() {
+  const { totalContratos, totalPago, totalSaldo } = totaisContratosPagamentos(linhasFiltradas());
+  const fmt = (n) => valorMoedaGravar(n) || "0,00";
+  if (el.resumoToolbarTotalContratos) {
+    el.resumoToolbarTotalContratos.textContent = fmt(totalContratos);
+  }
+  if (el.resumoToolbarValorPago) el.resumoToolbarValorPago.textContent = fmt(totalPago);
+  if (el.resumoToolbarSaldoContratos) {
+    el.resumoToolbarSaldoContratos.textContent = fmt(totalSaldo);
+  }
 }
 
 function planilhaDataParaInputDate(val) {
@@ -887,7 +927,7 @@ function abrirEditar(item) {
 }
 
 async function confirmarExcluir(item) {
-  if (!window.confirm("Excluir este registro?")) return;
+  if (!(await AppConfirm.confirm("Excluir este registro?", { perigo: true, icon: "warning" }))) return;
 
   mostrarStatus("Excluindo...", "carregando");
   try {
@@ -998,7 +1038,56 @@ function resolverColunas() {
   colunaChavePix = PlanilhaApi.acharColuna(
     colunas,
     ["chave-pix", "chave pix", "pix"],
-    idx.CHAVE_PIX
+    cfg.INDICES && cfg.INDICES.CHAVE_PIX != null ? cfg.INDICES.CHAVE_PIX : null
+  );
+  resolverColunasOVRelatorio();
+}
+
+function resolverColunasOVRelatorio() {
+  const defs = cfg.PARCELAS_COLUNAS_O_V || [];
+  parcelasRelatorioOV = defs.map((def) => ({
+    n: def.n,
+    colPgto: PlanilhaApi.acharColuna(colunas, def.pgtoAliases, def.pgto),
+    colData: PlanilhaApi.acharColuna(colunas, def.dataAliases, def.data),
+  }));
+}
+
+function valorDataRelatorioItem(item, col) {
+  if (!col) return "—";
+  const bruto = valorItem(item, col);
+  if (bruto == null || String(bruto).trim() === "") return "—";
+  const iso = planilhaDataParaInputDate(bruto);
+  return iso ? inputDateParaPlanilha(iso) : String(bruto).trim();
+}
+
+function valorMoedaRelatorioItem(item, col) {
+  if (!col) return "—";
+  return textoMoedaRelatorio(valorItem(item, col));
+}
+
+function htmlCardParcelaRelatorioIndividual(parcela, item) {
+  const valor = valorMoedaRelatorioItem(item, parcela.colPgto);
+  const data = valorDataRelatorioItem(item, parcela.colData);
+  return (
+    '<div class="pagamentos-rel-parcela-card">' +
+    `<div class="pagamentos-rel-parcela-titulo">pagamento ${parcela.n}</div>` +
+    `<div class="pagamentos-rel-parcela-valor pagamentos-rel-num">${escapeHtml(valor)}</div>` +
+    '<div class="pagamentos-rel-parcela-rotulo-data">data pagamento</div>' +
+    `<div class="pagamentos-rel-parcela-data">${escapeHtml(data)}</div>` +
+    "</div>"
+  );
+}
+
+function htmlSecaoColunasOVRelatorioIndividual(item) {
+  if (!parcelasRelatorioOV.length) return "";
+  const cards = parcelasRelatorioOV
+    .map((parcela) => htmlCardParcelaRelatorioIndividual(parcela, item))
+    .join("");
+  return (
+    '<section class="rel-secao pagamentos-rel-secao-parcelas"><h2>parcelas</h2>' +
+    '<div class="pagamentos-rel-parcelas-grid">' +
+    cards +
+    "</div></section>"
   );
 }
 
@@ -1040,6 +1129,28 @@ function saldoContratoElegivelPix(item) {
   const n = numeroMoeda(valorItem(item, colunaSaldoContrato));
   if (n == null) return false;
   return n > 0;
+}
+
+function percentualQuitadoContrato(item) {
+  const valor = numeroMoeda(valorItem(item, colunaValorContrato));
+  const saldo = numeroMoeda(valorItem(item, colunaSaldoContrato));
+  if (valor == null || valor <= 0) return null;
+  if (saldo == null) return null;
+  const pago = valor - saldo;
+  return Math.min(100, Math.max(0, (pago / valor) * 100));
+}
+
+function htmlBarraProgressoQuitadoContrato(item) {
+  const pct = percentualQuitadoContrato(item);
+  if (pct == null) return "";
+  const pctInt = Math.round(pct);
+  return (
+    `<div class="orcamento-geral-progress-pago pagamentos-contrato-progress-quitado" role="progressbar" ` +
+    `aria-valuenow="${pctInt}" aria-valuemin="0" aria-valuemax="100" title="${pctInt}% quitado">` +
+    `<div class="orcamento-geral-progress-pago-track" aria-hidden="true">` +
+    `<div class="orcamento-geral-progress-pago-fill" style="width:${pctInt}%"></div>` +
+    `</div></div>`
+  );
 }
 
 function itemElegivelModalPagamentosPix(item) {
@@ -1084,6 +1195,7 @@ function marcarDesmarcarTodosSelecao(marcar) {
     input.checked = marcar;
   });
   atualizarCheckboxMarcarTodos();
+  atualizarTotalPixModalSelecao();
 }
 
 function valorPixSugeridoDeSaldo(item) {
@@ -1143,6 +1255,35 @@ function lerValorPixInput(numLinha) {
   return input ? String(input.value ?? "").trim() : "";
 }
 
+function itemModalPorLinha(numLinha) {
+  return linhas.find((item) => item._linha === numLinha);
+}
+
+function atualizarTotalPixModalSelecao() {
+  const valorEl = el.pagamentosSelecaoTotalPixValor;
+  if (!valorEl) return;
+
+  let soma = 0;
+  let qtd = 0;
+  for (const numLinha of linhasSelecionadasModal) {
+    const item = itemModalPorLinha(numLinha);
+    if (!item || !itemElegivelModalPagamentosPix(item)) continue;
+    qtd += 1;
+    const texto = lerValorPixInput(numLinha) || obterValorPixLinha(numLinha, item);
+    const n = numeroMoeda(texto);
+    if (n != null) soma += n;
+  }
+
+  valorEl.textContent = valorMoedaGravar(soma) || "0,00";
+  if (el.pagamentosSelecaoTotalPixQtd) {
+    let rotulo;
+    if (qtd === 0) rotulo = "nenhum registro selecionado";
+    else if (qtd === 1) rotulo = "1 registro selecionado";
+    else rotulo = `${qtd} registros selecionados`;
+    el.pagamentosSelecaoTotalPixQtd.textContent = rotulo;
+  }
+}
+
 function dataHojeInputDate() {
   const hoje = new Date();
   const y = hoje.getFullYear();
@@ -1181,16 +1322,71 @@ function escapeCampoCsv(texto) {
   return t;
 }
 
-function nomeArquivoRelacaoPagamentosPix() {
+function sufixoDataHoraArquivoPix() {
   const d = new Date();
   const p = (n) => String(n).padStart(2, "0");
-  const dataHora =
+  return (
     `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_` +
-    `${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
-  return `pagamentos_pix_${dataHora}.csv`;
+    `${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`
+  );
 }
 
-function gerarArquivoCsvPagamentos() {
+function formatarContadorLotePix(contador) {
+  const n = Math.floor(Number(contador));
+  if (!n || n < 1) return "100";
+  return String(n).padStart(3, "0");
+}
+
+function nomeArquivoLotePix(contador) {
+  const seq = formatarContadorLotePix(contador);
+  return `lote_${seq}_pix_${sufixoDataHoraArquivoPix()}.csv`;
+}
+
+function idLoteDeNomeArquivoPix(nomeArquivo) {
+  return String(nomeArquivo || "").replace(/\.csv$/i, "");
+}
+
+async function obterProximoContadorLotePix() {
+  const planilhaLote = cfg.PLANILHA_LOTE_PIX || "pagamentos-pix-lote";
+  const json = await PlanilhaApi.gravar(planilhaLote, {
+    acao: "proximo-contador-lote-pix",
+    origem: "pessoal-pagamentos",
+    dados: {},
+  });
+  const n = Math.floor(Number(json?.contador));
+  if (!json?.ok || !Number.isFinite(n) || n < 100) {
+    throw new Error("não foi possível obter o número do lote.");
+  }
+  return n;
+}
+
+function setGerarCsvPagamentosCarregando(ativo) {
+  const btn = el.btnGerarCsvPagamentos;
+  const spinner = el.gerarCsvSpinner;
+  const icon = el.gerarCsvIcone;
+  if (btn) btn.disabled = !!ativo;
+  spinner?.classList.toggle("d-none", !ativo);
+  icon?.classList.toggle("d-none", !!ativo);
+}
+
+function setLancarPagamentosCarregando(ativo) {
+  const btn = el.btnExecutarLancarPagamentosPix;
+  const spinner = el.lancarPixSpinner;
+  const icon = el.lancarPixIcone;
+  if (btn) {
+    if (ativo) {
+      btn.dataset.carregando = "1";
+      btn.disabled = true;
+    } else {
+      delete btn.dataset.carregando;
+    }
+  }
+  spinner?.classList.toggle("d-none", !ativo);
+  icon?.classList.toggle("d-none", !!ativo);
+  if (!ativo) atualizarBotaoLancarPagamentosPix();
+}
+
+async function gerarArquivoCsvPagamentos() {
   const dataIso = String(el.dataPagamentoSelecao?.value ?? "").trim();
   if (!dataIso) {
     AppToast.show("informe a data do pagamento.", "erro");
@@ -1212,6 +1408,7 @@ function gerarArquivoCsvPagamentos() {
     ["inscricao", "nome", "valor", "data_pagamento", "seu_numero"].join(d),
   ];
   let sequencial = 1;
+  const registrosLote = [];
 
   for (const item of lista) {
     const numLinha = item._linha;
@@ -1236,6 +1433,8 @@ function gerarArquivoCsvPagamentos() {
       return;
     }
 
+    const cpfColaborador = cpfSomenteDigitos(valorItem(item, colunaCpf)) || inscricao;
+
     linhasArquivo.push(
       [
         escapeCampoCsv(inscricao),
@@ -1245,19 +1444,58 @@ function gerarArquivoCsvPagamentos() {
         escapeCampoCsv(String(sequencial)),
       ].join(d)
     );
+    registrosLote.push({
+      colaborador: nome,
+      cpf: cpfColaborador,
+      valor: Number(valor),
+    });
     sequencial += 1;
   }
 
-  // Sem BOM: o utf-8-sig no Colab/Python quebra o cabeçalho "inscricao".
-  const conteudo = linhasArquivo.join("\n");
-  const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = nomeArquivoRelacaoPagamentosPix();
-  link.click();
-  URL.revokeObjectURL(url);
-  AppToast.show("arquivo CSV gerado.", "sucesso");
+  const planilhaLote = cfg.PLANILHA_LOTE_PIX || "pagamentos-pix-lote";
+  let contadorLote;
+  let nomeArquivo;
+  let idLote;
+
+  setGerarCsvPagamentosCarregando(true);
+  try {
+    contadorLote = await obterProximoContadorLotePix();
+    nomeArquivo = nomeArquivoLotePix(contadorLote);
+    idLote = idLoteDeNomeArquivoPix(nomeArquivo);
+
+    // Sem BOM: o utf-8-sig no Colab/Python quebra o cabeçalho "inscricao".
+    const conteudo = linhasArquivo.join("\n");
+    const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nomeArquivo;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    await PlanilhaApi.gravar(planilhaLote, {
+      acao: "registrar-lote-pagamentos-pix",
+      origem: "pessoal-pagamentos",
+      dados: {
+        idLote,
+        dataLote: dataIso,
+        contadorLote,
+        registros: registrosLote,
+      },
+    });
+    AppToast.show("arquivo CSV gerado.", "sucesso");
+  } catch (e) {
+    if (nomeArquivo) {
+      AppToast.show(
+        `CSV gerado, mas falha ao registrar lote: ${PlanilhaApi.mensagemErro(e)}`,
+        "erro"
+      );
+    } else {
+      AppToast.show(PlanilhaApi.mensagemErro(e), "erro");
+    }
+  } finally {
+    setGerarCsvPagamentosCarregando(false);
+  }
 }
 
 function renderizarTabelaSelecaoModal() {
@@ -1271,6 +1509,7 @@ function renderizarTabelaSelecaoModal() {
   if (!lista.length) {
     if (vazio) vazio.hidden = false;
     atualizarCheckboxMarcarTodos();
+    atualizarTotalPixModalSelecao();
     return;
   }
   if (vazio) vazio.hidden = true;
@@ -1318,11 +1557,13 @@ function renderizarTabelaSelecaoModal() {
     vincularFormatacaoMoedaInput(inputPix);
     inputPix.addEventListener("input", () => {
       valorPixModalPorLinha.set(numLinha, inputPix.value);
+      atualizarTotalPixModalSelecao();
     });
     inputPix.addEventListener("blur", () => {
       const fmt = formatarValorPixInput(inputPix.value);
       inputPix.value = fmt;
       valorPixModalPorLinha.set(numLinha, fmt);
+      atualizarTotalPixModalSelecao();
     });
     tdValorPix.appendChild(inputPix);
     tr.appendChild(tdValorPix);
@@ -1331,11 +1572,13 @@ function renderizarTabelaSelecaoModal() {
     input?.addEventListener("change", () => {
       alternarSelecaoLinhaModal(numLinha, input.checked);
       atualizarCheckboxMarcarTodos();
+      atualizarTotalPixModalSelecao();
     });
 
     corpo.appendChild(tr);
   });
   atualizarCheckboxMarcarTodos();
+  atualizarTotalPixModalSelecao();
 }
 
 function abrirModalSelecao() {
@@ -1350,6 +1593,453 @@ function abrirModalSelecao() {
   modalSelecao?.show();
 }
 
+function valorItemLote(item, col) {
+  return col ? item[col.chave] : "";
+}
+
+function resolverColunasLotePix() {
+  const mapa = cfg.COLUNAS_LOTE_PIX || {};
+  const idx = cfg.INDICES_LOTE_PIX || {};
+  colunaLoteId = PlanilhaApi.acharColuna(colunasLotePix, mapa.ID_LOTE, idx.ID_LOTE);
+  colunaLoteData = PlanilhaApi.acharColuna(colunasLotePix, mapa.DATA_LOTE, idx.DATA_LOTE);
+  colunaLoteColaborador = PlanilhaApi.acharColuna(
+    colunasLotePix,
+    mapa.COLABORADOR,
+    idx.COLABORADOR
+  );
+  colunaLoteCpf = PlanilhaApi.acharColuna(colunasLotePix, mapa.CPF, idx.CPF);
+  colunaLoteValor = PlanilhaApi.acharColuna(colunasLotePix, mapa.VALOR, idx.VALOR);
+  colunaLoteContador = PlanilhaApi.acharColuna(
+    colunasLotePix,
+    mapa.CONTADOR_LOTE,
+    idx.CONTADOR_LOTE
+  );
+  colunaLoteLancado = PlanilhaApi.acharColuna(colunasLotePix, mapa.LANCADO, idx.LANCADO);
+}
+
+function dataPagamentoIsoDeItemLote(item) {
+  const val = valorItemLote(item, colunaLoteData);
+  if (val instanceof Date && !Number.isNaN(val.getTime())) {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${val.getFullYear()}-${p(val.getMonth() + 1)}-${p(val.getDate())}`;
+  }
+  const s = String(val ?? "").trim();
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+  return s;
+}
+
+function valorLancadoColaboradorItem(item) {
+  return String(valorItemLote(item, colunaLoteLancado) ?? "")
+    .trim()
+    .toUpperCase();
+}
+
+function itemLotePixJaLancado(item) {
+  if (!item) return false;
+  if (item._lancadoColaborador === true) return true;
+  const v = valorLancadoColaboradorItem(item);
+  return v === "S" || v === "SIM";
+}
+
+function linhasLotePixElegiveisLancar() {
+  return linhasLotePixFiltradas().filter((item) => !itemLotePixJaLancado(item));
+}
+
+function htmlBadgeStatusLotePix(item) {
+  if (itemLotePixJaLancado(item)) {
+    return '<span class="pagamentos-lancar-badge pagamentos-lancar-badge--registrado">registrado</span>';
+  }
+  return '<span class="pagamentos-lancar-badge pagamentos-lancar-badge--pendente">pendente</span>';
+}
+
+function atualizarRotuloLoteLancarModal() {
+  const idEl = el.lancarPixIdLote;
+  if (!idEl) return;
+  const filtro = String(el.filtroLotePix?.value ?? "").trim();
+  if (!filtro) {
+    idEl.hidden = true;
+    idEl.textContent = "";
+    return;
+  }
+  idEl.hidden = false;
+  idEl.textContent = filtro;
+}
+
+function registrosSelecionadosLancarModal() {
+  const lista = [];
+  for (const numLinha of linhasSelecionadasLancarModal) {
+    const item = linhasLotePix.find((r) => r._linha === numLinha);
+    if (!item) continue;
+    if (itemLotePixJaLancado(item)) continue;
+    if (el.filtroLotePix?.value) {
+      const id = String(valorItemLote(item, colunaLoteId) ?? "").trim();
+      if (id !== String(el.filtroLotePix.value).trim()) continue;
+    }
+    lista.push(item);
+  }
+  return lista;
+}
+
+function parseIdLotePix(idLote) {
+  const m = String(idLote || "")
+    .trim()
+    .match(/^lote_(\d+)_pix_(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})$/i);
+  if (!m) return null;
+  return {
+    seq: m[1],
+    dataIso: `${m[2]}-${m[3]}-${m[4]}`,
+    hora: `${m[5]}:${m[6]}:${m[7]}`,
+  };
+}
+
+function seqLoteExibirDeItem(item) {
+  const cont = String(valorItemLote(item, colunaLoteContador) ?? "").trim();
+  if (cont) {
+    const n = Math.floor(Number(cont.replace(/\D/g, "") || cont));
+    if (n > 0) return formatarContadorLotePix(n);
+    return cont;
+  }
+  const id = String(valorItemLote(item, colunaLoteId) ?? "").trim();
+  const parsed = parseIdLotePix(id);
+  if (parsed?.seq) return formatarContadorLotePix(parsed.seq);
+  return "—";
+}
+
+function rotuloSelectLotePix(item) {
+  const id = String(valorItemLote(item, colunaLoteId) ?? "").trim();
+  const seq = seqLoteExibirDeItem(item);
+  const parsed = parseIdLotePix(id);
+  let data = formatarDataLoteExibir(valorItemLote(item, colunaLoteData));
+  if (data === "—" && parsed?.dataIso) {
+    data = formatarDataLoteExibir(parsed.dataIso);
+  }
+  const hora = parsed?.hora ?? "—";
+  return `${seq} ${data} ${hora}`;
+}
+
+function formatarDataLoteExibir(val) {
+  const s = String(val ?? "").trim();
+  if (!s) return "—";
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (br) return `${br[1]}/${br[2]}/${br[3]}`;
+  return s;
+}
+
+function textoValorLoteExibir(val) {
+  const n = numeroMoeda(val);
+  if (n == null) {
+    const s = String(val ?? "").trim();
+    return s || "—";
+  }
+  return valorMoedaGravar(n);
+}
+
+function ordenarLinhasLotePix(lista) {
+  return lista.slice().sort((a, b) => {
+    const idA = String(valorItemLote(a, colunaLoteId) ?? "");
+    const idB = String(valorItemLote(b, colunaLoteId) ?? "");
+    if (idA !== idB) return idB.localeCompare(idA, "pt-BR");
+    const na = String(valorItemLote(a, colunaLoteColaborador) ?? "").trim();
+    const nb = String(valorItemLote(b, colunaLoteColaborador) ?? "").trim();
+    return na.localeCompare(nb, "pt-BR", { sensitivity: "base" });
+  });
+}
+
+function linhasLotePixFiltradas() {
+  const filtro = String(el.filtroLotePix?.value ?? "").trim();
+  let lista = linhasLotePix;
+  if (filtro) {
+    lista = lista.filter(
+      (item) => String(valorItemLote(item, colunaLoteId) ?? "").trim() === filtro
+    );
+  }
+  return ordenarLinhasLotePix(lista);
+}
+
+function idsLinhasListaLancar() {
+  return linhasLotePixElegiveisLancar().map((item) => item._linha);
+}
+
+function atualizarCheckboxMarcarTodosLancar() {
+  const master = el.lancarMarcarTodos;
+  if (!master) return;
+  const ids = idsLinhasListaLancar();
+  if (!ids.length) {
+    master.checked = false;
+    master.indeterminate = false;
+    master.disabled = true;
+    return;
+  }
+  master.disabled = false;
+  const marcados = ids.filter((id) => linhasSelecionadasLancarModal.has(id)).length;
+  master.checked = marcados === ids.length;
+  master.indeterminate = marcados > 0 && marcados < ids.length;
+}
+
+function alternarSelecaoLinhaLancar(linha, marcado) {
+  const item = linhasLotePix.find((r) => r._linha === linha);
+  if (marcado && item && itemLotePixJaLancado(item)) return;
+  if (marcado) linhasSelecionadasLancarModal.add(linha);
+  else linhasSelecionadasLancarModal.delete(linha);
+}
+
+function marcarDesmarcarTodosLancar(marcar) {
+  const ids = idsLinhasListaLancar();
+  ids.forEach((id) => {
+    if (marcar) linhasSelecionadasLancarModal.add(id);
+    else linhasSelecionadasLancarModal.delete(id);
+  });
+  for (const id of [...linhasSelecionadasLancarModal]) {
+    const item = linhasLotePix.find((r) => r._linha === id);
+    if (item && itemLotePixJaLancado(item)) linhasSelecionadasLancarModal.delete(id);
+  }
+  el.corpoLancarPagamentos?.querySelectorAll(".pagamentos-lancar-check").forEach((input) => {
+    if (input.disabled) {
+      input.checked = false;
+      return;
+    }
+    const linha = Number(input.dataset.linha);
+    input.checked = marcar && ids.includes(linha);
+  });
+  atualizarCheckboxMarcarTodosLancar();
+  atualizarBotaoLancarPagamentosPix();
+}
+
+function atualizarBotaoLancarPagamentosPix() {
+  const btn = el.btnExecutarLancarPagamentosPix;
+  if (!btn) return;
+  const qtd = registrosSelecionadosLancarModal().length;
+  btn.disabled = qtd === 0 || btn.dataset.carregando === "1";
+}
+
+async function executarLancarPagamentosPix() {
+  const selecionados = registrosSelecionadosLancarModal();
+  if (!selecionados.length) {
+    AppToast.show("selecione ao menos um registro.", "erro");
+    return;
+  }
+
+  const registros = [];
+  const ignoradosLancados = [];
+  for (const item of selecionados) {
+    if (itemLotePixJaLancado(item)) {
+      ignoradosLancados.push(String(valorItemLote(item, colunaLoteColaborador) ?? "").trim());
+      continue;
+    }
+    const cpf = cpfSomenteDigitos(valorItemLote(item, colunaLoteCpf));
+    const dataIso = dataPagamentoIsoDeItemLote(item);
+    if (!dataIso) {
+      AppToast.show("data do lote ausente em um dos registros selecionados.", "erro");
+      return;
+    }
+    registros.push({
+      cpf,
+      colaborador: String(valorItemLote(item, colunaLoteColaborador) ?? "").trim(),
+      valor: valorItemLote(item, colunaLoteValor),
+      dataPagamento: dataIso,
+      linhaLote: item._linha,
+    });
+  }
+
+  if (!registros.length) {
+    const msg =
+      ignoradosLancados.length > 0
+        ? "os registros selecionados já constam como lançados (lancado-colaborador = S)."
+        : "nenhum registro válido para lançar.";
+    AppToast.show(msg, "erro");
+    return;
+  }
+
+  let confirma = `lançar ${registros.length} pagamento(s) na planilha de contratos?`;
+  if (ignoradosLancados.length) {
+    confirma += `\n\n${ignoradosLancados.length} registro(s) já lançado(s) serão ignorados.`;
+  }
+  if (!(await AppConfirm.confirm(confirma))) return;
+
+  setLancarPagamentosCarregando(true);
+
+  try {
+    const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
+      acao: "lancar-pagamentos-pix-contratos",
+      dados: { registros },
+      aba: cfg.ABA,
+      origem: "pessoal-pagamentos",
+    });
+    if (!json) return;
+
+    const processados = Number(json.processados) || 0;
+    const erros = Array.isArray(json.erros) ? json.erros : [];
+
+    if (json.ok && !erros.length) {
+      AppToast.show(
+        processados === 1 ? "1 pagamento lançado." : `${processados} pagamentos lançados.`,
+        "sucesso"
+      );
+    } else if (processados > 0) {
+      const detalhe = erros
+        .slice(0, 3)
+        .map((e) => `${e.rotulo || "registro"}: ${e.mensagem}`)
+        .join("\n");
+      AppToast.show(
+        `${processados} lançado(s); ${erros.length} falha(s).${detalhe ? "\n" + detalhe : ""}`,
+        "erro"
+      );
+    } else {
+      const detalhe = erros[0]?.mensagem || "não foi possível lançar os pagamentos.";
+      AppToast.show(detalhe, "erro");
+    }
+
+    const linhasOk = new Set((json.linhasLote || []).map((n) => Number(n)));
+    linhasOk.forEach((n) => {
+      if (n >= 2) linhasSelecionadasLancarModal.delete(n);
+    });
+
+    await carregarLinhasLotePix();
+    await carregarContratos(true);
+    renderizarTabelaLancarModal();
+  } catch (e) {
+    AppToast.show("erro ao lançar: " + e.message, "erro");
+  } finally {
+    setLancarPagamentosCarregando(false);
+  }
+}
+
+function preencherFiltroLotesPix() {
+  const select = el.filtroLotePix;
+  if (!select) return;
+  const atual = String(select.value ?? "");
+  const porId = new Map();
+  linhasLotePix.forEach((item) => {
+    const id = String(valorItemLote(item, colunaLoteId) ?? "").trim();
+    if (id && !porId.has(id)) porId.set(id, item);
+  });
+  const ordenados = Array.from(porId.keys()).sort((a, b) => b.localeCompare(a, "pt-BR"));
+  select.innerHTML = '<option value="">todos os lotes</option>';
+  ordenados.forEach((id) => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = rotuloSelectLotePix(porId.get(id));
+    select.appendChild(opt);
+  });
+  if (atual && ordenados.includes(atual)) select.value = atual;
+  atualizarRotuloLoteLancarModal();
+}
+
+function renderizarTabelaLancarModal() {
+  atualizarRotuloLoteLancarModal();
+  const corpo = el.corpoLancarPagamentos;
+  const vazio = el.vazioLancarPagamentos;
+  if (!corpo) return;
+
+  const lista = linhasLotePixFiltradas();
+  corpo.innerHTML = "";
+
+  if (!lista.length) {
+    if (vazio) vazio.hidden = false;
+    atualizarCheckboxMarcarTodosLancar();
+    atualizarBotaoLancarPagamentosPix();
+    return;
+  }
+  if (vazio) vazio.hidden = true;
+
+  lista.forEach((item) => {
+    const tr = document.createElement("tr");
+    const numLinha = item._linha;
+    const jaLancado = itemLotePixJaLancado(item);
+    if (jaLancado) linhasSelecionadasLancarModal.delete(numLinha);
+    const marcado = !jaLancado && linhasSelecionadasLancarModal.has(numLinha);
+    if (jaLancado) tr.classList.add("pagamentos-lancar-linha--lancada");
+
+    const tdCheck = document.createElement("td");
+    tdCheck.className = "pagamentos-selecao-col-check text-center";
+    tdCheck.innerHTML =
+      `<input type="checkbox" class="form-check-input pagamentos-lancar-check" data-linha="${numLinha}"` +
+      `${marcado ? " checked" : ""}` +
+      `${jaLancado ? " disabled" : ""}` +
+      ` aria-label="${jaLancado ? "registro já lançado" : "selecionar linha"}">`;
+    tr.appendChild(tdCheck);
+
+    const colaborador = String(valorItemLote(item, colunaLoteColaborador) ?? "").trim();
+    const cpf = formatarCpf(valorItemLote(item, colunaLoteCpf));
+    tr.appendChild(
+      criarTdHtml(htmlCelulaModalDupla(colaborador, cpf, { linha2Muted: true }), "")
+    );
+
+    const valor = textoValorLoteExibir(valorItemLote(item, colunaLoteValor));
+    tr.appendChild(
+      criarTdHtml(
+        `<span class="pagamentos-lancar-valor-pix">${escapeHtml(valor)}</span>`,
+        "text-end pagamentos-selecao-col-valor-pix"
+      )
+    );
+
+    tr.appendChild(
+      criarTdHtml(htmlBadgeStatusLotePix(item), "pagamentos-lancar-col-status text-end")
+    );
+
+    tdCheck.querySelector("input")?.addEventListener("change", (ev) => {
+      const input = ev.target;
+      alternarSelecaoLinhaLancar(numLinha, input.checked);
+      atualizarCheckboxMarcarTodosLancar();
+      atualizarBotaoLancarPagamentosPix();
+    });
+
+    corpo.appendChild(tr);
+  });
+  atualizarCheckboxMarcarTodosLancar();
+  atualizarBotaoLancarPagamentosPix();
+}
+
+async function carregarLinhasLotePix() {
+  const planilha = cfg.PLANILHA_LOTE_PIX || "pagamentos-pix-lote";
+  const inicio = cfg.LINHA_INICIO_DADOS_LOTE_PIX || 2;
+  const dados = await PlanilhaApi.ler(planilha, "", inicio);
+  if (!dados) return false;
+  colunasLotePix = dados.colunas;
+  linhasLotePix = dados.linhas;
+  resolverColunasLotePix();
+  linhasLotePix = linhasLotePix.map((item) => {
+    const lancado = itemLotePixJaLancado(item);
+    return Object.assign({}, item, { _lancadoColaborador: lancado });
+  });
+  preencherFiltroLotesPix();
+  const idsValidos = new Set(linhasLotePix.map((r) => r._linha));
+  for (const id of [...linhasSelecionadasLancarModal]) {
+    if (!idsValidos.has(id)) linhasSelecionadasLancarModal.delete(id);
+    else {
+      const item = linhasLotePix.find((r) => r._linha === id);
+      if (item && itemLotePixJaLancado(item)) linhasSelecionadasLancarModal.delete(id);
+    }
+  }
+  return true;
+}
+
+async function abrirModalLancarPix() {
+  if (el.lancarPixCarregando) el.lancarPixCarregando.hidden = false;
+  if (el.vazioLancarPagamentos) el.vazioLancarPagamentos.hidden = true;
+  modalLancarPix?.show();
+
+  try {
+    const ok = await carregarLinhasLotePix();
+    if (!ok) {
+      AppToast.show("falha ao carregar lotes de pagamento.", "erro");
+      return;
+    }
+    renderizarTabelaLancarModal();
+  } catch (e) {
+    AppToast.show(PlanilhaApi.mensagemErro(e), "erro");
+    linhasLotePix = [];
+    renderizarTabelaLancarModal();
+  } finally {
+    if (el.lancarPixCarregando) el.lancarPixCarregando.hidden = true;
+  }
+}
+
 function htmlIconePagamento(item) {
   const noSistema = itemLancarSistema(item);
   const classe = noSistema
@@ -1360,10 +2050,13 @@ function htmlIconePagamento(item) {
 }
 
 function htmlCelulaSaldoContrato(item) {
+  const texto = formatarValorContratoExibir(valorItem(item, colunaSaldoContrato));
+  const barra = htmlBarraProgressoQuitadoContrato(item);
   return (
-    '<span class="contratos-valor-texto">' +
-    formatarValorContratoExibir(valorItem(item, colunaSaldoContrato)) +
-    "</span>"
+    '<div class="orcamento-geral-celula-apagar pagamentos-saldo-celula-stack">' +
+    `<span class="contratos-valor-texto orcamento-tabela-celula-direita">${texto}</span>` +
+    barra +
+    "</div>"
   );
 }
 
@@ -1377,27 +2070,36 @@ function htmlCelulaValorContrato(item) {
 }
 
 function htmlMobileStackCabecalho() {
-  const partes = [
-    rotuloTabela("NOME"),
-    rotuloTabela("MUNICIPIO"),
-    rotuloTabela("CPF"),
-    rotuloTabela("VALOR_CONTRATO"),
-  ];
-  if (cfg.EXIBIR_COLUNA_SALDO_CONTRATO) {
-    partes.push(rotuloTabela("SALDO_CONTRATO"));
-  }
   return (
-    '<div class="contratos-th-stack-head">' +
-    partes.map((p) => `<span>${escapeHtml(p)}</span>`).join("") +
+    '<div class="contratos-th-stack-head contratos-th-stack-head--unico">' +
+    '<span>dados do colaborador</span>' +
     "</div>"
   );
 }
 
-function htmlValorContratoMobileStack(item) {
+function htmlValoresContratoSaldoMobileStack(item) {
+  const valorHtml = formatarValorContratoExibir(valorItem(item, colunaValorContrato));
+  let valoresHtml =
+    '<span class="contratos-stack-valor-saldo-par">' +
+    '<span class="contratos-stack-valor-saldo-rotulo">contrato =</span> ' +
+    `<span class="contratos-stack-valor-saldo-num">${valorHtml}</span></span>`;
+  if (cfg.EXIBIR_COLUNA_SALDO_CONTRATO) {
+    const saldoHtml = formatarValorContratoExibir(valorItem(item, colunaSaldoContrato));
+    const barraQuitado = htmlBarraProgressoQuitadoContrato(item);
+    valoresHtml +=
+      ' <span class="contratos-stack-valor-saldo-sep" aria-hidden="true">/</span> ' +
+      '<span class="contratos-stack-valor-saldo-par contratos-stack-valor-saldo-par--com-barra">' +
+      '<span class="contratos-stack-valor-saldo-rotulo">saldo =</span> ' +
+      `<span class="contratos-stack-valor-saldo-num">${saldoHtml}</span>` +
+      (barraQuitado
+        ? `<span class="pagamentos-saldo-barra-mobile">${barraQuitado}</span>`
+        : "") +
+      "</span>";
+  }
   return (
-    '<span class="contratos-stack-valor-linha">' +
+    '<span class="contratos-stack-valor-saldo-linha">' +
     htmlIconePagamento(item) +
-    `<span class="contratos-valor-texto">${formatarValorContratoExibir(valorItem(item, colunaValorContrato))}</span>` +
+    `<span class="contratos-stack-valor-saldo-texto">${valoresHtml}</span>` +
     "</span>"
   );
 }
@@ -1408,10 +2110,7 @@ function htmlMobileStackCorpo(item) {
     `<span class="contratos-stack-nome">${exibirValor(valorItem(item, colunaNome))}</span>` +
     `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
     `<span class="contratos-stack-cpf">${htmlCelulaCpfChavePix(item)}</span>` +
-    htmlValorContratoMobileStack(item);
-  if (cfg.EXIBIR_COLUNA_SALDO_CONTRATO) {
-    html += `<span class="contratos-stack-saldo">${htmlCelulaSaldoContrato(item)}</span>`;
-  }
+    htmlValoresContratoSaldoMobileStack(item);
   html += "</div>";
   return html;
 }
@@ -1434,8 +2133,8 @@ function criarTdHtml(html, classes) {
 function htmlBotoesAcoes() {
   return (
     '<div class="crud-acoes-icones">' +
-    '<button type="button" class="crud-acao-icone crud-acao-icone--imprimir" data-acao="imprimir" aria-label="imprimir contrato" title="imprimir">' +
-    ICONE_IMPRIMIR +
+    '<button type="button" class="crud-acao-icone crud-acao-icone--imprimir" data-acao="relatorio" aria-label="relatório individual" title="relatório">' +
+    ICONE_RELATORIO +
     "</button>" +
     '<button type="button" class="crud-acao-icone crud-acao-icone--editar" data-acao="editar" aria-label="editar" title="editar">' +
     ICONE_EDITAR +
@@ -1455,41 +2154,214 @@ function htmlAcoesMobile() {
   return htmlBotoesAcoes();
 }
 
-function montarDadosImpressao(item) {
-  const dados = {};
-  colunas.forEach((col) => {
-    const chave = col.chavePlanilha != null && String(col.chavePlanilha).trim() !== ""
-      ? col.chavePlanilha
-      : col.chave;
-    dados[chave] = item[col.chave] != null ? item[col.chave] : "";
-  });
-  return dados;
+function textoMoedaRelatorio(val) {
+  const n = numeroMoeda(val);
+  if (n == null) {
+    const s = String(val ?? "").trim();
+    return s || "—";
+  }
+  return valorMoedaGravar(n);
 }
 
-async function imprimirContrato(item) {
-  mostrarStatus("Gerando PDF do contrato...", "carregando");
-  try {
-    const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
-      acao: "imprimir-contrato",
-      linha: item._linha,
-      dados: montarDadosImpressao(item),
-      aba: cfg.ABA,
-      origem: "pessoal-pagamentos",
-    });
-    if (!json) return;
-    const url = json.downloadUrl || json.url;
-    if (!url) throw new Error("PDF não gerado.");
-    window.open(url, "_blank", "noopener,noreferrer");
-    AppToast.show("contrato gerado para impressão", "sucesso");
-  } catch (e) {
-    AppToast.show("Erro ao imprimir: " + e.message, "erro");
-  } finally {
-    limparStatus();
+function valorPagoContratoItem(item) {
+  const valor = numeroMoeda(valorItem(item, colunaValorContrato));
+  const saldo = numeroMoeda(valorItem(item, colunaSaldoContrato));
+  if (valor == null || saldo == null) return null;
+  return Math.max(0, valor - saldo);
+}
+
+function textoCpfPixRelatorio(item) {
+  const cpf = formatarCpf(valorItem(item, colunaCpf));
+  const pix = String(valorItem(item, colunaChavePix) ?? "").trim();
+  const linhas = [];
+  if (cpf) linhas.push(cpf);
+  if (pix) {
+    const pixNorm = PlanilhaApi.normalizarChave(pix);
+    const cpfNorm = PlanilhaApi.normalizarChave(cpf);
+    if (!cpfNorm || pixNorm !== cpfNorm) linhas.push(pix);
+  }
+  return linhas.length ? linhas.join("\n") : "—";
+}
+
+function htmlCelulaCpfPixRelatorio(item) {
+  const texto = textoCpfPixRelatorio(item);
+  if (texto === "—") return '<span class="text-muted">—</span>';
+  return escapeHtml(texto).replace(/\n/g, "<br>");
+}
+
+function htmlCelulaNomeMunicipioRelatorio(item) {
+  const nome = String(valorItem(item, colunaNome) ?? "").trim();
+  const mun = String(valorItem(item, colunaMunicipio) ?? "").trim();
+  if (!nome && !mun) return "—";
+  let html = '<div class="pagamentos-rel-nome-stack">';
+  html += nome
+    ? `<div class="pagamentos-rel-nome">${escapeHtml(nome)}</div>`
+    : '<div class="pagamentos-rel-nome pagamentos-rel-nome--vazio">—</div>';
+  if (mun) {
+    html += `<div class="pagamentos-rel-municipio">${escapeHtml(mun)}</div>`;
+  }
+  html += "</div>";
+  return html;
+}
+
+function htmlTabelaRelatorioPagamentos(itens, opcoes) {
+  const opts = opcoes || {};
+  const individual = opts.tipo === "individual";
+  const th = (rotulo, cls) =>
+    '<th scope="col"' + (cls ? ` class="${cls}"` : "") + ">" + escapeHtml(rotulo) + "</th>";
+
+  const cabecalhos = [
+    th(rotuloTabela("NOME"), "pagamentos-rel-col-nome"),
+    th(rotuloTabela("CPF"), "pagamentos-rel-col-cpf text-center"),
+    th(rotuloTabela("VALOR_CONTRATO"), "pagamentos-rel-col-valor text-end"),
+    th(rotuloTabela("VALOR_PAGO"), "pagamentos-rel-col-valor text-end"),
+    th(rotuloTabela("SALDO_CONTRATO"), "pagamentos-rel-col-valor text-end"),
+  ];
+
+  let totalContrato = 0;
+  let totalPago = 0;
+  let totalSaldo = 0;
+
+  const linhasHtml = itens
+    .map((item) => {
+      const valorContrato = numeroMoeda(valorItem(item, colunaValorContrato));
+      const saldo = numeroMoeda(valorItem(item, colunaSaldoContrato));
+      const pago = valorPagoContratoItem(item);
+      if (valorContrato != null) totalContrato += valorContrato;
+      if (saldo != null) totalSaldo += saldo;
+      if (pago != null) totalPago += pago;
+
+      const cols = [
+        '<td class="pagamentos-rel-col-nome">' + htmlCelulaNomeMunicipioRelatorio(item) + "</td>",
+        '<td class="text-center pagamentos-rel-col-cpf">' + htmlCelulaCpfPixRelatorio(item) + "</td>",
+        '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num">' +
+          escapeHtml(textoMoedaRelatorio(valorItem(item, colunaValorContrato))) +
+          "</td>",
+        '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num">' +
+          escapeHtml(pago != null ? valorMoedaGravar(pago) : textoMoedaRelatorio("")) +
+          "</td>",
+        '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num">' +
+          escapeHtml(textoMoedaRelatorio(valorItem(item, colunaSaldoContrato))) +
+          "</td>",
+      ];
+      return "<tr>" + cols.join("") + "</tr>";
+    })
+    .join("");
+
+  let rodape = "";
+  if (!individual && itens.length > 1) {
+    rodape =
+      "<tfoot><tr>" +
+      '<td colspan="2"><strong>total</strong></td>' +
+      '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num"><strong>' +
+      escapeHtml(valorMoedaGravar(totalContrato)) +
+      "</strong></td>" +
+      '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num"><strong>' +
+      escapeHtml(valorMoedaGravar(totalPago)) +
+      "</strong></td>" +
+      '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num"><strong>' +
+      escapeHtml(valorMoedaGravar(totalSaldo)) +
+      "</strong></td>" +
+      "</tr></tfoot>";
+  }
+
+  return (
+    '<table class="rel-tabela pagamentos-rel-tabela">' +
+    "<thead><tr>" +
+    cabecalhos.join("") +
+    "</tr></thead><tbody>" +
+    (linhasHtml || '<tr><td colspan="5">—</td></tr>') +
+    "</tbody>" +
+    rodape +
+    "</table>"
+  );
+}
+
+function htmlResumoRelatorioPagamentosTotais(totais) {
+  const fmt = (n) => valorMoedaGravar(n) || "0,00";
+  return (
+    '<section class="rel-secao rel-secao-indicadores"><h2>resumo</h2>' +
+    '<div class="rel-cards">' +
+    '<div class="rel-card"><span class="rel-card-rotulo">total contratos</span>' +
+    '<strong class="rel-card-valor">' +
+    escapeHtml(fmt(totais.totalContratos)) +
+    "</strong></div>" +
+    '<div class="rel-card"><span class="rel-card-rotulo">valor pago</span>' +
+    '<strong class="rel-card-valor">' +
+    escapeHtml(fmt(totais.totalPago)) +
+    "</strong></div>" +
+    '<div class="rel-card"><span class="rel-card-rotulo">saldo contratos</span>' +
+    '<strong class="rel-card-valor">' +
+    escapeHtml(fmt(totais.totalSaldo)) +
+    "</strong></div>" +
+    "</div></section>"
+  );
+}
+
+function abrirRelatorioIndividual(item) {
+  const Rel = window.Relatorio;
+  if (!Rel) {
+    AppToast.show("módulo de relatório indisponível.", "erro");
+    return;
+  }
+  const nome = String(valorItem(item, colunaNome) ?? "").trim();
+  const metaRel = Rel.resolverMetaRelatorio({ documento: document });
+  const tabela = htmlTabelaRelatorioPagamentos([item], { tipo: "individual" });
+  const detalheOV = htmlSecaoColunasOVRelatorioIndividual(item);
+  const corpo =
+    '<section class="rel-secao"><h2>pagamentos do colaborador</h2>' +
+    tabela +
+    "</section>" +
+    detalheOV +
+    Rel.scriptImpressaoRelatorio();
+  const html = Rel.htmlDocumento(
+    {
+      documento: document,
+      ...metaRel,
+      subtitulo: nome ? `pagamentos — ${nome}` : metaRel.subtitulo || "pagamentos",
+    },
+    corpo
+  );
+  if (!Rel.abrirJanelaRelatorio(html)) {
+    AppToast.show("permita pop-ups para abrir o relatório.", "erro");
   }
 }
 
+function montarHtmlRelatorioPagina(opcoes) {
+  const Rel = window.Relatorio;
+  if (!Rel) return "";
+
+  const meta = opcoes || {};
+  const doc = meta.documento || document;
+  const metaRel = Rel.resolverMetaRelatorio(meta);
+  const lista = linhasFiltradas();
+  const totais = totaisContratosPagamentos(lista);
+  const termo = termoBusca();
+  const filtros = termo
+    ? [
+        {
+          nome: "busca",
+          valor: termo,
+          ativo: true,
+        },
+      ]
+    : [];
+
+  const corpo =
+    '<section class="rel-secao"><h2>filtros</h2>' +
+    Rel.htmlFiltros(filtros) +
+    "</section>" +
+    htmlResumoRelatorioPagamentosTotais(totais) +
+    '<section class="rel-secao"><h2>colaboradores</h2>' +
+    htmlTabelaRelatorioPagamentos(lista, { tipo: "lista" }) +
+    "</section>" +
+    Rel.scriptImpressaoRelatorio();
+
+  return Rel.htmlDocumento({ ...meta, ...metaRel, documento: doc }, corpo);
+}
+
 function vincularAcoes(container, item) {
-  container.querySelector('[data-acao="imprimir"]')?.addEventListener("click", () => imprimirContrato(item));
+  container.querySelector('[data-acao="relatorio"]')?.addEventListener("click", () => abrirRelatorioIndividual(item));
   container.querySelector('[data-acao="editar"]')?.addEventListener("click", () => abrirEditar(item));
   container.querySelector('[data-acao="excluir"]')?.addEventListener("click", () => confirmarExcluir(item));
 }
@@ -1619,6 +2491,7 @@ function renderizarTabela(opcoes) {
   if (!total) {
     paginaAtualTabela = 1;
     atualizarBarraPaginacao(0);
+    atualizarResumoContratosToolbar();
     el.vazio.hidden = false;
     el.vazio.textContent = termoBusca()
       ? "nenhum contrato encontrado para a busca."
@@ -1637,6 +2510,7 @@ function renderizarTabela(opcoes) {
   });
 
   atualizarBarraPaginacao(total);
+  atualizarResumoContratosToolbar();
   notificarAlturaFrame();
   aplicarDestaqueLinhaSalva();
 }
@@ -1707,6 +2581,9 @@ function init() {
   el = {
     tabelaCard: document.getElementById("tabelaCard"),
     busca: document.getElementById("buscaContrato"),
+    resumoToolbarTotalContratos: document.getElementById("resumoToolbarTotalContratos"),
+    resumoToolbarValorPago: document.getElementById("resumoToolbarValorPago"),
+    resumoToolbarSaldoContratos: document.getElementById("resumoToolbarSaldoContratos"),
     cabecalhoDesktop: document.getElementById("cabecalhoDesktop"),
     cabecalhoMobile: document.getElementById("cabecalhoMobile"),
     corpo: document.getElementById("corpoTabela"),
@@ -1734,6 +2611,21 @@ function init() {
     selecaoMarcarTodos: document.getElementById("selecaoMarcarTodos"),
     dataPagamentoSelecao: document.getElementById("dataPagamentoSelecao"),
     btnGerarCsvPagamentos: document.getElementById("btnGerarCsvPagamentos"),
+    gerarCsvSpinner: document.getElementById("gerarCsvSpinner"),
+    gerarCsvIcone: document.getElementById("gerarCsvIcone"),
+    pagamentosSelecaoTotalPixValor: document.getElementById("pagamentosSelecaoTotalPixValor"),
+    pagamentosSelecaoTotalPixQtd: document.getElementById("pagamentosSelecaoTotalPixQtd"),
+    btnAbrirLancarPix: document.getElementById("btnAbrirLancarPix"),
+    modalLancarEl: document.getElementById("modalLancarPagamentosPix"),
+    corpoLancarPagamentos: document.getElementById("corpoLancarPagamentos"),
+    vazioLancarPagamentos: document.getElementById("vazioLancarPagamentos"),
+    lancarMarcarTodos: document.getElementById("lancarMarcarTodos"),
+    filtroLotePix: document.getElementById("filtroLotePix"),
+    lancarPixCarregando: document.getElementById("lancarPixCarregando"),
+    btnExecutarLancarPagamentosPix: document.getElementById("btnExecutarLancarPagamentosPix"),
+    lancarPixSpinner: document.getElementById("lancarPixSpinner"),
+    lancarPixIcone: document.getElementById("lancarPixIcone"),
+    lancarPixIdLote: document.getElementById("lancarPixIdLote"),
   };
 
   if (el.modalIcone && window.APP_ICON_SVG?.pagamentos) {
@@ -1743,6 +2635,9 @@ function init() {
   modal = bootstrap.Modal.getOrCreateInstance(el.modalEl);
   if (el.modalSelecaoEl) {
     modalSelecao = bootstrap.Modal.getOrCreateInstance(el.modalSelecaoEl);
+  }
+  if (el.modalLancarEl) {
+    modalLancarPix = bootstrap.Modal.getOrCreateInstance(el.modalLancarEl);
   }
   if (cfg.SOMENTE_EDICAO && el.btnNovo) {
     el.btnNovo.hidden = true;
@@ -1758,8 +2653,17 @@ function init() {
     irParaPaginaTabela(totalPaginasTabela(linhasFiltradas().length));
   });
   el.btnAbrirSelecao?.addEventListener("click", abrirModalSelecao);
+  el.btnAbrirLancarPix?.addEventListener("click", abrirModalLancarPix);
+  el.filtroLotePix?.addEventListener("change", () => {
+    renderizarTabelaLancarModal();
+  });
+  el.btnExecutarLancarPagamentosPix?.addEventListener("click", executarLancarPagamentosPix);
+  el.lancarMarcarTodos?.addEventListener("change", () => {
+    marcarDesmarcarTodosLancar(el.lancarMarcarTodos.checked);
+  });
   el.selecaoMarcarTodos?.addEventListener("change", () => {
     marcarDesmarcarTodosSelecao(el.selecaoMarcarTodos.checked);
+    atualizarTotalPixModalSelecao();
   });
   el.btnGerarCsvPagamentos?.addEventListener("click", gerarArquivoCsvPagamentos);
   el.btnNovo?.addEventListener("click", abrirNovo);
@@ -1769,46 +2673,44 @@ function init() {
   carregarContratos(false);
 }
 
-function ajustarTabelaRelatorioPagina(table) {
-  if (!table?.classList?.contains("contratos-tabela")) return;
-
-  table.querySelectorAll(".contratos-thead-mobile").forEach((tr) => tr.remove());
-  table
-    .querySelectorAll(".contratos-col-nome-mae, .contratos-col-acoes, .crud-col-acoes")
-    .forEach((el) => el.remove());
-
-  const ordem = [
-    "contratos-col-nome",
-    "contratos-col-cpf",
-    "contratos-col-municipio",
-  ];
-  if (cfg.EXIBIR_COLUNA_LIDERANCA !== false) ordem.push("contratos-col-vinculo");
-  ordem.push("contratos-col-valor");
-  if (cfg.EXIBIR_COLUNA_SALDO_CONTRATO) ordem.push("contratos-col-saldo");
-
-  const reordenarLinha = (tr) => {
-    ordem.forEach((cls) => {
-      const cel = tr.querySelector(`:scope > .${cls}`);
-      if (cel) tr.appendChild(cel);
-    });
-  };
-
-  table.querySelectorAll("thead tr, tbody tr").forEach(reordenarLinha);
+function ajustarTabelaRelatorioPagina(_table) {
+  /* relatório de pagamentos usa montarHtmlRelatorioPagina (tabela dedicada). */
 }
 
 window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
 
 function estilosRelatorioPagina() {
+  const tbl = "table.rel-tabela.pagamentos-rel-tabela";
   return (
-    ".page-contratos .contratos-tabela th.contratos-col-cpf," +
-    ".page-contratos .contratos-tabela td.contratos-col-cpf{text-align:center;}" +
-    ".page-contratos .contratos-tabela th.contratos-col-valor," +
-    ".page-contratos .contratos-tabela td.contratos-col-valor{text-align:right;}" +
-    ".page-contratos .contratos-valor-celula{justify-content:flex-end;}"
+    `.rel-body ${tbl}{table-layout:fixed;width:100%;}` +
+    `.rel-body ${tbl} th.pagamentos-rel-col-nome,` +
+    `.rel-body ${tbl} td.pagamentos-rel-col-nome{width:36%;}` +
+    `.rel-body ${tbl} th.pagamentos-rel-col-cpf,` +
+    `.rel-body ${tbl} td.pagamentos-rel-col-cpf{width:24%;white-space:pre-line;}` +
+    `.rel-body ${tbl} th.pagamentos-rel-col-valor,` +
+    `.rel-body ${tbl} td.pagamentos-rel-col-valor{width:13.333%;min-width:0;box-sizing:border-box;}` +
+    `.rel-body ${tbl} .pagamentos-rel-num{font-variant-numeric:tabular-nums;white-space:nowrap;}` +
+    `.rel-body ${tbl} .pagamentos-rel-nome-stack{display:block;width:100%;line-height:1.3;}` +
+    `.rel-body ${tbl} .pagamentos-rel-nome{font-weight:600;color:#1e293b;}` +
+    `.rel-body ${tbl} .pagamentos-rel-municipio{margin-top:0.15rem;font-size:8pt;color:#64748b;font-weight:400;line-height:1.2;}` +
+    ".rel-body .pagamentos-rel-secao-parcelas{margin-top:0.75rem;page-break-inside:avoid;}" +
+    ".rel-body .pagamentos-rel-parcelas-grid{display:flex;flex-wrap:wrap;gap:0.55rem;margin-top:0.35rem;}" +
+    ".rel-body .pagamentos-rel-parcela-card{flex:1 1 calc(25% - 0.55rem);min-width:6.5rem;max-width:100%;" +
+    "border:1px solid #e2e8f0;border-radius:8px;padding:0.5rem 0.55rem;background:#f8fafc;box-sizing:border-box;}" +
+    ".rel-body .pagamentos-rel-parcela-titulo{font-size:8pt;font-weight:600;color:#64748b;text-transform:lowercase;margin-bottom:0.2rem;}" +
+    ".rel-body .pagamentos-rel-parcela-valor{font-size:11pt;font-weight:700;color:#1f4e8c;margin-bottom:0.35rem;}" +
+    ".rel-body .pagamentos-rel-parcela-rotulo-data{font-size:7.5pt;color:#94a3b8;margin-bottom:0.08rem;}" +
+    ".rel-body .pagamentos-rel-parcela-data{font-size:9pt;font-weight:600;color:#334155;}" +
+    ".page-pessoal-pagamentos .rel-secao-indicadores .rel-cards{display:flex;flex-wrap:wrap;gap:0.5rem;}" +
+    ".page-pessoal-pagamentos .rel-secao-indicadores .rel-card{flex:1 1 140px;min-width:120px;text-align:center;}" +
+    ".rel-body .rel-secao-indicadores .rel-card .rel-card-rotulo," +
+    ".rel-body .rel-secao-indicadores .rel-card .rel-card-valor{display:block;text-align:center;}" +
+    ".rel-body .rel-secao-indicadores .rel-card .rel-card-valor{margin-top:0.15rem;}"
   );
 }
 
 window.estilosRelatorioPagina = estilosRelatorioPagina;
+window.montarHtmlRelatorioPagina = montarHtmlRelatorioPagina;
 
 AUTH.exigir();
 document.addEventListener("DOMContentLoaded", init);

@@ -553,8 +553,10 @@
   classeBodyRelatorio(doc) {
     const body = doc?.body;
     if (!body) return "rel-body";
-    const pagina = Array.from(body.classList).find((c) => c.startsWith("page-") && c !== "page-frame-body");
-    return pagina ? "rel-body " + pagina : "rel-body";
+    const paginas = Array.from(body.classList).filter(
+      (c) => c.startsWith("page-") && c !== "page-frame-body"
+    );
+    return paginas.length ? "rel-body " + paginas.join(" ") : "rel-body";
   },
 
   scriptImpressaoRelatorio() {

@@ -66,7 +66,10 @@ const MasterCrud = {
     });
   },
 
-  confirmarExclusao() {
+  async confirmarExclusao() {
+    if (typeof AppConfirm !== "undefined") {
+      return AppConfirm.confirm("excluir este registro?", { perigo: true, icon: "warning" });
+    }
     return window.confirm("excluir este registro?");
   },
 

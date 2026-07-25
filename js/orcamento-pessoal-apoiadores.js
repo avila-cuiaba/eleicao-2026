@@ -183,7 +183,7 @@ async function salvarApoiadorCrud() {
 
 async function excluirApoiadorCrud(numLinha) {
   const item = itemPorLinha(numLinha);
-  if (!item || !MasterCrud.confirmarExclusao()) return;
+  if (!item || !(await MasterCrud.confirmarExclusao())) return;
 
   try {
     await PlanilhaApi.gravar(cfg.PLANILHA_APOIADORES, {

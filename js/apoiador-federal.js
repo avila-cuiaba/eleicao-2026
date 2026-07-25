@@ -184,7 +184,7 @@ async function salvarAfederalCrud() {
 }
 
 async function excluirAfederalCrud(numLinha) {
-  if (!itemPorLinha(numLinha) || !MasterCrud.confirmarExclusao()) return;
+  if (!itemPorLinha(numLinha) || !(await MasterCrud.confirmarExclusao())) return;
   try {
     await PlanilhaApi.gravar(cfgAf.PLANILHA, {
       acao: "excluir",
