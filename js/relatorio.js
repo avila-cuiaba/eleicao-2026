@@ -181,6 +181,16 @@
       filtros.push({ nome, ativo: true, valor });
     });
 
+    doc.querySelectorAll('.pagamentos-filtro-forma input[type="radio"]:checked').forEach((input) => {
+      const valor = String(input.value || "").trim();
+      if (!valor || valor === "todos") return;
+      filtros.push({
+        nome: "forma pagamento",
+        ativo: true,
+        valor: valor === "pix" ? "conta (lançamento no sistema)" : "direto (pagamento manual)",
+      });
+    });
+
     const origens = Array.from(doc.querySelectorAll(".agenda-filtro-badge--origem"));
     if (origens.length) {
       const ativas = origens.filter((b) => b.classList.contains("is-ativo"));

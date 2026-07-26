@@ -26,6 +26,13 @@ const ICONE_BANCO =
   "</svg>";
 const ICONE_NAO_LANCAR_SISTEMA =
   '<i class="fa-solid fa-hand-holding-circle-dollar" aria-hidden="true"></i>';
+const ICONE_PAGAMENTO_DIRETO_REL =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+  '<path d="M11 11V6a2 2 0 0 1 4 0v1"/>' +
+  '<path d="M9 11V7a2 2 0 0 1 4 0v4"/>' +
+  '<path d="M7 14l-1 5h12l-1-5H7z"/>' +
+  '<circle cx="12" cy="17" r="1.25" fill="currentColor" stroke="none"/>' +
+  "</svg>";
 const ICONE_CADEADO_ABERTO =
   '<i class="fa-solid fa-lock-open" aria-hidden="true"></i>';
 const ICONE_CADEADO_FECHADO =
@@ -302,30 +309,70 @@ function valorMoedaGravar(valor) {
   return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function totaisContratosVazios() {
+  return { totalContratos: 0, totalPago: 0, totalSaldo: 0 };
+}
+
+function acumularTotaisContrato(bucket, valorContrato, saldoContrato) {
+  const v = valorContrato;
+  const s = saldoContrato;
+  if (v != null) bucket.totalContratos += v;
+  if (s != null) bucket.totalSaldo += s;
+  if (v != null && s != null) bucket.totalPago += Math.max(0, v - s);
+}
+
 function totaisContratosPagamentos(lista) {
-  let totalContratos = 0;
-  let totalSaldo = 0;
-  let totalPago = 0;
+  const out = Object.assign(totaisContratosVazios(), {
+    pix: totaisContratosVazios(),
+    direto: totaisContratosVazios(),
+  });
   for (const item of lista) {
     const v = numeroMoeda(valorItem(item, colunaValorContrato));
     const s = numeroMoeda(valorItem(item, colunaSaldoContrato));
-    if (v != null) totalContratos += v;
-    if (s != null) totalSaldo += s;
-    if (v != null && s != null) totalPago += Math.max(0, v - s);
+    acumularTotaisContrato(out, v, s);
+    acumularTotaisContrato(itemPagamentoPix(item) ? out.pix : out.direto, v, s);
   }
-  return { totalContratos, totalPago, totalSaldo };
+  return out;
+}
+
+function rotuloFiltroFormaPagamento(valor) {
+  if (valor === "pix") return "conta (lançamento no sistema)";
+  if (valor === "direto") return "direto (pagamento manual)";
+  return "todos";
+}
+
+function obterFiltroFormaPagamento() {
+  const checked = document.querySelector('input[name="filtroFormaPagamento"]:checked');
+  const v = checked?.value || "todos";
+  return v === "pix" || v === "direto" ? v : "todos";
+}
+
+function itemPagamentoPix(item) {
+  return itemLancarSistema(item);
+}
+
+function aplicarFiltroFormaPagamento(lista) {
+  const f = obterFiltroFormaPagamento();
+  if (f === "pix") return lista.filter(itemPagamentoPix);
+  if (f === "direto") return lista.filter((item) => !itemPagamentoPix(item));
+  return lista;
+}
+
+function definirTextoResumo(elRef, valor) {
+  if (elRef) elRef.textContent = valorMoedaGravar(valor) || "0,00";
 }
 
 function atualizarResumoContratosToolbar() {
-  const { totalContratos, totalPago, totalSaldo } = totaisContratosPagamentos(linhasFiltradas());
-  const fmt = (n) => valorMoedaGravar(n) || "0,00";
-  if (el.resumoToolbarTotalContratos) {
-    el.resumoToolbarTotalContratos.textContent = fmt(totalContratos);
-  }
-  if (el.resumoToolbarValorPago) el.resumoToolbarValorPago.textContent = fmt(totalPago);
-  if (el.resumoToolbarSaldoContratos) {
-    el.resumoToolbarSaldoContratos.textContent = fmt(totalSaldo);
-  }
+  const totais = totaisContratosPagamentos(linhasParaResumoToolbar());
+  definirTextoResumo(el.resumoToolbarTotalContratos, totais.totalContratos);
+  definirTextoResumo(el.resumoToolbarValorPago, totais.totalPago);
+  definirTextoResumo(el.resumoToolbarSaldoContratos, totais.totalSaldo);
+  definirTextoResumo(el.resumoToolbarTotalContratosPix, totais.pix.totalContratos);
+  definirTextoResumo(el.resumoToolbarTotalContratosDireto, totais.direto.totalContratos);
+  definirTextoResumo(el.resumoToolbarValorPagoPix, totais.pix.totalPago);
+  definirTextoResumo(el.resumoToolbarValorPagoDireto, totais.direto.totalPago);
+  definirTextoResumo(el.resumoToolbarSaldoContratosPix, totais.pix.totalSaldo);
+  definirTextoResumo(el.resumoToolbarSaldoContratosDireto, totais.direto.totalSaldo);
 }
 
 function planilhaDataParaInputDate(val) {
@@ -381,8 +428,17 @@ function aplicarBusca(lista) {
   );
 }
 
+function linhasAposBusca() {
+  return aplicarBusca(linhas.slice());
+}
+
+/** Totais do card: todos os registros (só respeita a busca), sem filtro conta/direto. */
+function linhasParaResumoToolbar() {
+  return ordenarLinhasPorNome(linhasAposBusca());
+}
+
 function linhasFiltradas() {
-  return ordenarLinhasPorNome(aplicarBusca(linhas.slice()));
+  return ordenarLinhasPorNome(aplicarFiltroFormaPagamento(linhasAposBusca()));
 }
 
 function cpfSomenteDigitos(valor) {
@@ -2049,6 +2105,18 @@ function htmlIconePagamento(item) {
   return `<span class="${classe}" aria-hidden="true">${icone}</span>`;
 }
 
+function htmlIconePagamentoRelatorio(item) {
+  const noSistema = itemLancarSistema(item);
+  const classe = noSistema
+    ? "pagamentos-rel-icone pagamentos-rel-icone--banco"
+    : "pagamentos-rel-icone pagamentos-rel-icone--direto";
+  const icone = noSistema ? ICONE_BANCO : ICONE_PAGAMENTO_DIRETO_REL;
+  const titulo = noSistema ? "lançamento via conta" : "pagamento direto";
+  return (
+    `<span class="${classe}" title="${escapeHtml(titulo)}" aria-hidden="true">${icone}</span>`
+  );
+}
+
 function htmlCelulaSaldoContrato(item) {
   const texto = formatarValorContratoExibir(valorItem(item, colunaSaldoContrato));
   const barra = htmlBarraProgressoQuitadoContrato(item);
@@ -2170,28 +2238,33 @@ function valorPagoContratoItem(item) {
   return Math.max(0, valor - saldo);
 }
 
-function textoCpfPixRelatorio(item) {
+function textoCpfRelatorio(item) {
   const cpf = formatarCpf(valorItem(item, colunaCpf));
-  const pix = String(valorItem(item, colunaChavePix) ?? "").trim();
-  const linhas = [];
-  if (cpf) linhas.push(cpf);
-  if (pix) {
-    const pixNorm = PlanilhaApi.normalizarChave(pix);
-    const cpfNorm = PlanilhaApi.normalizarChave(cpf);
-    if (!cpfNorm || pixNorm !== cpfNorm) linhas.push(pix);
-  }
-  return linhas.length ? linhas.join("\n") : "—";
+  return cpf || "—";
 }
 
 function htmlCelulaCpfPixRelatorio(item) {
-  const texto = textoCpfPixRelatorio(item);
-  if (texto === "—") return '<span class="text-muted">—</span>';
-  return escapeHtml(texto).replace(/\n/g, "<br>");
+  const texto = textoCpfRelatorio(item);
+  const textoHtml =
+    texto === "—"
+      ? '<span class="text-muted">—</span>'
+      : escapeHtml(texto);
+  return (
+    '<span class="pagamentos-rel-cpf-pix-celula">' +
+    `<span class="pagamentos-rel-cpf-pix-texto">${textoHtml}</span>` +
+    htmlIconePagamentoRelatorio(item) +
+    "</span>"
+  );
 }
 
-function htmlCelulaNomeMunicipioRelatorio(item) {
+function htmlCelulaNomeMunicipioRelatorio(item, opcoes) {
+  const opts = opcoes || {};
   const nome = String(valorItem(item, colunaNome) ?? "").trim();
   const mun = String(valorItem(item, colunaMunicipio) ?? "").trim();
+  if (opts.apenasMunicipio) {
+    if (!mun) return '<span class="text-muted">—</span>';
+    return `<div class="pagamentos-rel-municipio">${escapeHtml(mun)}</div>`;
+  }
   if (!nome && !mun) return "—";
   let html = '<div class="pagamentos-rel-nome-stack">';
   html += nome
@@ -2211,8 +2284,8 @@ function htmlTabelaRelatorioPagamentos(itens, opcoes) {
     '<th scope="col"' + (cls ? ` class="${cls}"` : "") + ">" + escapeHtml(rotulo) + "</th>";
 
   const cabecalhos = [
-    th(rotuloTabela("NOME"), "pagamentos-rel-col-nome"),
-    th(rotuloTabela("CPF"), "pagamentos-rel-col-cpf text-center"),
+    th(individual ? rotuloTabela("MUNICIPIO") : rotuloTabela("NOME"), "pagamentos-rel-col-nome"),
+    th("CPF", "pagamentos-rel-col-cpf text-center"),
     th(rotuloTabela("VALOR_CONTRATO"), "pagamentos-rel-col-valor text-end"),
     th(rotuloTabela("VALOR_PAGO"), "pagamentos-rel-col-valor text-end"),
     th(rotuloTabela("SALDO_CONTRATO"), "pagamentos-rel-col-valor text-end"),
@@ -2232,7 +2305,9 @@ function htmlTabelaRelatorioPagamentos(itens, opcoes) {
       if (pago != null) totalPago += pago;
 
       const cols = [
-        '<td class="pagamentos-rel-col-nome">' + htmlCelulaNomeMunicipioRelatorio(item) + "</td>",
+        '<td class="pagamentos-rel-col-nome">' +
+          htmlCelulaNomeMunicipioRelatorio(item, { apenasMunicipio: individual }) +
+          "</td>",
         '<td class="text-center pagamentos-rel-col-cpf">' + htmlCelulaCpfPixRelatorio(item) + "</td>",
         '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num">' +
           escapeHtml(textoMoedaRelatorio(valorItem(item, colunaValorContrato))) +
@@ -2277,24 +2352,46 @@ function htmlTabelaRelatorioPagamentos(itens, opcoes) {
   );
 }
 
-function htmlResumoRelatorioPagamentosTotais(totais) {
+function htmlCardsResumoRelatorioPagamentos(totais) {
   const fmt = (n) => valorMoedaGravar(n) || "0,00";
+  function card(rotulo, total, pix, direto) {
+    return (
+      '<div class="rel-card pagamentos-rel-card-split">' +
+      '<span class="rel-card-rotulo">' +
+      escapeHtml(rotulo) +
+      "</span>" +
+      '<strong class="rel-card-valor">' +
+      escapeHtml(fmt(total)) +
+      "</strong>" +
+      '<span class="pagamentos-rel-card-split-detalhe">' +
+      '<span class="pagamentos-rel-card-split-linha"><span>conta</span> <strong>' +
+      escapeHtml(fmt(pix)) +
+      "</strong></span>" +
+      '<span class="pagamentos-rel-card-split-linha"><span>direto</span> <strong>' +
+      escapeHtml(fmt(direto)) +
+      "</strong></span>" +
+      "</span></div>"
+    );
+  }
+  return (
+    '<div class="rel-cards pagamentos-rel-cards-resumo">' +
+    card("total contratos", totais.totalContratos, totais.pix.totalContratos, totais.direto.totalContratos) +
+    card("valor pago", totais.totalPago, totais.pix.totalPago, totais.direto.totalPago) +
+    card(
+      "saldo contratos",
+      totais.totalSaldo,
+      totais.pix.totalSaldo,
+      totais.direto.totalSaldo
+    ) +
+    "</div>"
+  );
+}
+
+function htmlResumoRelatorioPagamentosTotais(totais) {
   return (
     '<section class="rel-secao rel-secao-indicadores"><h2>resumo</h2>' +
-    '<div class="rel-cards">' +
-    '<div class="rel-card"><span class="rel-card-rotulo">total contratos</span>' +
-    '<strong class="rel-card-valor">' +
-    escapeHtml(fmt(totais.totalContratos)) +
-    "</strong></div>" +
-    '<div class="rel-card"><span class="rel-card-rotulo">valor pago</span>' +
-    '<strong class="rel-card-valor">' +
-    escapeHtml(fmt(totais.totalPago)) +
-    "</strong></div>" +
-    '<div class="rel-card"><span class="rel-card-rotulo">saldo contratos</span>' +
-    '<strong class="rel-card-valor">' +
-    escapeHtml(fmt(totais.totalSaldo)) +
-    "</strong></div>" +
-    "</div></section>"
+    htmlCardsResumoRelatorioPagamentos(totais) +
+    "</section>"
   );
 }
 
@@ -2308,17 +2405,21 @@ function abrirRelatorioIndividual(item) {
   const metaRel = Rel.resolverMetaRelatorio({ documento: document });
   const tabela = htmlTabelaRelatorioPagamentos([item], { tipo: "individual" });
   const detalheOV = htmlSecaoColunasOVRelatorioIndividual(item);
+  const nomeDestaque = nome
+    ? `<p class="pagamentos-rel-nome-destaque">${escapeHtml(nome)}</p>`
+    : "";
   const corpo =
-    '<section class="rel-secao"><h2>pagamentos do colaborador</h2>' +
+    '<section class="rel-secao pagamentos-rel-secao-individual">' +
+    nomeDestaque +
     tabela +
-    "</section>" +
     detalheOV +
+    "</section>" +
     Rel.scriptImpressaoRelatorio();
   const html = Rel.htmlDocumento(
     {
       documento: document,
       ...metaRel,
-      subtitulo: nome ? `pagamentos — ${nome}` : metaRel.subtitulo || "pagamentos",
+      subtitulo: metaRel.subtitulo || "pagamentos",
     },
     corpo
   );
@@ -2337,22 +2438,31 @@ function montarHtmlRelatorioPagina(opcoes) {
   const lista = linhasFiltradas();
   const totais = totaisContratosPagamentos(lista);
   const termo = termoBusca();
-  const filtros = termo
-    ? [
-        {
-          nome: "busca",
-          valor: termo,
-          ativo: true,
-        },
-      ]
-    : [];
+  const filtros = [];
+  if (termo) {
+    filtros.push({
+      nome: "busca",
+      valor: termo,
+      ativo: true,
+    });
+  }
+  const forma = obterFiltroFormaPagamento();
+  if (forma !== "todos") {
+    filtros.push({
+      nome: "forma pagamento",
+      valor: rotuloFiltroFormaPagamento(forma),
+      ativo: true,
+    });
+  }
 
   const corpo =
     '<section class="rel-secao"><h2>filtros</h2>' +
     Rel.htmlFiltros(filtros) +
     "</section>" +
-    htmlResumoRelatorioPagamentosTotais(totais) +
-    '<section class="rel-secao"><h2>colaboradores</h2>' +
+    '<section class="rel-secao pagamentos-rel-secao-resumo-lista">' +
+    "<h2>resumo</h2>" +
+    htmlCardsResumoRelatorioPagamentos(totais) +
+    '<h2 class="pagamentos-rel-titulo-lista">pagamentos</h2>' +
     htmlTabelaRelatorioPagamentos(lista, { tipo: "lista" }) +
     "</section>" +
     Rel.scriptImpressaoRelatorio();
@@ -2584,6 +2694,13 @@ function init() {
     resumoToolbarTotalContratos: document.getElementById("resumoToolbarTotalContratos"),
     resumoToolbarValorPago: document.getElementById("resumoToolbarValorPago"),
     resumoToolbarSaldoContratos: document.getElementById("resumoToolbarSaldoContratos"),
+    resumoToolbarTotalContratosPix: document.getElementById("resumoToolbarTotalContratosPix"),
+    resumoToolbarTotalContratosDireto: document.getElementById("resumoToolbarTotalContratosDireto"),
+    resumoToolbarValorPagoPix: document.getElementById("resumoToolbarValorPagoPix"),
+    resumoToolbarValorPagoDireto: document.getElementById("resumoToolbarValorPagoDireto"),
+    resumoToolbarSaldoContratosPix: document.getElementById("resumoToolbarSaldoContratosPix"),
+    resumoToolbarSaldoContratosDireto: document.getElementById("resumoToolbarSaldoContratosDireto"),
+    filtroFormaPagamentoRadios: document.querySelectorAll('input[name="filtroFormaPagamento"]'),
     cabecalhoDesktop: document.getElementById("cabecalhoDesktop"),
     cabecalhoMobile: document.getElementById("cabecalhoMobile"),
     corpo: document.getElementById("corpoTabela"),
@@ -2646,6 +2763,13 @@ function init() {
     paginaAtualTabela = 1;
     renderizarTabela();
   });
+  el.filtroFormaPagamentoRadios?.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      if (!radio.checked) return;
+      paginaAtualTabela = 1;
+      renderizarTabela();
+    });
+  });
   el.paginacaoPrimeira?.addEventListener("click", () => irParaPaginaTabela(1));
   el.paginacaoAnterior?.addEventListener("click", () => irParaPaginaTabela(paginaAtualTabela - 1));
   el.paginacaoProxima?.addEventListener("click", () => irParaPaginaTabela(paginaAtualTabela + 1));
@@ -2686,9 +2810,15 @@ function estilosRelatorioPagina() {
     `.rel-body ${tbl} th.pagamentos-rel-col-nome,` +
     `.rel-body ${tbl} td.pagamentos-rel-col-nome{width:36%;}` +
     `.rel-body ${tbl} th.pagamentos-rel-col-cpf,` +
-    `.rel-body ${tbl} td.pagamentos-rel-col-cpf{width:24%;white-space:pre-line;}` +
+    `.rel-body ${tbl} td.pagamentos-rel-col-cpf{width:24%;}` +
+    `.rel-body ${tbl} .pagamentos-rel-cpf-pix-celula{display:inline-flex;align-items:center;justify-content:center;gap:0.35rem;max-width:100%;}` +
+    `.rel-body ${tbl} .pagamentos-rel-cpf-pix-texto{text-align:center;white-space:nowrap;line-height:1.25;}` +
     `.rel-body ${tbl} th.pagamentos-rel-col-valor,` +
     `.rel-body ${tbl} td.pagamentos-rel-col-valor{width:13.333%;min-width:0;box-sizing:border-box;}` +
+    `.rel-body ${tbl} .pagamentos-rel-icone{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:1.15rem;height:1.15rem;}` +
+    `.rel-body ${tbl} .pagamentos-rel-icone svg{width:1.05rem;height:1.05rem;}` +
+    `.rel-body ${tbl} .pagamentos-rel-icone--banco{color:#b8956c;}` +
+    `.rel-body ${tbl} .pagamentos-rel-icone--direto{color:#1f4e8c;}` +
     `.rel-body ${tbl} .pagamentos-rel-num{font-variant-numeric:tabular-nums;white-space:nowrap;}` +
     `.rel-body ${tbl} .pagamentos-rel-nome-stack{display:block;width:100%;line-height:1.3;}` +
     `.rel-body ${tbl} .pagamentos-rel-nome{font-weight:600;color:#1e293b;}` +
@@ -2701,11 +2831,23 @@ function estilosRelatorioPagina() {
     ".rel-body .pagamentos-rel-parcela-valor{font-size:11pt;font-weight:700;color:#1f4e8c;margin-bottom:0.35rem;}" +
     ".rel-body .pagamentos-rel-parcela-rotulo-data{font-size:7.5pt;color:#94a3b8;margin-bottom:0.08rem;}" +
     ".rel-body .pagamentos-rel-parcela-data{font-size:9pt;font-weight:600;color:#334155;}" +
-    ".page-pessoal-pagamentos .rel-secao-indicadores .rel-cards{display:flex;flex-wrap:wrap;gap:0.5rem;}" +
+    ".rel-body .pagamentos-rel-secao-resumo-lista.rel-secao{page-break-inside:auto;break-inside:auto;margin-bottom:0.75rem;}" +
+    ".rel-body .pagamentos-rel-secao-resumo-lista .pagamentos-rel-cards-resumo{page-break-inside:avoid;break-inside:avoid-page;page-break-after:avoid;break-after:avoid-page;}" +
+    ".rel-body .pagamentos-rel-secao-resumo-lista .pagamentos-rel-titulo-lista{page-break-before:avoid;break-before:avoid-page;margin-top:0.65rem;}" +
+    ".rel-body .pagamentos-rel-cards-resumo .rel-card{flex:1 1 140px;min-width:120px;text-align:center;}" +
+    ".rel-body .pagamentos-rel-cards-resumo .rel-card .rel-card-rotulo," +
+    ".rel-body .pagamentos-rel-cards-resumo .rel-card .rel-card-valor{display:block;text-align:center;}" +
+    ".rel-body .pagamentos-rel-secao-individual .pagamentos-rel-nome-destaque{margin:0 0 0.55rem;font-size:13pt;font-weight:700;color:#1f4e8c;line-height:1.25;}" +
+    ".page-pessoal-pagamentos .rel-secao-indicadores .rel-cards," +
+    ".page-pessoal-pagamentos .pagamentos-rel-cards-resumo{display:flex;flex-wrap:wrap;gap:0.5rem;}" +
     ".page-pessoal-pagamentos .rel-secao-indicadores .rel-card{flex:1 1 140px;min-width:120px;text-align:center;}" +
     ".rel-body .rel-secao-indicadores .rel-card .rel-card-rotulo," +
     ".rel-body .rel-secao-indicadores .rel-card .rel-card-valor{display:block;text-align:center;}" +
-    ".rel-body .rel-secao-indicadores .rel-card .rel-card-valor{margin-top:0.15rem;}"
+    ".rel-body .rel-secao-indicadores .rel-card .rel-card-valor{margin-top:0.15rem;}" +
+    ".rel-body .pagamentos-rel-card-split .pagamentos-rel-card-split-detalhe{display:block;margin-top:0.35rem;" +
+    "font-size:7.5pt;font-weight:400;color:#64748b;line-height:1.35;}" +
+    ".rel-body .pagamentos-rel-card-split .pagamentos-rel-card-split-linha{display:block;}" +
+    ".rel-body .pagamentos-rel-card-split .pagamentos-rel-card-split-linha strong{font-weight:600;color:#334155;}"
   );
 }
 

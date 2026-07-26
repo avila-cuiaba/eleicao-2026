@@ -39,22 +39,65 @@
               aria-atomic="true"
             >
               <div class="card-body">
-                <div class="pagamentos-toolbar-resumo-item">
-                  <span class="pagamentos-toolbar-resumo-rotulo">total contratos</span>
-                  <span id="resumoToolbarTotalContratos" class="pagamentos-toolbar-resumo-valor">0,00</span>
-                </div>
-                <div class="pagamentos-toolbar-resumo-item">
-                  <span class="pagamentos-toolbar-resumo-rotulo">valor pago</span>
-                  <span id="resumoToolbarValorPago" class="pagamentos-toolbar-resumo-valor">0,00</span>
-                </div>
-                <div class="pagamentos-toolbar-resumo-item">
-                  <span class="pagamentos-toolbar-resumo-rotulo">saldo contratos</span>
-                  <span id="resumoToolbarSaldoContratos" class="pagamentos-toolbar-resumo-valor">0,00</span>
+                <div class="pagamentos-resumo-grid">
+                  <div class="pagamentos-resumo-grid-canto" aria-hidden="true"></div>
+                  <div class="pagamentos-resumo-grid-col pagamentos-resumo-grid-col--head">
+                    <span class="pagamentos-toolbar-resumo-rotulo">total contratos</span>
+                    <span id="resumoToolbarTotalContratos" class="pagamentos-toolbar-resumo-valor">0,00</span>
+                  </div>
+                  <div class="pagamentos-resumo-grid-col pagamentos-resumo-grid-col--head">
+                    <span class="pagamentos-toolbar-resumo-rotulo">valor pago</span>
+                    <span id="resumoToolbarValorPago" class="pagamentos-toolbar-resumo-valor">0,00</span>
+                  </div>
+                  <div class="pagamentos-resumo-grid-col pagamentos-resumo-grid-col--head">
+                    <span class="pagamentos-toolbar-resumo-rotulo">saldo contratos</span>
+                    <span id="resumoToolbarSaldoContratos" class="pagamentos-toolbar-resumo-valor">0,00</span>
+                  </div>
+                  <span class="pagamentos-toolbar-resumo-rotulo pagamentos-resumo-grid-rotulo-lateral">conta</span>
+                  <span id="resumoToolbarTotalContratosPix" class="pagamentos-toolbar-resumo-valor pagamentos-resumo-grid-valor">0,00</span>
+                  <span id="resumoToolbarValorPagoPix" class="pagamentos-toolbar-resumo-valor pagamentos-resumo-grid-valor">0,00</span>
+                  <span id="resumoToolbarSaldoContratosPix" class="pagamentos-toolbar-resumo-valor pagamentos-resumo-grid-valor">0,00</span>
+                  <span class="pagamentos-toolbar-resumo-rotulo pagamentos-resumo-grid-rotulo-lateral">direto</span>
+                  <span id="resumoToolbarTotalContratosDireto" class="pagamentos-toolbar-resumo-valor pagamentos-resumo-grid-valor">0,00</span>
+                  <span id="resumoToolbarValorPagoDireto" class="pagamentos-toolbar-resumo-valor pagamentos-resumo-grid-valor">0,00</span>
+                  <span id="resumoToolbarSaldoContratosDireto" class="pagamentos-toolbar-resumo-valor pagamentos-resumo-grid-valor">0,00</span>
                 </div>
               </div>
             </div>
           </div>
-          <div class="crud-toolbar-pix-botoes">
+          <div class="pagamentos-toolbar-acoes-direita">
+            <div
+              class="pagamentos-filtro-forma btn-group btn-group-sm"
+              role="radiogroup"
+              aria-label="forma de pagamento"
+            >
+              <input
+                type="radio"
+                class="btn-check"
+                name="filtroFormaPagamento"
+                id="filtroFormaPagamentoTodos"
+                value="todos"
+                checked
+              />
+              <label class="btn btn-outline-secondary" for="filtroFormaPagamentoTodos">todos</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="filtroFormaPagamento"
+                id="filtroFormaPagamentoPix"
+                value="pix"
+              />
+              <label class="btn btn-outline-secondary" for="filtroFormaPagamentoPix">conta</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="filtroFormaPagamento"
+                id="filtroFormaPagamentoDireto"
+                value="direto"
+              />
+              <label class="btn btn-outline-secondary" for="filtroFormaPagamentoDireto">direto</label>
+            </div>
+            <div class="crud-toolbar-pix-botoes">
             <button
               type="button"
               id="btnAbrirSelecao"
@@ -73,6 +116,7 @@
             >
               <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
             </button>
+            </div>
           </div>
         </div>
       </div>

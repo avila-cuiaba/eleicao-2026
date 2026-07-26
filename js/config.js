@@ -45,6 +45,8 @@ const CONFIG = {
     { chave: "mobilizacao-perspectiva", titulo: "Mobilização — Perspectiva" },
     { chave: "material-grafico", titulo: "Logística — Material gráfico" },
     { chave: "material-grafico-entregas", titulo: "Logística — Material gráfico (entregas)" },
+    { chave: "diario-bordo", titulo: "Logística — Diário bordo" },
+    { chave: "diario-bordo-veiculos", titulo: "Logística — Diário bordo (veículos)" },
   ],
 
   MATERIAL_GRAFICO: {
@@ -84,6 +86,58 @@ const CONFIG = {
       COLUNA_RECEBEDOR: ["recebedor", "recebedora", "quem recebeu", "recebeu"],
       COLUNA_ITEM: ["item"],
     },
+  },
+
+  DIARIO_BORDO: {
+    PLANILHA: "diario-bordo",
+    ABA: "",
+    LINHA_INICIO_DADOS: 2,
+    TAMANHO_PAGINA_TABELA: 25,
+    // Colunas A–F (índices 0–5): formulário, tabela e gravação.
+    INDICE_COLUNA_INICIAL: 0,
+    INDICE_COLUNA_FINAL: 5,
+    CAMPOS_FORMULARIO: [],
+    COLUNAS_IGNORAR: [],
+    ORDEM_COLUNAS: [],
+    CAMPO_VEICULO: {
+      aliases: ["veiculo", "veículo"],
+    },
+    CAMPO_MUNICIPIO: {
+      aliases: ["municipio", "município", "cidade"],
+    },
+    CAMPO_ODOMETRO: {
+      aliases: ["odometro", "odômetro", "hodometro", "hodômetro"],
+    },
+    CAMPO_LITROS: {
+      aliases: ["litros", "litragem"],
+    },
+    CAMPO_VALOR: {
+      aliases: ["valor"],
+    },
+    MUNICIPIOS: {
+      PLANILHA: "municipios",
+      ABA: "",
+    },
+    // Planilha gid 966187834 — A=veículo, B=placa, C=nome (linha 2+). Exibir: NOME | VEÍCULO | PLACA.
+    LISTA_VEICULOS: {
+      PLANILHA: "diario-bordo-veiculos",
+      ABA: "",
+      LINHA_INICIAL: 2,
+      COLUNAS_INDICES: [2, 0, 1],
+      ORDENS_EXIBICAO_PARTES: [
+        [2, 1, 0],
+        [2, 0, 1],
+        [1, 0, 2],
+        [0, 2, 1],
+      ],
+      SEPARADOR: " | ",
+    },
+    // Formulário: pares lado a lado (col-6); em telas md+ mantém o mesmo par por linha.
+    PARES_FORMULARIO: [
+      [["data"], ["municipio", "município", "cidade"]],
+      [["veiculo", "veículo"], ["odometro", "odômetro", "hodometro", "hodômetro", "km"]],
+      [["litros", "litragem"], ["valor"]],
+    ],
   },
 
   ENTREGAS: {

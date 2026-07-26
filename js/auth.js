@@ -9,7 +9,7 @@ const AUTH = {
   PERFIS: {
     contratos: {
       paginaInicial: "pessoal-contratos",
-      paginas: ["pessoal-contratos", "pessoal-pagamentos"],
+      paginas: ["pessoal-contratos"],
     },
     campanha: {
       paginaInicial: "inicio",

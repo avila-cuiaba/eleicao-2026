@@ -10,7 +10,6 @@
  *   SENHA_ACESSO_SORAYA, SENHA_ACESSO_ELLEN, SENHA_ACESSO_DANI  → só contratos
  *   SENHA_ACESSO_EUGENIO  → campanha (tudo exceto contratos)
  *   SENHA_ACESSO_AVILA    → acesso total
- *   SENHA_ACESSO (legado) → acesso total, se ainda existir
  *   Se NENHUMA propriedade existir, o acesso fica ABERTO (sem proteção).
  *   O frontend envia a chave em ?chave=... (GET) ou { "chave": "..." } (POST).
  *
@@ -127,6 +126,16 @@ function criarCadastroPlanilhas() {
   p["material-grafico-entregas"] = {
     id: planilhaMaterialGraficoId,
     gid: 2007580367,
+  };
+  // Logística — diário de bordo (lançamentos de abastecimento / veículo).
+  p["diario-bordo"] = {
+    id: planilhaMaterialGraficoId,
+    gid: 1394924084,
+  };
+  // Cadastro de veículos (lista para o diário de bordo).
+  p["diario-bordo-veiculos"] = {
+    id: planilhaMaterialGraficoId,
+    gid: 966187834,
   };
 
   // Aliases (nomes antigos — compatibilidade).
@@ -252,14 +261,6 @@ function validarChave(chave) {
   const props = PropertiesService.getScriptProperties();
   const entrada = String(chave || "");
   let algumaConfigurada = false;
-
-  const legado = props.getProperty("SENHA_ACESSO");
-  if (legado) {
-    algumaConfigurada = true;
-    if (entrada === legado) {
-      return { ok: true, perfil: "master", usuario: "Legado" };
-    }
-  }
 
   for (let i = 0; i < CADASTRO_ACESSO.length; i++) {
     const cfg = CADASTRO_ACESSO[i];

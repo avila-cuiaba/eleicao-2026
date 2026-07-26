@@ -118,7 +118,7 @@ window.APP_MENU = [
     label: "logística",
     filhos: [
       { id: "logistica-material-grafico", label: "material gráfico" },
-      { id: "logistica-abastecimento", label: "abastecimento" },
+      { id: "logistica-abastecimento", label: "diário bordo" },
     ],
   },
   { id: "agenda", label: "agenda" },

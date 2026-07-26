@@ -70,8 +70,9 @@ const PAGINAS = {
   },
   "logistica-abastecimento": {
     titulo: "logística",
-    subtitulo: "abastecimento",
+    subtitulo: "diário bordo",
     arquivo: "pages/logistica-abastecimento.html",
+    atualizar: true,
     menuGrupo: "logistica",
   },
   "orcamento-geral": {
