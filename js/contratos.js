@@ -24,6 +24,10 @@ const ICONE_BANCO =
   "</svg>";
 const ICONE_NAO_LANCAR_SISTEMA =
   '<i class="fa-solid fa-hand-holding-circle-dollar" aria-hidden="true"></i>';
+const ICONE_ASSINADO_SIM =
+  '<i class="fa-solid fa-file-signature" aria-hidden="true"></i>';
+const ICONE_ASSINADO_NAO =
+  '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
 
 let el = {};
 let colunas = [];
@@ -38,6 +42,7 @@ let colunaMunicipio = null;
 let colunaVinculo = null;
 let colunaLancarSistema = null;
 let colunaValorContrato = null;
+let colunaAssinado = null;
 let listaMunicipiosForm = [];
 let coordenadoresPorMunicipio = new Map();
 let cacheValoresReferenciaContrato = null;
@@ -263,7 +268,7 @@ function valorCheckboxSim(val) {
   if (val === true || val === 1) return true;
   if (val === false || val === 0 || val == null) return false;
   const s = PlanilhaApi.normalizarChave(val);
-  if (s === "nao" || s === "false" || s === "0" || s === "no") return false;
+  if (s === "nao" || s === "n" || s === "false" || s === "0" || s === "no") return false;
   return (
     s === "sim" ||
     s === "s" ||
@@ -495,6 +500,10 @@ function valorCheckboxGravar(campo, marcado) {
   if (valorAtual === true || valorAtual === false) return marcado;
   const norm = PlanilhaApi.normalizarChave(valorAtual);
   if (norm === "true" || norm === "false") return marcado;
+  if (campo.valorSim != null || campo.valorNao != null) {
+    return marcado ? campo.valorSim ?? "S" : campo.valorNao ?? "N";
+  }
+  if (norm === "s" || norm === "n") return marcado ? "S" : "N";
   return marcado ? "sim" : "não";
 }
 
@@ -764,10 +773,29 @@ function resolverColunas() {
     cfg.COLUNA_VALOR_CONTRATO,
     idx.VALOR_CONTRATO
   );
+  colunaAssinado = PlanilhaApi.acharColuna(
+    colunas,
+    cfg.COLUNA_ASSINADO,
+    idx.ASSINADO
+  );
 }
 
 function itemLancarSistema(item) {
   return valorCheckboxSim(valorItem(item, colunaLancarSistema));
+}
+
+function itemAssinado(item) {
+  return valorCheckboxSim(valorItem(item, colunaAssinado));
+}
+
+function htmlIconeAssinado(item) {
+  const ok = itemAssinado(item);
+  const classe = ok
+    ? "contratos-icone-assinado contratos-icone-assinado--sim"
+    : "contratos-icone-assinado contratos-icone-assinado--nao";
+  const icone = ok ? ICONE_ASSINADO_SIM : ICONE_ASSINADO_NAO;
+  const titulo = ok ? "assinado" : "não assinado";
+  return `<span class="${classe}" title="${titulo}" aria-label="${titulo}">${icone}</span>`;
 }
 
 function htmlIconePagamento(item) {
@@ -811,7 +839,7 @@ function htmlValorContratoMobileStack(item) {
 function htmlMobileStackCorpo(item) {
   return (
     '<div class="contratos-celula-stack">' +
-    `<span class="contratos-stack-nome">${exibirValor(valorItem(item, colunaNome))}</span>` +
+    `<span class="contratos-stack-nome contratos-stack-nome--com-assinado">${htmlIconeAssinado(item)}<span>${exibirValor(valorItem(item, colunaNome))}</span></span>` +
     `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
     `<span class="contratos-stack-cpf">${exibirValor(valorItem(item, colunaCpf))}</span>` +
     htmlValorContratoMobileStack(item) +
@@ -908,6 +936,12 @@ function montarCabecalhoTabela() {
   trDesktop.appendChild(
     criarTh(rotuloTabela("NOME"), "contratos-col-nome contratos-tabela-desktop-col")
   );
+  const thAssinado = criarTh(
+    rotuloTabela("ASSINADO"),
+    "contratos-col-assinado contratos-tabela-desktop-col text-center"
+  );
+  thAssinado.title = rotuloTabela("ASSINADO");
+  trDesktop.appendChild(thAssinado);
   trDesktop.appendChild(criarTh(rotuloTabela("CPF"), "contratos-col-cpf contratos-tabela-desktop-col"));
   trDesktop.appendChild(
     criarTh(rotuloTabela("MUNICIPIO"), "contratos-col-municipio contratos-tabela-desktop-col")
@@ -942,6 +976,12 @@ function criarLinhaTabela(item) {
     criarTdHtml(
       exibirValor(valorItem(item, colunaNome)),
       "contratos-col-nome contratos-tabela-desktop-col"
+    )
+  );
+  tr.appendChild(
+    criarTdHtml(
+      htmlIconeAssinado(item),
+      "contratos-col-assinado contratos-tabela-desktop-col text-center"
     )
   );
   tr.appendChild(
@@ -1144,6 +1184,7 @@ function ajustarTabelaRelatorioPagina(table) {
 
   const ordem = [
     "contratos-col-nome",
+    "contratos-col-assinado",
     "contratos-col-cpf",
     "contratos-col-municipio",
     "contratos-col-vinculo",
@@ -1166,6 +1207,10 @@ function estilosRelatorioPagina() {
   return (
     ".page-contratos .contratos-tabela th.contratos-col-cpf," +
     ".page-contratos .contratos-tabela td.contratos-col-cpf{text-align:center;}" +
+    ".page-contratos .contratos-tabela th.contratos-col-assinado," +
+    ".page-contratos .contratos-tabela td.contratos-col-assinado{text-align:center;width:2.5rem;}" +
+    ".page-contratos .contratos-icone-assinado--sim{color:#0f766e;}" +
+    ".page-contratos .contratos-icone-assinado--nao{color:#dc2626;}" +
     ".page-contratos .contratos-tabela th.contratos-col-valor," +
     ".page-contratos .contratos-tabela td.contratos-col-valor{text-align:right;}" +
     ".page-contratos .contratos-valor-celula{justify-content:flex-end;}"

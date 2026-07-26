@@ -30,17 +30,17 @@
           </div>
           <div class="col-7 col-lg-8">
             <div class="pessoal-kpi-grid">
-              <div class="pessoal-kpi-slot pessoal-kpi-slot--total">
-                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card pessoal-kpi-total">
-                  <div class="card-body py-2 px-2 px-sm-3">
-                    <div class="dashboard-kpi-rotulo">total</div>
-                    <strong id="kpiTotal" class="dashboard-kpi-valor">—</strong>
+              <div class="pessoal-kpi-slot pessoal-kpi-slot--efetivo">
+                <div class="card h-100 shadow-sm dashboard-kpi-card pessoal-kpi-card--principal">
+                  <div class="card-body py-2 px-2 px-sm-3 text-center">
+                    <div class="dashboard-kpi-rotulo">efetivo mobilizado</div>
+                    <strong id="kpiEfetivoMobilizado" class="dashboard-kpi-valor">—</strong>
                   </div>
                 </div>
               </div>
               <div class="pessoal-kpi-slot pessoal-kpi-slot--prefeito">
                 <div class="card h-100 shadow-sm border-0 dashboard-kpi-card pessoal-kpi-prefeito">
-                  <div class="card-body py-2 px-2 px-sm-3">
+                  <div class="card-body py-2 px-2 px-sm-3 text-center">
                     <div class="dashboard-kpi-rotulo">prefeito</div>
                     <strong id="kpiPrefeito" class="dashboard-kpi-valor">—</strong>
                   </div>
@@ -48,41 +48,33 @@
               </div>
               <div class="pessoal-kpi-slot pessoal-kpi-slot--vereador">
                 <div class="card h-100 shadow-sm border-0 dashboard-kpi-card pessoal-kpi-vereador">
-                  <div class="card-body py-2 px-2 px-sm-3">
+                  <div class="card-body py-2 px-2 px-sm-3 text-center">
                     <div class="dashboard-kpi-rotulo">vereador</div>
                     <strong id="kpiVereador" class="dashboard-kpi-valor">—</strong>
                   </div>
                 </div>
               </div>
+              <div class="pessoal-kpi-slot pessoal-kpi-slot--municipios">
+                <div class="card h-100 shadow-sm dashboard-kpi-card pessoal-kpi-card--destaque">
+                  <div class="card-body py-2 px-2 px-sm-3 text-center">
+                    <div class="dashboard-kpi-rotulo">municípios</div>
+                    <strong id="kpiMunicipios" class="dashboard-kpi-valor">—</strong>
+                  </div>
+                </div>
+              </div>
               <div class="pessoal-kpi-slot pessoal-kpi-slot--agente">
                 <div class="card h-100 shadow-sm border-0 dashboard-kpi-card pessoal-kpi-agente">
-                  <div class="card-body py-2 px-2 px-sm-3">
-                    <div class="dashboard-kpi-rotulo">agente-político</div>
+                  <div class="card-body py-2 px-2 px-sm-3 text-center">
+                    <div class="dashboard-kpi-rotulo">agente politico</div>
                     <strong id="kpiAgente" class="dashboard-kpi-valor">—</strong>
                   </div>
                 </div>
               </div>
-              <div class="pessoal-kpi-slot pessoal-kpi-slot--assessor">
-                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card pessoal-kpi-assessor">
-                  <div class="card-body py-2 px-2 px-sm-3">
-                    <div class="dashboard-kpi-rotulo">assessor</div>
-                    <strong id="kpiAssessor" class="dashboard-kpi-valor">—</strong>
-                  </div>
-                </div>
-              </div>
-              <div class="pessoal-kpi-slot pessoal-kpi-slot--parceiros">
-                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card pessoal-kpi-parceiros">
-                  <div class="card-body py-2 px-2 px-sm-3">
-                    <div class="dashboard-kpi-rotulo">parceiros</div>
-                    <strong id="kpiParceiros" class="dashboard-kpi-valor">—</strong>
-                  </div>
-                </div>
-              </div>
-              <div class="pessoal-kpi-slot pessoal-kpi-slot--apoiadores">
-                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card pessoal-kpi-apoiadores">
-                  <div class="card-body py-2 px-2 px-sm-3">
-                    <div class="dashboard-kpi-rotulo">apoiadores</div>
-                    <strong id="kpiApoiadores" class="dashboard-kpi-valor">—</strong>
+              <div class="pessoal-kpi-slot pessoal-kpi-slot--apoio">
+                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card pessoal-kpi-apoio">
+                  <div class="card-body py-2 px-2 px-sm-3 text-center">
+                    <div class="dashboard-kpi-rotulo">apoiadores e parceiros</div>
+                    <strong id="kpiApoioParceiros" class="dashboard-kpi-valor">—</strong>
                   </div>
                 </div>
               </div>
@@ -102,12 +94,9 @@
               <col class="pessoal-col-municipio" />
               <col class="pessoal-col-prefeito" />
               <col class="pessoal-col-vereador" />
-              <col class="pessoal-col-agente pessoal-tabela-desktop-col" />
-              <col class="pessoal-col-assessor pessoal-tabela-desktop-col" />
-              <col class="pessoal-col-apoiadores pessoal-tabela-desktop-col" />
-              <col class="pessoal-col-parceiros pessoal-tabela-desktop-col" />
-              <col class="pessoal-col-stack-agente pessoal-tabela-stack-col" />
-              <col class="pessoal-col-stack-apoiadores pessoal-tabela-stack-col" />
+              <col class="pessoal-col-agente" />
+              <col class="pessoal-col-apoiadores" />
+              <col class="pessoal-col-parceiros" />
             </colgroup>
             <thead>
               <tr>
@@ -116,25 +105,12 @@
                 </th>
                 <th scope="col" class="text-end pessoal-col-prefeito pessoal-th-prefeito">prefeito</th>
                 <th scope="col" class="text-end pessoal-col-vereador">vereador</th>
-                <th scope="col" class="text-end pessoal-col-agente pessoal-tabela-desktop-col">
+                <th scope="col" class="text-end pessoal-col-agente">
                   <span class="pessoal-th-label-sm">agente</span>
-                  <span class="pessoal-th-label-lg">agente-político</span>
+                  <span class="pessoal-th-label-lg">agente politico</span>
                 </th>
-                <th scope="col" class="text-end pessoal-col-assessor pessoal-tabela-desktop-col">assessor</th>
-                <th scope="col" class="text-end pessoal-col-apoiadores pessoal-tabela-desktop-col">apoiadores</th>
-                <th scope="col" class="text-end pessoal-col-parceiros pessoal-tabela-desktop-col">parceiros</th>
-                <th scope="col" class="text-end pessoal-tabela-stack-col pessoal-col-stack-agente">
-                  <div class="pessoal-tabela-stack-head" aria-hidden="true">
-                    <span>agente</span>
-                    <span>assessor</span>
-                  </div>
-                </th>
-                <th scope="col" class="text-end pessoal-tabela-stack-col pessoal-col-stack-apoiadores">
-                  <div class="pessoal-tabela-stack-head" aria-hidden="true">
-                    <span>apoiadores</span>
-                    <span>parceiros</span>
-                  </div>
-                </th>
+                <th scope="col" class="text-end pessoal-col-apoiadores">apoiadores</th>
+                <th scope="col" class="text-end pessoal-col-parceiros">parceiros</th>
               </tr>
             </thead>
           </table>
@@ -145,16 +121,13 @@
               <col class="pessoal-col-municipio" />
               <col class="pessoal-col-prefeito" />
               <col class="pessoal-col-vereador" />
-              <col class="pessoal-col-agente pessoal-tabela-desktop-col" />
-              <col class="pessoal-col-assessor pessoal-tabela-desktop-col" />
-              <col class="pessoal-col-apoiadores pessoal-tabela-desktop-col" />
-              <col class="pessoal-col-parceiros pessoal-tabela-desktop-col" />
-              <col class="pessoal-col-stack-agente pessoal-tabela-stack-col" />
-              <col class="pessoal-col-stack-apoiadores pessoal-tabela-stack-col" />
+              <col class="pessoal-col-agente" />
+              <col class="pessoal-col-apoiadores" />
+              <col class="pessoal-col-parceiros" />
             </colgroup>
             <tbody id="corpoTabela">
               <tr>
-                <td colspan="9" class="text-center text-secondary py-4">Carregando...</td>
+                <td colspan="6" class="text-center text-secondary py-4">Carregando...</td>
               </tr>
             </tbody>
           </table>

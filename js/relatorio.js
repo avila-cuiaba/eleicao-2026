@@ -334,6 +334,10 @@
     const table = document.createElement("table");
     table.className = origem.className || "table mb-0";
 
+    const colgroup =
+      headTable?.querySelector("colgroup") || bodyTable?.querySelector("colgroup");
+    if (colgroup) table.appendChild(colgroup.cloneNode(true));
+
     const thead = headTable?.querySelector("thead") || bodyTable?.querySelector("thead");
     if (thead) table.appendChild(thead.cloneNode(true));
 

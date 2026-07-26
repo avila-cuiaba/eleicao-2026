@@ -26,6 +26,10 @@ const ICONE_BANCO =
   "</svg>";
 const ICONE_NAO_LANCAR_SISTEMA =
   '<i class="fa-solid fa-hand-holding-circle-dollar" aria-hidden="true"></i>';
+const ICONE_ASSINADO_SIM =
+  '<i class="fa-solid fa-file-signature" aria-hidden="true"></i>';
+const ICONE_ASSINADO_NAO =
+  '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
 const ICONE_PAGAMENTO_DIRETO_REL =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
   '<path d="M11 11V6a2 2 0 0 1 4 0v1"/>' +
@@ -53,6 +57,7 @@ let colunaLancarSistema = null;
 let colunaValorContrato = null;
 let colunaSaldoContrato = null;
 let colunaChavePix = null;
+let colunaAssinado = null;
 let parcelasRelatorioOV = [];
 let listaMunicipiosForm = [];
 let coordenadoresPorMunicipio = new Map();
@@ -504,7 +509,7 @@ function valorCheckboxSim(val) {
   if (val === true || val === 1) return true;
   if (val === false || val === 0 || val == null) return false;
   const s = PlanilhaApi.normalizarChave(val);
-  if (s === "nao" || s === "false" || s === "0" || s === "no") return false;
+  if (s === "nao" || s === "n" || s === "false" || s === "0" || s === "no") return false;
   return (
     s === "sim" ||
     s === "s" ||
@@ -736,6 +741,10 @@ function valorCheckboxGravar(campo, marcado) {
   if (valorAtual === true || valorAtual === false) return marcado;
   const norm = PlanilhaApi.normalizarChave(valorAtual);
   if (norm === "true" || norm === "false") return marcado;
+  if (campo.valorSim != null || campo.valorNao != null) {
+    return marcado ? campo.valorSim ?? "S" : campo.valorNao ?? "N";
+  }
+  if (norm === "s" || norm === "n") return marcado ? "S" : "N";
   return marcado ? "sim" : "não";
 }
 
@@ -1096,7 +1105,26 @@ function resolverColunas() {
     ["chave-pix", "chave pix", "pix"],
     cfg.INDICES && cfg.INDICES.CHAVE_PIX != null ? cfg.INDICES.CHAVE_PIX : null
   );
+  colunaAssinado = PlanilhaApi.acharColuna(
+    colunas,
+    cfg.COLUNA_ASSINADO,
+    idx.ASSINADO
+  );
   resolverColunasOVRelatorio();
+}
+
+function itemAssinado(item) {
+  return valorCheckboxSim(valorItem(item, colunaAssinado));
+}
+
+function htmlIconeAssinado(item) {
+  const ok = itemAssinado(item);
+  const classe = ok
+    ? "contratos-icone-assinado contratos-icone-assinado--sim"
+    : "contratos-icone-assinado contratos-icone-assinado--nao";
+  const icone = ok ? ICONE_ASSINADO_SIM : ICONE_ASSINADO_NAO;
+  const titulo = ok ? "assinado" : "não assinado";
+  return `<span class="${classe}" title="${titulo}" aria-label="${titulo}">${icone}</span>`;
 }
 
 function resolverColunasOVRelatorio() {
@@ -2175,7 +2203,7 @@ function htmlValoresContratoSaldoMobileStack(item) {
 function htmlMobileStackCorpo(item) {
   let html =
     '<div class="contratos-celula-stack">' +
-    `<span class="contratos-stack-nome">${exibirValor(valorItem(item, colunaNome))}</span>` +
+    `<span class="contratos-stack-nome contratos-stack-nome--com-assinado">${htmlIconeAssinado(item)}<span>${exibirValor(valorItem(item, colunaNome))}</span></span>` +
     `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
     `<span class="contratos-stack-cpf">${htmlCelulaCpfChavePix(item)}</span>` +
     htmlValoresContratoSaldoMobileStack(item);
@@ -2285,6 +2313,7 @@ function htmlTabelaRelatorioPagamentos(itens, opcoes) {
 
   const cabecalhos = [
     th(individual ? rotuloTabela("MUNICIPIO") : rotuloTabela("NOME"), "pagamentos-rel-col-nome"),
+    th(rotuloTabela("ASSINADO"), "pagamentos-rel-col-assinado text-center"),
     th("CPF", "pagamentos-rel-col-cpf text-center"),
     th(rotuloTabela("VALOR_CONTRATO"), "pagamentos-rel-col-valor text-end"),
     th(rotuloTabela("VALOR_PAGO"), "pagamentos-rel-col-valor text-end"),
@@ -2308,6 +2337,7 @@ function htmlTabelaRelatorioPagamentos(itens, opcoes) {
         '<td class="pagamentos-rel-col-nome">' +
           htmlCelulaNomeMunicipioRelatorio(item, { apenasMunicipio: individual }) +
           "</td>",
+        '<td class="text-center pagamentos-rel-col-assinado">' + htmlIconeAssinado(item) + "</td>",
         '<td class="text-center pagamentos-rel-col-cpf">' + htmlCelulaCpfPixRelatorio(item) + "</td>",
         '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num">' +
           escapeHtml(textoMoedaRelatorio(valorItem(item, colunaValorContrato))) +
@@ -2327,7 +2357,7 @@ function htmlTabelaRelatorioPagamentos(itens, opcoes) {
   if (!individual && itens.length > 1) {
     rodape =
       "<tfoot><tr>" +
-      '<td colspan="2"><strong>total</strong></td>' +
+      '<td colspan="3"><strong>total</strong></td>' +
       '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num"><strong>' +
       escapeHtml(valorMoedaGravar(totalContrato)) +
       "</strong></td>" +
@@ -2487,6 +2517,12 @@ function montarCabecalhoTabela() {
   trDesktop.appendChild(
     criarTh(rotuloTabela("NOME"), "contratos-col-nome contratos-tabela-desktop-col")
   );
+  const thAssinado = criarTh(
+    rotuloTabela("ASSINADO"),
+    "contratos-col-assinado contratos-tabela-desktop-col text-center"
+  );
+  thAssinado.title = rotuloTabela("ASSINADO");
+  trDesktop.appendChild(thAssinado);
   trDesktop.appendChild(criarTh(rotuloTabela("CPF"), "contratos-col-cpf contratos-tabela-desktop-col"));
   trDesktop.appendChild(
     criarTh(rotuloTabela("MUNICIPIO"), "contratos-col-municipio contratos-tabela-desktop-col")
@@ -2531,6 +2567,12 @@ function criarLinhaTabela(item) {
     criarTdHtml(
       exibirValor(valorItem(item, colunaNome)),
       "contratos-col-nome contratos-tabela-desktop-col"
+    )
+  );
+  tr.appendChild(
+    criarTdHtml(
+      htmlIconeAssinado(item),
+      "contratos-col-assinado contratos-tabela-desktop-col text-center"
     )
   );
   tr.appendChild(
@@ -2808,9 +2850,14 @@ function estilosRelatorioPagina() {
   return (
     `.rel-body ${tbl}{table-layout:fixed;width:100%;}` +
     `.rel-body ${tbl} th.pagamentos-rel-col-nome,` +
-    `.rel-body ${tbl} td.pagamentos-rel-col-nome{width:36%;}` +
+    `.rel-body ${tbl} td.pagamentos-rel-col-nome{width:32%;}` +
+    `.rel-body ${tbl} th.pagamentos-rel-col-assinado,` +
+    `.rel-body ${tbl} td.pagamentos-rel-col-assinado{width:6%;text-align:center;}` +
+    `.rel-body ${tbl} .contratos-icone-assinado{display:inline-flex;align-items:center;justify-content:center;}` +
+    `.rel-body ${tbl} .contratos-icone-assinado--sim{color:#0f766e;}` +
+    `.rel-body ${tbl} .contratos-icone-assinado--nao{color:#dc2626;}` +
     `.rel-body ${tbl} th.pagamentos-rel-col-cpf,` +
-    `.rel-body ${tbl} td.pagamentos-rel-col-cpf{width:24%;}` +
+    `.rel-body ${tbl} td.pagamentos-rel-col-cpf{width:22%;}` +
     `.rel-body ${tbl} .pagamentos-rel-cpf-pix-celula{display:inline-flex;align-items:center;justify-content:center;gap:0.35rem;max-width:100%;}` +
     `.rel-body ${tbl} .pagamentos-rel-cpf-pix-texto{text-align:center;white-space:nowrap;line-height:1.25;}` +
     `.rel-body ${tbl} th.pagamentos-rel-col-valor,` +

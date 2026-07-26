@@ -192,6 +192,7 @@ const CONFIG = {
       "valor contrato",
       "valor do contrato",
     ],
+    COLUNA_ASSINADO: ["assinado", "assinatura", "contrato-assinado", "contrato assinado"],
     // Fallback por índice (A=0) quando o cabeçalho não bater com os aliases.
     INDICES: {
       NOME: 0,
@@ -207,6 +208,7 @@ const CONFIG = {
       VALOR_CONTRATO: 12,
       SALDO_CONTRATO: 13,
       CHAVE_PIX: 14,
+      ASSINADO: 22, // W
     },
     COLUNA_SALDO_CONTRATO: [
       "saldo-contrato",
@@ -242,6 +244,7 @@ const CONFIG = {
     },
     ROTULOS: {
       NOME: "nome completo",
+      ASSINADO: "assinado",
       NOME_MAE: "nome mãe",
       CPF: "CPF",
       MUNICIPIO: "município",
@@ -256,6 +259,16 @@ const CONFIG = {
         rotulo: "nome",
         indice: 0,
         largura: 12,
+      },
+      {
+        id: "assinado",
+        aliases: ["assinado", "assinatura", "contrato-assinado", "contrato assinado"],
+        rotulo: "assinado",
+        tipo: "checkbox",
+        indice: 22,
+        largura: 6,
+        valorSim: "S",
+        valorNao: "N",
       },
       {
         id: "cpf",
@@ -531,9 +544,8 @@ const CONFIG = {
       PREFEITO: 6,            // G
       VEREADOR: 7,            // H
       AGENTE_POLITICO: 8,     // I
-      ASSESSOR: 9,            // J
-      APOIADORES: 10,         // K — contratos
-      PARCEIROS: 16,          // Q
+      APOIADORES: 9,          // J — contratos (após exclusão da antiga col. Assessor)
+      PARCEIROS: 15,          // P
     },
     APOIADORES: {
       LINHA_INICIO_DADOS: 2,
@@ -884,6 +896,17 @@ CONFIG.PESSOAL_PAGAMENTOS = Object.assign({}, CONFIG.CONTRATOS, {
       indice: 0,
       largura: 12,
       somenteLeitura: true,
+    },
+    {
+      id: "assinado",
+      aliases: ["assinado", "assinatura", "contrato-assinado", "contrato assinado"],
+      rotulo: "assinado",
+      tipo: "checkbox",
+      indice: 22,
+      largura: 6,
+      valorSim: "S",
+      valorNao: "N",
+      edicaoComConfirmacao: true,
     },
     {
       id: "cpf",

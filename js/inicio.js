@@ -425,7 +425,6 @@ function extrairEquipePorMunicipio(valoresMunicipio, contagemApoiadores) {
       prefeito: celula(valoresMunicipio, linha, cols.PREFEITO),
       vereador: celula(valoresMunicipio, linha, cols.VEREADOR),
       agentePolitico: celula(valoresMunicipio, linha, cols.AGENTE_POLITICO),
-      assessor: celula(valoresMunicipio, linha, cols.ASSESSOR),
       apoiadores,
     });
   }
@@ -441,7 +440,6 @@ function totalEquipeCampanha(valoresMunicipio, valoresApoiadores) {
     totalColunaEquipe(itens, "prefeito") +
     totalColunaEquipe(itens, "vereador") +
     totalColunaEquipe(itens, "agentePolitico") +
-    totalColunaEquipe(itens, "assessor") +
     itens.reduce((acc, r) => acc + r.apoiadores, 0)
   );
 }

@@ -714,23 +714,6 @@ function htmlPopoverApoiador(r) {
   </div>`;
 }
 
-function montarLinhasGrupoApoiador(partes) {
-  if (!partes.length) return "—";
-
-  const sep = '<span class="apoiadores-grupo-sep"> ; </span>';
-  const sepFim = '<span class="apoiadores-grupo-sep"> ;</span>';
-  const linhas = [];
-
-  for (let i = 0; i < partes.length; i += 3) {
-    const chunk = partes.slice(i, i + 3);
-    const ultima = i + 3 >= partes.length;
-    const texto = chunk.join(sep) + (ultima ? "" : sepFim);
-    linhas.push(`<div class="apoiadores-grupo-linha">${texto}</div>`);
-  }
-
-  return linhas.join("");
-}
-
 function htmlGrupoApoiadorMobile(r) {
   const celulas = [
     { rotulo: "lider", valor: r.apoiadorLider },
@@ -739,16 +722,21 @@ function htmlGrupoApoiadorMobile(r) {
     { rotulo: "customizado", valor: r.apoiadorCustomizado },
   ];
 
-  const partes = celulas
+  const linhas = celulas
     .map((c) => {
       const exib = exibirCelula(c.valor);
       if (!exib) return "";
-      return `${c.rotulo} <span class="apoiadores-grupo-par-valor">(<strong class="apoiadores-grupo-valor">${exib}</strong>)</span>`;
+      return (
+        `<div class="apoiadores-grupo-linha">` +
+        `<span class="apoiadores-grupo-rotulo">${c.rotulo}</span>` +
+        `<strong class="apoiadores-grupo-valor">${exib}</strong>` +
+        `</div>`
+      );
     })
     .filter(Boolean);
 
   return `<td class="apoiadores-col-grupo-mobile apoiadores-col-separador" colspan="4">
-    <div class="apoiadores-grupo-inline" aria-label="apoiador">${montarLinhasGrupoApoiador(partes)}</div>
+    <div class="apoiadores-grupo-inline" aria-label="apoiador">${linhas.length ? linhas.join("") : "—"}</div>
   </td>`;
 }
 

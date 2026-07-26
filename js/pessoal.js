@@ -8,7 +8,7 @@ let registros = [];
 let regioes = [];
 const popoverTabela = PopoverTabela.criar();
 
-const COLS_TABELA = 9;
+const COLS_TABELA = 6;
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -130,7 +130,6 @@ function extrairRegistros(valores) {
       prefeito: celula(valores, linha, cols.PREFEITO),
       vereador: celula(valores, linha, cols.VEREADOR),
       agentePolitico: celula(valores, linha, cols.AGENTE_POLITICO),
-      assessor: celula(valores, linha, cols.ASSESSOR),
       apoiadores,
       apoiadoresTexto: celula(valores, linha, cols.APOIADORES),
       parceiros: celula(valores, linha, cols.PARCEIROS),
@@ -222,7 +221,6 @@ function totalGeralColunas(filtrados) {
     totalColunaPessoal(filtrados, "prefeito") +
     totalColunaPessoal(filtrados, "vereador") +
     totalColunaPessoal(filtrados, "agentePolitico") +
-    totalColunaPessoal(filtrados, "assessor") +
     totalApoiadores(filtrados) +
     totalColunaPessoal(filtrados, "parceiros")
   );
@@ -232,28 +230,25 @@ function atualizarResumo(filtrados) {
   const totalPrefeito = totalColunaPessoal(filtrados, "prefeito");
   const totalVereador = totalColunaPessoal(filtrados, "vereador");
   const totalAgente = totalColunaPessoal(filtrados, "agentePolitico");
-  const totalAssessor = totalColunaPessoal(filtrados, "assessor");
   const totalApoiad = totalApoiadores(filtrados);
   const totalParceiros = totalColunaPessoal(filtrados, "parceiros");
 
-  el.kpiTotal.textContent = fmt.format(totalGeralColunas(filtrados));
+  el.kpiEfetivoMobilizado.textContent = fmt.format(totalGeralColunas(filtrados));
+  el.kpiMunicipios.textContent = fmt.format(filtrados.length);
   el.kpiPrefeito.textContent = fmt.format(totalPrefeito);
   el.kpiVereador.textContent = fmt.format(totalVereador);
   el.kpiAgente.textContent = fmt.format(totalAgente);
-  el.kpiAssessor.textContent = fmt.format(totalAssessor);
-  el.kpiApoiadores.textContent = fmt.format(totalApoiad);
-  el.kpiParceiros.textContent = fmt.format(totalParceiros);
+  el.kpiApoioParceiros.textContent = fmt.format(totalApoiad + totalParceiros);
 }
 
 function limparResumo() {
   const vazio = "—";
-  el.kpiTotal.textContent = vazio;
+  el.kpiEfetivoMobilizado.textContent = vazio;
+  el.kpiMunicipios.textContent = vazio;
   el.kpiPrefeito.textContent = vazio;
   el.kpiVereador.textContent = vazio;
   el.kpiAgente.textContent = vazio;
-  el.kpiAssessor.textContent = vazio;
-  el.kpiApoiadores.textContent = vazio;
-  el.kpiParceiros.textContent = vazio;
+  el.kpiApoioParceiros.textContent = vazio;
 }
 
 function alinharColunasTabela() {
@@ -275,15 +270,12 @@ function alinharColunasTabela() {
 function sincronizarLargurasColunasPessoal(headTable, bodyTable) {
   const mobile = window.matchMedia("(max-width: 991.98px)").matches;
   const largurasMobile = {
-    "pessoal-col-municipio": "32%",
-    "pessoal-col-prefeito": "17%",
-    "pessoal-col-vereador": "17%",
-    "pessoal-col-agente": "0",
-    "pessoal-col-assessor": "0",
-    "pessoal-col-apoiadores": "0",
-    "pessoal-col-parceiros": "0",
-    "pessoal-col-stack-agente": "17%",
-    "pessoal-col-stack-apoiadores": "17%",
+    "pessoal-col-municipio": "22%",
+    "pessoal-col-prefeito": "13%",
+    "pessoal-col-vereador": "13%",
+    "pessoal-col-agente": "13%",
+    "pessoal-col-apoiadores": "20%",
+    "pessoal-col-parceiros": "19%",
   };
 
   [headTable, bodyTable].forEach((table) => {
@@ -319,7 +311,6 @@ function totalLinhaPessoal(r) {
     valorColunaPessoal(r.prefeito) +
     valorColunaPessoal(r.vereador) +
     valorColunaPessoal(r.agentePolitico) +
-    valorColunaPessoal(r.assessor) +
     (r.apoiadores || 0) +
     valorColunaPessoal(r.parceiros)
   );
@@ -339,11 +330,10 @@ function htmlPopoverPessoal(r) {
       itemPopoverPessoal("prefeito", valorPopoverPessoal(r.prefeito), "popover-marcador--pessoal-prefeito"),
       itemPopoverPessoal("vereador", valorPopoverPessoal(r.vereador), "popover-marcador--pessoal-vereador"),
       itemPopoverPessoal(
-        "agente-político",
+        "agente politico",
         valorPopoverPessoal(r.agentePolitico),
         "popover-marcador--pessoal-agente"
       ),
-      itemPopoverPessoal("assessor", valorPopoverPessoal(r.assessor), "popover-marcador--pessoal-assessor"),
       itemPopoverPessoal(
         "apoiadores",
         exibirApoiadores(r),
@@ -353,15 +343,6 @@ function htmlPopoverPessoal(r) {
     ].join("") +
     `</div>`
   );
-}
-
-function htmlStackPessoal(valorSuperior, valorInferior) {
-  const sup = valorSuperior || '<span class="pessoal-stack-vazio" aria-hidden="true"></span>';
-  const inf = valorInferior || '<span class="pessoal-stack-vazio" aria-hidden="true"></span>';
-  return `<div class="pessoal-tabela-stack-valores">
-    <span class="pessoal-tabela-stack-valor">${sup}</span>
-    <span class="pessoal-tabela-stack-valor">${inf}</span>
-  </div>`;
 }
 
 function renderizarLinhaPessoal(r) {
@@ -379,12 +360,9 @@ function renderizarLinhaPessoal(r) {
     </td>
     <td class="text-end pessoal-col-prefeito pessoal-celula-num">${exibirCelulaPessoal(r.prefeito)}</td>
     <td class="text-end pessoal-col-vereador pessoal-celula-num">${exibirCelulaPessoal(r.vereador)}</td>
-    <td class="text-end pessoal-col-agente pessoal-tabela-desktop-col pessoal-celula-num">${exibirCelulaPessoal(r.agentePolitico)}</td>
-    <td class="text-end pessoal-col-assessor pessoal-tabela-desktop-col pessoal-celula-num">${exibirCelulaPessoal(r.assessor)}</td>
-    <td class="text-end pessoal-col-apoiadores pessoal-tabela-desktop-col">${exibirApoiadores(r)}</td>
-    <td class="text-end pessoal-col-parceiros pessoal-tabela-desktop-col pessoal-celula-num">${exibirCelulaPessoal(r.parceiros)}</td>
-    <td class="text-end pessoal-tabela-stack-col pessoal-col-stack-agente pessoal-celula-num">${htmlStackPessoal(exibirCelulaPessoal(r.agentePolitico), exibirCelulaPessoal(r.assessor))}</td>
-    <td class="text-end pessoal-tabela-stack-col pessoal-col-stack-apoiadores">${htmlStackPessoal(exibirApoiadores(r), exibirCelulaPessoal(r.parceiros))}</td>
+    <td class="text-end pessoal-col-agente pessoal-celula-num">${exibirCelulaPessoal(r.agentePolitico)}</td>
+    <td class="text-end pessoal-col-apoiadores pessoal-celula-num">${exibirApoiadores(r)}</td>
+    <td class="text-end pessoal-col-parceiros pessoal-celula-num">${exibirCelulaPessoal(r.parceiros)}</td>
   </tr>`;
 }
 
@@ -481,13 +459,12 @@ function initPessoal() {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
     corpoTabela: document.getElementById("corpoTabela"),
-    kpiTotal: document.getElementById("kpiTotal"),
+    kpiEfetivoMobilizado: document.getElementById("kpiEfetivoMobilizado"),
+    kpiMunicipios: document.getElementById("kpiMunicipios"),
     kpiPrefeito: document.getElementById("kpiPrefeito"),
     kpiVereador: document.getElementById("kpiVereador"),
     kpiAgente: document.getElementById("kpiAgente"),
-    kpiAssessor: document.getElementById("kpiAssessor"),
-    kpiApoiadores: document.getElementById("kpiApoiadores"),
-    kpiParceiros: document.getElementById("kpiParceiros"),
+    kpiApoioParceiros: document.getElementById("kpiApoioParceiros"),
   };
   if (!el.corpoTabela) return;
 
@@ -512,6 +489,29 @@ function htmlCardsRelatorioPagina(doc) {
   );
 }
 
+function ajustarTabelaRelatorioPagina(table) {
+  if (!table?.classList?.contains("pessoal-tabela")) return;
+
+  const larguras = ["35%", "13%", "13%", "13%", "13%", "13%"];
+  table.style.tableLayout = "fixed";
+  table.style.width = "100%";
+
+  table.querySelectorAll("colgroup").forEach((cg) => cg.remove());
+  const colgroup = document.createElement("colgroup");
+  larguras.forEach((w) => {
+    const col = document.createElement("col");
+    col.style.width = w;
+    colgroup.appendChild(col);
+  });
+  table.insertBefore(colgroup, table.firstChild);
+
+  const primeiraLinha = table.querySelector("thead tr, tbody tr");
+  if (!primeiraLinha) return;
+  Array.from(primeiraLinha.children).forEach((celula, i) => {
+    if (larguras[i]) celula.style.width = larguras[i];
+  });
+}
+
 function estilosRelatorioPagina() {
   return (
     ".page-pessoal .rel-secao{margin:0.45rem 0 0.55rem;page-break-inside:auto;}" +
@@ -519,35 +519,42 @@ function estilosRelatorioPagina() {
     ".page-pessoal .rel-secao-indicadores{margin-bottom:0.25rem;page-break-after:avoid;break-after:avoid-page;}" +
     ".page-pessoal .rel-secao + .rel-secao + .rel-secao{page-break-before:avoid;break-before:avoid-page;margin-top:0.2rem;}" +
     ".page-pessoal .rel-pessoal-kpis{margin-top:0.2rem;}" +
-    ".page-pessoal .rel-pessoal-kpis > .pessoal-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:auto auto;gap:8px;align-items:stretch;}" +
+    ".page-pessoal .rel-pessoal-kpis > .pessoal-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto;gap:8px;align-items:stretch;}" +
     ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot{min-width:0;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--total{grid-column:1;grid-row:2;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--efetivo{grid-column:1;grid-row:1;}" +
     ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--prefeito{grid-column:2;grid-row:1;}" +
     ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--vereador{grid-column:3;grid-row:1;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--municipios{grid-column:1;grid-row:2;}" +
     ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--agente{grid-column:2;grid-row:2;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--assessor{grid-column:3;grid-row:2;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--parceiros{grid-column:4;grid-row:1;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--apoiadores{grid-column:4;grid-row:2;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--apoio{grid-column:3;grid-row:2;}" +
     ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;background-color:rgba(31,78,140,0.07);border:1px solid rgba(31,78,140,0.14);}" +
     ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-card .card-body{padding:0.35rem 0.3rem;text-align:center;}" +
     ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-rotulo{font-size:7pt;font-weight:600;color:#64748b;margin-bottom:0.1rem;line-height:1.15;}" +
     ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-valor{font-size:9pt;font-weight:700;line-height:1.1;color:#1e293b;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-total .dashboard-kpi-card{background-color:rgba(31,78,140,0.16);border:1px solid rgba(31,78,140,0.3);border-left:4px solid #1f4e8c;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-total .dashboard-kpi-rotulo{color:#1f4e8c;font-weight:700;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-total .dashboard-kpi-valor{color:#1f4e8c;font-size:10pt;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-prefeito .dashboard-kpi-card{border-left:3px solid #6366f1;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-vereador .dashboard-kpi-card{border-left:3px solid #1f4e8c;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-agente .dashboard-kpi-card{border-left:3px solid #1a6f85;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-assessor .dashboard-kpi-card{border-left:3px solid #64748b;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-apoiadores .dashboard-kpi-card{border-left:3px solid #0f766e;}" +
-    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-parceiros .dashboard-kpi-card{border-left:3px solid #7c3aed;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-card--principal{background:linear-gradient(135deg,rgba(13,148,136,0.16),rgba(13,148,136,0.05));border:1px solid rgba(13,148,136,0.32);border-left:5px solid #0d9488;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--efetivo .dashboard-kpi-rotulo{color:#0f766e;font-weight:700;font-size:8pt;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--efetivo .dashboard-kpi-valor{color:#0d5f56;font-size:12pt;font-weight:700;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-card--destaque{background:rgba(31,78,140,0.08);border:1px solid rgba(31,78,140,0.2);border-left:4px solid #1f4e8c;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--municipios .dashboard-kpi-rotulo{color:#1e3a5f;font-weight:600;font-size:8pt;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-slot--municipios .dashboard-kpi-valor{color:#0f172a;font-size:11pt;font-weight:600;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-prefeito.dashboard-kpi-card{border-left:3px solid #6366f1;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-vereador.dashboard-kpi-card{border-left:3px solid #1f4e8c;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-agente.dashboard-kpi-card{border-left:3px solid #1a6f85;}" +
+    ".page-pessoal .rel-pessoal-kpis .pessoal-kpi-apoio.dashboard-kpi-card{border-left:3px solid #0f766e;}" +
+    ".page-pessoal table.rel-tabela.pessoal-tabela{table-layout:fixed!important;width:100%!important;margin-top:0.15rem;}" +
+    ".page-pessoal table.rel-tabela.pessoal-tabela col:first-child," +
+    ".page-pessoal table.rel-tabela.pessoal-tabela th:first-child," +
+    ".page-pessoal table.rel-tabela.pessoal-tabela td:first-child{width:35%!important;}" +
+    ".page-pessoal table.rel-tabela.pessoal-tabela col:not(:first-child)," +
+    ".page-pessoal table.rel-tabela.pessoal-tabela th:not(:first-child)," +
+    ".page-pessoal table.rel-tabela.pessoal-tabela td:not(:first-child){width:13%!important;}" +
     ".page-pessoal table.rel-tabela.pessoal-tabela th.pessoal-col-municipio,.page-pessoal table.rel-tabela.pessoal-tabela td.pessoal-col-municipio{text-align:left;}" +
-    ".page-pessoal table.rel-tabela.pessoal-tabela th:not(.pessoal-col-municipio),.page-pessoal table.rel-tabela.pessoal-tabela td:not(.pessoal-col-municipio){text-align:right;padding-top:0.4rem;padding-bottom:0.4rem;padding-left:2.4rem;padding-right:2.4rem;font-variant-numeric:tabular-nums;white-space:nowrap;}" +
-    ".page-pessoal table.rel-tabela.pessoal-tabela{margin-top:0.15rem;}" +
+    ".page-pessoal table.rel-tabela.pessoal-tabela th:not(.pessoal-col-municipio),.page-pessoal table.rel-tabela.pessoal-tabela td:not(.pessoal-col-municipio){text-align:right;padding:0.3rem 0.25rem;font-variant-numeric:tabular-nums;white-space:normal;overflow:hidden;}" +
+    ".page-pessoal table.rel-tabela.pessoal-tabela td:not(.pessoal-col-municipio){white-space:nowrap;}" +
     "@media print{" +
     ".page-pessoal h1{font-size:14pt;margin-bottom:0.1rem;}" +
     ".page-pessoal .rel-gerado{margin-bottom:0.35rem;}" +
-    ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-card,.page-pessoal .rel-pessoal-kpis .pessoal-kpi-total .dashboard-kpi-card{" +
+    ".page-pessoal .rel-pessoal-kpis .dashboard-kpi-card{" +
     "-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
     ".page-pessoal table.rel-tabela.pessoal-tabela{font-size:8pt;}" +
     "}"
@@ -556,6 +563,7 @@ function estilosRelatorioPagina() {
 
 window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
 window.estilosRelatorioPagina = estilosRelatorioPagina;
+window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
 
 AUTH.exigir();
 document.addEventListener("DOMContentLoaded", initPessoal);
