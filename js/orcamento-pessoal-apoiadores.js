@@ -419,6 +419,35 @@ function linhasFiltradas() {
   });
 }
 
+const ordenacaoOrcamentoApoiadores = { col: "lideranca", dir: "asc" };
+
+function cmpOrcamentoLideranca(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(a.lideranca, b.lideranca);
+  if (c) return c;
+  return T.cmpTexto(a.municipio, b.municipio);
+}
+
+function cmpOrcamentoMunicipio(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(a.municipio, b.municipio);
+  if (c) return c;
+  return T.cmpTexto(a.lideranca, b.lideranca);
+}
+
+const COMPARADORES_ORDENACAO_ORCAMENTO_APOIADORES = {
+  lideranca: cmpOrcamentoLideranca,
+  municipio: cmpOrcamentoMunicipio,
+};
+
+function aplicarOrdenacaoOrcamentoApoiadores(lista) {
+  return TabelaOrdenacao.aplicar(
+    lista,
+    ordenacaoOrcamentoApoiadores,
+    COMPARADORES_ORDENACAO_ORCAMENTO_APOIADORES
+  );
+}
+
 function ordenarPorMunicipio(a, b) {
   const ma = String(a.municipio ?? "").trim();
   const mb = String(b.municipio ?? "").trim();
@@ -488,7 +517,7 @@ function extrairLinhas(valores) {
     itens.push(item);
   }
 
-  itens.sort(ordenarPorMunicipio);
+  itens.sort((a, b) => cmpOrcamentoMunicipio(a, b));
   return itens;
 }
 
@@ -729,7 +758,7 @@ function renderizarLinha(r) {
 
 function renderizarTabela() {
   const selecionadas = regioesSelecionadas();
-  const filtradas = [...linhasFiltradas()].sort(ordenarPorMunicipio);
+  const filtradas = aplicarOrdenacaoOrcamentoApoiadores(linhasFiltradas());
 
   el.vazio.hidden = true;
 
@@ -833,59 +862,122 @@ function htmlCardsRelatorioPagina(doc) {
   );
 }
 
+function htmlIdentRelatorioOrcamento(r) {
+  const lider = escapeHtml(String(r?.lideranca ?? "").trim() || "—");
+  const mun = escapeHtml(String(r?.municipio ?? "").trim());
+  let html = `<span class="apoiadores-rel-ident-nome">${lider}</span>`;
+  if (mun) {
+    html += `<span class="apoiadores-rel-ident-municipio">${mun}</span>`;
+  }
+  return html;
+}
+
+function reconstruirColgroupRelatorioOrcamento(table) {
+  const classes = [
+    "apoiadores-col-ident",
+    "apoiadores-col-orc-pessoal",
+    "apoiadores-col-orc-combustivel",
+    "apoiadores-col-orc-diversos",
+    "apoiadores-col-orc-diad",
+    "apoiadores-col-orc-total",
+  ];
+  table.querySelectorAll("colgroup").forEach((cg) => {
+    cg.replaceChildren(
+      ...classes.map((cls) => {
+        const col = document.createElement("col");
+        col.className = cls;
+        return col;
+      })
+    );
+  });
+}
+
 function ajustarTabelaRelatorioPagina(table) {
   if (!table?.classList?.contains("orcamento-lideranca-tabela")) return;
 
   table
-    .querySelectorAll(".orcamento-total-badge, .apoiadores-sub-fin-total, .apoiadores-fin-badge")
+    .querySelectorAll(
+      ".orcamento-total-badge, .apoiadores-sub-fin-total, .apoiadores-fin-badge, .master-crud-acoes-linha"
+    )
+    .forEach((el) => el.remove());
+
+  table
+    .querySelectorAll(
+      "th.apoiadores-col-municipio, td.apoiadores-col-municipio, th.orcamento-tabela-stack-col, td.orcamento-tabela-stack-col, th.apoiadores-col-orc-stack-pessoal, td.apoiadores-col-orc-stack-pessoal, th.apoiadores-col-orc-stack-diversos, td.apoiadores-col-orc-stack-diversos"
+    )
     .forEach((el) => el.remove());
 
   const thIdent = table.querySelector("thead th.apoiadores-col-ident");
   if (thIdent) {
-    thIdent.className = "apoiadores-col-ident";
-    thIdent.textContent = "liderança";
+    thIdent.className = "apoiadores-col-ident dashboard-th-base";
+    thIdent.innerHTML =
+      '<span class="dashboard-th-principal">liderança</span>' +
+      '<span class="dashboard-th-sub text-muted apoiadores-th-sub-municipio">município</span>';
   }
-
-  table.querySelectorAll("tbody td.apoiadores-col-ident").forEach((td) => {
-    const nome = td.querySelector(".apoiadores-ident-nome");
-    const texto = nome?.textContent?.trim() || "—";
-    td.className = "apoiadores-col-ident";
-    td.textContent = texto;
-  });
-
-  let colgroups = table.querySelectorAll("colgroup");
-  if (!colgroups.length) {
-    const cg = document.createElement("colgroup");
-    for (let i = 0; i < 6; i++) cg.appendChild(document.createElement("col"));
-    table.insertBefore(cg, table.firstElementChild);
-    colgroups = table.querySelectorAll("colgroup");
-  }
-
-  colgroups.forEach((cg) => {
-    const col = document.createElement("col");
-    col.className = "apoiadores-col-orc-total";
-    cg.appendChild(col);
-  });
 
   const thRow = table.querySelector("thead tr");
-  if (thRow && !thRow.querySelector("th.apoiadores-col-orc-total")) {
-    const th = document.createElement("th");
-    th.scope = "col";
-    th.className = "text-end apoiadores-col-orc-total orcamento-tabela-desktop-col";
-    th.textContent = "total";
-    thRow.appendChild(th);
+  if (thRow) {
+    const thPessoal = thRow.querySelector("th.apoiadores-col-orc-pessoal");
+    const thComb = thRow.querySelector("th.apoiadores-col-orc-combustivel");
+    const thDiv = thRow.querySelector("th.apoiadores-col-orc-diversos");
+    const thDiad = thRow.querySelector("th.apoiadores-col-orc-diad");
+    if (thPessoal) {
+      thPessoal.className = "text-end apoiadores-col-orc-pessoal apoiadores-celula-num";
+      thPessoal.textContent = "pessoal";
+    }
+    if (thComb) {
+      thComb.className = "text-end apoiadores-col-orc-combustivel apoiadores-celula-num";
+      thComb.textContent = "combustível";
+    }
+    if (thDiv) {
+      thDiv.className = "text-end apoiadores-col-orc-diversos apoiadores-celula-num";
+      thDiv.textContent = "diversos";
+    }
+    if (thDiad) {
+      thDiad.className = "text-end apoiadores-col-orc-diad apoiadores-celula-num";
+      thDiad.textContent = "dia D";
+    }
+    let thTotal = thRow.querySelector("th.apoiadores-col-orc-total");
+    if (!thTotal) {
+      thTotal = document.createElement("th");
+      thTotal.scope = "col";
+      thRow.appendChild(thTotal);
+    }
+    thTotal.className = "text-end apoiadores-col-orc-total apoiadores-celula-num";
+    thTotal.textContent = "total";
   }
 
-  const dados = [...linhasFiltradas()].sort(ordenarPorMunicipio);
+  reconstruirColgroupRelatorioOrcamento(table);
+
+  const dados = aplicarOrdenacaoOrcamentoApoiadores(linhasFiltradas());
   table.querySelectorAll("tbody tr").forEach((tr, i) => {
-    if (tr.querySelector("td.apoiadores-col-orc-total")) return;
     const r = dados[i];
-    const td = document.createElement("td");
-    td.className =
-      "text-end apoiadores-col-orc-total apoiadores-celula-num orcamento-tabela-desktop-col";
-    const valor = r ? exibirMoeda(r.finTotal) : "";
-    td.textContent = valor || "—";
-    tr.appendChild(td);
+
+    tr.querySelector("td.apoiadores-col-municipio")?.remove();
+    tr.querySelectorAll(
+      "td.orcamento-tabela-stack-col, td.apoiadores-col-orc-stack-pessoal, td.apoiadores-col-orc-stack-diversos"
+    ).forEach((el) => el.remove());
+
+    const identTd = tr.querySelector("td.apoiadores-col-ident");
+    if (identTd) {
+      identTd.className = "apoiadores-col-ident apoiadores-col-ident--rel";
+      identTd.innerHTML = r ? htmlIdentRelatorioOrcamento(r) : "—";
+    }
+
+    tr.querySelectorAll(
+      "td.apoiadores-col-orc-pessoal, td.apoiadores-col-orc-combustivel, td.apoiadores-col-orc-diversos, td.apoiadores-col-orc-diad"
+    ).forEach((td) => {
+      td.classList.remove("orcamento-tabela-desktop-col", "apoiadores-col-orc-desk");
+      td.classList.add("apoiadores-celula-num");
+    });
+
+    let tdTotal = tr.querySelector("td.apoiadores-col-orc-total");
+    if (!tdTotal) {
+      tdTotal = document.createElement("td");
+      tr.appendChild(tdTotal);
+    }
+    tdTotal.className = "text-end apoiadores-col-orc-total apoiadores-celula-num";
+    tdTotal.textContent = r ? exibirMoeda(r.finTotal) : "—";
   });
 }
 
@@ -925,17 +1017,18 @@ function estilosRelatorioPagina() {
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra-diad{background:linear-gradient(145deg,#f87171,#dc2626);color:#fff;box-shadow:0 2px 6px rgba(220,38,38,0.22);}" +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela .orcamento-tabela-stack-col{display:none!important;}" +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela .orcamento-total-badge{display:none!important;}" +
+    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela{table-layout:fixed;width:100%;max-width:100%;}" +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela th.apoiadores-col-ident," +
-    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-ident," +
-    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela th.apoiadores-col-municipio," +
-    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-municipio{text-align:left;}" +
-    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-ident .apoiadores-ident-nome{display:block;}" +
-    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela{table-layout:fixed;width:100%;}" +
+    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-ident{text-align:left;vertical-align:top;}" +
+    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela th.apoiadores-col-ident .apoiadores-th-sub-municipio{display:block;font-size:6.5pt;font-weight:500;margin-top:0.05rem;}" +
+    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-ident--rel .apoiadores-rel-ident-nome{display:block;font-weight:600;line-height:1.25;}" +
+    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-ident--rel .apoiadores-rel-ident-municipio{display:block;margin-top:0.12rem;font-size:7pt;line-height:1.2;color:#64748b;}" +
+    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela col.apoiadores-col-ident{width:32%;}" +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela col.apoiadores-col-orc-pessoal," +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela col.apoiadores-col-orc-combustivel," +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela col.apoiadores-col-orc-diversos," +
-    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela col.apoiadores-col-orc-diad{width:10%;}" +
-    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela col.apoiadores-col-orc-total{width:12%;}" +
+    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela col.apoiadores-col-orc-diad{width:13%;}" +
+    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela col.apoiadores-col-orc-total{width:16%;}" +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela th.apoiadores-col-orc-pessoal," +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-orc-pessoal," +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela th.apoiadores-col-orc-combustivel," +
@@ -943,9 +1036,9 @@ function estilosRelatorioPagina() {
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela th.apoiadores-col-orc-diversos," +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-orc-diversos," +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela th.apoiadores-col-orc-diad," +
-    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-orc-diad{width:10%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;white-space:nowrap;}" +
+    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-orc-diad{width:13%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;white-space:nowrap;}" +
     ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela th.apoiadores-col-orc-total," +
-    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-orc-total{width:12%;text-align:right;padding:0.4rem 0.5rem;font-variant-numeric:tabular-nums;white-space:nowrap;}" +
+    ".page-orcamento table.rel-tabela.orcamento-lideranca-tabela td.apoiadores-col-orc-total{width:16%;text-align:right;padding:0.4rem 0.5rem;font-variant-numeric:tabular-nums;white-space:nowrap;}" +
     "@media print{" +
     ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-card," +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
@@ -981,6 +1074,15 @@ function initOrcamentoPessoalApoiadores() {
     campoDiaD: document.getElementById("campoApDiaD"),
   };
   if (!el.corpo || !el.filtroRegioes) return;
+
+  const cardOrdenacao = document.querySelector(".apoiadores-tabela-card");
+  TabelaOrdenacao.montarCabecalhoLiderancaMunicipio(cardOrdenacao);
+  TabelaOrdenacao.vincular(
+    cardOrdenacao,
+    ordenacaoOrcamentoApoiadores,
+    renderizarTabela,
+    "ordenacaoOrcamentoApoiadores"
+  );
 
   MasterCrud.aplicarVisibilidadeIncluir("btnIncluirApoiador");
   if (el.modalEl) modalCrud = bootstrap.Modal.getOrCreateInstance(el.modalEl);

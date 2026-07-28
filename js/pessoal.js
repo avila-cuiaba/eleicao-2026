@@ -202,10 +202,24 @@ function montarFiltros(listaRegioes) {
   });
 }
 
+function registroEhNulo(r) {
+  return totalLinhaPessoal(r) === 0;
+}
+
+function visualizarRegistrosNulosAtivo() {
+  return !!el.visualizarRegistrosNulos?.checked;
+}
+
+function aplicarFiltroRegistrosNulos(lista) {
+  if (visualizarRegistrosNulosAtivo()) return lista;
+  return lista.filter((r) => !registroEhNulo(r));
+}
+
 function registrosFiltrados() {
   const selecionadas = regioesSelecionadas();
   if (!selecionadas.length) return [];
-  return registros.filter((r) => selecionadas.includes(r.regiaoNorm));
+  const porRegiao = registros.filter((r) => selecionadas.includes(r.regiaoNorm));
+  return aplicarFiltroRegistrosNulos(porRegiao);
 }
 
 function totalColunaPessoal(filtrados, campo) {
@@ -458,6 +472,7 @@ function initPessoal() {
   el = {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
+    visualizarRegistrosNulos: document.getElementById("visualizarRegistrosNulos"),
     corpoTabela: document.getElementById("corpoTabela"),
     kpiEfetivoMobilizado: document.getElementById("kpiEfetivoMobilizado"),
     kpiMunicipios: document.getElementById("kpiMunicipios"),
@@ -467,6 +482,8 @@ function initPessoal() {
     kpiApoioParceiros: document.getElementById("kpiApoioParceiros"),
   };
   if (!el.corpoTabela) return;
+
+  el.visualizarRegistrosNulos?.addEventListener("change", renderizarTabela);
 
   initPageSmTabs(alinharColunasTabela);
   window.addEventListener("resize", alinharColunasTabela);

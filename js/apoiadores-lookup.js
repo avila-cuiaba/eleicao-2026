@@ -63,6 +63,11 @@ const ApoiadoresLookup = {
   resolverIndices(cabecalho) {
     const cfgAp = CONFIG.PESSOAL.APOIADORES;
     const normalizados = (cabecalho || []).map((h) => this.normalizar(h));
+    const aliasesTipo = ["tipo", "classificacao", "classificação"];
+    const idxTipo = normalizados.findIndex((n) =>
+      aliasesTipo.some((alias) => this.normalizar(alias) === n)
+    );
+    const offset = idxTipo >= 0 ? 1 : 0;
     const indices = {};
 
     this.CAMPOS.forEach((campo) => {
@@ -70,7 +75,7 @@ const ApoiadoresLookup = {
         campo.aliases.some((alias) => this.normalizar(alias) === n)
       );
       if (idx === -1 && cfgAp.COLUNAS[campo.chave] != null) {
-        idx = cfgAp.COLUNAS[campo.chave];
+        idx = cfgAp.COLUNAS[campo.chave] + offset;
       }
       indices[campo.prop] = idx;
     });
@@ -79,9 +84,9 @@ const ApoiadoresLookup = {
       let idx = normalizados.findIndex((n) =>
         (campo.aliases || []).some((alias) => this.normalizar(alias) === n)
       );
-      if (idx === -1 && campo.indice != null) idx = campo.indice;
+      if (idx === -1 && campo.indice != null) idx = campo.indice + offset;
       if (idx === -1 && cfgAp.COLUNAS[campo.chave] != null) {
-        idx = cfgAp.COLUNAS[campo.chave];
+        idx = cfgAp.COLUNAS[campo.chave] + offset;
       }
       indices[campo.prop] = idx;
     });
@@ -91,6 +96,12 @@ const ApoiadoresLookup = {
 
   resolverRotulosDespacho(cabecalho) {
     const cfgAp = CONFIG.PESSOAL.APOIADORES;
+    const normalizados = (cabecalho || []).map((h) => this.normalizar(h));
+    const aliasesTipo = ["tipo", "classificacao", "classificação"];
+    const offset =
+      normalizados.findIndex((n) => aliasesTipo.some((alias) => this.normalizar(alias) === n)) >= 0
+        ? 1
+        : 0;
     const padrao = {
       pessoal: "pessoal",
       combustivel: "combustível",
@@ -104,6 +115,7 @@ const ApoiadoresLookup = {
       if (idx == null && cfgAp.COLUNAS[campo.chave] != null) {
         idx = cfgAp.COLUNAS[campo.chave];
       }
+      if (idx != null) idx += offset;
       const bruto = cabecalho && idx != null ? String(cabecalho[idx] ?? "").trim() : "";
       if (bruto) rotulos[campo.prop] = bruto;
     });

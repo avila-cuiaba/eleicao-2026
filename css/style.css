@@ -2911,6 +2911,92 @@ body.page-orcamento-desembolso .orcamento-desembolso-tabela-card .dashboard-tabe
   border-left: 3px solid #0f766e;
 }
 
+/* Classificação (estrelas 0–5) — coluna TIPO da planilha */
+.apoiadores-rating {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.apoiadores-rating--inline {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-top: 0.15rem;
+}
+
+.apoiadores-ident-stack .apoiadores-rating--inline {
+  display: flex;
+  margin-top: 0.2rem;
+}
+
+.apoiadores-rating__estrela {
+  border: none;
+  background: none;
+  padding: 0.05rem 0.12rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.apoiadores-rating__estrela--ativa {
+  color: var(--brand, #1f4e8c);
+}
+
+.apoiadores-rating--somente-leitura .apoiadores-rating__estrela {
+  cursor: default;
+  pointer-events: none;
+  padding: 0;
+  font-size: 0.95rem;
+}
+
+.apoiadores-rating__zerar {
+  margin-right: 0.35rem;
+  padding: 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.apoiadores-rating__zerar:hover {
+  color: var(--brand, #1f4e8c);
+}
+
+.apoiadores-classificacao-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  width: 100%;
+}
+
+.apoiadores-check-usar-classificacao {
+  margin-left: auto;
+}
+
+.apoiadores-check-usar-classificacao .form-check-label {
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.apoiadores-rating--esmaecido .apoiadores-rating__estrela,
+.apoiadores-rating--esmaecido .apoiadores-rating__zerar {
+  opacity: 0.32;
+}
+
+.apoiadores-rating--esmaecido .apoiadores-rating__estrela--ativa {
+  color: #94a3b8;
+}
+
+.apoiadores-modal-linha-tres-apoiadores > [class*="col-"] {
+  min-width: 0;
+}
+
 /* Página apoiadores — layout espelhado do dashboard/pessoal */
 html.apoiadores-page,
 html.apoiador-federal-page,
@@ -2985,6 +3071,126 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
 
 .apoiadores-tabela-card .card-body {
   padding: 0;
+}
+
+.apoiadores-tabela-toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.35rem 0.5rem;
+  padding: 0.3rem 0.55rem;
+  background-color: var(--bs-table-bg, #f8f9fa);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.apoiadores-tabela-toolbar.apoiadores-th-ident-inner--master {
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+.apoiadores-tabela-toolbar .agenda-btn-nova--tabela {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+}
+
+.apoiadores-tabela-toolbar .agenda-btn-nova--tabela svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.apoiadores-tabela-toolbar .apoiadores-busca-campo {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  width: auto;
+}
+
+body.page-parcerias .apoiadores-tabela-toolbar .apoiadores-busca-campo,
+body.page-orcamento-pessoal-apoiadores .apoiadores-tabela-toolbar .apoiadores-busca-campo,
+body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-campo {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  width: auto;
+}
+
+@media (min-width: 992px) {
+  body.page-apoiadores .apoiadores-tabela-toolbar {
+    padding: 0.35rem 0.65rem;
+  }
+
+  body.page-apoiadores .apoiadores-tabela-toolbar .apoiadores-busca-campo {
+    flex: 0 0 33.333%;
+    width: 33.333%;
+    max-width: 14rem;
+    min-width: 9rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  body.page-apoiadores .apoiadores-tabela-toolbar {
+    padding: 0.2rem 0.45rem 0.25rem;
+    gap: 0.3rem;
+  }
+
+  body.page-parcerias .apoiadores-tabela-toolbar,
+  body.page-orcamento-pessoal-apoiadores .apoiadores-tabela-toolbar,
+  body.page-pagamentos-lideranca .apoiadores-tabela-toolbar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.45rem 0.25rem;
+  }
+
+  body.page-parcerias .apoiadores-tabela-toolbar .apoiadores-busca-campo,
+  body.page-orcamento-pessoal-apoiadores .apoiadores-tabela-toolbar .apoiadores-busca-campo,
+  body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-campo {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    width: auto;
+  }
+
+  body.page-parcerias .apoiadores-tabela-toolbar .apoiadores-busca-input,
+  body.page-orcamento-pessoal-apoiadores .apoiadores-tabela-toolbar .apoiadores-busca-input,
+  body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-input {
+    font-size: 0.72rem;
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
+    padding-left: 1.5rem;
+  }
+
+  body.page-parcerias .apoiadores-th-ident .apoiadores-th-ident-inner,
+  body.page-orcamento-pessoal-apoiadores .apoiadores-th-ident .apoiadores-th-ident-inner,
+  body.page-pagamentos-lideranca .apoiadores-th-ident .apoiadores-th-ident-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.12rem;
+  }
+
+  body.page-parcerias .apoiadores-tabela th.apoiadores-th-ident,
+  body.page-orcamento-pessoal-apoiadores .apoiadores-tabela th.apoiadores-th-ident,
+  body.page-pagamentos-lideranca .apoiadores-tabela th.apoiadores-th-ident {
+    padding-top: 0.28rem;
+    padding-bottom: 0.28rem;
+    line-height: 1.1;
+  }
+
+  body.page-parcerias .apoiadores-th-mobile-linha.apoiadores-th-ordenavel,
+  body.page-orcamento-pessoal-apoiadores .apoiadores-th-mobile-linha.apoiadores-th-ordenavel,
+  body.page-pagamentos-lideranca .apoiadores-th-mobile-linha.apoiadores-th-ordenavel {
+    flex-wrap: nowrap;
+    gap: 0.2rem;
+  }
 }
 
 .apoiadores-th-ident-inner {
@@ -3100,6 +3306,58 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
   vertical-align: bottom;
 }
 
+.apoiadores-th-ordenavel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.apoiadores-th-mobile-linha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.apoiadores-th-sort {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.apoiadores-th-sort-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  line-height: 0;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.apoiadores-th-sort-btn:hover {
+  color: #475569;
+}
+
+.apoiadores-th-sort-btn.is-ativo {
+  color: #1f4e8c;
+}
+
+.apoiadores-th-sort-icone {
+  width: 0.55rem;
+  height: 0.34rem;
+  display: block;
+}
+
 .apoiadores-th-sub-municipio {
   display: none;
   font-size: 0.58rem;
@@ -3120,6 +3378,40 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
   align-items: flex-start;
   min-width: 0;
   gap: 0.08rem;
+}
+
+.apoiadores-ident-meta {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.apoiadores-ident-meta .apoiadores-rating--inline {
+  flex-shrink: 0;
+}
+
+.apoiadores-ident-meta .apoiadores-sub-fin-total {
+  display: inline-block;
+  margin: 0;
+}
+
+.apoiadores-ident-meta .apoiadores-fin-badge {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.apoiadores-celula-desktop .apoiadores-ident-stack {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .apoiadores-ident-nome {
@@ -3331,7 +3623,14 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela col.apoiadore
     display: none !important;
   }
 
-  .apoiadores-th-mobile,
+  .apoiadores-th-mobile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.12rem;
+    width: 100%;
+  }
+
   .apoiadores-celula-mobile {
     display: block;
     width: 100%;
@@ -3348,6 +3647,15 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela col.apoiadore
 
   .apoiadores-celula-mobile .apoiadores-ident-stack {
     gap: 0.12rem;
+  }
+
+  .apoiadores-ident-stack--mobile .apoiadores-sub-municipio {
+    order: 2;
+  }
+
+  .apoiadores-ident-stack--mobile .apoiadores-ident-meta {
+    order: 3;
+    flex-wrap: wrap;
   }
 
   .apoiadores-tabela {
@@ -3375,18 +3683,21 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela col.apoiadore
 
   .apoiadores-th-ident-inner {
     flex-direction: column;
-    align-items: stretch;
-    gap: 0.25rem;
+    align-items: flex-start;
+    gap: 0.2rem;
   }
 
-  .apoiadores-tabela:not(.orcamento-tabela) .apoiadores-th-ident-inner .apoiadores-busca-campo {
-    order: 1;
-    max-width: none;
-    flex-basis: auto;
+  body.page-apoiadores .apoiadores-tabela-toolbar {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    padding: 0.2rem 0.45rem 0.25rem;
+    gap: 0.3rem;
   }
 
   .apoiadores-th-ident-inner .apoiadores-th-mobile {
-    order: 2;
+    order: 0;
+    display: flex !important;
   }
 
   .apoiadores-tabela col.apoiadores-col-ident {
@@ -3472,25 +3783,17 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela col.apoiadore
   }
 
   body.page-apoiadores .apoiadores-th-ident-inner {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 0.25rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
   }
 
   body.page-apoiadores .apoiadores-th-ident-inner .apoiadores-th-mobile {
-    display: none;
+    display: flex !important;
   }
 
-  body.page-apoiadores .apoiadores-tabela:not(.orcamento-tabela) .apoiadores-th-ident-inner .apoiadores-busca-campo {
-    order: 0;
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: none;
-  }
-
-  body.page-apoiadores .apoiadores-th-ident-inner .agenda-btn-nova--tabela {
-    flex-shrink: 0;
+  body.page-apoiadores .apoiadores-tabela th.apoiadores-th-ident {
+    white-space: normal;
   }
 
   body.page-apoiadores .apoiadores-tabela tr.apoiadores-th-apoiador-desk,
@@ -3560,6 +3863,12 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela col.apoiadore
 
 .apoiadores-col-ident .apoiadores-celula-texto-wrap {
   justify-content: flex-start;
+  min-width: 0;
+}
+
+.apoiadores-col-ident .apoiadores-celula-desktop {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .apoiadores-celula-texto-wrap > .crud-acoes-icones,
@@ -5557,7 +5866,7 @@ button.lista-evento-acao:focus-visible {
 
 .lista-evento-data {
   flex-shrink: 0;
-  width: 44px;
+  width: 52px;
   text-align: center;
   line-height: 1.1;
 }
@@ -5573,6 +5882,15 @@ button.lista-evento-acao:focus-visible {
   display: block;
   font-size: 0.72rem;
   text-transform: uppercase;
+  color: #6b7785;
+}
+
+.lista-evento-semana {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.62rem;
+  font-weight: 500;
+  line-height: 1.15;
   color: #6b7785;
 }
 
@@ -5622,6 +5940,41 @@ button.lista-evento-acao:focus-visible {
 
 .dashboard-micro-row {
   --bs-gutter-x: 0.5rem;
+}
+
+.dashboard-filtros-regiao-wrap,
+.pessoal-filtros-regiao-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.page-dashboard .dashboard-filtro-visualizar-nulos.form-check,
+.page-pessoal .pessoal-filtro-visualizar-nulos.form-check {
+  margin-left: 0.7rem;
+  padding-left: 1.35rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.page-dashboard .dashboard-filtro-visualizar-nulos .form-check-input,
+.page-pessoal .pessoal-filtro-visualizar-nulos .form-check-input {
+  margin-left: -1.35rem;
+}
+
+.page-dashboard .dashboard-filtro-visualizar-nulos .form-check-label,
+.page-pessoal .pessoal-filtro-visualizar-nulos .form-check-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.25;
+}
+
+.page-dashboard .dashboard-filtro-visualizar-nulos .form-check-input:checked ~ .form-check-label,
+.page-pessoal .pessoal-filtro-visualizar-nulos .form-check-input:checked ~ .form-check-label {
+  color: #1e293b;
+  font-weight: 600;
 }
 
 .dashboard-resumo-kpis {
@@ -8621,6 +8974,11 @@ body.page-pessoal-pagamentos .crud-busca-campo {
   cursor: not-allowed;
 }
 
+.contratos-form-campos input.contratos-valor-contrato--somente-leitura {
+  background-color: var(--bs-light, #f8f9fa);
+  cursor: default;
+}
+
 .contratos-form-campos .form-check-input:disabled {
   cursor: not-allowed;
   opacity: 1;
@@ -8652,6 +9010,268 @@ body.page-pessoal-pagamentos .crud-busca-campo {
 .contratos-form-campos .col-6 .contratos-btn-desbloquear-campo {
   width: 1.75rem;
   height: 1.75rem;
+}
+
+.contratos-painel-lideranca {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  background: #f8fafc;
+}
+
+.contratos-painel-lideranca--extrapolado {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.contratos-painel-lideranca-cab {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.contratos-painel-lideranca-ident {
+  min-width: 0;
+}
+
+.contratos-painel-lideranca-nome {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  line-height: 1.25;
+}
+
+.contratos-painel-lideranca-municipio {
+  font-size: 0.75rem;
+  line-height: 1.3;
+  margin-top: 0.1rem;
+}
+
+.contratos-painel-lideranca-titulo {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+  text-transform: lowercase;
+}
+
+.contratos-painel-lideranca-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+}
+
+.contratos-painel-lideranca-tabela {
+  font-size: 0.72rem;
+  margin-bottom: 0.35rem;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.contratos-painel-lideranca-tabela th,
+.contratos-painel-lideranca-tabela td {
+  padding: 0.4rem 0.45rem;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contratos-painel-lideranca-tabela th:nth-child(1),
+.contratos-painel-lideranca-tabela td:nth-child(1) {
+  width: 30%;
+}
+
+.contratos-painel-lideranca-tabela th:nth-child(n + 2),
+.contratos-painel-lideranca-tabela td:nth-child(n + 2) {
+  width: 14%;
+}
+
+.contratos-painel-lideranca-tabela th.text-end,
+.contratos-painel-lideranca-tabela td.text-end {
+  padding-right: 0.75rem;
+  padding-left: 0.4rem;
+}
+
+.contratos-painel-lideranca-tabela th.text-center,
+.contratos-painel-lideranca-tabela td.text-center {
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+
+.contratos-painel-lideranca-tabela th {
+  font-weight: 600;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+.contratos-painel-lideranca-tabela .contratos-painel-col-meta {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.contratos-painel-lideranca-tabela thead .contratos-painel-col-meta {
+  background: #e0e7ff;
+  color: #312e81;
+}
+
+.contratos-painel-lideranca-tabela .contratos-painel-col-uso {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.contratos-painel-lideranca-tabela thead .contratos-painel-col-uso {
+  background: #d1fae5;
+  color: #064e3b;
+}
+
+.contratos-painel-lideranca-linha-total td {
+  border-top-width: 2px;
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+  font-size: 0.74rem;
+}
+
+.contratos-painel-lideranca-linha--alerta td {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.contratos-painel-lideranca-total--alerta {
+  color: #b45309;
+  font-weight: 600;
+}
+
+@media (max-width: 767.98px) {
+  .contratos-painel-lideranca .table-responsive {
+    overflow-x: visible;
+  }
+
+  .contratos-painel-lideranca-tabela {
+    display: block;
+    table-layout: auto;
+  }
+
+  .contratos-painel-lideranca-tabela thead,
+  .contratos-painel-lideranca-tabela tbody,
+  .contratos-painel-lideranca-tabela tfoot {
+    display: block;
+  }
+
+  .contratos-painel-lideranca-tabela tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.95fr) minmax(0, 0.8fr);
+    grid-template-rows: auto auto;
+    width: 100%;
+  }
+
+  .contratos-painel-lideranca-tabela thead tr {
+    margin-bottom: 0.15rem;
+  }
+
+  .contratos-painel-lideranca-tabela tbody tr,
+  .contratos-painel-lideranca-tabela tfoot tr {
+    margin-bottom: 0.35rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .contratos-painel-lideranca-tabela tbody tr:last-child,
+  .contratos-painel-lideranca-tabela tfoot tr {
+    margin-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .contratos-painel-lideranca-tabela th,
+  .contratos-painel-lideranca-tabela td {
+    display: block;
+    width: auto !important;
+    border: 1px solid #e2e8f0;
+    box-sizing: border-box;
+  }
+
+  .contratos-painel-lideranca-tabela .contratos-painel-col-tipo {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+  }
+
+  .contratos-painel-lideranca-tabela th:nth-child(2),
+  .contratos-painel-lideranca-tabela td:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .contratos-painel-lideranca-tabela th:nth-child(3),
+  .contratos-painel-lideranca-tabela td:nth-child(3) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .contratos-painel-lideranca-tabela th:nth-child(4),
+  .contratos-painel-lideranca-tabela td:nth-child(4) {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .contratos-painel-lideranca-tabela th:nth-child(5),
+  .contratos-painel-lideranca-tabela td:nth-child(5) {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .contratos-painel-lideranca-tabela th:nth-child(2),
+  .contratos-painel-lideranca-tabela td:nth-child(2),
+  .contratos-painel-lideranca-tabela th:nth-child(3),
+  .contratos-painel-lideranca-tabela td:nth-child(3),
+  .contratos-painel-lideranca-tabela th:nth-child(4),
+  .contratos-painel-lideranca-tabela td:nth-child(4),
+  .contratos-painel-lideranca-tabela th:nth-child(5),
+  .contratos-painel-lideranca-tabela td:nth-child(5) {
+    text-align: center !important;
+  }
+
+  .contratos-painel-lideranca-tabela th:nth-child(6),
+  .contratos-painel-lideranca-tabela td:nth-child(6) {
+    grid-column: 4;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center !important;
+    width: 100%;
+  }
+
+  .contratos-painel-lideranca-tabela th:nth-child(6) strong,
+  .contratos-painel-lideranca-tabela td:nth-child(6) strong {
+    width: 100%;
+    text-align: center;
+  }
+
+  .contratos-painel-lideranca-tabela th,
+  .contratos-painel-lideranca-tabela td {
+    padding: 0.28rem 0.35rem;
+    font-size: 0.68rem;
+  }
+
+  .contratos-painel-lideranca-linha-total td {
+    font-size: 0.7rem;
+  }
+}
+
+.contratos-row-nome-assinado {
+  align-items: flex-end;
+}
+
+.contratos-row-nome-assinado .contratos-col-nome-assinado-assinado .contratos-form-check {
+  margin-bottom: 0.25rem;
 }
 
 .pagamentos-selecao-tabela th,
@@ -8888,6 +9508,42 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
 
   body.page-pessoal-pagamentos .contratos-th-stack-head--unico span {
     font-size: 0.78rem;
+  }
+
+  body.page-pessoal-pagamentos .contratos-th-stack-head--ordenacao {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.2rem;
+  }
+
+  body.page-pessoal-pagamentos .contratos-th-stack-ordenavel-linha {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+  }
+
+  body.page-pessoal-pagamentos .contratos-th-stack-head--ordenacao .apoiadores-th-ordenavel {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+    max-width: 100%;
+    font-weight: 700;
+    font-size: 0.68rem;
+    color: #475569;
+    text-transform: lowercase;
+  }
+
+  body.page-pessoal-pagamentos .contratos-th-stack-head--ordenacao .apoiadores-th-ordenavel-rotulo {
+    flex: 0 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  body.page-pessoal-pagamentos .contratos-th-stack-head--ordenacao .apoiadores-th-sort {
+    flex-shrink: 0;
   }
 }
 

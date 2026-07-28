@@ -147,6 +147,15 @@
       filtros.push({ nome, ativo: !todos || nenhum, valor });
     });
 
+    const visualizarNulos = doc.getElementById("visualizarRegistrosNulos");
+    if (visualizarNulos) {
+      filtros.push({
+        nome: "visualizar registros nulos",
+        ativo: visualizarNulos.checked,
+        valor: visualizarNulos.checked ? "ativado" : "desativado",
+      });
+    }
+
     doc.querySelectorAll(".entregas-filtro-municipios").forEach((grupo) => {
       const radios = Array.from(grupo.querySelectorAll('input[type="radio"]'));
       const checks = Array.from(grupo.querySelectorAll('input[type="checkbox"]'));
@@ -440,8 +449,71 @@
 
   coletarListasAgenda(doc) {
     const blocos = [];
+    const esc = (v) => Relatorio.escapeHtml(v);
+    const MESES_EXTENSO = [
+      "janeiro",
+      "fevereiro",
+      "março",
+      "abril",
+      "maio",
+      "junho",
+      "julho",
+      "agosto",
+      "setembro",
+      "outubro",
+      "novembro",
+      "dezembro",
+    ];
+    const DIAS_SEMANA = [
+      "domingo",
+      "segunda",
+      "terça",
+      "quarta",
+      "quinta",
+      "sexta",
+      "sábado",
+    ];
 
-    function listaParaTabela(container, titulo, headers, colunas) {
+    function htmlTituloOrigem(tituloItem, origem) {
+      const titulo = String(tituloItem || "").trim() || "—";
+      const orig = String(origem || "").trim();
+      let html = '<div class="agenda-rel-titulo-stack">';
+      html += `<div class="agenda-rel-titulo">${esc(titulo)}</div>`;
+      if (orig) {
+        html += `<div class="agenda-rel-origem">${esc(orig)}</div>`;
+      }
+      html += "</div>";
+      return html;
+    }
+
+    function parseDataItem(item, dataDia, dataMes) {
+      const iso = String(item.getAttribute("data-data") || "").trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(iso)) {
+        const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+        const dt = new Date(y, m - 1, d);
+        if (!isNaN(dt.getTime())) return dt;
+      }
+      const dia = parseInt(String(dataDia || "").replace(/\D/g, ""), 10);
+      if (!dia) return null;
+      const agora = new Date();
+      return new Date(agora.getFullYear(), agora.getMonth(), dia);
+    }
+
+    function htmlDataExtenso(dt) {
+      if (!dt || isNaN(dt.getTime())) return "—";
+      const dia = dt.getDate();
+      const mes = MESES_EXTENSO[dt.getMonth()] || "";
+      const ano = dt.getFullYear();
+      const semana = DIAS_SEMANA[dt.getDay()] || "";
+      return (
+        '<div class="agenda-rel-data-stack">' +
+        `<div class="agenda-rel-data-extenso">${esc(`${dia} ${mes} ${ano}`)}</div>` +
+        `<div class="agenda-rel-data-semana">(${esc(semana)})</div>` +
+        "</div>"
+      );
+    }
+
+    function listaParaTabela(container, titulo, headers, colunas, classesTh) {
       if (!container || !Relatorio.elementoParaRelatorio(container)) return;
       const itens = Array.from(container.querySelectorAll(".lista-evento-item")).filter((el) =>
         Relatorio.elementoParaRelatorio(el)
@@ -463,21 +535,30 @@
             "";
           const dataDia = item.querySelector(".lista-evento-dia")?.textContent?.trim() || "";
           const dataMes = item.querySelector(".lista-evento-mes")?.textContent?.trim() || "";
-          const data = [dataDia, dataMes].filter(Boolean).join(" ");
-          const cols = colunas.map(
-            (fn) =>
-              "<td>" +
-              Relatorio.escapeHtml(fn({ tituloItem, origem, detalhe, descricao, data })) +
-              "</td>"
-          );
+          const dataDt = parseDataItem(item, dataDia, dataMes);
+          const data = dataDt
+            ? `${dataDt.getDate()} ${MESES_EXTENSO[dataDt.getMonth()] || ""} ${dataDt.getFullYear()}`
+            : [dataDia, dataMes].filter(Boolean).join(" ");
+          const cols = colunas.map((fn, i) => {
+            const cel = fn({ tituloItem, origem, detalhe, descricao, data, dataDt });
+            const html = cel && typeof cel === "object" && cel.html != null ? cel.html : esc(cel);
+            const cls = classesTh && classesTh[i] ? ` class="${classesTh[i]}"` : "";
+            return "<td" + cls + ">" + html + "</td>";
+          });
           return "<tr>" + cols.join("") + "</tr>";
+        })
+        .join("");
+      const ths = headers
+        .map((h, i) => {
+          const cls = classesTh && classesTh[i] ? ` class="${classesTh[i]}"` : "";
+          return "<th" + cls + ">" + esc(h) + "</th>";
         })
         .join("");
       blocos.push({
         titulo,
         html:
-          '<table class="rel-tabela"><thead><tr>' +
-          headers.map((h) => "<th>" + Relatorio.escapeHtml(h) + "</th>").join("") +
+          '<table class="rel-tabela agenda-rel-tabela"><thead><tr>' +
+          ths +
           "</tr></thead><tbody>" +
           linhas +
           "</tbody></table>",
@@ -487,15 +568,24 @@
     listaParaTabela(
       doc.getElementById("listaEventos"),
       "atividades",
-      ["data", "título", "origem", "detalhes"],
-      [(r) => r.data, (r) => r.tituloItem, (r) => r.origem, (r) => [r.detalhe, r.descricao].filter(Boolean).join(" · ")]
+      ["data", "título", "detalhes"],
+      [
+        (r) => ({ html: htmlDataExtenso(r.dataDt) }),
+        (r) => ({ html: htmlTituloOrigem(r.tituloItem, r.origem) }),
+        (r) => [r.detalhe, r.descricao].filter(Boolean).join(" · "),
+      ],
+      ["agenda-rel-col-data", "agenda-rel-col-titulo", "agenda-rel-col-detalhes"]
     );
 
     listaParaTabela(
       doc.getElementById("listaTarefas"),
       "tarefas",
-      ["título", "origem", "detalhes"],
-      [(r) => r.tituloItem, (r) => r.origem, (r) => [r.detalhe, r.descricao].filter(Boolean).join(" · ")]
+      ["título", "detalhes"],
+      [
+        (r) => ({ html: htmlTituloOrigem(r.tituloItem, r.origem) }),
+        (r) => [r.detalhe, r.descricao].filter(Boolean).join(" · "),
+      ],
+      ["agenda-rel-col-titulo", "agenda-rel-col-detalhes"]
     );
 
     return blocos;

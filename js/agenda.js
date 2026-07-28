@@ -3,6 +3,16 @@
 let ui = {};
 
 const DIAS_SEM = ["S", "T", "Q", "Q", "S", "S", "D"];
+const DIAS_SEMANA_EXTENSO = [
+  "domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado",
+];
+
+function mesAbreviadoCardAgenda(data) {
+  return new Intl.DateTimeFormat("pt-BR", { month: "short" })
+    .format(data)
+    .replace(/\./g, "")
+    .toUpperCase();
+}
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
@@ -412,11 +422,19 @@ function htmlItemCompromisso(ev) {
   const hora = ev.diaInteiro ? "dia inteiro" : AgendaAPI.fmtHora.format(inicio);
   const origem = normalizarOrigem(ev.origem);
   const rotuloOrigem = ev.origemTitulo || ORIGENS[origem]?.rotulo || origem;
+  const dataIso = AgendaAPI.paraInputData
+    ? AgendaAPI.paraInputData(dataExibida)
+    : [
+        dataExibida.getFullYear(),
+        String(dataExibida.getMonth() + 1).padStart(2, "0"),
+        String(dataExibida.getDate()).padStart(2, "0"),
+      ].join("-");
   return `
-    <button type="button" class="lista-evento-item lista-evento-${origem} lista-evento-acao" data-id="${escapar(ev.id)}">
+    <button type="button" class="lista-evento-item lista-evento-${origem} lista-evento-acao" data-id="${escapar(ev.id)}" data-data="${escapar(dataIso)}">
       <div class="lista-evento-data">
         <span class="lista-evento-dia">${dataExibida.getDate()}</span>
-        <span class="lista-evento-mes">${new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(dataExibida)}</span>
+        <span class="lista-evento-mes">${mesAbreviadoCardAgenda(dataExibida)}</span>
+        <span class="lista-evento-semana">${DIAS_SEMANA_EXTENSO[dataExibida.getDay()] || ""}</span>
       </div>
       <div class="lista-evento-corpo text-start">
         <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -1020,6 +1038,32 @@ function initAgenda() {
 }
 
 window.atualizarPagina = carregarEventos;
+
+function estilosRelatorioPagina() {
+  return (
+    ".page-agenda .rel-secao{margin:0.45rem 0 0.55rem;page-break-inside:auto;break-inside:auto;}" +
+    ".page-agenda .rel-secao h2{margin-bottom:0.35rem;page-break-after:avoid;break-after:avoid-page;}" +
+    ".page-agenda .rel-secao + .rel-secao{page-break-before:avoid;break-before:avoid-page;margin-top:0.25rem;}" +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela{table-layout:fixed;width:100%;margin-top:0.15rem;}" +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela th.agenda-rel-col-data," +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-col-data{width:15%;vertical-align:top;}" +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela th.agenda-rel-col-titulo," +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-col-titulo{width:35%;vertical-align:top;}" +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela th.agenda-rel-col-detalhes," +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-col-detalhes{width:50%;vertical-align:top;}" +
+    ".page-agenda .agenda-rel-titulo-stack,.page-agenda .agenda-rel-data-stack{display:block;line-height:1.3;}" +
+    ".page-agenda .agenda-rel-titulo{font-weight:600;color:#1e293b;}" +
+    ".page-agenda .agenda-rel-origem{margin-top:0.12rem;font-size:8pt;color:#64748b;font-weight:400;}" +
+    ".page-agenda .agenda-rel-data-extenso{font-weight:600;color:#1e293b;font-size:8.5pt;line-height:1.25;}" +
+    ".page-agenda .agenda-rel-data-semana{margin-top:0.08rem;font-size:7.5pt;color:#64748b;font-weight:400;}" +
+    "@media print{" +
+    ".page-agenda .rel-secao{page-break-inside:auto!important;break-inside:auto!important;}" +
+    ".page-agenda .rel-secao + .rel-secao{page-break-before:avoid!important;break-before:avoid-page!important;}" +
+    "}"
+  );
+}
+
+window.estilosRelatorioPagina = estilosRelatorioPagina;
 
 AUTH.exigir();
 document.addEventListener("DOMContentLoaded", initAgenda);

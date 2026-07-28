@@ -236,14 +236,29 @@ function linhasFiltradas() {
   });
 }
 
-function ordenarLinhas(a, b) {
-  const pa = String(a.parceria ?? "").trim();
-  const pb = String(b.parceria ?? "").trim();
-  const cmp = pa.localeCompare(pb, "pt-BR", { sensitivity: "base" });
-  if (cmp !== 0) return cmp;
-  return String(a.municipio ?? "").localeCompare(String(b.municipio ?? ""), "pt-BR", {
-    sensitivity: "base",
-  });
+const ordenacaoParcerias = { col: "parceria", dir: "asc" };
+
+function cmpParceriaOrdem(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(a.parceria, b.parceria);
+  if (c) return c;
+  return T.cmpTexto(a.municipio, b.municipio);
+}
+
+function cmpMunicipioParceriaOrdem(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(a.municipio, b.municipio);
+  if (c) return c;
+  return T.cmpTexto(a.parceria, b.parceria);
+}
+
+const COMPARADORES_ORDENACAO_PARCERIAS = {
+  parceria: cmpParceriaOrdem,
+  municipio: cmpMunicipioParceriaOrdem,
+};
+
+function aplicarOrdenacaoParcerias(lista) {
+  return TabelaOrdenacao.aplicar(lista, ordenacaoParcerias, COMPARADORES_ORDENACAO_PARCERIAS);
 }
 
 function linhaTemConteudo(item) {
@@ -276,7 +291,6 @@ function extrairLinhas(valores) {
     itens.push(item);
   }
 
-  itens.sort(ordenarLinhas);
   return itens;
 }
 
@@ -411,7 +425,7 @@ function renderizarLinha(r) {
 
 function renderizarTabela() {
   const selecionadas = regioesSelecionadas();
-  const filtradas = [...linhasFiltradas()].sort(ordenarLinhas);
+  const filtradas = aplicarOrdenacaoParcerias(linhasFiltradas());
 
   el.vazio.hidden = true;
 
@@ -497,6 +511,10 @@ function initParcerias() {
     kpiOrcamento: document.getElementById("kpiOrcamento"),
   };
   if (!el.corpo || !el.filtroRegioes) return;
+
+  const cardOrdenacao = document.querySelector(".parcerias-tabela-card");
+  TabelaOrdenacao.montarCabecalhoParceriaMunicipio(cardOrdenacao);
+  TabelaOrdenacao.vincular(cardOrdenacao, ordenacaoParcerias, renderizarTabela, "ordenacaoParcerias");
 
   el.buscaParceria?.addEventListener("input", renderizarTabela);
   initPageSmTabs(alinharColunasTabela);

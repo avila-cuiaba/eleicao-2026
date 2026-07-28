@@ -42,9 +42,11 @@ let colunaMunicipio = null;
 let colunaVinculo = null;
 let colunaLancarSistema = null;
 let colunaValorContrato = null;
+let colunaTipoContrato = null;
 let colunaAssinado = null;
 let listaMunicipiosForm = [];
 let coordenadoresPorMunicipio = new Map();
+let apoiadorPorMunLider = new Map();
 let cacheValoresReferenciaContrato = null;
 let promessaValoresReferenciaContrato = null;
 let linhaParaDestaqueSalvo = null;
@@ -201,8 +203,47 @@ function aplicarBusca(lista) {
   );
 }
 
+const ordenacaoContratos = { col: "nome", dir: "asc" };
+
+function cmpContratoNome(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(valorItem(a, colunaNome), valorItem(b, colunaNome));
+  if (c) return c;
+  c = T.cmpTexto(valorItem(a, colunaMunicipio), valorItem(b, colunaMunicipio));
+  if (c) return c;
+  return T.cmpTexto(valorItem(a, colunaVinculo), valorItem(b, colunaVinculo));
+}
+
+function cmpContratoMunicipio(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(valorItem(a, colunaMunicipio), valorItem(b, colunaMunicipio));
+  if (c) return c;
+  c = T.cmpTexto(valorItem(a, colunaNome), valorItem(b, colunaNome));
+  if (c) return c;
+  return T.cmpTexto(valorItem(a, colunaVinculo), valorItem(b, colunaVinculo));
+}
+
+function cmpContratoLideranca(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(valorItem(a, colunaVinculo), valorItem(b, colunaVinculo));
+  if (c) return c;
+  c = T.cmpTexto(valorItem(a, colunaNome), valorItem(b, colunaNome));
+  if (c) return c;
+  return T.cmpTexto(valorItem(a, colunaMunicipio), valorItem(b, colunaMunicipio));
+}
+
+const COMPARADORES_ORDENACAO_CONTRATOS = {
+  nome: cmpContratoNome,
+  municipio: cmpContratoMunicipio,
+  lideranca: cmpContratoLideranca,
+};
+
+function aplicarOrdenacaoContratos(lista) {
+  return TabelaOrdenacao.aplicar(lista, ordenacaoContratos, COMPARADORES_ORDENACAO_CONTRATOS);
+}
+
 function linhasFiltradas() {
-  return aplicarBusca(linhas.slice());
+  return aplicarOrdenacaoContratos(aplicarBusca(linhas.slice()));
 }
 
 function cpfSomenteDigitos(valor) {
@@ -305,35 +346,481 @@ function indiceColunaApoiadores(cabecalho, aliases, fallback) {
   return fallback;
 }
 
+function parseNumeroPlanilha(v) {
+  if (typeof v === "number" && !isNaN(v)) return v;
+  if (v == null || v === "") return 0;
+  const s = String(v).trim().replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+const CATEGORIAS_TIPO_CONTRATO = [
+  {
+    id: "lider",
+    rotulo: "líder",
+    tipoNorm: "apoiador lider",
+    fin: "finLider",
+    qtd: "apoiadorLider",
+  },
+  {
+    id: "integral",
+    rotulo: "integral",
+    tipoNorm: "apoiador periodo integral",
+    fin: "finIntegral",
+    qtd: "apoiadorIntegral",
+  },
+  {
+    id: "meio",
+    rotulo: "meio período",
+    tipoNorm: "apoiador meio periodo",
+    fin: "finMeio",
+    qtd: "apoiadorMeio",
+  },
+  {
+    id: "customizado",
+    rotulo: "customizado",
+    tipoNorm: "apoiador customizado",
+    fin: "finCustomizado",
+    qtd: "apoiadorCustomizado",
+  },
+];
+
+function chaveMunLider(municipio, lideranca) {
+  return (
+    PlanilhaApi.normalizarChave(municipio) + "|" + PlanilhaApi.normalizarChave(lideranca)
+  );
+}
+
+function categoriaTipoContrato(tipo) {
+  const n = PlanilhaApi.normalizarChave(tipo);
+  const cat = CATEGORIAS_TIPO_CONTRATO.find((c) => c.tipoNorm === n);
+  return cat ? cat.id : null;
+}
+
+function indicesLinhaApoiadores(cab) {
+  return {
+    lideranca: indiceColunaApoiadores(
+      cab,
+      ["lideranca", "liderança"],
+      cfgAp.COLUNAS.LIDERANCA
+    ),
+    municipio: indiceColunaApoiadores(
+      cab,
+      ["municipio", "município"],
+      cfgAp.COLUNAS.MUNICIPIO
+    ),
+    proprioApoiador: indiceColunaApoiadores(
+      cab,
+      ["proprio-apoiador", "proprio apoiador", "próprio apoiador"],
+      cfgAp.COLUNAS.PROPRIO_APOIADOR
+    ),
+    apoiadorLider: indiceColunaApoiadores(
+      cab,
+      ["apoiador-lider", "apoiador lider", "lider"],
+      cfgAp.COLUNAS.APOIADOR_LIDER
+    ),
+    apoiadorIntegral: indiceColunaApoiadores(
+      cab,
+      ["apoiador-integral", "apoiador integral", "integral"],
+      cfgAp.COLUNAS.APOIADOR_INTEGRAL
+    ),
+    apoiadorMeio: indiceColunaApoiadores(
+      cab,
+      ["apoiador-meio", "apoiador meio", "meio"],
+      cfgAp.COLUNAS.APOIADOR_MEIO
+    ),
+    apoiadorCustomizado: indiceColunaApoiadores(
+      cab,
+      ["apoiador-customizado", "apoiador customizado", "customizado"],
+      cfgAp.COLUNAS.APOIADOR_CUSTOMIZADO
+    ),
+    finLider: cfgAp.COLUNAS.FIN_LIDER,
+    finIntegral: cfgAp.COLUNAS.FIN_INTEGRAL,
+    finMeio: cfgAp.COLUNAS.FIN_MEIO,
+    finCustomizado: cfgAp.COLUNAS.FIN_CUSTOMIZADO,
+  };
+}
+
+function extrairItemApoiadores(valores, linha, idx) {
+  const row = valores[linha - 1];
+  if (!row) return null;
+  const lideranca = String(celula(valores, linha, idx.lideranca) ?? "").trim();
+  const municipio = String(celula(valores, linha, idx.municipio) ?? "").trim();
+  if (!lideranca || !municipio) return null;
+  const item = { lideranca, municipio, proprioApoiador: celula(valores, linha, idx.proprioApoiador) };
+  CATEGORIAS_TIPO_CONTRATO.forEach((cat) => {
+    item[cat.fin] = celula(valores, linha, idx[cat.fin]);
+    item[cat.qtd] = celula(valores, linha, idx[cat.qtd]);
+  });
+  return item;
+}
+
 function montarMapaLiderancasPorMunicipio(valoresApoiadores) {
   coordenadoresPorMunicipio = new Map();
+  apoiadorPorMunLider = new Map();
   if (!valoresApoiadores?.length) return;
 
   const cab = valoresApoiadores[0] || [];
-  const idxLider = indiceColunaApoiadores(
-    cab,
-    ["lideranca", "liderança"],
-    cfgAp.COLUNAS.LIDERANCA
-  );
-  const idxMun = indiceColunaApoiadores(
-    cab,
-    ["municipio", "município"],
-    cfgAp.COLUNAS.MUNICIPIO
-  );
+  const idx = indicesLinhaApoiadores(cab);
 
   for (let linha = cfgAp.LINHA_INICIO_DADOS; linha <= valoresApoiadores.length; linha++) {
-    const lideranca = String(celula(valoresApoiadores, linha, idxLider) ?? "").trim();
-    const municipio = String(celula(valoresApoiadores, linha, idxMun) ?? "").trim();
-    if (!lideranca || !municipio) continue;
+    const item = extrairItemApoiadores(valoresApoiadores, linha, idx);
+    if (!item) continue;
 
-    const munNorm = PlanilhaApi.normalizarChave(municipio);
+    const munNorm = PlanilhaApi.normalizarChave(item.municipio);
     if (!coordenadoresPorMunicipio.has(munNorm)) {
       coordenadoresPorMunicipio.set(munNorm, new Map());
     }
     const mapaLider = coordenadoresPorMunicipio.get(munNorm);
-    const lidNorm = PlanilhaApi.normalizarChave(lideranca);
-    if (!mapaLider.has(lidNorm)) mapaLider.set(lidNorm, lideranca);
+    const lidNorm = PlanilhaApi.normalizarChave(item.lideranca);
+    if (!mapaLider.has(lidNorm)) mapaLider.set(lidNorm, item.lideranca);
+
+    apoiadorPorMunLider.set(chaveMunLider(item.municipio, item.lideranca), item);
   }
+}
+
+function apoiadorPlanilhaPara(municipio, lideranca) {
+  if (!municipio || !lideranca) return null;
+  return apoiadorPorMunLider.get(chaveMunLider(municipio, lideranca)) || null;
+}
+
+function agregarContratosLideranca(municipio, lideranca, excluirLinha) {
+  const out = {
+    lider: { qtd: 0, valor: 0 },
+    integral: { qtd: 0, valor: 0 },
+    meio: { qtd: 0, valor: 0 },
+    customizado: { qtd: 0, valor: 0 },
+    valorTotal: 0,
+  };
+  if (!municipio || !lideranca || !colunaMunicipio || !colunaVinculo) return out;
+
+  const munN = PlanilhaApi.normalizarChave(municipio);
+  const lidN = PlanilhaApi.normalizarChave(lideranca);
+
+  for (const item of linhas) {
+    if (excluirLinha && Number(item._linha) === Number(excluirLinha)) continue;
+    const m = PlanilhaApi.normalizarChave(valorItem(item, colunaMunicipio));
+    const l = PlanilhaApi.normalizarChave(valorItem(item, colunaVinculo));
+    if (m !== munN || l !== lidN) continue;
+    const v = numeroMoeda(valorItem(item, colunaValorContrato)) || 0;
+    out.valorTotal += v;
+    const cat = colunaTipoContrato
+      ? categoriaTipoContrato(valorItem(item, colunaTipoContrato))
+      : null;
+    if (cat && out[cat]) {
+      out[cat].qtd += 1;
+      out[cat].valor += v;
+    }
+  }
+  return out;
+}
+
+function agregarContratosLiderancaComFormulario(municipio, lideranca) {
+  const base = agregarContratosLideranca(municipio, lideranca, modoEdicao);
+  const tipo = document.getElementById("campo-tipo-contrato")?.value?.trim() || "";
+  const valor = numeroMoeda(document.getElementById("campo-valor-contrato")?.value) || 0;
+  const cat = categoriaTipoContrato(tipo);
+  if (cat && valor > 0 && base[cat]) {
+    base[cat].qtd += 1;
+    base[cat].valor += valor;
+    base.valorTotal += valor;
+  }
+  return base;
+}
+
+function orcamentoFinApoiador(item, propFin) {
+  return parseNumeroPlanilha(item[propFin]);
+}
+
+function orcamentoFinTotalApoiador(item) {
+  if (!item) return 0;
+  let t = parseNumeroPlanilha(item.proprioApoiador);
+  CATEGORIAS_TIPO_CONTRATO.forEach((cat) => {
+    t += orcamentoFinApoiador(item, cat.fin);
+  });
+  return t;
+}
+
+function obterAlertasLimiteLideranca(municipio, lideranca) {
+  const alertas = [];
+  const ap = apoiadorPlanilhaPara(municipio, lideranca);
+  if (!ap) {
+    if (municipio && lideranca) {
+      alertas.push(
+        "liderança não encontrada na planilha apoiadores para este município."
+      );
+    }
+    return alertas;
+  }
+  const uso = agregarContratosLiderancaComFormulario(municipio, lideranca);
+  CATEGORIAS_TIPO_CONTRATO.forEach((cat) => {
+    const orc = orcamentoFinApoiador(ap, cat.fin);
+    const usado = uso[cat.id].valor;
+    if (orc > 0 && usado > orc + 0.009) {
+      alertas.push(
+        `${cat.rotulo}: soma dos contratos (${valorMoedaGravar(usado)}) ultrapassa o orçamento (${valorMoedaGravar(orc)}).`
+      );
+    }
+    const metaQtd = Math.floor(parseNumeroPlanilha(ap[cat.qtd]));
+    const qtd = uso[cat.id].qtd;
+    if (metaQtd > 0 && qtd > metaQtd) {
+      alertas.push(
+        `${cat.rotulo}: quantidade de contratos (${qtd}) ultrapassa a meta (${metaQtd}) na planilha apoiadores.`
+      );
+    }
+  });
+  const orcTotal = orcamentoFinTotalApoiador(ap);
+  if (orcTotal > 0 && uso.valorTotal > orcTotal + 0.009) {
+    alertas.push(
+      `total dos contratos (${valorMoedaGravar(uso.valorTotal)}) ultrapassa o orçamento da liderança (${valorMoedaGravar(orcTotal)}).`
+    );
+  }
+  return alertas;
+}
+
+function validarPrevisaoSaldoInclusaoContrato(municipio, lideranca, tipo, valorContrato, excluirLinha) {
+  if (!municipio || !lideranca) {
+    return { ok: false, mensagem: "informe município e liderança." };
+  }
+  if (!tipo) {
+    return { ok: false, mensagem: "selecione o tipo de contrato." };
+  }
+
+  const ap = apoiadorPlanilhaPara(municipio, lideranca);
+  if (!ap) {
+    return {
+      ok: false,
+      mensagem:
+        "liderança não encontrada na planilha apoiadores para este município. cadastre em pessoal → apoiadores.",
+    };
+  }
+
+  const catId = categoriaTipoContrato(tipo);
+  const catDef = CATEGORIAS_TIPO_CONTRATO.find((c) => c.id === catId);
+  if (!catDef) {
+    return { ok: true };
+  }
+
+  const orc = orcamentoFinApoiador(ap, catDef.fin);
+  const metaQtd = Math.floor(parseNumeroPlanilha(ap[catDef.qtd]));
+  const temPrevisaoOrcamento = orc > 0;
+  const temPrevisaoQtd = metaQtd > 0;
+
+  if (!temPrevisaoOrcamento && !temPrevisaoQtd) {
+    return {
+      ok: false,
+      mensagem: "sem previsão para este tipo de contrato",
+    };
+  }
+
+  const uso = agregarContratosLideranca(municipio, lideranca, excluirLinha || null);
+  const usadoValor = uso[catId].valor;
+  const qtdContratos = uso[catId].qtd;
+  const valorNovo = numeroMoeda(valorContrato) || 0;
+
+  if (temPrevisaoOrcamento) {
+    const saldoOrc = orc - usadoValor;
+    if (saldoOrc <= 0.009) {
+      return {
+        ok: false,
+        mensagem: `não há saldo de orçamento para «${catDef.rotulo}» (orçamento ${valorMoedaGravar(orc)}, já usado ${valorMoedaGravar(usadoValor)}).`,
+      };
+    }
+    if (valorNovo > saldoOrc + 0.009) {
+      return {
+        ok: false,
+        mensagem: `valor do contrato ultrapassa o saldo de orçamento para «${catDef.rotulo}» (saldo ${valorMoedaGravar(saldoOrc)}).`,
+      };
+    }
+  }
+
+  if (temPrevisaoQtd) {
+    const saldoQtd = metaQtd - qtdContratos;
+    if (saldoQtd <= 0) {
+      return {
+        ok: false,
+        mensagem: `não há saldo de quantidade para «${catDef.rotulo}» (meta ${metaQtd}, já ${qtdContratos} contrato(s)).`,
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
+function htmlPainelLimiteLideranca(municipio, lideranca) {
+  const ap = apoiadorPlanilhaPara(municipio, lideranca);
+  if (!municipio || !lideranca) {
+    return '<p class="contratos-painel-lideranca-vazio small text-muted mb-0">selecione município e liderança para conferir com a planilha apoiadores.</p>';
+  }
+  if (!ap) {
+    return (
+      '<div class="contratos-painel-lideranca-alerta alert alert-warning py-2 px-2 small mb-0" role="status">' +
+      "liderança não encontrada na planilha <strong>apoiadores</strong> para este município. " +
+      'cadastre em <span class="text-nowrap">pessoal → apoiadores</span> antes de distribuir contratos.' +
+      "</div>"
+    );
+  }
+
+  const uso = agregarContratosLiderancaComFormulario(municipio, lideranca);
+  const orcTotal = orcamentoFinTotalApoiador(ap);
+  const extrapolaTotal = orcTotal > 0 && uso.valorTotal > orcTotal + 0.009;
+
+  let linhasHtml = "";
+  let totalQtde = 0;
+  let totalOrcamento = 0;
+  let totalContratos = 0;
+  let totalValores = 0;
+  let totalSaldo = 0;
+  let temQtde = false;
+  let temOrcamento = false;
+
+  CATEGORIAS_TIPO_CONTRATO.forEach((cat) => {
+    const orc = orcamentoFinApoiador(ap, cat.fin);
+    const metaQtd = Math.floor(parseNumeroPlanilha(ap[cat.qtd]));
+    const usado = uso[cat.id].valor;
+    const qtd = uso[cat.id].qtd;
+    const saldo = orc > 0 ? Math.max(0, orc - usado) : null;
+    const extrapolaValor = orc > 0 && usado > orc + 0.009;
+    const extrapolaQtd = metaQtd > 0 && qtd > metaQtd;
+    const cls =
+      extrapolaValor || extrapolaQtd
+        ? " contratos-painel-lideranca-linha--alerta"
+        : "";
+
+    if (metaQtd > 0) {
+      totalQtde += metaQtd;
+      temQtde = true;
+    }
+    if (orc > 0) {
+      totalOrcamento += orc;
+      temOrcamento = true;
+      totalSaldo += saldo;
+    }
+    totalContratos += qtd;
+    totalValores += usado;
+
+    linhasHtml +=
+      `<tr class="${cls.trim()}">` +
+      `<td class="contratos-painel-col-tipo">${escapeHtml(cat.rotulo)}</td>` +
+      `<td class="text-center contratos-painel-col-meta">${metaQtd > 0 ? metaQtd : ""}</td>` +
+      `<td class="text-end contratos-painel-col-meta">${
+        orc > 0 ? escapeHtml(valorMoedaGravar(orc)) : ""
+      }</td>` +
+      `<td class="text-center contratos-painel-col-uso">${qtd > 0 ? qtd : ""}</td>` +
+      `<td class="text-end contratos-painel-col-uso">${
+        usado > 0 ? escapeHtml(valorMoedaGravar(usado)) : ""
+      }</td>` +
+      `<td class="text-end contratos-painel-col-saldo">${
+        saldo != null ? escapeHtml(valorMoedaGravar(saldo)) : ""
+      }</td>` +
+      "</tr>";
+  });
+
+  const badgeExtrapola = extrapolaTotal
+    ? '<span class="contratos-painel-lideranca-badge">acima do orçamento</span>'
+    : "";
+
+  const linhaTotal =
+    "<tr class=\"contratos-painel-lideranca-linha-total\">" +
+    '<td class="contratos-painel-col-tipo"><strong>total</strong></td>' +
+    `<td class="text-center contratos-painel-col-meta"><strong>${
+      temQtde ? totalQtde : ""
+    }</strong></td>` +
+    `<td class="text-end contratos-painel-col-meta"><strong>${
+      temOrcamento ? escapeHtml(valorMoedaGravar(totalOrcamento)) : ""
+    }</strong></td>` +
+    `<td class="text-center contratos-painel-col-uso"><strong>${
+      totalContratos > 0 ? totalContratos : ""
+    }</strong></td>` +
+    `<td class="text-end contratos-painel-col-uso"><strong>${
+      totalValores > 0 ? escapeHtml(valorMoedaGravar(totalValores)) : ""
+    }</strong></td>` +
+    `<td class="text-end contratos-painel-col-saldo"><strong>${
+      temOrcamento ? escapeHtml(valorMoedaGravar(totalSaldo)) : ""
+    }</strong></td>` +
+    "</tr>";
+
+  return (
+    '<div class="contratos-painel-lideranca-inner">' +
+    '<div class="contratos-painel-lideranca-cab">' +
+    '<div class="contratos-painel-lideranca-ident">' +
+    `<div class="contratos-painel-lideranca-nome">${escapeHtml(lideranca)}</div>` +
+    `<div class="contratos-painel-lideranca-municipio text-muted">${escapeHtml(municipio)}</div>` +
+    "</div>" +
+    badgeExtrapola +
+    "</div>" +
+    '<div class="table-responsive">' +
+    '<table class="table table-sm table-bordered mb-0 contratos-painel-lideranca-tabela">' +
+    "<thead><tr>" +
+    '<th class="contratos-painel-col-tipo">tipo apoiador</th>' +
+    '<th class="text-center contratos-painel-col-meta">qtde</th>' +
+    '<th class="text-end contratos-painel-col-meta">orçamento</th>' +
+    '<th class="text-center contratos-painel-col-uso">contratos</th>' +
+    '<th class="text-end contratos-painel-col-uso">valores</th>' +
+    '<th class="text-end contratos-painel-col-saldo">saldo</th>' +
+    "</tr></thead><tbody>" +
+    linhasHtml +
+    "</tbody><tfoot>" +
+    linhaTotal +
+    "</tfoot></table></div></div>"
+  );
+}
+
+function garantirPainelLimiteLideranca() {
+  return document.getElementById("contratosPainelLideranca");
+}
+
+function inserirPainelLimiteLiderancaAposCoordenador() {
+  const existente = document.getElementById("contratosPainelLideranca");
+  if (existente) existente.remove();
+
+  const painelRow = document.createElement("div");
+  painelRow.className = "row g-2 mb-2 contratos-painel-lideranca-row";
+  const col = document.createElement("div");
+  col.className = "col-12";
+  const painel = document.createElement("div");
+  painel.id = "contratosPainelLideranca";
+  painel.className = "contratos-painel-lideranca";
+  painel.setAttribute("aria-live", "polite");
+  col.appendChild(painel);
+  painelRow.appendChild(col);
+
+  const coord = document.getElementById("campo-coordenador");
+  const rowCoord = coord?.closest(".row");
+  if (rowCoord?.parentNode) {
+    rowCoord.parentNode.insertBefore(painelRow, rowCoord.nextSibling);
+    return;
+  }
+  el.formCampos?.appendChild(painelRow);
+}
+
+function atualizarPainelLimiteLideranca() {
+  const painel = garantirPainelLimiteLideranca();
+  if (!painel) return;
+  const municipio = document.getElementById("campo-municipio")?.value?.trim() || "";
+  const lideranca = document.getElementById("campo-coordenador")?.value?.trim() || "";
+  painel.innerHTML = htmlPainelLimiteLideranca(municipio, lideranca);
+  const alertas = obterAlertasLimiteLideranca(municipio, lideranca);
+  painel.classList.toggle("contratos-painel-lideranca--extrapolado", alertas.length > 0);
+}
+
+function vincularVerificacaoLideranca() {
+  const campos = [
+    { id: "campo-municipio", evt: "change" },
+    { id: "campo-coordenador", evt: "change" },
+    { id: "campo-tipo-contrato", evt: "change" },
+    { id: "campo-valor-contrato", evt: "input" },
+  ];
+  campos.forEach(({ id, evt }) => {
+    const node = document.getElementById(id);
+    if (!node) return;
+    if (node._contratosPainelLider) {
+      node.removeEventListener(evt, node._contratosPainelLider);
+    }
+    node._contratosPainelLider = () => atualizarPainelLimiteLideranca();
+    node.addEventListener(evt, node._contratosPainelLider);
+  });
+  atualizarPainelLimiteLideranca();
 }
 
 function coordenadoresDoMunicipio(municipioRotulo) {
@@ -434,29 +921,71 @@ function aplicarValorSugeridoContrato(valorBruto) {
   input.value = formatado;
 }
 
+function tipoContratoEhCustomizado(tipo) {
+  return (
+    PlanilhaApi.normalizarChave(tipo) ===
+    PlanilhaApi.normalizarChave("apoiador customizado")
+  );
+}
+
+function definirValorContratoSomenteLeitura(somenteLeitura) {
+  const input = document.getElementById("campo-valor-contrato");
+  if (!input) return;
+  input.readOnly = somenteLeitura;
+  input.classList.toggle("contratos-valor-contrato--somente-leitura", somenteLeitura);
+  if (somenteLeitura) input.setAttribute("aria-readonly", "true");
+  else input.removeAttribute("aria-readonly");
+}
+
+async function aplicarValorContratoPorTipoSelecionado() {
+  const selTipo = document.getElementById("campo-tipo-contrato");
+  const tipo = selTipo?.value?.trim() || "";
+  if (!tipo) {
+    definirValorContratoSomenteLeitura(true);
+    return;
+  }
+  if (tipoContratoEhCustomizado(tipo)) {
+    definirValorContratoSomenteLeitura(false);
+    return;
+  }
+  definirValorContratoSomenteLeitura(true);
+  const valores = await obterValoresReferenciaContrato();
+  if (!valores) return;
+  const sugerido = valorReferenciaContrato(tipo, valores);
+  if (sugerido !== "" && sugerido != null) {
+    aplicarValorSugeridoContrato(sugerido);
+  }
+}
+
+function vincularFormatacaoValorContrato() {
+  const input = document.getElementById("campo-valor-contrato");
+  if (!input || input.dataset.moedaFormatada === "1") return;
+  input.dataset.moedaFormatada = "1";
+  input.addEventListener("blur", () => {
+    if (input.readOnly) return;
+    const formatado = valorMoedaGravar(input.value);
+    input.value = formatado || "";
+  });
+}
+
 function vincularSugestaoValorContrato() {
   const selTipo = document.getElementById("campo-tipo-contrato");
   const inputValor = document.getElementById("campo-valor-contrato");
   if (!selTipo || !inputValor) return;
+
+  vincularFormatacaoValorContrato();
 
   if (selTipo._contratosMudouTipo) {
     selTipo.removeEventListener("change", selTipo._contratosMudouTipo);
   }
 
   selTipo._contratosMudouTipo = async () => {
-    const tipo = selTipo.value.trim();
-    if (!tipo) return;
-    if (PlanilhaApi.normalizarChave(tipo) === PlanilhaApi.normalizarChave("apoiador customizado")) {
-      return;
-    }
-    const valores = await obterValoresReferenciaContrato();
-    if (!valores) return;
-    const sugerido = valorReferenciaContrato(tipo, valores);
-    if (sugerido === "" || sugerido == null) return;
-    aplicarValorSugeridoContrato(sugerido);
+    await aplicarValorContratoPorTipoSelecionado();
+    atualizarPainelLimiteLideranca();
   };
 
   selTipo.addEventListener("change", selTipo._contratosMudouTipo);
+  aplicarValorContratoPorTipoSelecionado();
 }
 
 function vincularFiltroCoordenador(dados) {
@@ -469,7 +998,10 @@ function vincularFiltroCoordenador(dados) {
   if (selMun._contratosMudouMun) {
     selMun.removeEventListener("change", selMun._contratosMudouMun);
   }
-  selMun._contratosMudouMun = () => repopularSelectCoordenador("", true);
+  selMun._contratosMudouMun = () => {
+    repopularSelectCoordenador("", true);
+    atualizarPainelLimiteLideranca();
+  };
   selMun.addEventListener("change", selMun._contratosMudouMun);
 
   repopularSelectCoordenador(valorCoord, false);
@@ -481,7 +1013,13 @@ function resolverCamposFormulario() {
       ...campo,
       coluna: PlanilhaApi.acharColuna(colunas, campo.aliases, campo.indice),
     }))
-    .filter((campo) => campo.coluna);
+    .filter((campo) => campo.coluna)
+    .filter((campo) => {
+      if (campo.id === "lancar-sistema" && cfg.EXIBIR_CAMPO_LANCAR_SISTEMA_FORMULARIO === false) {
+        return false;
+      }
+      return true;
+    });
 }
 
 function chaveGravacao(coluna) {
@@ -507,14 +1045,38 @@ function valorCheckboxGravar(campo, marcado) {
   return marcado ? "sim" : "não";
 }
 
+function valorExibicaoCampoTexto(campo, valorBruto) {
+  const s = String(valorBruto ?? "").trim();
+  if (!campo.uppercase) return String(valorBruto ?? "");
+  return s.toLocaleUpperCase("pt-BR");
+}
+
+function vincularUppercaseCampoTexto(campo, input) {
+  if (!campo.uppercase || !input || input.dataset.uppercaseVinculado === "1") return;
+  input.dataset.uppercaseVinculado = "1";
+  input.addEventListener("input", () => {
+    const pos = input.selectionStart;
+    input.value = input.value.toLocaleUpperCase("pt-BR");
+    if (pos != null) input.setSelectionRange(pos, pos);
+  });
+  input.addEventListener("blur", () => {
+    input.value = String(input.value || "")
+      .trim()
+      .toLocaleUpperCase("pt-BR");
+  });
+}
+
 function criarCampoTexto(campo, dados, attrs) {
   const id = "campo-" + campo.id;
-  const valor = dados && campo.coluna ? dados[campo.coluna.chave] : "";
+  const valorBruto = dados && campo.coluna ? dados[campo.coluna.chave] : "";
+  const valor = valorExibicaoCampoTexto(campo, valorBruto);
   const wrap = document.createElement("div");
   wrap.className = "mb-1";
   wrap.innerHTML =
     `<label class="${classeRotulo(campo)}" for="${id}">${escapeHtml(campo.rotulo)}</label>` +
     `<input type="text" class="form-control form-control-sm" id="${id}" name="${escapeHtml(chaveGravacao(campo.coluna))}" value="${escapeHtml(String(valor ?? ""))}" autocomplete="off"${attrs || ""}>`;
+  const input = wrap.querySelector("input");
+  vincularUppercaseCampoTexto(campo, input);
   return wrap;
 }
 
@@ -575,6 +1137,16 @@ function criarCampoCheckbox(campo, dados) {
   return wrap;
 }
 
+function classeColunaFormularioContratos(campo, chaveGrupo) {
+  if (chaveGrupo === "nome-assinado") {
+    return campo.id === "nome"
+      ? "col-9 col-lg-10 contratos-col-nome-assinado-nome"
+      : "col-3 col-lg-2 contratos-col-nome-assinado-assinado";
+  }
+  const largura = campo.largura || 12;
+  return largura >= 12 ? "col-12" : "col-12 col-md-" + largura;
+}
+
 function montarFormulario(dados) {
   el.formCampos.innerHTML = "";
   const campos = resolverCamposFormulario();
@@ -601,11 +1173,13 @@ function montarFormulario(dados) {
 
   ordem.forEach((chaveGrupo) => {
     const row = document.createElement("div");
-    row.className = "row g-2 mb-2";
+    row.className =
+      chaveGrupo === "nome-assinado"
+        ? "row g-2 mb-2 contratos-row-nome-assinado"
+        : "row g-2 mb-2";
     grupos.get(chaveGrupo).forEach((campo) => {
       const col = document.createElement("div");
-      const largura = campo.largura || 12;
-      col.className = "col-12 col-md-" + largura;
+      col.className = classeColunaFormularioContratos(campo, chaveGrupo);
 
       if (campo.tipo === "checkbox") {
         col.appendChild(criarCampoCheckbox(campo, dados));
@@ -624,9 +1198,12 @@ function montarFormulario(dados) {
     el.formCampos.appendChild(row);
   });
 
+  inserirPainelLimiteLiderancaAposCoordenador();
+
   vincularFiltroCoordenador(dados);
   vincularSugestaoValorContrato();
   vincularChavePixComCpf();
+  vincularVerificacaoLideranca();
   obterValoresReferenciaContrato();
 }
 
@@ -658,7 +1235,9 @@ function lerFormulario() {
     } else if (campo.tipo === "moeda") {
       dados[chave] = valorMoedaGravar(input.value);
     } else {
-      dados[chave] = input.value.trim();
+      let v = input.value.trim();
+      if (campo.uppercase) v = v.toLocaleUpperCase("pt-BR");
+      dados[chave] = v;
     }
   });
   return dados;
@@ -720,6 +1299,31 @@ async function salvarFormulario(evento) {
     return;
   }
 
+  const municipio = document.getElementById("campo-municipio")?.value?.trim() || "";
+  const lideranca = document.getElementById("campo-coordenador")?.value?.trim() || "";
+  const tipoContrato = document.getElementById("campo-tipo-contrato")?.value?.trim() || "";
+  const valorContrato = document.getElementById("campo-valor-contrato")?.value ?? "";
+
+  const previsaoSaldo = validarPrevisaoSaldoInclusaoContrato(
+    municipio,
+    lideranca,
+    tipoContrato,
+    valorContrato,
+    modoEdicao
+  );
+  if (!previsaoSaldo.ok) {
+    AppToast.show(previsaoSaldo.mensagem, "erro");
+    return;
+  }
+
+  const alertasLimite = obterAlertasLimiteLideranca(municipio, lideranca);
+  if (alertasLimite.length) {
+    const msg =
+      alertasLimite.join("\n") +
+      "\n\ndeseja salvar o contrato mesmo assim?";
+    if (!(await AppConfirm.confirm(msg, { icon: "warning" }))) return;
+  }
+
   setSalvandoModal(true);
 
   try {
@@ -773,6 +1377,11 @@ function resolverColunas() {
     cfg.COLUNA_VALOR_CONTRATO,
     idx.VALOR_CONTRATO
   );
+  colunaTipoContrato = PlanilhaApi.acharColuna(
+    colunas,
+    ["tipo-contrato", "tipo contrato", "tipo de contrato"],
+    idx.TIPO_CONTRATO != null ? idx.TIPO_CONTRATO : 10
+  );
   colunaAssinado = PlanilhaApi.acharColuna(
     colunas,
     cfg.COLUNA_ASSINADO,
@@ -798,6 +1407,10 @@ function htmlIconeAssinado(item) {
   return `<span class="${classe}" title="${titulo}" aria-label="${titulo}">${icone}</span>`;
 }
 
+function exibirIconeLancamentoSistemaValor() {
+  return cfg.EXIBIR_ICONE_LANCAMENTO_SISTEMA_VALOR !== false;
+}
+
 function htmlIconePagamento(item) {
   const noSistema = itemLancarSistema(item);
   const classe = noSistema
@@ -811,16 +1424,18 @@ function htmlCelulaValorContrato(item) {
   return (
     '<span class="contratos-valor-celula">' +
     `<span class="contratos-valor-texto">${formatarValorContratoExibir(valorItem(item, colunaValorContrato))}</span>` +
-    htmlIconePagamento(item) +
+    (exibirIconeLancamentoSistemaValor() ? htmlIconePagamento(item) : "") +
     "</span>"
   );
 }
 
 function htmlMobileStackCabecalho() {
+  const T = TabelaOrdenacao;
   return (
     '<div class="contratos-th-stack-head">' +
-    `<span>${escapeHtml(rotuloTabela("NOME"))}</span>` +
-    `<span>${escapeHtml(rotuloTabela("MUNICIPIO"))}</span>` +
+    `<span>${T.htmlCabecalhoOrdenavel(rotuloTabela("NOME"), "nome")}</span>` +
+    `<span>${T.htmlCabecalhoOrdenavel(rotuloTabela("MUNICIPIO"), "municipio")}</span>` +
+    `<span>${T.htmlCabecalhoOrdenavel(rotuloTabela("VINCULO"), "lideranca")}</span>` +
     `<span>${escapeHtml(rotuloTabela("CPF"))}</span>` +
     `<span>${escapeHtml(rotuloTabela("VALOR_CONTRATO"))}</span>` +
     "</div>"
@@ -830,7 +1445,7 @@ function htmlMobileStackCabecalho() {
 function htmlValorContratoMobileStack(item) {
   return (
     '<span class="contratos-stack-valor-linha">' +
-    htmlIconePagamento(item) +
+    (exibirIconeLancamentoSistemaValor() ? htmlIconePagamento(item) : "") +
     `<span class="contratos-valor-texto">${formatarValorContratoExibir(valorItem(item, colunaValorContrato))}</span>` +
     "</span>"
   );
@@ -934,7 +1549,11 @@ function montarCabecalhoTabela() {
   trMobile.innerHTML = "";
 
   trDesktop.appendChild(
-    criarTh(rotuloTabela("NOME"), "contratos-col-nome contratos-tabela-desktop-col")
+    TabelaOrdenacao.criarThOrdenavel(
+      rotuloTabela("NOME"),
+      "nome",
+      "contratos-col-nome contratos-tabela-desktop-col"
+    )
   );
   const thAssinado = criarTh(
     rotuloTabela("ASSINADO"),
@@ -944,10 +1563,18 @@ function montarCabecalhoTabela() {
   trDesktop.appendChild(thAssinado);
   trDesktop.appendChild(criarTh(rotuloTabela("CPF"), "contratos-col-cpf contratos-tabela-desktop-col"));
   trDesktop.appendChild(
-    criarTh(rotuloTabela("MUNICIPIO"), "contratos-col-municipio contratos-tabela-desktop-col")
+    TabelaOrdenacao.criarThOrdenavel(
+      rotuloTabela("MUNICIPIO"),
+      "municipio",
+      "contratos-col-municipio contratos-tabela-desktop-col"
+    )
   );
   trDesktop.appendChild(
-    criarTh(rotuloTabela("VINCULO"), "contratos-col-vinculo contratos-tabela-desktop-col")
+    TabelaOrdenacao.criarThOrdenavel(
+      rotuloTabela("VINCULO"),
+      "lideranca",
+      "contratos-col-vinculo contratos-tabela-desktop-col"
+    )
   );
   trDesktop.appendChild(
     criarTh(
@@ -966,6 +1593,10 @@ function montarCabecalhoTabela() {
   trMobile.appendChild(
     criarTh("ações", "contratos-col-acoes contratos-tabela-mobile-col")
   );
+
+  if (el.tabelaCard) {
+    TabelaOrdenacao.atualizarUi(el.tabelaCard, ordenacaoContratos);
+  }
 }
 
 function criarLinhaTabela(item) {
@@ -1170,8 +1801,51 @@ function init() {
   el.btnNovo?.addEventListener("click", abrirNovo);
   el.form?.addEventListener("submit", salvarFormulario);
 
+  TabelaOrdenacao.vincular(
+    el.tabelaCard,
+    ordenacaoContratos,
+    () => renderizarTabela({ preservarPagina: true }),
+    "ordenacaoContratos"
+  );
+
   window.atualizarPagina = () => carregarContratos(false);
   carregarContratos(false);
+}
+
+function htmlStackRelatorioCabecalho(linha1, linha2) {
+  return (
+    '<div class="contratos-rel-stack contratos-rel-stack--cab">' +
+    `<div class="contratos-rel-stack-principal">${escapeHtml(linha1)}</div>` +
+    `<div class="contratos-rel-stack-secundario">${escapeHtml(linha2)}</div>` +
+    "</div>"
+  );
+}
+
+function htmlStackRelatorioCorpo(linha1, linha2) {
+  const p = String(linha1 ?? "").trim() || "—";
+  const s = String(linha2 ?? "").trim();
+  return (
+    '<div class="contratos-rel-stack">' +
+    `<div class="contratos-rel-stack-principal">${escapeHtml(p)}</div>` +
+    (s
+      ? `<div class="contratos-rel-stack-secundario">${escapeHtml(s)}</div>`
+      : '<div class="contratos-rel-stack-secundario contratos-rel-stack-secundario--vazio">—</div>') +
+    "</div>"
+  );
+}
+
+function textoCelulaTabelaRelatorio(cel) {
+  return (cel?.textContent || "").replace(/\s+/g, " ").trim();
+}
+
+function textoAssinadoRelatorio(tr, tdAss) {
+  const linha = Number(tr?.dataset?.linha);
+  if (linha) {
+    const item = linhas.find((r) => r._linha === linha);
+    if (item) return itemAssinado(item) ? "S" : "N";
+  }
+  if (tdAss?.querySelector(".contratos-icone-assinado--sim")) return "S";
+  return "N";
 }
 
 function ajustarTabelaRelatorioPagina(table) {
@@ -1182,12 +1856,61 @@ function ajustarTabelaRelatorioPagina(table) {
     .querySelectorAll(".contratos-col-nome-mae, .contratos-col-acoes, .crud-col-acoes")
     .forEach((el) => el.remove());
 
+  table.querySelectorAll("thead tr").forEach((tr) => {
+    tr.querySelector(".contratos-col-cpf")?.remove();
+    tr.querySelector(".contratos-col-vinculo")?.remove();
+    const thNome = tr.querySelector(".contratos-col-nome");
+    const thMun = tr.querySelector(".contratos-col-municipio");
+    const thAss = tr.querySelector(".contratos-col-assinado");
+    if (thNome) {
+      thNome.classList.add("contratos-rel-col-ident");
+      thNome.textContent = rotuloTabela("NOME");
+    }
+    if (thMun) {
+      thMun.classList.add("contratos-rel-col-mun-lider");
+      thMun.innerHTML = htmlStackRelatorioCabecalho(
+        rotuloTabela("MUNICIPIO"),
+        rotuloTabela("VINCULO")
+      );
+    }
+    if (thAss) {
+      thAss.classList.add("contratos-rel-col-assinado", "text-center");
+      thAss.textContent = rotuloTabela("ASSINADO");
+    }
+  });
+
+  table.querySelectorAll("tbody tr").forEach((tr) => {
+    const tdNome = tr.querySelector(".contratos-col-nome");
+    const tdCpf = tr.querySelector(".contratos-col-cpf");
+    const tdAss = tr.querySelector(".contratos-col-assinado");
+    const tdMun = tr.querySelector(".contratos-col-municipio");
+    const tdVin = tr.querySelector(".contratos-col-vinculo");
+    if (!tdNome) return;
+
+    const nome = textoCelulaTabelaRelatorio(tdNome);
+    const cpf = textoCelulaTabelaRelatorio(tdCpf);
+    const mun = textoCelulaTabelaRelatorio(tdMun);
+    const lid = textoCelulaTabelaRelatorio(tdVin);
+
+    tdCpf?.remove();
+    tdVin?.remove();
+
+    tdNome.classList.add("contratos-rel-col-ident");
+    tdNome.innerHTML = htmlStackRelatorioCorpo(nome, cpf);
+    if (tdMun) {
+      tdMun.classList.add("contratos-rel-col-mun-lider");
+      tdMun.innerHTML = htmlStackRelatorioCorpo(mun, lid);
+    }
+    if (tdAss) {
+      tdAss.classList.add("contratos-rel-col-assinado", "text-center");
+      tdAss.textContent = textoAssinadoRelatorio(tr, tdAss);
+    }
+  });
+
   const ordem = [
     "contratos-col-nome",
-    "contratos-col-assinado",
-    "contratos-col-cpf",
     "contratos-col-municipio",
-    "contratos-col-vinculo",
+    "contratos-col-assinado",
     "contratos-col-valor",
   ];
 
@@ -1204,16 +1927,24 @@ function ajustarTabelaRelatorioPagina(table) {
 window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
 
 function estilosRelatorioPagina() {
+  const tbl = "table.rel-tabela.contratos-tabela";
   return (
-    ".page-contratos .contratos-tabela th.contratos-col-cpf," +
-    ".page-contratos .contratos-tabela td.contratos-col-cpf{text-align:center;}" +
-    ".page-contratos .contratos-tabela th.contratos-col-assinado," +
-    ".page-contratos .contratos-tabela td.contratos-col-assinado{text-align:center;width:2.5rem;}" +
-    ".page-contratos .contratos-icone-assinado--sim{color:#0f766e;}" +
-    ".page-contratos .contratos-icone-assinado--nao{color:#dc2626;}" +
-    ".page-contratos .contratos-tabela th.contratos-col-valor," +
-    ".page-contratos .contratos-tabela td.contratos-col-valor{text-align:right;}" +
-    ".page-contratos .contratos-valor-celula{justify-content:flex-end;}"
+    `.rel-body ${tbl}{table-layout:fixed;width:100%;}` +
+    `.rel-body ${tbl} th.contratos-rel-col-ident,` +
+    `.rel-body ${tbl} td.contratos-rel-col-ident{width:38%;text-align:left;}` +
+    `.rel-body ${tbl} th.contratos-rel-col-mun-lider,` +
+    `.rel-body ${tbl} td.contratos-rel-col-mun-lider{width:30%;text-align:left;}` +
+    `.rel-body ${tbl} th.contratos-rel-col-assinado,` +
+    `.rel-body ${tbl} td.contratos-rel-col-assinado{width:8%;text-align:center;font-weight:600;}` +
+    `.rel-body ${tbl} th.contratos-col-valor,` +
+    `.rel-body ${tbl} td.contratos-col-valor{width:24%;text-align:right;}` +
+    `.rel-body ${tbl} .contratos-rel-stack{display:block;line-height:1.3;}` +
+    `.rel-body ${tbl} .contratos-rel-stack-principal{font-weight:600;color:#1e293b;}` +
+    `.rel-body ${tbl} .contratos-rel-stack--cab .contratos-rel-stack-principal{font-size:inherit;}` +
+    `.rel-body ${tbl} .contratos-rel-stack-secundario{margin-top:0.12rem;font-size:8pt;color:#64748b;font-weight:400;}` +
+    `.rel-body ${tbl} .contratos-rel-stack--cab .contratos-rel-stack-secundario{font-size:7.5pt;text-transform:lowercase;}` +
+    `.rel-body ${tbl} .contratos-valor-celula{justify-content:flex-end;}` +
+    `.rel-body ${tbl} .contratos-rel-num{font-variant-numeric:tabular-nums;white-space:nowrap;}`
   );
 }
 

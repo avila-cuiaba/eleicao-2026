@@ -119,6 +119,29 @@
       <div class="tab-pane fade dashboard-sm-pane" id="pagePainelRegistros" role="tabpanel" aria-labelledby="pageTabRegistros" tabindex="0">
     <div class="card shadow-sm border-0 dashboard-tabela-card apoiadores-tabela-card">
       <div class="card-body p-0 dashboard-tabela-panel">
+        <div class="apoiadores-tabela-toolbar apoiadores-th-ident-inner--master">
+          <button type="button" class="agenda-btn-nova agenda-btn-nova--tabela d-none" id="btnIncluirApoiador" title="incluir" aria-label="incluir">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>
+          </button>
+          <label class="apoiadores-busca-campo" for="buscaLideranca">
+            <span class="visually-hidden">buscar liderança</span>
+            <span class="apoiadores-busca-inner">
+              <span class="apoiadores-busca-icone" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+              </span>
+              <input
+                type="search"
+                id="buscaLideranca"
+                class="form-control form-control-sm apoiadores-busca-input"
+                placeholder="liderança"
+                autocomplete="off"
+              />
+            </span>
+          </label>
+        </div>
         <div class="dashboard-tabela-head table-light">
           <table class="table mb-0 apoiadores-tabela orcamento-lideranca-tabela">
             <colgroup>
@@ -134,33 +157,12 @@
             <thead>
               <tr>
                 <th scope="col" class="apoiadores-col-ident apoiadores-th-ident dashboard-th-base">
-                  <div class="apoiadores-th-ident-inner apoiadores-th-ident-inner--master">
-                    <button type="button" class="agenda-btn-nova agenda-btn-nova--tabela d-none" id="btnIncluirApoiador" title="incluir" aria-label="incluir">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>
-                    </button>
+                  <div class="apoiadores-th-ident-inner">
                     <span class="apoiadores-th-titulo apoiadores-th-desktop">liderança</span>
                     <span class="apoiadores-th-mobile">
                       <span class="dashboard-th-principal">liderança</span>
                       <span class="dashboard-th-sub text-muted apoiadores-th-sub-municipio">município</span>
                     </span>
-                    <label class="apoiadores-busca-campo" for="buscaLideranca">
-                      <span class="visually-hidden">buscar liderança</span>
-                      <span class="apoiadores-busca-inner">
-                        <span class="apoiadores-busca-icone" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <circle cx="11" cy="11" r="7" />
-                            <path d="M20 20l-3.5-3.5" />
-                          </svg>
-                        </span>
-                        <input
-                          type="search"
-                          id="buscaLideranca"
-                          class="form-control form-control-sm apoiadores-busca-input"
-                          placeholder="liderança"
-                          autocomplete="off"
-                        />
-                      </span>
-                    </label>
                   </div>
                 </th>
                 <th scope="col" class="apoiadores-col-municipio dashboard-th-base apoiadores-th-municipio">
@@ -294,6 +296,7 @@
   <script src="../js/planilha-api.js"></script>
   <script src="../js/master-crud.js"></script>
   <script src="../js/popover-tabela.js"></script>
+  <script src="../js/tabela-ordenacao.js"></script>
   <script src="../js/orcamento-pessoal-apoiadores.js"></script>
 </body>
 </html>

@@ -735,6 +735,35 @@ function linhasFiltradas() {
   });
 }
 
+const ordenacaoPagamentosLideranca = { col: "lideranca", dir: "asc" };
+
+function cmpPagLiderancaLideranca(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(a.lideranca, b.lideranca);
+  if (c) return c;
+  return T.cmpTexto(a.municipio, b.municipio);
+}
+
+function cmpPagLiderancaMunicipio(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(a.municipio, b.municipio);
+  if (c) return c;
+  return T.cmpTexto(a.lideranca, b.lideranca);
+}
+
+const COMPARADORES_ORDENACAO_PAGAMENTOS_LIDERANCA = {
+  lideranca: cmpPagLiderancaLideranca,
+  municipio: cmpPagLiderancaMunicipio,
+};
+
+function aplicarOrdenacaoPagamentosLideranca(lista) {
+  return TabelaOrdenacao.aplicar(
+    lista,
+    ordenacaoPagamentosLideranca,
+    COMPARADORES_ORDENACAO_PAGAMENTOS_LIDERANCA
+  );
+}
+
 function ordenarPorMunicipio(a, b) {
   const ma = String(a.municipio ?? "").trim();
   const mb = String(b.municipio ?? "").trim();
@@ -815,7 +844,7 @@ function extrairLinhas(valores) {
     itens.push(item);
   }
 
-  itens.sort(ordenarPorMunicipio);
+  itens.sort((a, b) => cmpPagLiderancaMunicipio(a, b));
   return itens;
 }
 
@@ -1233,7 +1262,7 @@ function renderizarLinha(r) {
 
 function renderizarTabela() {
   const selecionadas = regioesSelecionadas();
-  const filtradas = [...linhasFiltradas()].sort(ordenarPorMunicipio);
+  const filtradas = aplicarOrdenacaoPagamentosLideranca(linhasFiltradas());
 
   el.vazio.hidden = true;
 
@@ -1528,6 +1557,15 @@ function initPagamentosLideranca() {
   };
 
   if (!el.corpo || !el.filtroRegioes) return;
+
+  const cardOrdenacao = document.querySelector(".apoiadores-tabela-card");
+  TabelaOrdenacao.montarCabecalhoLiderancaMunicipio(cardOrdenacao);
+  TabelaOrdenacao.vincular(
+    cardOrdenacao,
+    ordenacaoPagamentosLideranca,
+    renderizarTabela,
+    "ordenacaoPagamentosLideranca"
+  );
 
   if (el.modalEl) modalCrud = bootstrap.Modal.getOrCreateInstance(el.modalEl);
   vincularMascarasMoedaPagamento();

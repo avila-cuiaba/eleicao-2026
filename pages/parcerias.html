@@ -72,6 +72,26 @@
       <div class="tab-pane fade dashboard-sm-pane" id="pagePainelRegistros" role="tabpanel" aria-labelledby="pageTabRegistros" tabindex="0">
     <div class="card shadow-sm border-0 dashboard-tabela-card apoiadores-tabela-card parcerias-tabela-card">
       <div class="card-body p-0 dashboard-tabela-panel">
+        <div class="apoiadores-tabela-toolbar">
+          <label class="apoiadores-busca-campo" for="buscaParceria">
+            <span class="visually-hidden">buscar parceria</span>
+            <span class="apoiadores-busca-inner">
+              <span class="apoiadores-busca-icone" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+              </span>
+              <input
+                type="search"
+                id="buscaParceria"
+                class="form-control form-control-sm apoiadores-busca-input"
+                placeholder="parceria"
+                autocomplete="off"
+              />
+            </span>
+          </label>
+        </div>
         <div class="dashboard-tabela-head table-light">
           <table class="table mb-0 apoiadores-tabela parcerias-tabela">
             <colgroup>
@@ -89,24 +109,6 @@
                       <span class="dashboard-th-principal">parceria</span>
                       <span class="dashboard-th-sub text-muted apoiadores-th-sub-municipio">município</span>
                     </span>
-                    <label class="apoiadores-busca-campo" for="buscaParceria">
-                      <span class="visually-hidden">buscar parceria</span>
-                      <span class="apoiadores-busca-inner">
-                        <span class="apoiadores-busca-icone" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <circle cx="11" cy="11" r="7" />
-                            <path d="M20 20l-3.5-3.5" />
-                          </svg>
-                        </span>
-                        <input
-                          type="search"
-                          id="buscaParceria"
-                          class="form-control form-control-sm apoiadores-busca-input"
-                          placeholder="parceria"
-                          autocomplete="off"
-                        />
-                      </span>
-                    </label>
                   </div>
                 </th>
                 <th scope="col" class="apoiadores-col-municipio dashboard-th-base apoiadores-th-municipio">
@@ -152,6 +154,7 @@
   <script src="../js/auth.js"></script>
   <script src="../js/relatorio.js"></script>
   <script src="../js/page-loader.js"></script>
+  <script src="../js/tabela-ordenacao.js"></script>
   <script src="../js/parcerias.js"></script>
 </body>
 </html>

@@ -259,7 +259,18 @@
 
     <div class="modal fade" id="modalLancarPagamentosPix" tabindex="-1" aria-labelledby="modalLancarTitulo" aria-hidden="true">
       <div class="modal-dialog modal-dialog-scrollable modal-lg">
-        <div class="modal-content">
+        <div class="modal-content contratos-modal-content">
+          <div
+            id="lancarPixModalSalvando"
+            class="contratos-modal-salvando d-none"
+            aria-hidden="true"
+            aria-busy="false"
+          >
+            <div class="spinner-border text-primary contratos-modal-salvando-spinner" role="status">
+              <span class="visually-hidden">lançando</span>
+            </div>
+            <span class="contratos-modal-salvando-texto">lançando pagamentos...</span>
+          </div>
           <div class="modal-header py-2">
             <h2 class="modal-title h6 mb-0" id="modalLancarTitulo">lançar pagamentos com pix</h2>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
@@ -327,7 +338,14 @@
             </p>
           </div>
           <div class="modal-footer py-2 justify-content-center pagamentos-selecao-modal-footer">
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">fechar</button>
+            <button
+              type="button"
+              id="btnFecharLancarPagamentosPix"
+              class="btn btn-sm btn-outline-secondary"
+              data-bs-dismiss="modal"
+            >
+              fechar
+            </button>
           </div>
         </div>
       </div>
@@ -377,6 +395,7 @@
   <script src="../js/app-confirm.js"></script>
   <script src="../js/planilha-api.js"></script>
   <script src="../js/icons.js"></script>
+  <script src="../js/tabela-ordenacao.js"></script>
   <script src="../js/pessoal-pagamentos.js"></script>
 </body>
 </html>

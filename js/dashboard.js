@@ -259,10 +259,24 @@ function montarFiltros(listaRegioes) {
   });
 }
 
+function registroEhNulo(r) {
+  return !r.votos2022 && !r.minima && !r.ideal;
+}
+
+function visualizarRegistrosNulosAtivo() {
+  return !!el.visualizarRegistrosNulos?.checked;
+}
+
+function aplicarFiltroRegistrosNulos(lista) {
+  if (visualizarRegistrosNulosAtivo()) return lista;
+  return lista.filter((r) => !registroEhNulo(r));
+}
+
 function registrosFiltrados() {
   const selecionadas = regioesSelecionadas();
   if (!selecionadas.length) return [];
-  return registros.filter((r) => selecionadas.includes(r.regiaoNorm));
+  const porRegiao = registros.filter((r) => selecionadas.includes(r.regiaoNorm));
+  return aplicarFiltroRegistrosNulos(porRegiao);
 }
 
 function atualizarResumo(filtrados) {
@@ -452,6 +466,7 @@ function initDashboard() {
   el = {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
+    visualizarRegistrosNulos: document.getElementById("visualizarRegistrosNulos"),
     corpoTabela: document.getElementById("corpoTabela"),
     kpiMunicipios: document.getElementById("kpiMunicipios"),
     kpiPopulacao: document.getElementById("kpiPopulacao"),
@@ -470,6 +485,8 @@ function initDashboard() {
     campoIdeal: document.getElementById("campoDashIdeal"),
   };
   if (!el.corpoTabela) return;
+
+  el.visualizarRegistrosNulos?.addEventListener("change", renderizarTabela);
 
   if (el.modalEl) modalCrud = bootstrap.Modal.getOrCreateInstance(el.modalEl);
   el.btnSalvar?.addEventListener("click", salvarDashboardCrud);

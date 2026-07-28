@@ -155,6 +155,8 @@ const CONFIG = {
 
   CONTRATOS: {
     PLANILHA: "contratos",
+    EXIBIR_CAMPO_LANCAR_SISTEMA_FORMULARIO: false,
+    EXIBIR_ICONE_LANCAMENTO_SISTEMA_VALOR: false,
     // Vazio = aba resolvida no backend por gid (1492182435 — dados dos colaboradores).
     // A aba auditoria-contratos é só para log; não usar aqui.
     ABA: "",
@@ -209,6 +211,8 @@ const CONFIG = {
       SALDO_CONTRATO: 13,
       CHAVE_PIX: 14,
       ASSINADO: 22, // W
+      PGTO_PARCEIRO: 23, // X
+      DATA_PGTO_PARCEIRO: 24, // Y
     },
     COLUNA_SALDO_CONTRATO: [
       "saldo-contrato",
@@ -258,7 +262,9 @@ const CONFIG = {
         aliases: ["nome-completo", "nome completo", "nome", "colaborador"],
         rotulo: "nome",
         indice: 0,
-        largura: 12,
+        largura: 9,
+        grupo: "nome-assinado",
+        uppercase: true,
       },
       {
         id: "assinado",
@@ -266,7 +272,8 @@ const CONFIG = {
         rotulo: "assinado",
         tipo: "checkbox",
         indice: 22,
-        largura: 6,
+        largura: 3,
+        grupo: "nome-assinado",
         valorSim: "S",
         valorNao: "N",
       },
@@ -294,6 +301,7 @@ const CONFIG = {
         rotulo: "nome mãe",
         indice: 1,
         largura: 12,
+        uppercase: true,
       },
       {
         id: "nome-pai",
@@ -301,6 +309,7 @@ const CONFIG = {
         rotulo: "nome pai",
         indice: 11,
         largura: 12,
+        uppercase: true,
       },
       {
         id: "municipio",
@@ -551,17 +560,18 @@ const CONFIG = {
       LINHA_INICIO_DADOS: 2,
       // Índices padrão (0-based) quando o cabeçalho não bater por nome.
       COLUNAS: {
-        LIDERANCA: 0,             // A
-        MUNICIPIO: 1,             // B
-        PROPRIO_APOIADOR: 3,      // D
-        APOIADOR_LIDER: 4,        // E
-        FIN_LIDER: 5,             // F
-        APOIADOR_INTEGRAL: 6,     // G
-        FIN_INTEGRAL: 7,          // H
-        APOIADOR_MEIO: 8,         // I
-        FIN_MEIO: 9,              // J
-        APOIADOR_CUSTOMIZADO: 10, // K
-        FIN_CUSTOMIZADO: 11,      // L
+        TIPO: 0,                  // A — só quando o cabeçalho for tipo/classificação
+        LIDERANCA: 0,
+        MUNICIPIO: 1,
+        PROPRIO_APOIADOR: 3, // D — valor próprio apoiador (não usar offset da coluna TIPO)
+        APOIADOR_LIDER: 4,
+        FIN_LIDER: 5,
+        APOIADOR_INTEGRAL: 6,
+        FIN_INTEGRAL: 7,
+        APOIADOR_MEIO: 8,
+        FIN_MEIO: 9,
+        APOIADOR_CUSTOMIZADO: 10,
+        FIN_CUSTOMIZADO: 11,
       },
       COLUNAS_DESPACHO: [
         { prop: "pessoal", chave: "DESP_PESSOAL", aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
@@ -573,6 +583,21 @@ const CONFIG = {
         { prop: "diversos", chave: "DESP_DIVERSOS", aliases: ["diversos", "orcamento-diversos"] },
         { prop: "diaD", chave: "DESP_DIA_D", aliases: ["dia d", "dia-d", "diad", "orcamento-diad", "orcamento dia d"] },
       ],
+      // Aba parametros (mesma planilha gid 1225905245) — intervalo H1:L6.
+      PARAMETROS_CLASSIFICACAO: {
+        PLANILHA: "contratos-valor-referencia",
+        LINHA_INICIO: 1,
+        LINHA_FIM: 5,
+        COL_TIPO: 7,
+        COL_LIDER: 8,
+        COL_INTEGRAL: 9,
+        COL_MEIO: 10,
+        COL_PROPRIO_VALOR: 11,
+      },
+      // Colunas com fórmula na aba apoiadores (0-based) — nunca regravar pelo app.
+      COLUNAS_SOMENTE_FORMULA: [5, 7, 9, 13, 19],
+      // E, G, I — fórmula quando não “editar padrão”; D = valor direto (padrão 0,00).
+      COLUNAS_PADRAO_FORMULA: [4, 6, 8],
     },
     ORCAMENTO_POR_LIDERANCA: {
       LINHA_INICIO_DADOS: 2,
@@ -827,6 +852,8 @@ const CONFIG = {
 };
 
 CONFIG.PESSOAL_PAGAMENTOS = Object.assign({}, CONFIG.CONTRATOS, {
+  EXIBIR_CAMPO_LANCAR_SISTEMA_FORMULARIO: true,
+  EXIBIR_ICONE_LANCAMENTO_SISTEMA_VALOR: true,
   EXIBIR_COLUNA_LIDERANCA: false,
   EXIBIR_COLUNA_SALDO_CONTRATO: true,
   SOMENTE_EDICAO: true,
@@ -836,7 +863,7 @@ CONFIG.PESSOAL_PAGAMENTOS = Object.assign({}, CONFIG.CONTRATOS, {
   }),
   TAMANHO_PAGINA_TABELA: 20,
   PLANILHA_LOTE_PIX: "pagamentos-pix-lote",
-  /** Colunas O–V: pgto 1 / data 1 … pgto 4 / data 4 (índices 14–21). */
+  /** Colunas O–V: pgto 1 / data 1 … pgto 4 / data 4 (14–21); X/Y: pgto-parceiro / data (23–24). */
   PARCELAS_COLUNAS_O_V: [
     {
       n: 1,
@@ -866,6 +893,14 @@ CONFIG.PESSOAL_PAGAMENTOS = Object.assign({}, CONFIG.CONTRATOS, {
       pgtoAliases: ["pgto-4", "pgto 4"],
       dataAliases: ["data-pgto-4", "data pgto 4", "data pgto-4"],
     },
+    {
+      n: "parceiro",
+      titulo: "pagamento parceiro",
+      pgto: 23,
+      data: 24,
+      pgtoAliases: ["pgto-parceiro", "pgto parceiro"],
+      dataAliases: ["data-pgto-parceiro", "data pgto parceiro", "data-pgto parceiro"],
+    },
   ],
   LINHA_INICIO_DADOS_LOTE_PIX: 2,
   COLUNAS_LOTE_PIX: {
@@ -894,7 +929,8 @@ CONFIG.PESSOAL_PAGAMENTOS = Object.assign({}, CONFIG.CONTRATOS, {
       aliases: ["nome-completo", "nome completo", "nome", "colaborador"],
       rotulo: "nome",
       indice: 0,
-      largura: 12,
+      largura: 9,
+      grupo: "nome-assinado",
       somenteLeitura: true,
     },
     {
@@ -903,7 +939,8 @@ CONFIG.PESSOAL_PAGAMENTOS = Object.assign({}, CONFIG.CONTRATOS, {
       rotulo: "assinado",
       tipo: "checkbox",
       indice: 22,
-      largura: 6,
+      largura: 3,
+      grupo: "nome-assinado",
       valorSim: "S",
       valorNao: "N",
       edicaoComConfirmacao: true,
@@ -1071,6 +1108,24 @@ CONFIG.PESSOAL_PAGAMENTOS = Object.assign({}, CONFIG.CONTRATOS, {
       largura: 6,
       grupo: "parcela-4",
     },
+    {
+      id: "pgto-parceiro",
+      aliases: ["pgto-parceiro", "pgto parceiro"],
+      rotulo: "pagamento parceiro",
+      tipo: "moeda",
+      indice: 23,
+      largura: 6,
+      grupo: "parcela-parceiro",
+    },
+    {
+      id: "data-pgto-parceiro",
+      aliases: ["data-pgto-parceiro", "data pgto parceiro", "data-pgto parceiro"],
+      rotulo: "data pagamento parceiro",
+      tipo: "data",
+      indice: 24,
+      largura: 6,
+      grupo: "parcela-parceiro",
+    },
   ],
   COLUNA_BUSCA: [
     "nome-completo",
@@ -1086,5 +1141,6 @@ CONFIG.PESSOAL_PAGAMENTOS = Object.assign({}, CONFIG.CONTRATOS, {
     "pgto-2",
     "pgto-3",
     "pgto-4",
+    "pgto-parceiro",
   ],
 });

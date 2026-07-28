@@ -7,9 +7,12 @@
  *   - login: valida a chave de acesso
  *
  * SEGURANÇA — Propriedades do script (Configurações > Propriedades do script):
- *   SENHA_ACESSO_SORAYA, SENHA_ACESSO_ELLEN, SENHA_ACESSO_DANI  → só contratos
- *   SENHA_ACESSO_EUGENIO  → campanha (tudo exceto contratos)
- *   SENHA_ACESSO_AVILA    → acesso total
+ *   SENHA_ACESSO_SORAYA, SENHA_ACESSO_ELLEN, SENHA_ACESSO_DANI  → perfil contratos (só página contratos)
+ *   SENHA_ACESSO_REGINALDO  → perfil reginaldo (contratos + pagamentos)
+ *   SENHA_ACESSO_EUGENIO  → campanha (tudo exceto contratos/pagamentos)
+ *   SENHA_ACESSO_MATERIAL  → perfil material (só material gráfico)
+ *   SENHA_ACESSO_COMBUSTIVEL  → perfil combustivel (só abastecimentos / diário de bordo)
+ *   SENHA_ACESSO_AVILA    → acesso total (master)
  *   Se NENHUMA propriedade existir, o acesso fica ABERTO (sem proteção).
  *   O frontend envia a chave em ?chave=... (GET) ou { "chave": "..." } (POST).
  *
@@ -245,7 +248,10 @@ var CADASTRO_ACESSO = [
   { prop: "SENHA_ACESSO_SORAYA", perfil: "contratos", usuario: "Soraya" },
   { prop: "SENHA_ACESSO_ELLEN", perfil: "contratos", usuario: "Ellen" },
   { prop: "SENHA_ACESSO_DANI", perfil: "contratos", usuario: "Dani" },
+  { prop: "SENHA_ACESSO_REGINALDO", perfil: "reginaldo", usuario: "Reginaldo" },
   { prop: "SENHA_ACESSO_EUGENIO", perfil: "campanha", usuario: "Eugênio" },
+  { prop: "SENHA_ACESSO_MATERIAL", perfil: "material", usuario: "Material" },
+  { prop: "SENHA_ACESSO_COMBUSTIVEL", perfil: "combustivel", usuario: "Combustível" },
   { prop: "SENHA_ACESSO_AVILA", perfil: "master", usuario: "Avila" },
 ];
 
@@ -284,11 +290,22 @@ function autorizado(chave) {
 function planilhaPermitida(perfil, planilha) {
   const chave = String(planilha || "");
   if (!perfil || perfil === "master") return true;
-  if (perfil === "contratos") {
+  if (perfil === "contratos" || perfil === "reginaldo") {
     if (PLANILHAS_SOMENTE_CONTRATOS[chave]) return true;
     if (chave === "municipios" || chave === "micro-municipios") return true;
     if (chave === "apoiadores" || chave === "apoiador-federal") return true;
     return false;
+  }
+  if (perfil === "material") {
+    return chave === "material-grafico" || chave === "material-grafico-entregas";
+  }
+  if (perfil === "combustivel") {
+    return (
+      chave === "diario-bordo" ||
+      chave === "diario-bordo-veiculos" ||
+      chave === "municipios" ||
+      chave === "micro-municipios"
+    );
   }
   if (perfil === "campanha") {
     return !PLANILHAS_SOMENTE_CONTRATOS[chave];
@@ -298,7 +315,12 @@ function planilhaPermitida(perfil, planilha) {
 
 function recursoPermitido(perfil, recurso, planilha) {
   if (!perfil || perfil === "master") return true;
-  if (perfil === "contratos") {
+  if (
+    perfil === "contratos" ||
+    perfil === "reginaldo" ||
+    perfil === "material" ||
+    perfil === "combustivel"
+  ) {
     if (recurso === "agenda" || recurso === "planilhas-cadastro") return false;
     if (recurso === "planilha" || !recurso) {
       return planilhaPermitida(perfil, planilha || PLANILHA_PADRAO);
@@ -1038,6 +1060,233 @@ function valorDadosColuna(dados, col) {
   return undefined;
 }
 
+function ehChaveTipoOuValorContrato(chave) {
+  const norm = normalizarChavePlanilha(chave);
+  return (
+    norm === "tipo-contrato" ||
+    norm === "tipo contrato" ||
+    norm === "tipo de contrato" ||
+    norm === "valor-contrato" ||
+    norm === "valor contrato" ||
+    norm === "valor do contrato"
+  );
+}
+
+/** Pagamentos: tipo/valor do contrato só podem ser alterados com SENHA_ACESSO_AVILA (perfil master). */
+function filtrarDadosAtualizacaoPagamentosContratos(corpo, dados) {
+  if (!dados || typeof dados !== "object") return dados;
+  const origem = String((corpo && corpo.origem) || "").trim();
+  if (origem !== "pessoal-pagamentos") return dados;
+  const auth = validarChave(corpo && corpo.chave);
+  if (auth.ok && auth.perfil === "master") return dados;
+
+  const out = {};
+  Object.keys(dados).forEach(function (k) {
+    if (!ehChaveTipoOuValorContrato(k)) out[k] = dados[k];
+  });
+  return out;
+}
+
+/** Apoiadores (pessoal-apoiadores): não regravar F,H,J,N,T; E,G,I com fórmula; D = valor direto (padrão 0). */
+var APOIADORES_COLS_FORMULA_FIXAS = [5, 7, 9, 13, 19];
+var APOIADORES_COLS_PADRAO_FORMULA = [4, 6, 8];
+var APOIADORES_COL_PROPRIO_VALOR = 3;
+/** Colunas E, G, I (1-based) — quantidades por classificação (fórmula). */
+var APOIADORES_COLS_FORMULA_CLASSIFICACAO = [5, 7, 9];
+var GID_ABA_PARAMETROS_CLASSIFICACAO = 1225905245;
+
+function ehPlanilhaApoiadoresPessoal(planilhaKey, origem) {
+  if (planilhaKey === "apoiadores") return true;
+  return String(origem || "").trim() === "pessoal-apoiadores";
+}
+
+function editarPadraoManualApoiador(corpo) {
+  if (corpo && corpo.usarClassificacaoLideranca === false) return true;
+  if (corpo && corpo.usarClassificacaoLideranca === true) return false;
+  return !!(corpo && corpo.editarPadrao);
+}
+
+function indiceColunaBloqueadaApoiadores(i, editarPadrao) {
+  if (APOIADORES_COLS_FORMULA_FIXAS.indexOf(i) >= 0) return true;
+  if (!editarPadrao && APOIADORES_COLS_PADRAO_FORMULA.indexOf(i) >= 0) return true;
+  return false;
+}
+
+function escaparNomeAbaPlanilha(nome) {
+  const n = String(nome || "").trim();
+  if (!n) return "parametros";
+  if (/^[A-Za-z0-9_]+$/.test(n)) return n;
+  return "'" + n.replace(/'/g, "''") + "'";
+}
+
+function nomeAbaParametrosClassificacaoApoiadores_(sheet) {
+  const ss = sheet.getParent();
+  const abas = ss.getSheets();
+  for (let i = 0; i < abas.length; i++) {
+    if (abas[i].getSheetId() === GID_ABA_PARAMETROS_CLASSIFICACAO) {
+      return escaparNomeAbaPlanilha(abas[i].getName());
+    }
+  }
+  const porNome = ss.getSheetByName("parametros");
+  if (porNome) return escaparNomeAbaPlanilha(porNome.getName());
+  return "parametros";
+}
+
+function buscarFormulaClassificacaoApoiadoresModelo(sheet, col, antesDeLinha) {
+  const limite = Math.min(antesDeLinha - 1, sheet.getLastRow());
+  for (let r = limite; r >= 2; r--) {
+    const f = sheet.getRange(r, col).getFormula();
+    if (!f) continue;
+    const u = String(f).toUpperCase();
+    if (u.indexOf("CORRESP(") >= 0 || u.indexOf("MATCH(") >= 0) {
+      return { formula: f, linha: r };
+    }
+  }
+  return null;
+}
+
+function letraParamClassificacaoPorColApoiador(col1Based) {
+  if (col1Based === 5) return "I";
+  if (col1Based === 7) return "J";
+  if (col1Based === 9) return "K";
+  return "I";
+}
+
+function sintaxeFormulaDeTextoExistente_(formula, sheet) {
+  const base = sintaxeFormulaPlanilha(sheet);
+  const u = String(formula).toUpperCase();
+  if (u.indexOf("IFERROR(") >= 0) {
+    base.iferror = "IFERROR";
+    base.index = "INDEX";
+    base.match = "MATCH";
+    base.sep = ",";
+    return base;
+  }
+  if (u.indexOf("SEERRO(") >= 0) {
+    base.iferror = "SEERRO";
+    base.index = String(formula).indexOf("ÍNDICE(") >= 0 ? "ÍNDICE" : "INDICE";
+    base.match = "CORRESP";
+    base.sep = ";";
+    return base;
+  }
+  return base;
+}
+
+function sintaxeFormulaPlanilhaFromModeloApoiadores_(sheet) {
+  for (let i = 0; i < APOIADORES_COLS_FORMULA_CLASSIFICACAO.length; i++) {
+    const col = APOIADORES_COLS_FORMULA_CLASSIFICACAO[i];
+    const modelo = buscarFormulaClassificacaoApoiadoresModelo(
+      sheet,
+      col,
+      sheet.getLastRow() + 1
+    );
+    if (modelo && modelo.formula) {
+      return sintaxeFormulaDeTextoExistente_(modelo.formula, sheet);
+    }
+  }
+  return sintaxeFormulaPlanilha(sheet);
+}
+
+function formulaApoiadorClassificacaoParametros(sheet, numLinha, colParamLetra, abaRef) {
+  const fx = sintaxeFormulaPlanilhaFromModeloApoiadores_(sheet);
+  const aba = abaRef || nomeAbaParametrosClassificacaoApoiadores_(sheet);
+  const linha = String(numLinha);
+  const sep = fx.sep;
+  return (
+    "=" +
+    fx.iferror +
+    "(" +
+    fx.index +
+    "(" +
+    aba +
+    "!$" +
+    colParamLetra +
+    "$2:$" +
+    colParamLetra +
+    "$6" +
+    sep +
+    fx.match +
+    "(A" +
+    linha +
+    sep +
+    aba +
+    "!$H$2:$H$6" +
+    sep +
+    "0)" +
+    ")" +
+    sep +
+    "\"\"" +
+    ")"
+  );
+}
+
+function aplicarFormulaClassificacaoColunaApoiador(sheet, numLinha, col) {
+  const celula = sheet.getRange(numLinha, col);
+  celula.clearContent();
+  const modelo = buscarFormulaClassificacaoApoiadoresModelo(sheet, col, numLinha);
+  let formula = null;
+  if (modelo && modelo.formula) {
+    formula = ajustarFormulaSaldoParaLinha(modelo.formula, modelo.linha, numLinha);
+  } else {
+    formula = formulaApoiadorClassificacaoParametros(
+      sheet,
+      numLinha,
+      letraParamClassificacaoPorColApoiador(col),
+      nomeAbaParametrosClassificacaoApoiadores_(sheet)
+    );
+  }
+  if (formula) celula.setFormula(formula);
+}
+
+function aplicarFormulasPadraoApoiadorLinha(sheet, numLinha) {
+  APOIADORES_COLS_FORMULA_CLASSIFICACAO.forEach(function (col) {
+    aplicarFormulaClassificacaoColunaApoiador(sheet, numLinha, col);
+  });
+  SpreadsheetApp.flush();
+}
+
+function valorProprioApoiadorParaGravacao(dados, col) {
+  const val = valorDadosColuna(dados, col);
+  if (val === undefined || val === null || String(val).trim() === "") return 0;
+  return val;
+}
+
+function atualizarLinhaApoiadores(sheet, numLinha, existente, cabecalhos, dados, corpo) {
+  const editarPadrao = editarPadraoManualApoiador(corpo);
+  const novaLinha = existente.slice();
+  cabecalhos.forEach(function (col, i) {
+    if (indiceColunaBloqueadaApoiadores(i, editarPadrao)) return;
+    const val = valorDadosColuna(dados, col);
+    if (val === undefined) return;
+    sheet.getRange(numLinha, i + 1).setValue(val);
+    novaLinha[i] = val;
+  });
+  if (!editarPadrao) {
+    aplicarFormulasPadraoApoiadorLinha(sheet, numLinha);
+    return sheet.getRange(numLinha, 1, numLinha, cabecalhos.length).getValues()[0];
+  }
+  return novaLinha;
+}
+
+function inserirLinhaApoiadores(sheet, cabecalhos, dados, corpo) {
+  const editarPadrao = editarPadraoManualApoiador(corpo);
+  const linha = cabecalhos.map(function (col, i) {
+    if (indiceColunaBloqueadaApoiadores(i, editarPadrao)) return "";
+    const val = valorDadosColuna(dados, col);
+    if (val !== undefined) return val;
+    if (corpo[col] != null) return corpo[col];
+    if (i === APOIADORES_COL_PROPRIO_VALOR) return valorProprioApoiadorParaGravacao(dados, col);
+    return "";
+  });
+  sheet.appendRow(linha);
+  const numLinha = sheet.getLastRow();
+  if (!editarPadrao) {
+    aplicarFormulasPadraoApoiadorLinha(sheet, numLinha);
+  }
+  SpreadsheetApp.flush();
+  return numLinha;
+}
+
 // Dashboard (planilha votacao): somente colunas I e J — votação mínima e meta votação.
 const DASHBOARD_COL_MINIMA = 9; // I (1-based)
 const DASHBOARD_COL_IDEAL = 10; // J (1-based)
@@ -1074,7 +1323,7 @@ function atualizarLinhaMaterialGrafico(sheet, numLinha, existente, cabecalhos, d
   return novaLinha;
 }
 
-// Colaboradores (contratos): coluna N — saldo com fórmula; nunca regravar na atualização.
+// Colaboradores (contratos): coluna N — saldo-contrato com fórmula (valor menos pgto-1…4 e pgto-parceiro); nunca regravar na atualização.
 function ehColunaSaldoContratoPlanilha(col, indiceZero) {
   if (indiceZero === 13) return true;
   const norm = normalizarChavePlanilha(col);
@@ -1138,6 +1387,148 @@ function validarSaldoContratoNaoNegativo(sheet, numLinha, cabecalhos) {
   if (n != null && n < 0) {
     throw new Error("O saldo contrato não pode ficar negativo.");
   }
+}
+
+function ehColunaDataHoraCadastroContrato(col, indiceZero) {
+  if (indiceZero === 0) return true;
+  const norm = normalizarChavePlanilha(col);
+  return (
+    norm === "data-hora-cadastro" ||
+    norm === "data hora cadastro" ||
+    norm === "data-hora" ||
+    norm === "data hora"
+  );
+}
+
+function dataHoraCadastroContratoFormatada() {
+  return Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone(),
+    "dd/MM/yyyy HH:mm:ss"
+  );
+}
+
+function colunaLetraPlanilha(indiceZero) {
+  let num = indiceZero + 1;
+  let col = "";
+  while (num > 0) {
+    const mod = (num - 1) % 26;
+    col = String.fromCharCode(65 + mod) + col;
+    num = Math.floor((num - 1) / 26);
+  }
+  return col;
+}
+
+function sintaxeFormulaPlanilha(sheet) {
+  const locale = String(sheet.getParent().getSpreadsheetLocale() || "pt_BR")
+    .replace("-", "_")
+    .toLowerCase();
+  if (locale.indexOf("en_") === 0) {
+    return {
+      soma: "SUM",
+      sep: ",",
+      iferror: "IFERROR",
+      index: "INDEX",
+      match: "MATCH",
+    };
+  }
+  return {
+    soma: "SOMA",
+    sep: ";",
+    iferror: "SEERRO",
+    index: "INDICE",
+    match: "CORRESP",
+  };
+}
+
+function formulaSaldoContratoParaLinha(numLinha, cabecalhos, sheet) {
+  let idxValor = indiceColunaCabecalho(cabecalhos, [
+    "valor-contrato",
+    "valor contrato",
+    "valor do contrato",
+  ]);
+  if (idxValor < 0 && cabecalhos.length > 12) {
+    idxValor = 12;
+  }
+  if (idxValor < 0) return null;
+
+  const pares = indicesParesPgtoContratos(cabecalhos);
+  const parceiro = indiceParPgtoParceiroContratos(cabecalhos);
+  const linha = String(numLinha);
+  const colValor = colunaLetraPlanilha(idxValor);
+  const refsPgto = [];
+  for (let i = 0; i < pares.length; i++) {
+    refsPgto.push(colunaLetraPlanilha(pares[i].pgto) + linha);
+  }
+  refsPgto.push(colunaLetraPlanilha(parceiro.pgto) + linha);
+  const fx = sintaxeFormulaPlanilha(sheet);
+  return (
+    "=" +
+    colValor +
+    linha +
+    " - " +
+    fx.soma +
+    "(" +
+    refsPgto.join(fx.sep) +
+    ")"
+  );
+}
+
+function buscarFormulaSaldoContratoModelo(sheet, colSaldo, numLinhaNova) {
+  const ultima = Math.min(numLinhaNova - 1, sheet.getLastRow());
+  for (let r = ultima; r >= 2; r--) {
+    const f = sheet.getRange(r, colSaldo).getFormula();
+    if (!f) continue;
+    const s = String(f).toUpperCase();
+    if (s.indexOf("SOMA(") !== -1 || s.indexOf("SUM(") !== -1) {
+      return { formula: f, linha: r };
+    }
+  }
+  return null;
+}
+
+function ajustarFormulaSaldoParaLinha(formula, linhaModelo, linhaDestino) {
+  const de = String(linhaModelo);
+  const para = String(linhaDestino);
+  if (de === para) return formula;
+  return String(formula).replace(new RegExp(de + "(?!\\d)", "g"), para);
+}
+
+function aplicarFormulaSaldoContratoLinha(sheet, numLinha, cabecalhos) {
+  const idxSaldo = indiceSaldoContratoCabecalho(cabecalhos);
+  if (idxSaldo < 0) return;
+  const col = idxSaldo + 1;
+  const celula = sheet.getRange(numLinha, col);
+  celula.clearContent();
+
+  const modelo = buscarFormulaSaldoContratoModelo(sheet, col, numLinha);
+  let formula = null;
+  if (modelo && modelo.formula) {
+    formula = ajustarFormulaSaldoParaLinha(modelo.formula, modelo.linha, numLinha);
+  } else {
+    formula = formulaSaldoContratoParaLinha(numLinha, cabecalhos, sheet);
+  }
+  if (formula) {
+    celula.setFormula(formula);
+    SpreadsheetApp.flush();
+  }
+}
+
+function inserirLinhaContratos(sheet, cabecalhos, dados, corpo) {
+  const agora = dataHoraCadastroContratoFormatada();
+  const linha = cabecalhos.map(function (col, i) {
+    if (ehColunaDataHoraCadastroContrato(col, i)) return agora;
+    if (ehColunaSaldoContratoPlanilha(col, i)) return "";
+    const val = valorDadosColuna(dados, col);
+    if (val !== undefined) return val;
+    if (corpo[col] != null) return corpo[col];
+    return "";
+  });
+  sheet.appendRow(linha);
+  const numLinha = sheet.getLastRow();
+  aplicarFormulaSaldoContratoLinha(sheet, numLinha, cabecalhos);
+  SpreadsheetApp.flush();
+  return numLinha;
 }
 
 function cpfSomenteDigitosLotePix(valor) {
@@ -1272,6 +1663,18 @@ function celulaValorVaziaContrato(val) {
   return false;
 }
 
+function indiceParPgtoParceiroContratos(cabecalhos) {
+  let ip = indiceColunaCabecalho(cabecalhos, ["pgto-parceiro", "pgto parceiro"]);
+  let id = indiceColunaCabecalho(cabecalhos, [
+    "data-pgto-parceiro",
+    "data pgto parceiro",
+    "data-pgto parceiro",
+  ]);
+  if (ip < 0) ip = 23;
+  if (id < 0) id = 24;
+  return { pgto: ip, data: id };
+}
+
 function indicesParesPgtoContratos(cabecalhos) {
   const defs = [
     { pgto: ["pgto-1", "pgto 1"], data: ["data-pgto-1", "data pgto 1", "data pgto-1"] },
@@ -1279,7 +1682,7 @@ function indicesParesPgtoContratos(cabecalhos) {
     { pgto: ["pgto-3", "pgto 3"], data: ["data-pgto-3", "data pgto 3", "data pgto-3"] },
     { pgto: ["pgto-4", "pgto 4"], data: ["data-pgto-4", "data pgto 4", "data pgto-4"] },
   ];
-  // Fallback: colunas O/P, Q/R, S/T, U/V (índice zero).
+  // Fallback: colunas O/P, Q/R, S/T, U/V (índice zero). pgto-parceiro (X/Y) não entra no lançamento automático PIX.
   const fallback = [
     [14, 15],
     [16, 17],
@@ -1543,7 +1946,10 @@ function doPostPlanilha(corpo) {
     return responder({ ok: true });
   }
 
-  const dados = corpo.dados || corpo;
+  const dados = filtrarDadosAtualizacaoPagamentosContratos(
+    corpo,
+    corpo.dados || corpo
+  );
 
   if (acao === "atualizar") {
     const numLinha = Number(corpo.linha);
@@ -1562,6 +1968,8 @@ function doPostPlanilha(corpo) {
       novaLinha = atualizarLinhaPagamentosLideranca(sheet, numLinha, existente, cabecalhos, dados);
     } else if (origemAuditoria === "material-grafico" || planilha === "material-grafico") {
       novaLinha = atualizarLinhaMaterialGrafico(sheet, numLinha, existente, cabecalhos, dados);
+    } else if (ehPlanilhaApoiadoresPessoal(planilha, origemAuditoria)) {
+      novaLinha = atualizarLinhaApoiadores(sheet, numLinha, existente, cabecalhos, dados, corpo);
     } else if (deveAuditarContratos(planilha)) {
       const indicesAtualizados = indicesColunasAtualizadasContratos(cabecalhos, dados);
       novaLinha = atualizarLinhaContratos(sheet, numLinha, existente, cabecalhos, dados);
@@ -1599,37 +2007,48 @@ function doPostPlanilha(corpo) {
     validarCpfContratos(dados, sheet, cabecalhos, null);
   }
 
-  const agora = Utilities.formatDate(
-    new Date(),
-    Session.getScriptTimeZone(),
-    "yyyy-MM-dd HH:mm:ss"
-  );
+  let numLinhaInserida;
+  let linhaAuditoria;
 
-  const linha = cabecalhos.map(function (col) {
-    if (col === "data" && dados[col] == null && corpo[col] == null) return agora;
-    const val = valorDadosColuna(dados, col);
-    if (val !== undefined) return val;
-    if (corpo[col] != null) return corpo[col];
-    return "";
-  });
-
-  sheet.appendRow(linha);
-  const numLinhaInserida = sheet.getLastRow();
   if (deveAuditarContratos(planilha)) {
+    numLinhaInserida = inserirLinhaContratos(sheet, cabecalhos, dados, corpo);
     try {
       validarSaldoContratoNaoNegativo(sheet, numLinhaInserida, cabecalhos);
     } catch (erroSaldo) {
       sheet.deleteRow(numLinhaInserida);
       throw erroSaldo;
     }
+    linhaAuditoria = sheet.getRange(numLinhaInserida, 1, 1, cabecalhos.length).getValues()[0];
+  } else if (ehPlanilhaApoiadoresPessoal(planilha, origemAuditoria)) {
+    numLinhaInserida = inserirLinhaApoiadores(sheet, cabecalhos, dados, corpo);
+    linhaAuditoria = sheet.getRange(numLinhaInserida, 1, 1, cabecalhos.length).getValues()[0];
+  } else {
+    const agora = Utilities.formatDate(
+      new Date(),
+      Session.getScriptTimeZone(),
+      "yyyy-MM-dd HH:mm:ss"
+    );
+
+    const linha = cabecalhos.map(function (col) {
+      if (col === "data" && dados[col] == null && corpo[col] == null) return agora;
+      const val = valorDadosColuna(dados, col);
+      if (val !== undefined) return val;
+      if (corpo[col] != null) return corpo[col];
+      return "";
+    });
+
+    sheet.appendRow(linha);
+    numLinhaInserida = sheet.getLastRow();
+    linhaAuditoria = linha;
   }
+
   if (auditar) {
     registrarAuditoriaContratos(
       planilha,
       "inserir",
       numLinhaInserida,
       {},
-      linhaParaObjeto(cabecalhos, linha),
+      linhaParaObjeto(cabecalhos, linhaAuditoria),
       origemAuditoria,
       usuarioAuditoria
     );

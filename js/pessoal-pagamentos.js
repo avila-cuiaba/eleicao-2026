@@ -141,8 +141,17 @@ function irParaPaginaTabela(pagina) {
   renderizarTabela({ preservarPagina: true });
 }
 
+const CAMPOS_EDICAO_SOMENTE_AVILA = new Set(["tipo-contrato", "valor-contrato"]);
+
+function usuarioPodeEditarTipoValorContrato() {
+  return typeof AUTH !== "undefined" && AUTH.ehAvilaMaster();
+}
+
 function campoEstaBloqueado(campo) {
   if (campo.desabilitadoPermanente) return true;
+  if (CAMPOS_EDICAO_SOMENTE_AVILA.has(campo.id) && !usuarioPodeEditarTipoValorContrato()) {
+    return true;
+  }
   if (campo.edicaoComConfirmacao && !camposDesbloqueadosFormulario.has(campo.id)) return true;
   return false;
 }
@@ -150,6 +159,9 @@ function campoEstaBloqueado(campo) {
 function campoIncluirNoSalvar(campo) {
   if (campo.somenteLeitura) return false;
   if (campo.desabilitadoPermanente) return false;
+  if (CAMPOS_EDICAO_SOMENTE_AVILA.has(campo.id) && !usuarioPodeEditarTipoValorContrato()) {
+    return false;
+  }
   if (campo.edicaoComConfirmacao && !camposDesbloqueadosFormulario.has(campo.id)) return false;
   return true;
 }
@@ -176,6 +188,7 @@ function atualizarBotaoCadeadoCampo(btn, desbloqueado, rotulo) {
 
 async function alternarBloqueioCampoFormulario(campo) {
   if (!campo?.edicaoComConfirmacao) return;
+  if (CAMPOS_EDICAO_SOMENTE_AVILA.has(campo.id) && !usuarioPodeEditarTipoValorContrato()) return;
 
   const desbloqueado = camposDesbloqueadosFormulario.has(campo.id);
   const wrap = el.formCampos?.querySelector(`[data-campo-form="${campo.id}"]`);
@@ -318,12 +331,16 @@ function totaisContratosVazios() {
   return { totalContratos: 0, totalPago: 0, totalSaldo: 0 };
 }
 
-function acumularTotaisContrato(bucket, valorContrato, saldoContrato) {
+function acumularTotaisContrato(bucket, valorContrato, saldoContrato, valorPagoItem) {
   const v = valorContrato;
   const s = saldoContrato;
   if (v != null) bucket.totalContratos += v;
   if (s != null) bucket.totalSaldo += s;
-  if (v != null && s != null) bucket.totalPago += Math.max(0, v - s);
+  if (valorPagoItem != null) {
+    bucket.totalPago += valorPagoItem;
+  } else if (v != null && s != null) {
+    bucket.totalPago += Math.max(0, v - s);
+  }
 }
 
 function totaisContratosPagamentos(lista) {
@@ -334,8 +351,9 @@ function totaisContratosPagamentos(lista) {
   for (const item of lista) {
     const v = numeroMoeda(valorItem(item, colunaValorContrato));
     const s = numeroMoeda(valorItem(item, colunaSaldoContrato));
-    acumularTotaisContrato(out, v, s);
-    acumularTotaisContrato(itemPagamentoPix(item) ? out.pix : out.direto, v, s);
+    const pago = valorPagoContratoItem(item);
+    acumularTotaisContrato(out, v, s, pago);
+    acumularTotaisContrato(itemPagamentoPix(item) ? out.pix : out.direto, v, s, pago);
   }
   return out;
 }
@@ -437,13 +455,38 @@ function linhasAposBusca() {
   return aplicarBusca(linhas.slice());
 }
 
+const ordenacaoPagamentos = { col: "nome", dir: "asc" };
+
+function cmpPagamentoNome(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(valorItem(a, colunaNome), valorItem(b, colunaNome));
+  if (c) return c;
+  return T.cmpTexto(valorItem(a, colunaMunicipio), valorItem(b, colunaMunicipio));
+}
+
+function cmpPagamentoMunicipio(a, b) {
+  const T = TabelaOrdenacao;
+  let c = T.cmpTexto(valorItem(a, colunaMunicipio), valorItem(b, colunaMunicipio));
+  if (c) return c;
+  return T.cmpTexto(valorItem(a, colunaNome), valorItem(b, colunaNome));
+}
+
+const COMPARADORES_ORDENACAO_PAGAMENTOS = {
+  nome: cmpPagamentoNome,
+  municipio: cmpPagamentoMunicipio,
+};
+
+function aplicarOrdenacaoPagamentos(lista) {
+  return TabelaOrdenacao.aplicar(lista, ordenacaoPagamentos, COMPARADORES_ORDENACAO_PAGAMENTOS);
+}
+
 /** Totais do card: todos os registros (só respeita a busca), sem filtro conta/direto. */
 function linhasParaResumoToolbar() {
-  return ordenarLinhasPorNome(linhasAposBusca());
+  return aplicarOrdenacaoPagamentos(linhasAposBusca());
 }
 
 function linhasFiltradas() {
-  return ordenarLinhasPorNome(aplicarFiltroFormaPagamento(linhasAposBusca()));
+  return aplicarOrdenacaoPagamentos(aplicarFiltroFormaPagamento(linhasAposBusca()));
 }
 
 function cpfSomenteDigitos(valor) {
@@ -722,7 +765,13 @@ function resolverCamposFormulario() {
       ...campo,
       coluna: PlanilhaApi.acharColuna(colunas, campo.aliases, campo.indice),
     }))
-    .filter((campo) => campo.coluna);
+    .filter((campo) => campo.coluna)
+    .filter((campo) => {
+      if (campo.id === "lancar-sistema" && cfg.EXIBIR_CAMPO_LANCAR_SISTEMA_FORMULARIO === false) {
+        return false;
+      }
+      return true;
+    });
 }
 
 function chaveGravacao(coluna) {
@@ -872,12 +921,20 @@ function montarNoCampo(campo, dados) {
   }
 
   if (!campo.somenteLeitura && campo.edicaoComConfirmacao) {
+    if (CAMPOS_EDICAO_SOMENTE_AVILA.has(campo.id) && !usuarioPodeEditarTipoValorContrato()) {
+      return no;
+    }
     return envolverCampoFormulario(campo, no);
   }
   return no;
 }
 
-function classeColunaFormulario(campo, camposNoGrupo) {
+function classeColunaFormulario(campo, camposNoGrupo, chaveGrupo) {
+  if (chaveGrupo === "nome-assinado") {
+    return campo.id === "nome"
+      ? "col-9 col-lg-10 contratos-col-nome-assinado-nome"
+      : "col-3 col-lg-2 contratos-col-nome-assinado-assinado";
+  }
   const largura = campo.largura || 12;
   const grupoPar =
     camposNoGrupo.length === 2 && camposNoGrupo.every((c) => (c.largura || 12) <= 8);
@@ -915,11 +972,14 @@ function montarFormulario(dados) {
 
   ordem.forEach((chaveGrupo) => {
     const row = document.createElement("div");
-    row.className = "row g-2 mb-2";
+    row.className =
+      chaveGrupo === "nome-assinado"
+        ? "row g-2 mb-2 contratos-row-nome-assinado"
+        : "row g-2 mb-2";
     grupos.get(chaveGrupo).forEach((campo) => {
       const col = document.createElement("div");
       const camposNoGrupo = grupos.get(chaveGrupo);
-      col.className = classeColunaFormulario(campo, camposNoGrupo);
+      col.className = classeColunaFormulario(campo, camposNoGrupo, chaveGrupo);
 
       col.appendChild(montarNoCampo(campo, dados));
 
@@ -1131,6 +1191,7 @@ function resolverColunasOVRelatorio() {
   const defs = cfg.PARCELAS_COLUNAS_O_V || [];
   parcelasRelatorioOV = defs.map((def) => ({
     n: def.n,
+    titulo: def.titulo,
     colPgto: PlanilhaApi.acharColuna(colunas, def.pgtoAliases, def.pgto),
     colData: PlanilhaApi.acharColuna(colunas, def.dataAliases, def.data),
   }));
@@ -1152,9 +1213,10 @@ function valorMoedaRelatorioItem(item, col) {
 function htmlCardParcelaRelatorioIndividual(parcela, item) {
   const valor = valorMoedaRelatorioItem(item, parcela.colPgto);
   const data = valorDataRelatorioItem(item, parcela.colData);
+  const rotuloParcela = parcela.titulo || `pagamento ${parcela.n}`;
   return (
     '<div class="pagamentos-rel-parcela-card">' +
-    `<div class="pagamentos-rel-parcela-titulo">pagamento ${parcela.n}</div>` +
+    `<div class="pagamentos-rel-parcela-titulo">${escapeHtml(rotuloParcela)}</div>` +
     `<div class="pagamentos-rel-parcela-valor pagamentos-rel-num">${escapeHtml(valor)}</div>` +
     '<div class="pagamentos-rel-parcela-rotulo-data">data pagamento</div>' +
     `<div class="pagamentos-rel-parcela-data">${escapeHtml(data)}</div>` +
@@ -1198,11 +1260,7 @@ function htmlCelulaModalDupla(linha1, linha2, opcoes) {
 }
 
 function ordenarLinhasPorNome(lista) {
-  return lista.slice().sort((a, b) => {
-    const na = String(valorItem(a, colunaNome) ?? "").trim();
-    const nb = String(valorItem(b, colunaNome) ?? "").trim();
-    return na.localeCompare(nb, "pt-BR", { sensitivity: "base" });
-  });
+  return aplicarOrdenacaoPagamentos(lista);
 }
 
 function itemLancarSistema(item) {
@@ -1455,8 +1513,10 @@ function setGerarCsvPagamentosCarregando(ativo) {
 
 function setLancarPagamentosCarregando(ativo) {
   const btn = el.btnExecutarLancarPagamentosPix;
-  const spinner = el.lancarPixSpinner;
   const icon = el.lancarPixIcone;
+  el.lancarPixModalSalvando?.classList.toggle("d-none", !ativo);
+  el.lancarPixModalSalvando?.setAttribute("aria-hidden", ativo ? "false" : "true");
+  el.lancarPixModalSalvando?.setAttribute("aria-busy", ativo ? "true" : "false");
   if (btn) {
     if (ativo) {
       btn.dataset.carregando = "1";
@@ -1465,9 +1525,15 @@ function setLancarPagamentosCarregando(ativo) {
       delete btn.dataset.carregando;
     }
   }
-  spinner?.classList.toggle("d-none", !ativo);
-  icon?.classList.toggle("d-none", !!ativo);
-  if (!ativo) atualizarBotaoLancarPagamentosPix();
+  if (el.filtroLotePix) el.filtroLotePix.disabled = !!ativo;
+  if (el.btnFecharLancarPagamentosPix) el.btnFecharLancarPagamentosPix.disabled = !!ativo;
+  if (el.btnFecharLancarPagamentosPixHeader) el.btnFecharLancarPagamentosPixHeader.disabled = !!ativo;
+  if (el.lancarMarcarTodos) el.lancarMarcarTodos.disabled = !!ativo;
+  el.lancarPixSpinner?.classList.add("d-none");
+  if (!ativo) {
+    icon?.classList.remove("d-none");
+    atualizarBotaoLancarPagamentosPix();
+  }
 }
 
 async function gerarArquivoCsvPagamentos() {
@@ -2124,6 +2190,10 @@ async function abrirModalLancarPix() {
   }
 }
 
+function exibirIconeLancamentoSistemaValor() {
+  return cfg.EXIBIR_ICONE_LANCAMENTO_SISTEMA_VALOR !== false;
+}
+
 function htmlIconePagamento(item) {
   const noSistema = itemLancarSistema(item);
   const classe = noSistema
@@ -2160,15 +2230,17 @@ function htmlCelulaValorContrato(item) {
   return (
     '<span class="contratos-valor-celula">' +
     `<span class="contratos-valor-texto">${formatarValorContratoExibir(valorItem(item, colunaValorContrato))}</span>` +
-    htmlIconePagamento(item) +
+    (exibirIconeLancamentoSistemaValor() ? htmlIconePagamento(item) : "") +
     "</span>"
   );
 }
 
 function htmlMobileStackCabecalho() {
+  const T = TabelaOrdenacao;
   return (
-    '<div class="contratos-th-stack-head contratos-th-stack-head--unico">' +
-    '<span>dados do colaborador</span>' +
+    '<div class="contratos-th-stack-head contratos-th-stack-head--ordenacao">' +
+    `<div class="contratos-th-stack-ordenavel-linha">${T.htmlCabecalhoOrdenavel(rotuloTabela("NOME"), "nome")}</div>` +
+    `<div class="contratos-th-stack-ordenavel-linha">${T.htmlCabecalhoOrdenavel(rotuloTabela("MUNICIPIO"), "municipio")}</div>` +
     "</div>"
   );
 }
@@ -2260,6 +2332,16 @@ function textoMoedaRelatorio(val) {
 }
 
 function valorPagoContratoItem(item) {
+  let soma = 0;
+  let algum = false;
+  for (const parcela of parcelasRelatorioOV) {
+    const n = numeroMoeda(valorItem(item, parcela.colPgto));
+    if (n != null && n !== 0) {
+      soma += n;
+      algum = true;
+    }
+  }
+  if (algum) return Math.max(0, soma);
   const valor = numeroMoeda(valorItem(item, colunaValorContrato));
   const saldo = numeroMoeda(valorItem(item, colunaSaldoContrato));
   if (valor == null || saldo == null) return null;
@@ -2313,7 +2395,6 @@ function htmlTabelaRelatorioPagamentos(itens, opcoes) {
 
   const cabecalhos = [
     th(individual ? rotuloTabela("MUNICIPIO") : rotuloTabela("NOME"), "pagamentos-rel-col-nome"),
-    th(rotuloTabela("ASSINADO"), "pagamentos-rel-col-assinado text-center"),
     th("CPF", "pagamentos-rel-col-cpf text-center"),
     th(rotuloTabela("VALOR_CONTRATO"), "pagamentos-rel-col-valor text-end"),
     th(rotuloTabela("VALOR_PAGO"), "pagamentos-rel-col-valor text-end"),
@@ -2337,7 +2418,6 @@ function htmlTabelaRelatorioPagamentos(itens, opcoes) {
         '<td class="pagamentos-rel-col-nome">' +
           htmlCelulaNomeMunicipioRelatorio(item, { apenasMunicipio: individual }) +
           "</td>",
-        '<td class="text-center pagamentos-rel-col-assinado">' + htmlIconeAssinado(item) + "</td>",
         '<td class="text-center pagamentos-rel-col-cpf">' + htmlCelulaCpfPixRelatorio(item) + "</td>",
         '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num">' +
           escapeHtml(textoMoedaRelatorio(valorItem(item, colunaValorContrato))) +
@@ -2353,11 +2433,11 @@ function htmlTabelaRelatorioPagamentos(itens, opcoes) {
     })
     .join("");
 
-  let rodape = "";
+  let linhaTotal = "";
   if (!individual && itens.length > 1) {
-    rodape =
-      "<tfoot><tr>" +
-      '<td colspan="3"><strong>total</strong></td>' +
+    linhaTotal =
+      '<tr class="pagamentos-rel-linha-total">' +
+      '<td colspan="2"><strong>total</strong></td>' +
       '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num"><strong>' +
       escapeHtml(valorMoedaGravar(totalContrato)) +
       "</strong></td>" +
@@ -2367,18 +2447,19 @@ function htmlTabelaRelatorioPagamentos(itens, opcoes) {
       '<td class="text-end pagamentos-rel-col-valor pagamentos-rel-num"><strong>' +
       escapeHtml(valorMoedaGravar(totalSaldo)) +
       "</strong></td>" +
-      "</tr></tfoot>";
+      "</tr>";
   }
+
+  const corpoVazio = '<tr><td colspan="5">—</td></tr>';
+  const corpo = linhasHtml ? linhasHtml + linhaTotal : corpoVazio;
 
   return (
     '<table class="rel-tabela pagamentos-rel-tabela">' +
     "<thead><tr>" +
     cabecalhos.join("") +
     "</tr></thead><tbody>" +
-    (linhasHtml || '<tr><td colspan="5">—</td></tr>') +
-    "</tbody>" +
-    rodape +
-    "</table>"
+    corpo +
+    "</tbody></table>"
   );
 }
 
@@ -2515,7 +2596,11 @@ function montarCabecalhoTabela() {
   trMobile.innerHTML = "";
 
   trDesktop.appendChild(
-    criarTh(rotuloTabela("NOME"), "contratos-col-nome contratos-tabela-desktop-col")
+    TabelaOrdenacao.criarThOrdenavel(
+      rotuloTabela("NOME"),
+      "nome",
+      "contratos-col-nome contratos-tabela-desktop-col"
+    )
   );
   const thAssinado = criarTh(
     rotuloTabela("ASSINADO"),
@@ -2525,7 +2610,11 @@ function montarCabecalhoTabela() {
   trDesktop.appendChild(thAssinado);
   trDesktop.appendChild(criarTh(rotuloTabela("CPF"), "contratos-col-cpf contratos-tabela-desktop-col"));
   trDesktop.appendChild(
-    criarTh(rotuloTabela("MUNICIPIO"), "contratos-col-municipio contratos-tabela-desktop-col")
+    TabelaOrdenacao.criarThOrdenavel(
+      rotuloTabela("MUNICIPIO"),
+      "municipio",
+      "contratos-col-municipio contratos-tabela-desktop-col"
+    )
   );
   if (cfg.EXIBIR_COLUNA_LIDERANCA !== false) {
     trDesktop.appendChild(
@@ -2557,6 +2646,10 @@ function montarCabecalhoTabela() {
   trMobile.appendChild(
     criarTh("ações", "contratos-col-acoes contratos-tabela-mobile-col")
   );
+
+  if (el.tabelaCard) {
+    TabelaOrdenacao.atualizarUi(el.tabelaCard, ordenacaoPagamentos);
+  }
 }
 
 function criarLinhaTabela(item) {
@@ -2781,6 +2874,11 @@ function init() {
     lancarMarcarTodos: document.getElementById("lancarMarcarTodos"),
     filtroLotePix: document.getElementById("filtroLotePix"),
     lancarPixCarregando: document.getElementById("lancarPixCarregando"),
+    lancarPixModalSalvando: document.getElementById("lancarPixModalSalvando"),
+    btnFecharLancarPagamentosPix: document.getElementById("btnFecharLancarPagamentosPix"),
+    btnFecharLancarPagamentosPixHeader: document.querySelector(
+      "#modalLancarPagamentosPix .modal-header .btn-close"
+    ),
     btnExecutarLancarPagamentosPix: document.getElementById("btnExecutarLancarPagamentosPix"),
     lancarPixSpinner: document.getElementById("lancarPixSpinner"),
     lancarPixIcone: document.getElementById("lancarPixIcone"),
@@ -2835,6 +2933,13 @@ function init() {
   el.btnNovo?.addEventListener("click", abrirNovo);
   el.form?.addEventListener("submit", salvarFormulario);
 
+  TabelaOrdenacao.vincular(
+    el.tabelaCard,
+    ordenacaoPagamentos,
+    () => renderizarTabela({ preservarPagina: true }),
+    "ordenacaoPagamentos"
+  );
+
   window.atualizarPagina = () => carregarContratos(false);
   carregarContratos(false);
 }
@@ -2850,12 +2955,7 @@ function estilosRelatorioPagina() {
   return (
     `.rel-body ${tbl}{table-layout:fixed;width:100%;}` +
     `.rel-body ${tbl} th.pagamentos-rel-col-nome,` +
-    `.rel-body ${tbl} td.pagamentos-rel-col-nome{width:32%;}` +
-    `.rel-body ${tbl} th.pagamentos-rel-col-assinado,` +
-    `.rel-body ${tbl} td.pagamentos-rel-col-assinado{width:6%;text-align:center;}` +
-    `.rel-body ${tbl} .contratos-icone-assinado{display:inline-flex;align-items:center;justify-content:center;}` +
-    `.rel-body ${tbl} .contratos-icone-assinado--sim{color:#0f766e;}` +
-    `.rel-body ${tbl} .contratos-icone-assinado--nao{color:#dc2626;}` +
+    `.rel-body ${tbl} td.pagamentos-rel-col-nome{width:38%;}` +
     `.rel-body ${tbl} th.pagamentos-rel-col-cpf,` +
     `.rel-body ${tbl} td.pagamentos-rel-col-cpf{width:22%;}` +
     `.rel-body ${tbl} .pagamentos-rel-cpf-pix-celula{display:inline-flex;align-items:center;justify-content:center;gap:0.35rem;max-width:100%;}` +
@@ -2870,6 +2970,8 @@ function estilosRelatorioPagina() {
     `.rel-body ${tbl} .pagamentos-rel-nome-stack{display:block;width:100%;line-height:1.3;}` +
     `.rel-body ${tbl} .pagamentos-rel-nome{font-weight:600;color:#1e293b;}` +
     `.rel-body ${tbl} .pagamentos-rel-municipio{margin-top:0.15rem;font-size:8pt;color:#64748b;font-weight:400;line-height:1.2;}` +
+    `.rel-body ${tbl} tr.pagamentos-rel-linha-total td{border-top:2px solid rgba(148,163,184,0.45);background:#f8fafc!important;}` +
+    `.rel-body ${tbl} tr.pagamentos-rel-linha-total{page-break-inside:avoid;break-inside:avoid-page;}` +
     ".rel-body .pagamentos-rel-secao-parcelas{margin-top:0.75rem;page-break-inside:avoid;}" +
     ".rel-body .pagamentos-rel-parcelas-grid{display:flex;flex-wrap:wrap;gap:0.55rem;margin-top:0.35rem;}" +
     ".rel-body .pagamentos-rel-parcela-card{flex:1 1 calc(25% - 0.55rem);min-width:6.5rem;max-width:100%;" +
@@ -2885,6 +2987,15 @@ function estilosRelatorioPagina() {
     ".rel-body .pagamentos-rel-cards-resumo .rel-card .rel-card-rotulo," +
     ".rel-body .pagamentos-rel-cards-resumo .rel-card .rel-card-valor{display:block;text-align:center;}" +
     ".rel-body .pagamentos-rel-secao-individual .pagamentos-rel-nome-destaque{margin:0 0 0.55rem;font-size:13pt;font-weight:700;color:#1f4e8c;line-height:1.25;}" +
+    ".rel-body .pagamentos-rel-secao-individual .pagamentos-rel-parcelas-grid{display:flex;flex-wrap:nowrap;gap:0.3rem;margin-top:0.35rem;}" +
+    ".rel-body .pagamentos-rel-secao-individual .pagamentos-rel-parcela-card{flex:1 1 0;min-width:0;max-width:none;" +
+    "padding:0.28rem 0.32rem;border-radius:6px;}" +
+    ".rel-body .pagamentos-rel-secao-individual .pagamentos-rel-parcela-titulo{font-size:6.5pt;margin-bottom:0.1rem;" +
+    "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}" +
+    ".rel-body .pagamentos-rel-secao-individual .pagamentos-rel-parcela-valor{font-size:8.5pt;margin-bottom:0.18rem;line-height:1.2;}" +
+    ".rel-body .pagamentos-rel-secao-individual .pagamentos-rel-parcela-rotulo-data{font-size:6pt;margin-bottom:0.05rem;}" +
+    ".rel-body .pagamentos-rel-secao-individual .pagamentos-rel-parcela-data{font-size:7pt;line-height:1.2;}" +
+    ".rel-body .pagamentos-rel-secao-individual .pagamentos-rel-parcela-card .pagamentos-rel-num{white-space:normal;}" +
     ".page-pessoal-pagamentos .rel-secao-indicadores .rel-cards," +
     ".page-pessoal-pagamentos .pagamentos-rel-cards-resumo{display:flex;flex-wrap:wrap;gap:0.5rem;}" +
     ".page-pessoal-pagamentos .rel-secao-indicadores .rel-card{flex:1 1 140px;min-width:120px;text-align:center;}" +

@@ -11,6 +11,18 @@ const AUTH = {
       paginaInicial: "pessoal-contratos",
       paginas: ["pessoal-contratos"],
     },
+    reginaldo: {
+      paginaInicial: "pessoal-contratos",
+      paginas: ["pessoal-contratos", "pessoal-pagamentos"],
+    },
+    material: {
+      paginaInicial: "logistica-material-grafico",
+      paginas: ["logistica-material-grafico"],
+    },
+    combustivel: {
+      paginaInicial: "logistica-abastecimento",
+      paginas: ["logistica-abastecimento"],
+    },
     campanha: {
       paginaInicial: "inicio",
       paginasExcluidas: ["pessoal-contratos", "pessoal-pagamentos"],

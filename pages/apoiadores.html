@@ -94,6 +94,29 @@
       <div class="tab-pane fade dashboard-sm-pane" id="pagePainelRegistros" role="tabpanel" aria-labelledby="pageTabRegistros" tabindex="0">
     <div class="card shadow-sm border-0 dashboard-tabela-card apoiadores-tabela-card">
       <div class="card-body p-0 dashboard-tabela-panel">
+        <div class="apoiadores-tabela-toolbar apoiadores-th-ident-inner--master">
+          <button type="button" class="agenda-btn-nova agenda-btn-nova--tabela d-none" id="btnIncluirApoiador" title="incluir" aria-label="incluir">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>
+          </button>
+          <label class="apoiadores-busca-campo" for="buscaLideranca">
+            <span class="visually-hidden">buscar liderança</span>
+            <span class="apoiadores-busca-inner">
+              <span class="apoiadores-busca-icone" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+              </span>
+              <input
+                type="search"
+                id="buscaLideranca"
+                class="form-control form-control-sm apoiadores-busca-input"
+                placeholder="liderança"
+                autocomplete="off"
+              />
+            </span>
+          </label>
+        </div>
         <div class="dashboard-tabela-head table-light">
           <table class="table mb-0 apoiadores-tabela">
             <colgroup>
@@ -107,37 +130,56 @@
             <thead>
               <tr class="apoiadores-thead-row1">
                 <th scope="col" rowspan="2" class="apoiadores-col-ident apoiadores-th-ident dashboard-th-base">
-                  <div class="apoiadores-th-ident-inner apoiadores-th-ident-inner--master">
-                    <button type="button" class="agenda-btn-nova agenda-btn-nova--tabela d-none" id="btnIncluirApoiador" title="incluir" aria-label="incluir">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>
-                    </button>
-                    <span class="apoiadores-th-titulo apoiadores-th-desktop">liderança</span>
-                    <span class="apoiadores-th-mobile">
-                      <span class="dashboard-th-principal">liderança</span>
-                      <span class="dashboard-th-sub text-muted apoiadores-th-sub-municipio">município</span>
-                    </span>
-                    <label class="apoiadores-busca-campo" for="buscaLideranca">
-                      <span class="visually-hidden">buscar liderança</span>
-                      <span class="apoiadores-busca-inner">
-                        <span class="apoiadores-busca-icone" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <circle cx="11" cy="11" r="7" />
-                            <path d="M20 20l-3.5-3.5" />
-                          </svg>
-                        </span>
-                        <input
-                          type="search"
-                          id="buscaLideranca"
-                          class="form-control form-control-sm apoiadores-busca-input"
-                          placeholder="liderança"
-                          autocomplete="off"
-                        />
+                  <div class="apoiadores-th-ident-inner">
+                    <span class="apoiadores-th-titulo apoiadores-th-desktop apoiadores-th-ordenavel">
+                      <span class="apoiadores-th-ordenavel-rotulo">liderança</span>
+                      <span class="apoiadores-th-sort" role="group" aria-label="ordenar por liderança">
+                        <button type="button" class="apoiadores-th-sort-btn" data-ordenar-col="lideranca" data-ordenar-dir="asc" title="liderança A–Z" aria-label="liderança crescente">
+                          <svg class="apoiadores-th-sort-icone" viewBox="0 0 10 6" aria-hidden="true"><path fill="currentColor" d="M5 0 10 6H0z" /></svg>
+                        </button>
+                        <button type="button" class="apoiadores-th-sort-btn" data-ordenar-col="lideranca" data-ordenar-dir="desc" title="liderança Z–A" aria-label="liderança decrescente">
+                          <svg class="apoiadores-th-sort-icone" viewBox="0 0 10 6" aria-hidden="true"><path fill="currentColor" d="M5 6 0 0h10z" /></svg>
+                        </button>
                       </span>
-                    </label>
+                    </span>
+                    <span class="apoiadores-th-mobile">
+                      <span class="apoiadores-th-mobile-linha apoiadores-th-ordenavel">
+                        <span class="dashboard-th-principal">liderança</span>
+                        <span class="apoiadores-th-sort" role="group" aria-label="ordenar por liderança">
+                          <button type="button" class="apoiadores-th-sort-btn" data-ordenar-col="lideranca" data-ordenar-dir="asc" title="liderança A–Z" aria-label="liderança crescente">
+                            <svg class="apoiadores-th-sort-icone" viewBox="0 0 10 6" aria-hidden="true"><path fill="currentColor" d="M5 0 10 6H0z" /></svg>
+                          </button>
+                          <button type="button" class="apoiadores-th-sort-btn" data-ordenar-col="lideranca" data-ordenar-dir="desc" title="liderança Z–A" aria-label="liderança decrescente">
+                            <svg class="apoiadores-th-sort-icone" viewBox="0 0 10 6" aria-hidden="true"><path fill="currentColor" d="M5 6 0 0h10z" /></svg>
+                          </button>
+                        </span>
+                      </span>
+                      <span class="apoiadores-th-mobile-linha apoiadores-th-ordenavel">
+                        <span class="dashboard-th-sub text-muted apoiadores-th-sub-municipio">município</span>
+                        <span class="apoiadores-th-sort" role="group" aria-label="ordenar por município">
+                          <button type="button" class="apoiadores-th-sort-btn" data-ordenar-col="municipio" data-ordenar-dir="asc" title="município A–Z" aria-label="município crescente">
+                            <svg class="apoiadores-th-sort-icone" viewBox="0 0 10 6" aria-hidden="true"><path fill="currentColor" d="M5 0 10 6H0z" /></svg>
+                          </button>
+                          <button type="button" class="apoiadores-th-sort-btn" data-ordenar-col="municipio" data-ordenar-dir="desc" title="município Z–A" aria-label="município decrescente">
+                            <svg class="apoiadores-th-sort-icone" viewBox="0 0 10 6" aria-hidden="true"><path fill="currentColor" d="M5 6 0 0h10z" /></svg>
+                          </button>
+                        </span>
+                      </span>
+                    </span>
                   </div>
                 </th>
                 <th scope="col" rowspan="2" class="apoiadores-col-municipio dashboard-th-base apoiadores-th-municipio">
-                  <span class="apoiadores-th-desktop">município</span>
+                  <span class="apoiadores-th-desktop apoiadores-th-ordenavel">
+                    <span class="apoiadores-th-ordenavel-rotulo">município</span>
+                    <span class="apoiadores-th-sort" role="group" aria-label="ordenar por município">
+                      <button type="button" class="apoiadores-th-sort-btn" data-ordenar-col="municipio" data-ordenar-dir="asc" title="município A–Z" aria-label="município crescente">
+                        <svg class="apoiadores-th-sort-icone" viewBox="0 0 10 6" aria-hidden="true"><path fill="currentColor" d="M5 0 10 6H0z" /></svg>
+                      </button>
+                      <button type="button" class="apoiadores-th-sort-btn" data-ordenar-col="municipio" data-ordenar-dir="desc" title="município Z–A" aria-label="município decrescente">
+                        <svg class="apoiadores-th-sort-icone" viewBox="0 0 10 6" aria-hidden="true"><path fill="currentColor" d="M5 6 0 0h10z" /></svg>
+                      </button>
+                    </span>
+                  </span>
                 </th>
                 <th scope="col" colspan="4" class="text-center dashboard-th-votacao apoiadores-th-grupo apoiadores-col-separador"><strong>apoiador</strong></th>
               </tr>
@@ -190,6 +232,17 @@
         </div>
         <div class="modal-body">
           <form id="formApoiadorCrud" class="row g-3">
+            <div class="col-12">
+              <span class="form-label d-block" id="campoApClassificacaoRotulo">classificação da liderança</span>
+              <input type="hidden" id="campoApClassificacao" value="0" />
+              <div class="apoiadores-classificacao-linha">
+                <div id="campoApClassificacaoEstrelas" class="apoiadores-rating" role="group" aria-labelledby="campoApClassificacaoRotulo"></div>
+                <div class="form-check apoiadores-check-usar-classificacao mb-0">
+                  <input class="form-check-input" type="checkbox" id="chkApUsarClassificacao" checked />
+                  <label class="form-check-label" for="chkApUsarClassificacao">usar classificação da liderança</label>
+                </div>
+              </div>
+            </div>
             <div class="col-12 col-sm-6">
               <label class="form-label" for="campoApLideranca">liderança</label>
               <input type="text" class="form-control form-control-sm" id="campoApLideranca" required />
@@ -200,47 +253,37 @@
                 <option value="">selecione</option>
               </select>
             </div>
-            <div class="col-12 col-sm-6">
-              <label class="form-label d-block" for="campoApLider">apoiador lider</label>
-              <div class="row g-2 master-crud-modal-par">
-                <div class="col-4">
-                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApLider" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador lider" />
-                </div>
-                <div class="col-8">
-                  <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApFinLider" inputmode="decimal" placeholder="R$ 0,00" aria-label="valor financeiro apoiador lider" />
-                </div>
-              </div>
+            <div class="col-4">
+              <label class="form-label" for="campoApProprioValor">proprio apoiador (valor)</label>
+              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApProprioValor" data-moeda-apoiador inputmode="decimal" placeholder="R$ 0,00" aria-label="valor proprio apoiador" />
             </div>
-            <div class="col-12 col-sm-6">
-              <label class="form-label d-block" for="campoApIntegral">apoiador integral</label>
-              <div class="row g-2 master-crud-modal-par">
-                <div class="col-4">
-                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApIntegral" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador integral" />
-                </div>
-                <div class="col-8">
-                  <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApFinIntegral" inputmode="decimal" placeholder="R$ 0,00" aria-label="valor financeiro apoiador integral" />
-                </div>
-              </div>
-            </div>
-            <div class="col-12 col-sm-6">
-              <label class="form-label d-block" for="campoApMeio">apoiador meio</label>
-              <div class="row g-2 master-crud-modal-par">
-                <div class="col-4">
-                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApMeio" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador meio" />
-                </div>
-                <div class="col-8">
-                  <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApFinMeio" inputmode="decimal" placeholder="R$ 0,00" aria-label="valor financeiro apoiador meio" />
-                </div>
-              </div>
-            </div>
-            <div class="col-12 col-sm-6">
+            <div class="col-12">
               <label class="form-label d-block" for="campoApCustom">apoiador customizado</label>
               <div class="row g-2 master-crud-modal-par">
                 <div class="col-4">
                   <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApCustom" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador customizado" />
                 </div>
-                <div class="col-8">
-                  <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApFinCustom" inputmode="decimal" placeholder="R$ 0,00" aria-label="valor financeiro apoiador customizado" />
+                <div class="col-4">
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApFinCustom" data-moeda-apoiador inputmode="decimal" placeholder="R$ 0,00" aria-label="valor financeiro apoiador customizado" />
+                </div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="row g-2 align-items-end apoiadores-modal-linha-tres-apoiadores">
+                <div class="col-4">
+                  <label class="form-label d-block" for="campoApLider">apoiador lider</label>
+                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApLider" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador lider" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin d-none" id="campoApFinLider" inputmode="decimal" tabindex="-1" aria-hidden="true" />
+                </div>
+                <div class="col-4">
+                  <label class="form-label d-block" for="campoApIntegral">apoiador integral</label>
+                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApIntegral" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador integral" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin d-none" id="campoApFinIntegral" inputmode="decimal" tabindex="-1" aria-hidden="true" />
+                </div>
+                <div class="col-4">
+                  <label class="form-label d-block" for="campoApMeio">apoiador meio</label>
+                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApMeio" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador meio" />
+                  <input type="text" class="form-control form-control-sm master-crud-modal-fin d-none" id="campoApFinMeio" inputmode="decimal" tabindex="-1" aria-hidden="true" />
                 </div>
               </div>
             </div>
