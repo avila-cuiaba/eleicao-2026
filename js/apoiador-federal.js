@@ -410,7 +410,12 @@ function linhasFiltradasPorRegiao() {
 function linhasFiltradas() {
   const termo = termoBuscaLideranca();
   return linhasFiltradasPorRegiao().filter((item) => {
-    if (termo && !normalizarChave(item.lideranca).includes(termo)) return false;
+    if (
+      termo &&
+      !itemCombinaBuscaMulticampo(item, termo, ["lideranca", "municipio", "federal"], normalizarChave)
+    ) {
+      return false;
+    }
     return true;
   });
 }

@@ -231,7 +231,12 @@ function linhasFiltradas() {
       return false;
     }
 
-    if (termo && !normalizarChave(item.parceria).includes(termo)) return false;
+    if (
+      termo &&
+      !itemCombinaBuscaMulticampo(item, termo, ["parceria", "municipio"], normalizarChave)
+    ) {
+      return false;
+    }
     return true;
   });
 }

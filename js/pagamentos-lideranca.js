@@ -730,7 +730,12 @@ function linhasFiltradas() {
   const termo = termoBuscaLideranca();
   return linhas.filter((item) => {
     if (!item.regiaoNorm || !selecionadas.includes(item.regiaoNorm)) return false;
-    if (termo && !normalizarChave(item.lideranca).includes(termo)) return false;
+    if (
+      termo &&
+      !itemCombinaBuscaMulticampo(item, termo, ["lideranca", "municipio"], normalizarChave)
+    ) {
+      return false;
+    }
     return true;
   });
 }
@@ -1384,50 +1389,159 @@ function conteudoExtraRelatorioPagina() {
   );
 }
 
+function htmlIdentRelatorioPagLideranca(r) {
+  const lider = escapeHtml(String(r?.lideranca ?? "").trim() || "—");
+  const mun = escapeHtml(String(r?.municipio ?? "").trim());
+  let html = `<span class="apoiadores-rel-ident-nome">${lider}</span>`;
+  if (mun) {
+    html += `<span class="apoiadores-rel-ident-municipio">${mun}</span>`;
+  }
+  return html;
+}
+
+function reconstruirColgroupRelatorioPagLideranca(table) {
+  const classes = [
+    "apoiadores-col-ident",
+    "pag-lideranca-col-par",
+    "pag-lideranca-col-par",
+    "pag-lideranca-col-par",
+    "pag-lideranca-col-par",
+    "pag-lideranca-col-total",
+  ];
+  table.querySelectorAll("colgroup").forEach((cg) => {
+    cg.replaceChildren(
+      ...classes.map((cls) => {
+        const col = document.createElement("col");
+        col.className = cls;
+        return col;
+      })
+    );
+  });
+}
+
+const ROTULOS_TH_REL_PAG_LIDERANCA = ["pessoal", "combustível", "diversos", "dia D"];
+
+function garantirThTotalRelatorioPagLideranca(thRow) {
+  if (!thRow) return;
+  let thTotal = thRow.querySelector("th.pag-lideranca-col-total");
+  if (!thTotal) {
+    thTotal = document.createElement("th");
+    thTotal.scope = "col";
+    thRow.appendChild(thTotal);
+  }
+  thTotal.className = "text-end pag-lideranca-col-total pag-lideranca-col-par apoiadores-celula-num";
+  thTotal.innerHTML = '<span class="pag-lideranca-th-titulo">total</span>';
+}
+
+function garantirTdTotalRelatorioPagLideranca(tr, html) {
+  let td = tr.querySelector("td.pag-lideranca-col-total");
+  if (!td) {
+    td = document.createElement("td");
+    tr.appendChild(td);
+  }
+  td.className = "text-end pag-lideranca-col-total pag-lideranca-col-par apoiadores-celula-num";
+  td.innerHTML = html;
+}
+
 function ajustarTabelaRelatorioPagina(table) {
   if (!table?.classList?.contains("pag-lideranca-tabela")) return;
-
-  table
-    .querySelectorAll(
-      ".orcamento-total-badge, .apoiadores-sub-fin-total, .apoiadores-fin-badge, .crud-acoes, .dashboard-regiao-marcador"
-    )
-    .forEach((el) => el.remove());
-
-  const thIdent = table.querySelector("thead th.apoiadores-col-ident");
-  if (thIdent) {
-    thIdent.className = "apoiadores-col-ident";
-    thIdent.textContent = "liderança";
-  }
-
-  const thMunicipio = table.querySelector("thead th.apoiadores-col-municipio");
-  if (thMunicipio) {
-    thMunicipio.className = "apoiadores-col-municipio";
-    thMunicipio.textContent = "município";
-  }
-
-  table.querySelectorAll("tbody td.apoiadores-col-ident").forEach((td) => {
-    const nome = td.querySelector(".apoiadores-ident-nome");
-    const texto = nome?.textContent?.trim() || "—";
-    td.className = "apoiadores-col-ident";
-    td.textContent = texto;
-  });
-
-  table.querySelectorAll("tbody td.apoiadores-col-municipio").forEach((td) => {
-    const nome = td.querySelector(".dashboard-municipio-nome");
-    const texto = nome?.textContent?.trim() || td.textContent?.trim() || "—";
-    td.className = "apoiadores-col-municipio";
-    td.textContent = texto;
-  });
-
-  table.querySelectorAll("th.pag-lideranca-col-par, td.pag-lideranca-col-par").forEach((cel) => {
-    cel.className = "text-end pag-lideranca-col-par apoiadores-celula-num";
-  });
 
   const tfoot = table.querySelector("tfoot");
   const tbody = table.querySelector("tbody");
   if (tfoot && tbody) {
     tfoot.querySelectorAll("tr").forEach((tr) => tbody.appendChild(tr));
     tfoot.remove();
+  }
+
+  table
+    .querySelectorAll(
+      ".orcamento-total-badge, .apoiadores-sub-fin-total, .apoiadores-fin-badge, .crud-acoes, .dashboard-regiao-marcador, .pag-lideranca-badges-ident"
+    )
+    .forEach((el) => el.remove());
+
+  table
+    .querySelectorAll(
+      "th.apoiadores-col-municipio, td.apoiadores-col-municipio, th.orcamento-tabela-stack-col, td.orcamento-tabela-stack-col, th.apoiadores-col-orc-stack-pessoal, td.apoiadores-col-orc-stack-pessoal, th.apoiadores-col-orc-stack-diversos, td.apoiadores-col-orc-stack-diversos"
+    )
+    .forEach((el) => el.remove());
+
+  const thIdent = table.querySelector("thead th.apoiadores-col-ident");
+  if (thIdent) {
+    thIdent.className = "apoiadores-col-ident dashboard-th-base";
+    thIdent.innerHTML =
+      '<span class="dashboard-th-principal">liderança</span>' +
+      '<span class="dashboard-th-sub text-muted apoiadores-th-sub-municipio">município</span>';
+  }
+
+  const thRow = table.querySelector("thead tr");
+  if (thRow) {
+    const thsPar = [...thRow.querySelectorAll("th.pag-lideranca-col-par, th.pag-lideranca-col-desk")];
+    thsPar.forEach((th, idx) => {
+      th.className = "text-end pag-lideranca-col-par apoiadores-celula-num";
+      const rotulo = ROTULOS_TH_REL_PAG_LIDERANCA[idx] || "";
+      th.innerHTML = rotulo
+        ? `<span class="pag-lideranca-th-titulo${rotulo === "dia D" ? " pag-lideranca-th-titulo--case" : ""}">${rotulo}</span>`
+        : "";
+    });
+    garantirThTotalRelatorioPagLideranca(thRow);
+  }
+
+  reconstruirColgroupRelatorioPagLideranca(table);
+
+  const dados = aplicarOrdenacaoPagamentosLideranca(linhasFiltradas());
+  const filtradas = linhasFiltradas();
+  const linhasDados = [...table.querySelectorAll("tbody tr")].filter(
+    (tr) => !tr.classList.contains("pag-lideranca-linha-total")
+  );
+
+  linhasDados.forEach((tr, i) => {
+    const r = dados[i];
+
+    tr.querySelectorAll(
+      "td.orcamento-tabela-stack-col, td.apoiadores-col-orc-stack-pessoal, td.apoiadores-col-orc-stack-diversos"
+    ).forEach((el) => el.remove());
+    tr.querySelector("td.apoiadores-col-municipio")?.remove();
+
+    const identTd = tr.querySelector("td.apoiadores-col-ident");
+    if (identTd) {
+      identTd.className = "apoiadores-col-ident apoiadores-col-ident--rel";
+      identTd.innerHTML = r ? htmlIdentRelatorioPagLideranca(r) : "—";
+    }
+
+    tr.querySelectorAll("td.pag-lideranca-col-par, td.pag-lideranca-col-desk").forEach((td) => {
+      if (td.classList.contains("pag-lideranca-col-total")) return;
+      td.classList.remove("pag-lideranca-col-desk", "orcamento-tabela-desktop-col");
+      td.classList.add("pag-lideranca-col-par", "apoiadores-celula-num");
+    });
+
+    if (r) {
+      garantirTdTotalRelatorioPagLideranca(tr, htmlCelulaColunaTotal(r));
+    }
+  });
+
+  const trTotal = table.querySelector("tbody tr.pag-lideranca-linha-total");
+  if (trTotal) {
+    trTotal.querySelectorAll(
+      "td.orcamento-tabela-stack-col, td.apoiadores-col-orc-stack-pessoal, td.apoiadores-col-orc-stack-diversos"
+    ).forEach((el) => el.remove());
+    trTotal.querySelector("td.apoiadores-col-municipio")?.remove();
+
+    const identTd = trTotal.querySelector("td.apoiadores-col-ident");
+    if (identTd) {
+      identTd.className = "apoiadores-col-ident apoiadores-col-ident--rel";
+      identTd.innerHTML = '<span class="pag-lideranca-total-rotulo">total</span>';
+    }
+
+    trTotal.querySelectorAll("td.pag-lideranca-col-par, td.pag-lideranca-col-desk").forEach((td) => {
+      if (td.classList.contains("pag-lideranca-col-total")) return;
+      td.classList.remove("pag-lideranca-col-desk", "orcamento-tabela-desktop-col");
+      td.classList.add("pag-lideranca-col-par", "apoiadores-celula-num");
+    });
+
+    garantirTdTotalRelatorioPagLideranca(
+      trTotal,
+      htmlCelulaColunaTotal(montarTotaisKpi(filtradas), { destaque: true })
+    );
   }
 }
 
@@ -1479,13 +1593,19 @@ function estilosRelatorioPagina() {
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra-diad{background:linear-gradient(145deg,#f87171,#dc2626);color:#fff;box-shadow:0 2px 6px rgba(220,38,38,0.22);}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .orcamento-tabela-stack-col{display:none!important;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .orcamento-total-badge{display:none!important;}" +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela{table-layout:fixed;width:100%;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela{table-layout:fixed;width:100%;max-width:100%;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.apoiadores-col-ident," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.apoiadores-col-ident," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.apoiadores-col-municipio," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.apoiadores-col-municipio{text-align:left;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.apoiadores-col-ident{text-align:left;vertical-align:top;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.apoiadores-col-ident .apoiadores-th-sub-municipio{display:block;font-size:6.5pt;font-weight:500;margin-top:0.05rem;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.apoiadores-col-ident--rel .apoiadores-rel-ident-nome{display:block;font-weight:600;line-height:1.25;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.apoiadores-col-ident--rel .apoiadores-rel-ident-municipio{display:block;margin-top:0.12rem;font-size:7pt;line-height:1.2;color:#64748b;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.apoiadores-col-ident{width:28%;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-par{width:13%;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-total{width:16%;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-par," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-par{width:15%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-par{width:13%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-total," +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-total{width:16%;text-align:right;padding:0.4rem 0.4rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-th-titulo{display:inline-block;font-size:7pt;font-weight:700;color:#475569;text-transform:lowercase;line-height:1.2;white-space:nowrap;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-th-titulo--case{text-transform:none;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par{display:flex;flex-direction:column;align-items:flex-end;gap:0.1rem;line-height:1.15;}" +

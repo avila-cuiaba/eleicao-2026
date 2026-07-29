@@ -414,7 +414,12 @@ function linhasFiltradas() {
 
   return linhas.filter((item) => {
     if (!item.regiaoNorm || !selecionadas.includes(item.regiaoNorm)) return false;
-    if (termo && !normalizarChave(item.lideranca).includes(termo)) return false;
+    if (
+      termo &&
+      !itemCombinaBuscaMulticampo(item, termo, ["lideranca", "municipio"], normalizarChave)
+    ) {
+      return false;
+    }
     return true;
   });
 }
