@@ -282,7 +282,7 @@ function alinharColunasTabela() {
 }
 
 function sincronizarLargurasColunasPessoal(headTable, bodyTable) {
-  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
+  const mobile = window.matchMedia("(max-width: 1199.98px)").matches;
   const largurasMobile = {
     "pessoal-col-municipio": "22%",
     "pessoal-col-prefeito": "13%",

@@ -988,7 +988,7 @@ function zerarKpis() {
 
 function largurasColunasApoiadores() {
   const estreito = window.matchMedia("(max-width: 575.98px)").matches;
-  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
+  const mobile = window.matchMedia("(max-width: 1199.98px)").matches;
   if (estreito) {
     return {
       "apoiadores-col-ident": "58%",
@@ -1020,7 +1020,7 @@ function largurasColunasApoiadores() {
 }
 
 function sincronizarLargurasColunasApoiadores(headTable, bodyTable) {
-  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
+  const mobile = window.matchMedia("(max-width: 1199.98px)").matches;
   const larguras = largurasColunasApoiadores();
   [headTable, bodyTable].forEach((table) => {
     table.querySelectorAll("colgroup col").forEach((col) => {

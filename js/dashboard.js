@@ -502,8 +502,8 @@ function initDashboard() {
 function normalizarRotuloKpiRelatorio(rotuloEl) {
   if (!rotuloEl) return;
   const desktop =
-    rotuloEl.querySelector(".d-none.d-lg-inline, .d-none.d-lg-block") ||
-    rotuloEl.querySelector("span:not(.d-lg-none)");
+    rotuloEl.querySelector(".d-none.d-xl-inline, .d-none.d-xl-block, .d-none.d-lg-inline, .d-none.d-lg-block") ||
+    rotuloEl.querySelector("span:not(.d-xl-none):not(.d-lg-none)");
   if (desktop) rotuloEl.textContent = desktop.textContent.trim();
 }
 
@@ -517,7 +517,7 @@ function htmlCardsRelatorioPagina(doc) {
     const clone = el.cloneNode(true);
     clone.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"));
     clone
-      .querySelectorAll(".dashboard-kpi-votacao-titulo, .d-lg-none, .d-md-none, .d-sm-none")
+      .querySelectorAll(".dashboard-kpi-votacao-titulo, .d-xl-none, .d-lg-none, .d-md-none, .d-sm-none")
       .forEach((node) => node.remove());
     clone.querySelectorAll(".dashboard-kpi-rotulo").forEach(normalizarRotuloKpiRelatorio);
     return clone.outerHTML;

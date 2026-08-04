@@ -524,7 +524,7 @@ function zerarKpis() {
 }
 
 function largurasColunasAfederal() {
-  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
+  const mobile = window.matchMedia("(max-width: 1199.98px)").matches;
   if (mobile) {
     return {
       "apoiadores-col-ident": "58%",
@@ -540,7 +540,7 @@ function largurasColunasAfederal() {
 }
 
 function sincronizarLargurasColunas(headTable, bodyTable) {
-  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
+  const mobile = window.matchMedia("(max-width: 1199.98px)").matches;
   const larguras = largurasColunasAfederal();
   [headTable, bodyTable].forEach((table) => {
     table.querySelectorAll("colgroup col").forEach((col) => {

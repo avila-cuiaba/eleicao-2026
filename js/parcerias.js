@@ -335,7 +335,7 @@ function zerarKpis() {
 }
 
 function largurasColunasParcerias() {
-  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
+  const mobile = window.matchMedia("(max-width: 1199.98px)").matches;
   if (mobile) {
     return {
       "apoiadores-col-ident": "40%",
@@ -353,7 +353,7 @@ function largurasColunasParcerias() {
 }
 
 function sincronizarLargurasColunasParcerias(headTable, bodyTable) {
-  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
+  const mobile = window.matchMedia("(max-width: 1199.98px)").matches;
   const larguras = largurasColunasParcerias();
   [headTable, bodyTable].forEach((table) => {
     table.querySelectorAll("colgroup col").forEach((col) => {

@@ -167,7 +167,7 @@ function extrairDados(valores) {
 }
 
 function telasMenoresDesembolso() {
-  return window.matchMedia("(max-width: 991.98px)").matches;
+  return window.matchMedia("(max-width: 1199.98px)").matches;
 }
 
 function calcularTotais(linhas) {
@@ -537,7 +537,7 @@ function initDesembolso() {
   });
   if (!el.corpo) return;
 
-  const mqMobile = window.matchMedia("(max-width: 991.98px)");
+  const mqMobile = window.matchMedia("(max-width: 1199.98px)");
   const aoMudarViewport = () => reapresentarDesembolso();
   if (mqMobile.addEventListener) {
     mqMobile.addEventListener("change", aoMudarViewport);
