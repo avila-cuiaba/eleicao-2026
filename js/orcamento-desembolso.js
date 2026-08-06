@@ -1,4 +1,4 @@
-// Página desembolso: planilha orcamento-desembolso (item B, orçamento C, datas J–N).
+// Página desembolso: planilha orcamento-desembolso (item B, orçamento C, desembolso O–S).
 
 const fmtMoeda = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 2,

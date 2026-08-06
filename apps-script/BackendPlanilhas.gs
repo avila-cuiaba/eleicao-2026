@@ -73,10 +73,10 @@ function criarCadastroPlanilhas() {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
     gid: 1856813297,
   };
-  // Aba parcerias: município, parceria, apoiadores, valor.
+  // Aba apoiadores (gid 1856813297): parceria, município, repasse — filtro REPASSE-FEDERAL (Z).
   p.parcerias = {
     id: "1GopYyhxPe-ymQHQQtalJNYZUL6IP0jYAcVIao6gQfZo",
-    gid: 1242262181,
+    gid: 1856813297,
   };
   // Referência de valor por tipo de contrato (células C2:D4).
   p["contratos-valor-referencia"] = {

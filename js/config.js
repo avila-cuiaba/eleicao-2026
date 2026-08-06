@@ -426,20 +426,20 @@ const CONFIG = {
     COLUNAS: {
       ITEM: 1,        // B — item da despesa
       ORCAMENTO: 2,   // C — orçamento
-      JUL_30: 13,     // N — 30 Jul
-      AGO_15: 14,     // O — 15 Ago
-      AGO_30: 15,     // P — 30 Ago
-      SET_15: 16,     // Q — 15 Set
-      SET_30: 17,     // R — 30 Set
+      JUL_30: 14,     // O — desembolso-30-Jul
+      AGO_15: 15,     // P — desembolso-15-Ago
+      AGO_30: 16,     // Q — desembolso-30-Ago
+      SET_15: 17,     // R — desembolso-15-Set
+      SET_30: 18,     // S — desembolso-30-Set
     },
     CAMPOS: {
       ITEM: { aliases: ["item da despesa", "item despesa", "item", "despesa"] },
       ORCAMENTO: { aliases: ["orcamento", "orçamento"] },
-      JUL_30: { aliases: ["30 jul", "30/jul", "jul 30"] },
-      AGO_15: { aliases: ["15 ago", "15/ago", "ago 15"] },
-      AGO_30: { aliases: ["30 ago", "30/ago", "ago 30"] },
-      SET_15: { aliases: ["15 set", "15/set", "set 15"] },
-      SET_30: { aliases: ["30 set", "30/set", "set 30"] },
+      JUL_30: { aliases: ["desembolso-30-jul", "30 jul", "30/jul", "jul 30"] },
+      AGO_15: { aliases: ["desembolso-15-ago", "15 ago", "15/ago", "ago 15"] },
+      AGO_30: { aliases: ["desembolso-30-ago", "30 ago", "30/ago", "ago 30"] },
+      SET_15: { aliases: ["desembolso-15-set", "15 set", "15/set", "set 15"] },
+      SET_30: { aliases: ["desembolso-30-set", "30 set", "30/set", "set 30"] },
     },
     PERIODOS: [
       { prop: "jul30", chave: "JUL_30", slug: "jul30", rotulo: "30 Jul", kpiId: "kpiJul30", numProp: "numJul30", stack: "a" },
@@ -502,12 +502,14 @@ const CONFIG = {
       ITEM: 0,         // A — item despesa
       VALOR_B: 1,        // B
       ORCAMENTO: 2,      // C — orçamento
+      REPASSE_PARCEIRO: 3, // D — repasse parceiro (bônus)
       PAGAMENTO: 11,     // L — pagamento
       A_PAGAR: 12,       // M — a pagar
     },
     CAMPOS: {
       ITEM: { aliases: ["item despesa", "item", "despesa"] },
       ORCAMENTO: { aliases: ["orcamento", "orçamento"] },
+      REPASSE_PARCEIRO: { aliases: ["repasse parceiro", "repasse parceria", "repasse parcerias"] },
       PAGAMENTO: { aliases: ["pagamento"] },
       A_PAGAR: { aliases: ["a pagar", "apagar", "a-pagar"] },
     },
@@ -613,10 +615,12 @@ const CONFIG = {
     PARCERIAS: {
       LINHA_INICIO_DADOS: 2,
       COLUNAS: {
-        MUNICIPIO: 0,         // A
-        PARCERIA: 1,          // B
-        APOIADORES: 2,        // C
-        VALOR_PARCERIA: 3,    // D
+        LIDERANCA: 1,            // B
+        MUNICIPIO: 2,            // C
+        PARCERIA: 23,            // X
+        ORCAMENTO: 24,           // Y
+        REPASSE_PARCERIA: 25,    // Z
+        REPASSE_FEDERAL: 25,     // Z — filtro (somente linhas com valor)
       },
     },
     APOIADOR_FEDERAL: {

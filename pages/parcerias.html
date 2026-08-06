@@ -31,6 +31,14 @@
           <div class="col-7 col-lg-8">
             <div class="apoiadores-kpi-grid parcerias-kpi-grid">
               <div class="apoiadores-kpi-slot">
+                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-lider">
+                  <div class="card-body py-2 px-2 px-sm-3">
+                    <div class="dashboard-kpi-rotulo">federal</div>
+                    <strong id="kpiFederal" class="dashboard-kpi-valor">—</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="apoiadores-kpi-slot">
                 <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-total">
                   <div class="card-body py-2 px-2 px-sm-3">
                     <div class="dashboard-kpi-rotulo">parcerias</div>
@@ -39,7 +47,7 @@
                 </div>
               </div>
               <div class="apoiadores-kpi-slot">
-                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-lider">
+                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-30">
                   <div class="card-body py-2 px-2 px-sm-3">
                     <div class="dashboard-kpi-rotulo">municípios</div>
                     <strong id="kpiMunicipios" class="dashboard-kpi-valor">—</strong>
@@ -47,23 +55,22 @@
                 </div>
               </div>
               <div class="apoiadores-kpi-slot">
-                <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-30">
-                  <div class="card-body py-2 px-2 px-sm-3">
-                    <div class="dashboard-kpi-rotulo">apoiadores</div>
-                    <strong id="kpiApoiadores" class="dashboard-kpi-valor">—</strong>
-                  </div>
-                </div>
-              </div>
-              <div class="apoiadores-kpi-slot">
                 <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-custom">
                   <div class="card-body py-2 px-2 px-sm-3">
-                    <div class="dashboard-kpi-rotulo">orçamento</div>
-                    <strong id="kpiOrcamento" class="dashboard-kpi-valor">—</strong>
+                    <div class="dashboard-kpi-rotulo">repasse parcerias</div>
+                    <strong id="kpiRepasseParceria" class="dashboard-kpi-valor">—</strong>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+        <div class="parcerias-kpi-parceiros-section">
+          <div
+            id="kpiPorParceria"
+            class="apoiadores-kpi-grid parcerias-kpi-parceiros-grid"
+            aria-label="repasse por parceria"
+          ></div>
         </div>
       </div>
     </div>
@@ -96,26 +103,40 @@
           <table class="table mb-0 apoiadores-tabela parcerias-tabela">
             <colgroup>
               <col class="apoiadores-col-ident" />
-              <col class="apoiadores-col-municipio" />
               <col class="apoiadores-col-lider" />
+              <col class="apoiadores-col-parcerias-stack" />
+              <col class="apoiadores-col-municipio" />
+              <col class="apoiadores-col-integral" />
               <col class="apoiadores-col-30" />
             </colgroup>
             <thead>
               <tr>
                 <th scope="col" class="apoiadores-col-ident apoiadores-th-ident dashboard-th-base">
                   <div class="apoiadores-th-ident-inner">
-                    <span class="apoiadores-th-titulo apoiadores-th-desktop">parceria</span>
+                    <span class="apoiadores-th-titulo apoiadores-th-desktop">liderança</span>
                     <span class="apoiadores-th-mobile">
-                      <span class="dashboard-th-principal">parceria</span>
+                      <span class="dashboard-th-principal">liderança</span>
                       <span class="dashboard-th-sub text-muted apoiadores-th-sub-municipio">município</span>
                     </span>
                   </div>
                 </th>
-                <th scope="col" class="apoiadores-col-municipio dashboard-th-base apoiadores-th-municipio">
+                <th scope="col" class="apoiadores-col-lider parcerias-th-parceria dashboard-th-base">
+                  <span class="apoiadores-th-desktop">parceria</span>
+                  <span class="apoiadores-th-mobile">
+                    <span class="dashboard-th-principal">parceria</span>
+                  </span>
+                </th>
+                <th scope="col" class="text-end apoiadores-col-parcerias-stack orcamento-tabela-stack-col dashboard-th-base">
+                  <span class="apoiadores-th-mobile parcerias-th-stack">
+                    <span class="dashboard-th-principal parcerias-th-orcamento">orçamento</span>
+                    <span class="dashboard-th-sub text-muted parcerias-th-repasse">repasse parceria</span>
+                  </span>
+                </th>
+                <th scope="col" class="apoiadores-col-municipio dashboard-th-base apoiadores-th-municipio parcerias-col-desk orcamento-tabela-desktop-col">
                   <span class="apoiadores-th-desktop">município</span>
                 </th>
-                <th scope="col" class="text-end apoiadores-col-lider">apoiadores</th>
-                <th scope="col" class="text-end apoiadores-col-30">valor parceria</th>
+                <th scope="col" class="text-end apoiadores-col-integral parcerias-col-desk orcamento-tabela-desktop-col">orçamento</th>
+                <th scope="col" class="text-end apoiadores-col-30 parcerias-col-desk orcamento-tabela-desktop-col">repasse parceria</th>
               </tr>
             </thead>
           </table>
@@ -124,13 +145,15 @@
           <table class="table table-hover mb-0 apoiadores-tabela parcerias-tabela">
             <colgroup>
               <col class="apoiadores-col-ident" />
-              <col class="apoiadores-col-municipio" />
               <col class="apoiadores-col-lider" />
+              <col class="apoiadores-col-parcerias-stack" />
+              <col class="apoiadores-col-municipio" />
+              <col class="apoiadores-col-integral" />
               <col class="apoiadores-col-30" />
             </colgroup>
             <tbody id="corpoParcerias">
               <tr>
-                <td colspan="4" class="text-center text-secondary py-4">Carregando...</td>
+                <td colspan="6" class="text-center text-secondary py-4">Carregando...</td>
               </tr>
             </tbody>
           </table>
