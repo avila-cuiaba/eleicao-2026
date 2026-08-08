@@ -222,13 +222,11 @@
       });
     }
 
-    const limparDia =
-      doc.getElementById("btnLimparFiltro") || doc.getElementById("btnLimparFiltroDesktop");
-    if (limparDia && !limparDia.classList.contains("d-none")) {
-      const titulo =
-        doc.getElementById("tituloLista")?.textContent?.trim() ||
-        doc.getElementById("tituloListaMobile")?.textContent?.trim();
-      filtros.push({ nome: "período", ativo: true, valor: titulo || "dia selecionado" });
+    const titulo =
+      doc.getElementById("tituloLista")?.textContent?.trim() ||
+      doc.getElementById("tituloListaMobile")?.textContent?.trim();
+    if (titulo && titulo !== "próximas atividades") {
+      filtros.push({ nome: "período", ativo: true, valor: titulo });
     }
 
     const abaAtiva = doc.querySelector(".agenda-listas-tab.is-ativo");
@@ -532,6 +530,163 @@
       return html;
     }
 
+    function normalizarTextoAgenda(txt) {
+      return String(txt || "").replace(/\s+/g, " ").trim();
+    }
+
+    function textoMultilinhaAgenda(txt) {
+      return String(txt || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+    }
+
+    function extrairItemAtividade(item, grupo) {
+      const tituloItem = item.querySelector("strong")?.textContent?.trim() || "—";
+      const origem = item.querySelector(".badge-origem")?.textContent?.trim() || "";
+      const horario =
+        item.querySelector(".lista-evento-horario-titulo")?.textContent?.trim() ||
+        item.querySelector(".lista-evento-horario")?.textContent?.trim() ||
+        "";
+      const local = normalizarTextoAgenda(
+        item.querySelector(".lista-evento-meta-esquerda .lista-evento-local")?.textContent
+      );
+      const descricao = textoMultilinhaAgenda(
+        item.querySelector(".lista-evento-descricao")?.textContent
+      );
+      const dataDia =
+        grupo?.querySelector(".lista-evento-dia")?.textContent?.trim() ||
+        item.querySelector(".lista-evento-dia")?.textContent?.trim() ||
+        "";
+      const dataMes =
+        grupo?.querySelector(".lista-evento-mes")?.textContent?.trim() ||
+        item.querySelector(".lista-evento-mes")?.textContent?.trim() ||
+        "";
+      const dataDt = parseDataItem(item, dataDia, dataMes);
+      const origemTipo = extrairOrigemTipo(item);
+      return { tituloItem, origem, origemTipo, horario, local, descricao, dataDt };
+    }
+
+    function extrairOrigemTipo(item) {
+      const badge = item.querySelector(".badge-origem");
+      if (badge) {
+        const m = badge.className.match(/badge-origem-(campanha|gabinete|eventos)/);
+        if (m) return m[1];
+      }
+      const m2 = item.className.match(/lista-evento-(campanha|gabinete|eventos)/);
+      return m2 ? m2[1] : "";
+    }
+
+    function htmlOrigemBadge(origem, origemTipo) {
+      const txt = normalizarTextoAgenda(origem);
+      if (!txt) return "";
+      const cls = origemTipo ? ` agenda-rel-origem-badge--${origemTipo}` : "";
+      return `<span class="agenda-rel-origem-badge${cls}">${esc(txt)}</span>`;
+    }
+
+    function htmlColunaLocal(r) {
+      const localTxt = normalizarTextoAgenda(r.local);
+      let html = '<div class="agenda-rel-local-celula">';
+      html += '<div class="agenda-rel-local-corpo">';
+      html += `<div class="agenda-rel-local-texto">${localTxt ? esc(localTxt) : "—"}</div>`;
+      html += htmlHorarioRelatorio(r.horario);
+      html += "</div>";
+      if (r.origem) {
+        html += `<div class="agenda-rel-local-origem">${htmlOrigemBadge(r.origem, r.origemTipo)}</div>`;
+      }
+      html += "</div>";
+      return html;
+    }
+
+    function htmlTituloDetalhesStack(r) {
+      let html = '<div class="agenda-rel-info-stack">';
+      html += `<div class="agenda-rel-titulo">${esc(r.tituloItem)}</div>`;
+      if (r.descricao) {
+        html += `<div class="agenda-rel-descricao">${esc(r.descricao)}</div>`;
+      }
+      html += "</div>";
+      return html;
+    }
+
+    function linhasAtividadesAgrupadas(itensPorGrupo) {
+      let linhas = "";
+      itensPorGrupo.forEach(({ grupo, itens }) => {
+        const dataDia = grupo?.querySelector(".lista-evento-dia")?.textContent?.trim() || "";
+        const dataMes = grupo?.querySelector(".lista-evento-mes")?.textContent?.trim() || "";
+        const dataDt = parseDataItem(itens[0], dataDia, dataMes);
+        itens.forEach((item, idx) => {
+          const r = extrairItemAtividade(item, grupo);
+          const cols = [];
+          if (idx === 0) {
+            cols.push(
+              `<td class="agenda-rel-col-data agenda-rel-grupo-data" rowspan="${itens.length}">${htmlDataExtenso(dataDt)}</td>`
+            );
+          }
+          cols.push(`<td class="agenda-rel-col-local">${htmlColunaLocal(r)}</td>`);
+          cols.push(`<td class="agenda-rel-col-info">${htmlTituloDetalhesStack(r)}</td>`);
+          const trClass = idx > 0 ? " agenda-rel-evento-sub" : " agenda-rel-evento-primeiro";
+          linhas += `<tr class="agenda-rel-evento${trClass}">` + cols.join("") + "</tr>";
+        });
+      });
+      return linhas;
+    }
+
+    function listaAtividadesPorData(container, titulo) {
+      if (!container || !Relatorio.elementoParaRelatorio(container)) return;
+
+      const grupos = Array.from(container.querySelectorAll(".lista-evento-grupo")).filter((el) =>
+        Relatorio.elementoParaRelatorio(el)
+      );
+      let itensPorGrupo = grupos
+        .map((grupo) => ({
+          grupo,
+          itens: Array.from(grupo.querySelectorAll(".lista-evento-item")).filter((el) =>
+            Relatorio.elementoParaRelatorio(el)
+          ),
+        }))
+        .filter((g) => g.itens.length);
+
+      if (!itensPorGrupo.length) {
+        const itens = Array.from(container.querySelectorAll(".lista-evento-item")).filter((el) =>
+          Relatorio.elementoParaRelatorio(el)
+        );
+        if (!itens.length) {
+          blocos.push({
+            titulo,
+            html: '<p class="rel-vazio">nenhum item na lista.</p>',
+          });
+          return;
+        }
+        const porData = new Map();
+        itens.forEach((item) => {
+          const r = extrairItemAtividade(item, null);
+          const chave = r.dataDt ? r.dataDt.toISOString().slice(0, 10) : "sem-data";
+          if (!porData.has(chave)) porData.set(chave, { grupo: null, itens: [] });
+          porData.get(chave).itens.push(item);
+        });
+        itensPorGrupo = Array.from(porData.values());
+      }
+
+      const linhas = linhasAtividadesAgrupadas(itensPorGrupo);
+      if (!linhas) {
+        blocos.push({
+          titulo,
+          html: '<p class="rel-vazio">nenhum item na lista.</p>',
+        });
+        return;
+      }
+
+      blocos.push({
+        titulo,
+        html:
+          '<table class="rel-tabela agenda-rel-tabela">' +
+          "<thead><tr>" +
+          '<th class="agenda-rel-col-data">data</th>' +
+          '<th class="agenda-rel-col-local">local</th>' +
+          '<th class="agenda-rel-col-info">título e detalhes</th>' +
+          "</tr></thead><tbody>" +
+          linhas +
+          "</tbody></table>",
+      });
+    }
+
     function listaParaTabela(container, titulo, headers, colunas, classesTh) {
       if (!container || !Relatorio.elementoParaRelatorio(container)) return;
       const itens = Array.from(container.querySelectorAll(".lista-evento-item")).filter((el) =>
@@ -549,14 +704,24 @@
           const tituloItem = item.querySelector("strong")?.textContent?.trim() || "—";
           const origem = item.querySelector(".badge-origem")?.textContent?.trim() || "";
           const horario = item.querySelector(".lista-evento-horario")?.textContent?.trim() || "";
-          const local = item.querySelector(".lista-evento-local")?.textContent?.trim() || "";
-          const detalhe =
-            item.querySelector(".lista-evento-corpo > .text-secondary")?.textContent?.trim() || "";
-          const descricao =
-            item.querySelector(".lista-evento-corpo .small:not(.text-secondary)")?.textContent?.trim() ||
+          const local = normalizarTextoAgenda(
+            item.querySelector(".lista-evento-meta-esquerda .lista-evento-local")?.textContent
+          );
+          const detalhe = normalizarTextoAgenda(
+            item.querySelector(".lista-evento-corpo > .text-secondary")?.textContent
+          );
+          const descricao = textoMultilinhaAgenda(
+            item.querySelector(".lista-evento-descricao")?.textContent
+          );
+          const grupo = item.closest(".lista-evento-grupo");
+          const dataDia =
+            grupo?.querySelector(".lista-evento-dia")?.textContent?.trim() ||
+            item.querySelector(".lista-evento-dia")?.textContent?.trim() ||
             "";
-          const dataDia = item.querySelector(".lista-evento-dia")?.textContent?.trim() || "";
-          const dataMes = item.querySelector(".lista-evento-mes")?.textContent?.trim() || "";
+          const dataMes =
+            grupo?.querySelector(".lista-evento-mes")?.textContent?.trim() ||
+            item.querySelector(".lista-evento-mes")?.textContent?.trim() ||
+            "";
           const dataDt = parseDataItem(item, dataDia, dataMes);
           const data = dataDt
             ? `${dataDt.getDate()} ${MESES_EXTENSO[dataDt.getMonth()] || ""} ${dataDt.getFullYear()}`
@@ -597,24 +762,7 @@
     }
 
     if (incluirAtividades) {
-      listaParaTabela(
-        doc.getElementById("listaEventos"),
-        "atividades",
-        ["data", "título", "detalhes"],
-        [
-          (r) => ({ html: htmlDataComHorario(r.dataDt, r.horario) }),
-          (r) => ({ html: htmlTituloOrigem(r.tituloItem, r.origem) }),
-          (r) => {
-            const partes = [];
-            if (r.local) {
-              partes.push(`<div class="agenda-rel-local agenda-rel-local-badge">${esc(r.local)}</div>`);
-            }
-            if (r.descricao) partes.push(esc(r.descricao));
-            return partes.length ? partes.join("") : "—";
-          },
-        ],
-        ["agenda-rel-col-data", "agenda-rel-col-titulo", "agenda-rel-col-detalhes"]
-      );
+      listaAtividadesPorData(doc.getElementById("listaEventos"), "atividades");
     }
 
     if (incluirTarefas) {

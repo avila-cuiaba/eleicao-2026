@@ -1,10 +1,12 @@
-// Controle de acesso: a chave digitada no login fica na sessão e é enviada
-// em todas as requisições ao Web App. A validação real é no Apps Script.
+// Controle de acesso: a chave digitada no login fica no navegador (localStorage)
+// por um período configurável (padrão 8 h) e é enviada em todas as requisições
+// ao Web App. A validação real é no Apps Script.
 
 const AUTH = {
   STORAGE_KEY: "eleicao_chave",
   STORAGE_PERFIL: "eleicao_perfil",
   STORAGE_USUARIO: "eleicao_usuario",
+  STORAGE_EXPIRA: "eleicao_sessao_expira",
 
   PERFIS: {
     contratos: {
@@ -37,44 +39,115 @@ const AUTH = {
     },
   },
 
-  getChave() {
+  duracaoSessaoMs() {
+    const horas = window.CONFIG?.SESSAO_LOGIN_HORAS;
+    if (typeof horas === "number" && horas > 0) return horas * 60 * 60 * 1000;
+    return 8 * 60 * 60 * 1000;
+  },
+
+  _lerItem(chave) {
     try {
-      return sessionStorage.getItem(this.STORAGE_KEY) || "";
+      const local = localStorage.getItem(chave);
+      if (local != null && local !== "") return local;
+      return sessionStorage.getItem(chave) || "";
     } catch (e) {
+      try {
+        return sessionStorage.getItem(chave) || "";
+      } catch (err) {
+        return "";
+      }
+    }
+  },
+
+  _gravarItem(chave, valor) {
+    try {
+      localStorage.setItem(chave, valor);
+    } catch (e) {
+      /* quota ou modo privado */
+    }
+    try {
+      sessionStorage.setItem(chave, valor);
+    } catch (e) {
+      /* ignorar */
+    }
+  },
+
+  _removerItem(chave) {
+    try {
+      localStorage.removeItem(chave);
+    } catch (e) {
+      /* ignorar */
+    }
+    try {
+      sessionStorage.removeItem(chave);
+    } catch (e) {
+      /* ignorar */
+    }
+  },
+
+  _obterExpira() {
+    const exp = this._lerItem(this.STORAGE_EXPIRA);
+    const n = Number(exp);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  },
+
+  sessaoExpirada() {
+    const chave = this._lerItem(this.STORAGE_KEY);
+    const perfil = this._lerItem(this.STORAGE_PERFIL);
+    if (!chave || !perfil) return true;
+
+    const expira = this._obterExpira();
+    if (!expira) return false;
+    return Date.now() > expira;
+  },
+
+  renovarExpiraSessao() {
+    if (this.sessaoExpirada()) return;
+    this._gravarItem(this.STORAGE_EXPIRA, String(Date.now() + this.duracaoSessaoMs()));
+  },
+
+  getChave() {
+    if (this.sessaoExpirada()) {
+      this.limpar();
       return "";
     }
+    return this._lerItem(this.STORAGE_KEY);
   },
 
   getPerfil() {
-    try {
-      return sessionStorage.getItem(this.STORAGE_PERFIL) || "";
-    } catch (e) {
+    if (this.sessaoExpirada()) {
+      this.limpar();
       return "";
     }
+    return this._lerItem(this.STORAGE_PERFIL);
   },
 
   getUsuario() {
-    try {
-      return sessionStorage.getItem(this.STORAGE_USUARIO) || "";
-    } catch (e) {
+    if (this.sessaoExpirada()) {
+      this.limpar();
       return "";
     }
+    return this._lerItem(this.STORAGE_USUARIO);
   },
 
   setSessao(chave, perfil, usuario) {
-    sessionStorage.setItem(this.STORAGE_KEY, chave);
-    sessionStorage.setItem(this.STORAGE_PERFIL, perfil || "master");
-    sessionStorage.setItem(this.STORAGE_USUARIO, usuario || "");
+    const expira = Date.now() + this.duracaoSessaoMs();
+    this._gravarItem(this.STORAGE_KEY, chave);
+    this._gravarItem(this.STORAGE_PERFIL, perfil || "master");
+    this._gravarItem(this.STORAGE_USUARIO, usuario || "");
+    this._gravarItem(this.STORAGE_EXPIRA, String(expira));
   },
 
   setChave(valor) {
-    sessionStorage.setItem(this.STORAGE_KEY, valor);
+    this._gravarItem(this.STORAGE_KEY, valor);
+    this.renovarExpiraSessao();
   },
 
   limpar() {
-    sessionStorage.removeItem(this.STORAGE_KEY);
-    sessionStorage.removeItem(this.STORAGE_PERFIL);
-    sessionStorage.removeItem(this.STORAGE_USUARIO);
+    this._removerItem(this.STORAGE_KEY);
+    this._removerItem(this.STORAGE_PERFIL);
+    this._removerItem(this.STORAGE_USUARIO);
+    this._removerItem(this.STORAGE_EXPIRA);
   },
 
   perfilAtivo() {

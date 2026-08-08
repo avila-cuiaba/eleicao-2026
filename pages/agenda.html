@@ -26,13 +26,16 @@
           </svg>
         </button>
         <h2 id="tituloListaMobile" class="agenda-titulo-filtro-mobile h6 mb-0">próximas atividades</h2>
-        <button
-          type="button"
-          id="btnLimparFiltro"
-          class="agenda-filtro-badge agenda-limpar-filtro-badge d-none"
-        >
-          ver todas
-        </button>
+        <label class="agenda-sel-periodo-wrap agenda-sel-periodo-wrap--mobile">
+          <span class="visually-hidden">período da lista</span>
+          <select class="form-select form-select-sm agenda-sel-periodo" data-periodo-lista aria-label="período da lista">
+            <option value="diario">diário</option>
+            <option value="4dias">4 dias</option>
+            <option value="semanal">semanal</option>
+            <option value="quinzenal">quinzenal</option>
+            <option value="mensal">mensal</option>
+          </select>
+        </label>
         <button type="button" id="btnNova" class="agenda-btn-nova agenda-btn-nova--calendario" aria-label="nova atividade" title="nova atividade">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
             <circle cx="12" cy="12" r="10" />
@@ -165,13 +168,16 @@
               <div class="card-body">
                 <div class="agenda-lista-cabecalho agenda-lista-cabecalho--desktop mb-3">
                   <h2 class="h6 mb-0" id="tituloLista">próximas atividades</h2>
-                  <button
-                    type="button"
-                    id="btnLimparFiltroDesktop"
-                    class="agenda-filtro-badge agenda-limpar-filtro-badge d-none"
-                  >
-                    ver todas
-                  </button>
+                  <label class="agenda-sel-periodo-wrap">
+                    <span class="visually-hidden">período da lista</span>
+                    <select class="form-select form-select-sm agenda-sel-periodo" data-periodo-lista aria-label="período da lista">
+                      <option value="diario">diário</option>
+                      <option value="4dias">4 dias</option>
+                      <option value="semanal">semanal</option>
+                      <option value="quinzenal">quinzenal</option>
+                      <option value="mensal">mensal</option>
+                    </select>
+                  </label>
                 </div>
                 <div id="listaEventos" class="lista-eventos"></div>
               </div>
@@ -307,7 +313,17 @@
               <div id="statusModal" class="alert d-none mt-2 mb-0" role="alert"></div>
             </div>
             <div class="modal-footer py-2">
-              <button type="button" id="btnExcluirEvento" class="btn btn-sm btn-outline-danger me-auto d-none">excluir</button>
+              <button
+                type="button"
+                id="btnExcluirEvento"
+                class="crud-acao-icone crud-acao-icone--excluir agenda-modal-btn-excluir me-auto d-none"
+                aria-label="excluir"
+                title="excluir"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                </svg>
+              </button>
               <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">cancelar</button>
               <button type="submit" id="btnSalvarEvento" class="btn btn-sm btn-primary">salvar</button>
             </div>
@@ -334,6 +350,7 @@
   <script src="../js/page-loader.js"></script>
   <script src="../js/agenda-api.js"></script>
   <script src="../js/app-confirm.js"></script>
+  <script src="../js/toast.js"></script>
   <script src="../js/agenda.js"></script>
 </body>
 </html>

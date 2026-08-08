@@ -12,6 +12,9 @@ const CONFIG = {
   // Apps Script (Propriedades SENHA_ACESSO_*), nunca aqui no repositório.
   EXIGIR_LOGIN: true,
 
+  // Tempo que o login permanece válido no navegador (sem pedir senha de novo).
+  SESSAO_LOGIN_HORAS: 8,
+
   // Parâmetros padrão da agenda (criação de eventos).
   AGENDA: {
     DURACAO_PADRAO_MIN: 60, // duração do evento quando não informado o fim

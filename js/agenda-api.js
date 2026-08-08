@@ -196,6 +196,17 @@ const AgendaAPI = {
     return ymd[2] + "/" + ymd[1] + "/" + ymd[0];
   },
 
+  formatarHorarioCompromisso(ev) {
+    if (ev.diaInteiro) return "dia inteiro";
+    const inicio = new Date(ev.inicio);
+    const iniTxt = this.fmtHora.format(inicio);
+    if (!ev.fim) return iniTxt;
+    const fim = new Date(ev.fim);
+    const fimTxt = this.fmtHora.format(fim);
+    if (iniTxt === fimTxt) return iniTxt;
+    return iniTxt + " - " + fimTxt;
+  },
+
   formatarQuando(ev) {
     if (ev.tipo === "tarefa") {
       const ymd = this.diaDeIso(ev.inicio).split("-");

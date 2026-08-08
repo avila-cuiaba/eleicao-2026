@@ -40,6 +40,95 @@ let abaListasMobile = "atividades";
 let calendarioMobileAberto = false;
 let calendarioCarregando = false;
 let filtroOrigens = new Set(Object.keys(ORIGENS));
+let periodoLista = "diario";
+
+const PERIODOS_LISTA = {
+  diario: "diário",
+  "4dias": "4 dias",
+  semanal: "semanal",
+  quinzenal: "quinzenal",
+  mensal: "mensal",
+};
+
+function inicioDiaLocal(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function fimDiaLocal(d) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+function intervaloPeriodoLista(anchor) {
+  const start = inicioDiaLocal(anchor);
+  let end;
+
+  switch (periodoLista) {
+    case "4dias":
+      end = inicioDiaLocal(anchor);
+      end.setDate(end.getDate() + 3);
+      end = fimDiaLocal(end);
+      break;
+    case "semanal": {
+      const monday = inicioDiaLocal(anchor);
+      monday.setDate(monday.getDate() - offsetSegunda(anchor));
+      start.setTime(monday.getTime());
+      end = inicioDiaLocal(monday);
+      end.setDate(end.getDate() + 6);
+      end = fimDiaLocal(end);
+      break;
+    }
+    case "quinzenal": {
+      const monday = inicioDiaLocal(anchor);
+      monday.setDate(monday.getDate() - offsetSegunda(anchor));
+      start.setTime(monday.getTime());
+      end = inicioDiaLocal(monday);
+      end.setDate(end.getDate() + 13);
+      end = fimDiaLocal(end);
+      break;
+    }
+    case "mensal":
+      start.setTime(new Date(anchor.getFullYear(), anchor.getMonth(), 1).getTime());
+      end = fimDiaLocal(new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0));
+      break;
+    default:
+      end = fimDiaLocal(anchor);
+  }
+
+  return { start, end };
+}
+
+function ancoraPeriodoLista() {
+  if (diaFiltro) return diaFiltro;
+  return new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 15);
+}
+
+function filtroDataAtivo() {
+  if (diaFiltro) return true;
+  return periodoLista === "mensal";
+}
+
+function compromissoNoPeriodo(ev, start, end) {
+  return AgendaAPI.diasCompromisso(ev).some((d) => {
+    const t = inicioDiaLocal(d).getTime();
+    return t >= start.getTime() && t <= end.getTime();
+  });
+}
+
+function tarefaNoPeriodo(ev, start, end) {
+  const t = inicioDiaLocal(new Date(ev.inicio)).getTime();
+  return t >= start.getTime() && t <= end.getTime();
+}
+
+function diasCompromissoNoPeriodo(ev, start, end) {
+  return AgendaAPI.diasCompromisso(ev).filter((d) => {
+    const t = inicioDiaLocal(d).getTime();
+    return t >= start.getTime() && t <= end.getTime();
+  });
+}
 
 function chaveDia(d) {
   return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
@@ -280,9 +369,10 @@ function filtrarItens() {
   let compromissos = todosEventos.filter((e) => !ehTarefa(e) && passaFiltroOrigem(e));
   let tarefas = todosEventos.filter((e) => ehTarefa(e) && passaFiltroOrigem(e));
 
-  if (diaFiltro) {
-    compromissos = compromissos.filter((e) => AgendaAPI.compromissoNoDia(e, diaFiltro));
-    tarefas = tarefas.filter((e) => mesmoDia(new Date(e.inicio), diaFiltro));
+  if (filtroDataAtivo()) {
+    const { start, end } = intervaloPeriodoLista(ancoraPeriodoLista());
+    compromissos = compromissos.filter((e) => compromissoNoPeriodo(e, start, end));
+    tarefas = tarefas.filter((e) => tarefaNoPeriodo(e, start, end));
   } else {
     const agora = new Date();
     compromissos = compromissos.filter((e) => !AgendaAPI.compromissoEncerrado(e, agora));
@@ -301,6 +391,49 @@ function filtrarItens() {
   tarefas.sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
 
   return { compromissos, tarefas };
+}
+
+function definirPeriodoLista(valor) {
+  if (!PERIODOS_LISTA[valor]) return;
+  periodoLista = valor;
+  atualizarSelectsPeriodo();
+  renderListas();
+}
+
+function atualizarSelectsPeriodo() {
+  document.querySelectorAll("[data-periodo-lista]").forEach((sel) => {
+    if (sel.value !== periodoLista) sel.value = periodoLista;
+  });
+}
+
+function vincularSelectsPeriodo() {
+  document.querySelectorAll("[data-periodo-lista]").forEach((sel) => {
+    sel.addEventListener("change", () => definirPeriodoLista(sel.value));
+  });
+}
+
+function textoPeriodoLista() {
+  const fmt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" });
+  const fmtIntervalo = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long" });
+  const anchor = ancoraPeriodoLista();
+  const { start, end } = intervaloPeriodoLista(anchor);
+
+  switch (periodoLista) {
+    case "diario":
+      return "atividades em " + fmt.format(anchor);
+    case "4dias":
+      return "atividades de " + fmtIntervalo.format(start) + " a " + fmtIntervalo.format(end);
+    case "semanal":
+      return "atividades da semana de " + fmtIntervalo.format(start);
+    case "quinzenal":
+      return "atividades de " + fmtIntervalo.format(start) + " a " + fmtIntervalo.format(end);
+    case "mensal": {
+      const mes = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(anchor);
+      return "atividades em " + mes + " de " + anchor.getFullYear();
+    }
+    default:
+      return "atividades";
+  }
 }
 
 function atualizarFiltroTarefasBadges() {
@@ -415,40 +548,108 @@ function atualizarAbasListasMobile() {
   });
 }
 
-function htmlItemCompromisso(ev) {
-  const inicio = new Date(ev.inicio);
-  const dataExibida =
-    diaFiltro && AgendaAPI.compromissoNoDia(ev, diaFiltro) ? diaFiltro : inicio;
-  const hora = ev.diaInteiro ? "dia inteiro" : AgendaAPI.fmtHora.format(inicio);
+function dataIsoCompromisso(data) {
+  if (AgendaAPI.paraInputData) return AgendaAPI.paraInputData(data);
+  return [
+    data.getFullYear(),
+    String(data.getMonth() + 1).padStart(2, "0"),
+    String(data.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+const ORDEM_ORIGEM_COMPROMISSO = {
+  campanha: 0,
+  eventos: 1,
+  gabinete: 2,
+};
+
+function indiceOrdemOrigemCompromisso(ev) {
+  const origem = normalizarOrigem(ev.origem);
+  const ordem = ORDEM_ORIGEM_COMPROMISSO[origem];
+  return ordem == null ? 99 : ordem;
+}
+
+function ordenarCompromissosNoGrupo(a, b) {
+  const diffOrigem = indiceOrdemOrigemCompromisso(a) - indiceOrdemOrigemCompromisso(b);
+  if (diffOrigem !== 0) return diffOrigem;
+  return new Date(a.inicio) - new Date(b.inicio);
+}
+
+function agruparCompromissosPorData(compromissos) {
+  const grupos = new Map();
+  let periodo = null;
+  if (filtroDataAtivo()) {
+    periodo = intervaloPeriodoLista(ancoraPeriodoLista());
+  }
+
+  compromissos.forEach((ev) => {
+    const diasExibir = periodo
+      ? diasCompromissoNoPeriodo(ev, periodo.start, periodo.end)
+      : [new Date(ev.inicio)];
+
+    diasExibir.forEach((dataExibida) => {
+      const dataIso = dataIsoCompromisso(dataExibida);
+      if (!grupos.has(dataIso)) {
+        grupos.set(dataIso, { dataExibida: inicioDiaLocal(dataExibida), dataIso, eventos: [] });
+      }
+      grupos.get(dataIso).eventos.push(ev);
+    });
+  });
+
+  return Array.from(grupos.values())
+    .map((grupo) => {
+      grupo.eventos.sort(ordenarCompromissosNoGrupo);
+      return grupo;
+    })
+    .sort((a, b) => a.dataExibida.getTime() - b.dataExibida.getTime());
+}
+
+function htmlHorarioCompromisso(ev) {
+  const hora = AgendaAPI.formatarHorarioCompromisso(ev);
   const horaClasse = ev.diaInteiro
     ? "lista-evento-horario lista-evento-horario--dia-inteiro"
     : "lista-evento-horario";
+  return `<span class="${horaClasse} lista-evento-horario-titulo">${escapar(hora)}</span>`;
+}
+
+function htmlItemCompromissoNoGrupo(ev, dataIso) {
   const origem = normalizarOrigem(ev.origem);
   const rotuloOrigem = ev.origemTitulo || ORIGENS[origem]?.rotulo || origem;
-  const dataIso = AgendaAPI.paraInputData
-    ? AgendaAPI.paraInputData(dataExibida)
-    : [
-        dataExibida.getFullYear(),
-        String(dataExibida.getMonth() + 1).padStart(2, "0"),
-        String(dataExibida.getDate()).padStart(2, "0"),
-      ].join("-");
-  return `
-    <button type="button" class="lista-evento-item lista-evento-${origem} lista-evento-acao" data-id="${escapar(ev.id)}" data-data="${escapar(dataIso)}">
-      <div class="lista-evento-data">
-        <span class="lista-evento-dia">${dataExibida.getDate()}</span>
-        <span class="lista-evento-mes">${mesAbreviadoCardAgenda(dataExibida)}</span>
-        <span class="lista-evento-semana">${DIAS_SEMANA_EXTENSO[dataExibida.getDay()] || ""}</span>
-        <span class="${horaClasse}">${escapar(hora)}</span>
-      </div>
-      <div class="lista-evento-corpo text-start">
-        ${ev.local ? `<div class="lista-evento-local-linha"><span class="lista-evento-local lista-evento-local-badge">${escapar(ev.local)}</span></div>` : ""}
-        <div class="d-flex align-items-center gap-2 flex-wrap lista-evento-titulo-linha">
-          <strong>${escapar(ev.titulo)}</strong>
-          <span class="badge-origem badge-origem-${origem}">${escapar(rotuloOrigem)}</span>
-        </div>
-        ${ev.descricao ? `<span class="small lista-evento-descricao">${escapar(ev.descricao)}</span>` : ""}
-      </div>
-    </button>`;
+
+  return (
+    `<button type="button" class="lista-evento-item lista-evento-grupo-item lista-evento-${origem} lista-evento-acao" data-id="${escapar(ev.id)}" data-data="${escapar(dataIso)}">` +
+    `<div class="lista-evento-corpo text-start">` +
+  `<div class="lista-evento-meta-linha">` +
+  `<span class="lista-evento-meta-esquerda">` +
+  `${ev.local ? `<span class="lista-evento-local lista-evento-local-badge">${escapar(ev.local)}</span>` : ""}` +
+  `</span>` +
+  `<span class="badge-origem badge-origem-${origem}">${escapar(rotuloOrigem)}</span>` +
+  `</div>` +
+    `<div class="lista-evento-titulo-linha">` +
+    `<strong>${escapar(ev.titulo)}</strong>` +
+    `</div>` +
+    htmlHorarioCompromisso(ev) +
+    `${ev.descricao ? `<span class="small lista-evento-descricao">${escapar(textoMultilinha(ev.descricao))}</span>` : ""}` +
+    `</div>` +
+    `</button>`
+  );
+}
+
+function htmlGrupoCompromissos(grupo) {
+  const dataExibida = grupo.dataExibida;
+
+  return (
+    `<div class="lista-evento-grupo">` +
+    `<div class="lista-evento-grupo-data lista-evento-data">` +
+    `<span class="lista-evento-dia">${dataExibida.getDate()}</span>` +
+    `<span class="lista-evento-mes">${mesAbreviadoCardAgenda(dataExibida)}</span>` +
+    `<span class="lista-evento-semana">${DIAS_SEMANA_EXTENSO[dataExibida.getDay()] || ""}</span>` +
+    `</div>` +
+    `<div class="lista-evento-grupo-lista">` +
+    grupo.eventos.map((ev) => htmlItemCompromissoNoGrupo(ev, grupo.dataIso)).join("") +
+    `</div>` +
+    `</div>`
+  );
 }
 
 function htmlItemTarefa(ev) {
@@ -467,7 +668,7 @@ function htmlItemTarefa(ev) {
           <span class="badge-origem badge-origem-${origem}">${escapar(rotuloOrigem)}</span>
         </div>
         <span class="text-secondary small d-block">prazo: ${AgendaAPI.formatarPrazoTarefa(ev.inicio)}</span>
-        ${ev.descricao ? `<span class="small">${escapar(ev.descricao)}</span>` : ""}
+        ${ev.descricao ? `<span class="small lista-evento-descricao">${escapar(textoMultilinha(ev.descricao))}</span>` : ""}
       </button>
     </div>`;
 }
@@ -505,17 +706,10 @@ function vincularChecksTarefas() {
 }
 
 function atualizarTituloLista() {
-  const texto = diaFiltro
-    ? "atividades em " +
-      new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(diaFiltro)
-    : "próximas atividades";
+  const texto = filtroDataAtivo() ? textoPeriodoLista() : "próximas atividades";
 
   if (ui.tituloLista) ui.tituloLista.textContent = texto;
   if (ui.tituloListaMobile) ui.tituloListaMobile.textContent = texto;
-
-  const mostrarLimpar = !!diaFiltro;
-  ui.btnLimpar?.classList.toggle("d-none", !mostrarLimpar);
-  ui.btnLimparDesktop?.classList.toggle("d-none", !mostrarLimpar);
 }
 
 function renderListas() {
@@ -528,7 +722,9 @@ function renderListas() {
     ui.lista.innerHTML =
       '<p class="text-secondary text-center py-4 mb-0">nenhuma atividade neste período.</p>';
   } else {
-    ui.lista.innerHTML = compromissos.map(htmlItemCompromisso).join("");
+    ui.lista.innerHTML = agruparCompromissosPorData(compromissos)
+      .map(htmlGrupoCompromissos)
+      .join("");
     vincularAcoesLista(ui.lista);
   }
 
@@ -552,6 +748,10 @@ function escapar(txt) {
   const d = document.createElement("div");
   d.textContent = txt || "";
   return d.innerHTML;
+}
+
+function textoMultilinha(txt) {
+  return String(txt || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
 }
 
 function atualizarSeletorAgendas(agendas) {
@@ -789,7 +989,7 @@ function lerFormulario() {
   const base = {
     id: ui.evId.value || undefined,
     titulo: ui.evTitulo.value.trim(),
-    descricao: ui.evDescricao.value.trim(),
+    descricao: textoMultilinha(ui.evDescricao.value),
     origem: origem,
     tipo: tipo,
   };
@@ -860,25 +1060,31 @@ async function salvarFormulario(e) {
   setSalvandoModal(true);
   AgendaAPI.alerta(ui.statusModal, "", null);
 
+  let toastAtividade = null;
+
   try {
     if (modoEdicao) {
       await AgendaAPI.atualizar(dados);
-      const transferiu =
-        dados.origemAnterior && dados.origemAnterior !== dados.origem;
-      statusPainel(
-        ui.status,
-        transferiu
-          ? dados.tipo === "tarefa"
+      if (dados.tipo === "tarefa") {
+        const transferiu =
+          dados.origemAnterior && dados.origemAnterior !== dados.origem;
+        statusPainel(
+          ui.status,
+          transferiu
             ? "Tarefa transferida e atualizada!"
-            : "Atividade transferida e atualizada!"
-          : dados.tipo === "tarefa"
-          ? "Tarefa atualizada!"
-          : "Atividade atualizada!",
-        "sucesso"
-      );
+            : "Tarefa atualizada!",
+          "sucesso"
+        );
+      } else {
+        toastAtividade = "atividade editada com sucesso";
+      }
     } else {
       await AgendaAPI.criar(dados);
-      statusPainel(ui.status, dados.tipo === "tarefa" ? "Tarefa adicionada!" : "Atividade adicionada!", "sucesso");
+      if (dados.tipo === "tarefa") {
+        statusPainel(ui.status, "Tarefa adicionada!", "sucesso");
+      } else {
+        toastAtividade = "atividade inserida com sucesso";
+      }
     }
     modalEvento.hide();
     await carregarEventos();
@@ -886,6 +1092,10 @@ async function salvarFormulario(e) {
     AgendaAPI.alerta(ui.statusModal, "Erro: " + mensagemErroAgenda(err), "erro");
   } finally {
     setSalvandoModal(false);
+  }
+
+  if (toastAtividade && window.AppToast) {
+    AppToast.show(toastAtividade, "sucesso");
   }
 }
 
@@ -956,8 +1166,6 @@ function montarUi() {
     listasTabs: document.querySelectorAll("[data-agenda-tab]"),
     painelAtividades: document.getElementById("painelAgendaAtividades"),
     painelTarefas: document.getElementById("painelAgendaTarefas"),
-    btnLimpar: document.getElementById("btnLimparFiltro"),
-    btnLimparDesktop: document.getElementById("btnLimparFiltroDesktop"),
     btnMesAnt: document.getElementById("btnMesAnt"),
     btnMesProx: document.getElementById("btnMesProx"),
     calDrawer: document.getElementById("agendaCalDrawer"),
@@ -1015,23 +1223,14 @@ function initAgenda() {
   atualizarFiltroTarefasBadges();
   atualizarFiltroOrigensBadges();
   atualizarAbasListasMobile();
+  vincularSelectsPeriodo();
+  atualizarSelectsPeriodo();
 
   window.addEventListener("resize", () => {
     if (!ehMobileListas()) fecharCalendarioMobile();
     atualizarAbasListasMobile();
     atualizarBotaoCalendarioMobile();
     if (!ehMobileListas()) notificarAlturaFrame();
-  });
-
-  ui.btnLimpar.addEventListener("click", () => {
-    diaFiltro = null;
-    renderMiniCalendario();
-    renderListas();
-  });
-  ui.btnLimparDesktop?.addEventListener("click", () => {
-    diaFiltro = null;
-    renderMiniCalendario();
-    renderListas();
   });
 
   ui.btnMesAnt.addEventListener("click", () => {
@@ -1061,20 +1260,35 @@ function estilosRelatorioPagina() {
     ".page-agenda .rel-secao + .rel-secao{page-break-before:avoid;break-before:avoid-page;margin-top:0.25rem;}" +
     ".page-agenda table.rel-tabela.agenda-rel-tabela{table-layout:fixed;width:100%;margin-top:0.15rem;}" +
     ".page-agenda table.rel-tabela.agenda-rel-tabela th.agenda-rel-col-data," +
-    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-col-data{width:15%;vertical-align:top;}" +
-    ".page-agenda table.rel-tabela.agenda-rel-tabela th.agenda-rel-col-titulo," +
-    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-col-titulo{width:35%;vertical-align:top;}" +
-    ".page-agenda table.rel-tabela.agenda-rel-tabela th.agenda-rel-col-detalhes," +
-    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-col-detalhes{width:50%;vertical-align:top;}" +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-col-data{width:14%;}" +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela th.agenda-rel-col-data{vertical-align:top;}" +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-col-data{vertical-align:middle;}" +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela th.agenda-rel-col-local," +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-col-local{width:22%;vertical-align:top;}" +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela th.agenda-rel-col-info," +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-col-info{width:64%;vertical-align:top;}" +
+    ".page-agenda table.rel-tabela.agenda-rel-tabela td.agenda-rel-grupo-data{background:#f8fafc;}" +
+    ".page-agenda .agenda-rel-evento-sub td.agenda-rel-col-local," +
+    ".page-agenda .agenda-rel-evento-sub td.agenda-rel-col-info{border-top:1px solid #e8edf2;padding-top:0.4rem;}" +
+    ".page-agenda .agenda-rel-evento-primeiro:not(:first-child) td{border-top:2px solid #e2e8f0;padding-top:0.45rem;}" +
+    ".page-agenda .agenda-rel-info-stack{display:block;line-height:1.3;}" +
     ".page-agenda .agenda-rel-titulo-stack,.page-agenda .agenda-rel-data-stack{display:block;line-height:1.3;}" +
     ".page-agenda .agenda-rel-titulo{font-weight:600;color:#1e293b;}" +
     ".page-agenda .agenda-rel-origem{margin-top:0.12rem;font-size:8pt;color:#64748b;font-weight:400;}" +
     ".page-agenda .agenda-rel-data-extenso{font-weight:600;color:#1e293b;font-size:8.5pt;line-height:1.25;}" +
     ".page-agenda .agenda-rel-data-semana{margin-top:0.08rem;font-size:7.5pt;color:#64748b;font-weight:400;}" +
-    ".page-agenda .agenda-rel-horario{margin-top:0.22rem;font-size:10pt;font-weight:700;color:#1f4e8c;line-height:1.2;font-variant-numeric:tabular-nums;}" +
-    ".page-agenda .agenda-rel-horario--dia-inteiro{font-size:8pt;font-weight:600;color:#475569;text-transform:lowercase;}" +
-    ".page-agenda .agenda-rel-local{font-size:8pt;color:#64748b;line-height:1.3;}" +
-    ".page-agenda .agenda-rel-local-badge{display:inline-block;font-size:8.5pt;font-weight:700;padding:0.12rem 0.45rem;border-radius:999px;background:#f1f5f9;border:1px solid rgba(31,78,140,0.2);color:#1e293b;margin-bottom:0.15rem;}" +
+    ".page-agenda .agenda-rel-horario{margin-top:0.15rem;font-size:7.5pt;font-weight:500;color:#64748b;line-height:1.25;font-variant-numeric:tabular-nums;}" +
+    ".page-agenda .agenda-rel-horario--dia-inteiro{font-size:7pt;font-weight:500;color:#94a3b8;text-transform:lowercase;}" +
+    ".page-agenda .agenda-rel-local-celula{position:relative;min-height:2.6rem;padding-bottom:0.35rem;}" +
+    ".page-agenda .agenda-rel-local-corpo{display:block;}" +
+    ".page-agenda .agenda-rel-local-texto{font-weight:600;font-size:8.5pt;color:#1e293b;line-height:1.3;}" +
+    ".page-agenda .agenda-rel-local-celula .agenda-rel-horario{margin-top:0.15rem;}" +
+    ".page-agenda .agenda-rel-local-origem{position:absolute;bottom:0;right:0;line-height:1;}" +
+    ".page-agenda .agenda-rel-origem-badge{display:inline-block;font-size:7pt;font-weight:600;padding:0.1rem 0.4rem;border-radius:999px;text-transform:lowercase;line-height:1.25;}" +
+    ".page-agenda .agenda-rel-origem-badge--campanha{background:#e8eef7;color:#1f4e8c;}" +
+    ".page-agenda .agenda-rel-origem-badge--gabinete{background:#fdeee8;color:#9a4a3a;}" +
+    ".page-agenda .agenda-rel-origem-badge--eventos{background:#dcfce7;color:#15803d;}" +
+    ".page-agenda .agenda-rel-descricao{margin-top:0.2rem;font-size:8pt;color:#475569;line-height:1.35;white-space:pre-line;}" +
     "@media print{" +
     ".page-agenda .rel-secao{page-break-inside:auto!important;break-inside:auto!important;}" +
     ".page-agenda .rel-secao + .rel-secao{page-break-before:avoid!important;break-before:avoid-page!important;}" +
