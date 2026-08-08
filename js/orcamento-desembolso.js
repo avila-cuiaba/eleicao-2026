@@ -487,8 +487,8 @@ function estilosRelatorioPagina() {
     ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-row{display:flex;flex-wrap:nowrap;gap:6px;width:100%;margin:0;}" +
     ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-row > [class*='col-']{flex:1 1 0;min-width:0;padding:0;max-width:none;width:auto;}" +
     ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-mobile-oculto{display:block!important;}" +
-    ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;}" +
-    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-body{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.1rem;padding:0.25rem 0.2rem;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;min-height:3.25rem;}" +
+    ".page-orcamento-desembolso .rel-desembolso-kpis .orcamento-desembolso-kpi-body{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.18rem;padding:0.45rem 0.3rem;min-height:2.85rem;}" +
     ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-rotulo," +
     ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-valor{text-align:center;width:100%;}" +
     ".page-orcamento-desembolso .rel-desembolso-kpis .dashboard-kpi-rotulo{font-size:6.5pt;font-weight:700;line-height:1.1;text-transform:none;}" +

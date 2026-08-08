@@ -42,35 +42,30 @@
           </div>
           <div class="row g-2 g-sm-3 orcamento-kpi-row-detalhe">
             <div class="col-6">
-              <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-geral-kpi-card orcamento-geral-kpi-agrupadas">
-                <div class="card-body orcamento-geral-kpi-body py-2 px-2 px-sm-3">
-                  <div class="dashboard-kpi-rotulo">despesas agrupadas</div>
-                  <div class="orcamento-geral-kpi-ilustra orcamento-geral-kpi-ilustra-agrupadas" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                      <rect x="3" y="3" width="8" height="8" rx="1.5" />
-                      <rect x="13" y="3" width="8" height="8" rx="1.5" />
-                      <rect x="3" y="13" width="8" height="8" rx="1.5" />
-                      <rect x="13" y="13" width="8" height="8" rx="1.5" />
+              <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-kpi-card-pagamento">
+                <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                  <div class="dashboard-kpi-rotulo">pagamento efetuado</div>
+                  <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-pagamento" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
                   </div>
-                  <strong id="kpiAgrupadas" class="dashboard-kpi-valor">—</strong>
+                  <strong id="kpiPagamento" class="dashboard-kpi-valor orcamento-kpi-valor-total">—</strong>
                 </div>
               </div>
             </div>
             <div class="col-6">
-              <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-geral-kpi-card orcamento-geral-kpi-estratificadas">
-                <div class="card-body orcamento-geral-kpi-body py-2 px-2 px-sm-3">
-                  <div class="dashboard-kpi-rotulo">despesas estratificadas</div>
-                  <div class="orcamento-geral-kpi-ilustra orcamento-geral-kpi-ilustra-estratificadas" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
-                      <path d="M4 5h16" />
-                      <path d="M4 9h12" />
-                      <path d="M4 13h16" />
-                      <path d="M4 17h9" />
-                      <path d="M4 21h14" />
+              <div class="card h-100 shadow-sm border-0 dashboard-kpi-card orcamento-kpi-card-apagar">
+                <div class="card-body orcamento-kpi-card-body py-2 px-2 px-sm-3">
+                  <div class="dashboard-kpi-rotulo">a pagar</div>
+                  <div class="orcamento-kpi-ilustra orcamento-kpi-ilustra-apagar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
                     </svg>
                   </div>
-                  <strong id="kpiEstratificadas" class="dashboard-kpi-valor">—</strong>
+                  <strong id="kpiAPagar" class="dashboard-kpi-valor orcamento-kpi-valor-total">—</strong>
                 </div>
               </div>
             </div>

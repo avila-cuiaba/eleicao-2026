@@ -5,6 +5,8 @@ const fmtMoeda = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 2,
 });
 const cfg = CONFIG.ORCAMENTO;
+const cfgPessoal = CONFIG.PESSOAL;
+const cfgOrcApoiadores = cfgPessoal.ORCAMENTO_POR_LIDERANCA;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
 const COLS_TABELA = 8;
 
@@ -43,11 +45,29 @@ const CAMPOS_PLANILHA = [
   },
 ];
 
+const CAMPOS_APOIADOR_PLANILHA = [
+  { prop: "lideranca", chave: "LIDERANCA", aliases: ["lideranca", "liderança"] },
+  { prop: "municipio", chave: "MUNICIPIO", aliases: ["municipio", "município"] },
+  { prop: "pessoal", chave: "PESSOAL", aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
+  {
+    prop: "combustivel",
+    chave: "COMBUSTIVEL",
+    aliases: ["combustivel", "combustível", "orcamento-combustivel", "orcamento combustivel"],
+  },
+  { prop: "diversos", chave: "DIVERSOS", aliases: ["diversos", "orcamento-diversos"] },
+  {
+    prop: "diaD",
+    chave: "DIA_D",
+    aliases: ["dia d", "dia-d", "diad", "orcamento-diad", "orcamento dia d"],
+  },
+];
+
 let el = {};
 let linhas = [];
+let linhasApoiadores = [];
+let apoiadoresPorMunicipio = new Map();
 let regioes = [];
 let mapaMunicipioRegiao = new Map();
-const popoverTabela = PopoverTabela.criar();
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -232,6 +252,19 @@ function termoBuscaMunicipio() {
   return normalizarChave(el.buscaMunicipio?.value);
 }
 
+function registroEhNulo(item) {
+  return totalLinha(item) === 0;
+}
+
+function visualizarRegistrosNulosAtivo() {
+  return !!el.visualizarRegistrosNulos?.checked;
+}
+
+function aplicarFiltroRegistrosNulos(lista) {
+  if (visualizarRegistrosNulosAtivo()) return lista;
+  return lista.filter((item) => !registroEhNulo(item));
+}
+
 function linhasFiltradas() {
   const selecionadas = regioesSelecionadas();
   if (!selecionadas.length) return [];
@@ -239,7 +272,7 @@ function linhasFiltradas() {
   const todasMarcadas = selecionadas.length === regioes.length;
   const termo = termoBuscaMunicipio();
 
-  return linhas.filter((item) => {
+  const filtradas = linhas.filter((item) => {
     if (item.regiaoNorm) {
       if (!selecionadas.includes(item.regiaoNorm)) return false;
     } else if (!todasMarcadas) {
@@ -249,6 +282,8 @@ function linhasFiltradas() {
     if (termo && !normalizarChave(item.municipio).includes(termo)) return false;
     return true;
   });
+
+  return aplicarFiltroRegistrosNulos(filtradas);
 }
 
 function ordenarLinhas(a, b) {
@@ -362,33 +397,197 @@ function aposRenderTabela() {
   });
 }
 
-function valorPopoverMoeda(val) {
-  return exibirMoeda(val);
+function resolverIndicesApoiador(cabecalho) {
+  const normalizados = (cabecalho || []).map((h) => normalizarChave(h));
+  const indices = {};
+
+  CAMPOS_APOIADOR_PLANILHA.forEach((campo) => {
+    let idx = normalizados.findIndex((n) =>
+      campo.aliases.some((alias) => normalizarChave(alias) === n)
+    );
+    if (idx === -1 && cfgOrcApoiadores.COLUNAS[campo.chave] != null) {
+      idx = cfgOrcApoiadores.COLUNAS[campo.chave];
+    }
+    indices[campo.prop] = idx;
+  });
+
+  return indices;
 }
 
-function htmlPopoverOrcamento(r) {
-  const totalExib = exibirMoeda(totalLinha(r));
-  const titulo =
-    `<div class="pessoal-popover-titulo-linha">` +
-    `<span class="pessoal-popover-municipio">${escapeHtml(r.municipio)}</span>` +
-    `<span class="pessoal-popover-total">${totalExib}</span>` +
-    `</div>`;
+function linhaApoiadorTemConteudo(item) {
+  const lideranca = String(item.lideranca ?? "").trim();
+  const municipio = String(item.municipio ?? "").trim();
+  if (!lideranca || !municipio) return false;
+  return (
+    parseNumero(item.pessoal) > 0 ||
+    parseNumero(item.combustivel) > 0 ||
+    parseNumero(item.diversos) > 0 ||
+    parseNumero(item.diaD) > 0 ||
+    celulaPreenchida(item.pessoal) ||
+    celulaPreenchida(item.combustivel) ||
+    celulaPreenchida(item.diversos) ||
+    celulaPreenchida(item.diaD)
+  );
+}
+
+function calcularTotalApoiador(item) {
+  return (
+    parseNumero(item.pessoal) +
+    parseNumero(item.combustivel) +
+    parseNumero(item.diversos) +
+    parseNumero(item.diaD)
+  );
+}
+
+function extrairLinhasApoiadores(valores) {
+  if (!valores?.length) return [];
+
+  const indices = resolverIndicesApoiador(valores[0]);
+  const itens = [];
+
+  for (let i = cfgOrcApoiadores.LINHA_INICIO_DADOS - 1; i < valores.length; i++) {
+    const linha = valores[i];
+    if (!linha) continue;
+
+    const municipio = String(valorCampo(linha, indices.municipio) ?? "").trim();
+    const lideranca = String(valorCampo(linha, indices.lideranca) ?? "").trim();
+    if (!municipio || !lideranca) continue;
+
+    const info = mapaMunicipioRegiao.get(normalizarChave(municipio));
+    if (!info?.regiaoNorm) continue;
+
+    const item = {
+      lideranca,
+      municipio,
+      pessoal: valorCampo(linha, indices.pessoal),
+      combustivel: valorCampo(linha, indices.combustivel),
+      diversos: valorCampo(linha, indices.diversos),
+      diaD: valorCampo(linha, indices.diaD),
+      regiao: info.regiao,
+      regiaoNorm: info.regiaoNorm,
+    };
+    item.finTotal = calcularTotalApoiador(item);
+
+    if (!linhaApoiadorTemConteudo(item)) continue;
+    itens.push(item);
+  }
+
+  itens.sort((a, b) => {
+    const cmp = String(a.municipio ?? "").localeCompare(String(b.municipio ?? ""), "pt-BR", {
+      sensitivity: "base",
+    });
+    if (cmp !== 0) return cmp;
+    return String(a.lideranca ?? "").localeCompare(String(b.lideranca ?? ""), "pt-BR", {
+      sensitivity: "base",
+    });
+  });
+
+  return itens;
+}
+
+function montarMapaApoiadoresPorMunicipio(itens) {
+  const mapa = new Map();
+  itens.forEach((item) => {
+    const chave = normalizarChave(item.municipio);
+    if (!mapa.has(chave)) mapa.set(chave, []);
+    mapa.get(chave).push(item);
+  });
+
+  mapa.forEach((lista) => {
+    lista.sort((a, b) =>
+      String(a.lideranca ?? "").localeCompare(String(b.lideranca ?? ""), "pt-BR", {
+        sensitivity: "base",
+      })
+    );
+  });
+
+  return mapa;
+}
+
+function apoiadoresDoMunicipio(municipio) {
+  return apoiadoresPorMunicipio.get(normalizarChave(municipio)) || [];
+}
+
+function htmlLinhaApoiador(ap) {
+  const totalExib = exibirMoeda(ap.finTotal);
+  const colsNum = CAMPOS_NUMERICOS.map(
+    (c) =>
+      `<td class="text-end orcamento-col-${c.prop === "diaD" ? "diad" : c.prop} apoiadores-celula-num orcamento-tabela-desktop-col">${exibirMoeda(ap[c.prop])}</td>`
+  ).join("");
+  const stackPessoal =
+    valorCampoStack("pessoal", ap.pessoal) + valorCampoStack("combustivel", ap.combustivel);
+  const stackDiversos =
+    valorCampoStack("diversos", ap.diversos) + valorCampoStack("diad", ap.diaD);
 
   return (
-    `<div class="orcamento-geral-popover-corpo">` +
-    titulo +
-    [
-      PopoverTabela.item("pessoal", valorPopoverMoeda(r.pessoal), "popover-marcador--orc-pessoal"),
-      PopoverTabela.item(
-        "combustível",
-        valorPopoverMoeda(r.combustivel),
-        "popover-marcador--orc-combustivel"
-      ),
-      PopoverTabela.item("diversos", valorPopoverMoeda(r.diversos), "popover-marcador--orc-diversos"),
-      PopoverTabela.item("dia D", valorPopoverMoeda(r.diaD), "popover-marcador--orc-diad"),
-    ].join("") +
-    `</div>`
+    `<tr class="orcamento-estratificado-linha-apoiador" hidden>` +
+    `<td class="orcamento-col-municipio">` +
+    `<span class="dashboard-municipio-celula">` +
+    `<span class="dashboard-regiao-marcador orcamento-estratificado-apoiador-marcador-vazio" aria-hidden="true"></span>` +
+    `<span class="dashboard-municipio-texto">` +
+    `<span class="orcamento-estratificado-municipio-linha">` +
+    `<span class="orcamento-estratificado-expansor orcamento-estratificado-expansor--vazio" aria-hidden="true"></span>` +
+    `<span class="orcamento-estratificado-apoiador-ident">${escapeHtml(ap.lideranca)}</span>` +
+    `</span>` +
+    `</span>` +
+    `</span>` +
+    `</td>` +
+    colsNum +
+    `<td class="text-end orcamento-col-total apoiadores-celula-num orcamento-tabela-desktop-col">` +
+    `${totalExib ? `<span class="orcamento-tabela-celula-direita">${totalExib}</span>` : ""}` +
+    `</td>` +
+    `<td class="text-end orcamento-col-stack-pessoal orcamento-tabela-stack-col">` +
+    `<div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackPessoal}</div>` +
+    `</td>` +
+    `<td class="text-end orcamento-col-stack-diversos orcamento-tabela-stack-col">` +
+    `<div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackDiversos}</div>` +
+    `</td>` +
+    `</tr>`
   );
+}
+
+function linhasApoiadorDoMaster(tr) {
+  const rows = [];
+  let next = tr.nextElementSibling;
+  while (next?.classList.contains("orcamento-estratificado-linha-apoiador")) {
+    rows.push(next);
+    next = next.nextElementSibling;
+  }
+  return rows;
+}
+
+function fecharDetalhesAbertos() {
+  el.corpo?.querySelectorAll(".orcamento-estratificado-linha-aberta").forEach((row) => {
+    row.classList.remove("orcamento-estratificado-linha-aberta");
+    row.setAttribute("aria-expanded", "false");
+    linhasApoiadorDoMaster(row).forEach((linha) => {
+      linha.hidden = true;
+    });
+  });
+}
+
+function aoClicarLinhaMaster(ev) {
+  const tr = ev.target.closest("tr.orcamento-estratificado-linha-master");
+  if (!tr || !el.corpo?.contains(tr) || tr.classList.contains("orcamento-estratificado-linha-sem-detalhe")) return;
+
+  const apoiadorRows = linhasApoiadorDoMaster(tr);
+  if (!apoiadorRows.length) return;
+
+  const estavaAberto = tr.classList.contains("orcamento-estratificado-linha-aberta");
+  fecharDetalhesAbertos();
+
+  if (!estavaAberto) {
+    tr.classList.add("orcamento-estratificado-linha-aberta");
+    tr.setAttribute("aria-expanded", "true");
+    apoiadorRows.forEach((linha) => {
+      linha.hidden = false;
+    });
+  } else {
+    tr.setAttribute("aria-expanded", "false");
+  }
+
+  notificarAlturaFrame();
+  requestAnimationFrame(alinharColunasTabela);
 }
 
 function valorStackVisivel(val) {
@@ -416,6 +615,12 @@ function renderizarLinha(r) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
   const municipioHtml = escapeHtml(r.municipio);
+  const apoiadores = apoiadoresDoMunicipio(r.municipio);
+  const temApoiadores = apoiadores.length > 0;
+  const expansor =
+    temApoiadores
+      ? `<span class="orcamento-estratificado-expansor" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span>`
+      : "";
 
   const colsNum = CAMPOS_NUMERICOS.map(
     (c) =>
@@ -429,31 +634,35 @@ function renderizarLinha(r) {
   const stackDiversos =
     valorCampoStack("diversos", r.diversos) + valorCampoStack("diad", r.diaD);
 
-  return `<tr class="orcamento-estratificado-linha-popover" tabindex="0" aria-label="detalhes do município">
-    <td class="orcamento-col-municipio">
-      <span class="dashboard-municipio-celula">
-        <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
-        <span class="dashboard-municipio-texto">
-          <span class="dashboard-municipio-nome">${municipioHtml}</span>
-          ${totalExib ? `<span class="orcamento-municipio-total-mobile orcamento-total-badge">${totalExib}</span>` : ""}
-        </span>
-      </span>
-    </td>
-    ${colsNum}
-    <td class="text-end orcamento-col-total apoiadores-celula-num orcamento-tabela-desktop-col">
-      ${totalExib ? `<span class="orcamento-tabela-celula-direita">${totalExib}</span>` : ""}
-    </td>
-    <td class="text-end orcamento-col-stack-pessoal orcamento-tabela-stack-col">
-      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">
-        ${stackPessoal}
-      </div>
-    </td>
-    <td class="text-end orcamento-col-stack-diversos orcamento-tabela-stack-col">
-      <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">
-        ${stackDiversos}
-      </div>
-    </td>
-  </tr>`;
+  const master =
+    `<tr class="orcamento-estratificado-linha-master${temApoiadores ? "" : " orcamento-estratificado-linha-sem-detalhe"}"${temApoiadores ? " tabindex=\"0\" aria-expanded=\"false\"" : ""} aria-label="detalhes do município ${municipioHtml}">` +
+    `<td class="orcamento-col-municipio">` +
+    `<span class="dashboard-municipio-celula">` +
+    `<span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>` +
+    `<span class="dashboard-municipio-texto">` +
+    `<span class="dashboard-municipio-nome orcamento-estratificado-municipio-linha">` +
+    expansor +
+    `<span>${municipioHtml}</span>` +
+    `</span>` +
+    `${totalExib ? `<span class="orcamento-municipio-total-mobile orcamento-total-badge">${totalExib}</span>` : ""}` +
+    `</span>` +
+    `</span>` +
+    `</td>` +
+    colsNum +
+    `<td class="text-end orcamento-col-total apoiadores-celula-num orcamento-tabela-desktop-col">` +
+    `${totalExib ? `<span class="orcamento-tabela-celula-direita">${totalExib}</span>` : ""}` +
+    `</td>` +
+    `<td class="text-end orcamento-col-stack-pessoal orcamento-tabela-stack-col">` +
+    `<div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackPessoal}</div>` +
+    `</td>` +
+    `<td class="text-end orcamento-col-stack-diversos orcamento-tabela-stack-col">` +
+    `<div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackDiversos}</div>` +
+    `</td>` +
+    `</tr>`;
+
+  const apoiadoresHtml = apoiadores.map(htmlLinhaApoiador).join("");
+
+  return master + apoiadoresHtml;
 }
 
 function renderizarTabela() {
@@ -464,7 +673,6 @@ function renderizarTabela() {
 
   if (!linhas.length) {
     limparKpis();
-    popoverTabela.destruir();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum registro na planilha.</td></tr>`;
     aposRenderTabela();
@@ -473,7 +681,6 @@ function renderizarTabela() {
 
   if (!selecionadas.length) {
     zerarKpis();
-    popoverTabela.destruir();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">selecione ao menos uma região</td></tr>`;
     aposRenderTabela();
@@ -482,7 +689,6 @@ function renderizarTabela() {
 
   if (!filtradas.length) {
     zerarKpis();
-    popoverTabela.destruir();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum município para os filtros selecionados.</td></tr>`;
     aposRenderTabela();
@@ -491,17 +697,13 @@ function renderizarTabela() {
 
   atualizarKpis(filtradas);
   el.corpo.innerHTML = filtradas.map(renderizarLinha).join("");
-  popoverTabela.inicializar({
-    corpo: el.corpo,
-    seletorLinha: "tr.orcamento-estratificado-linha-popover",
-    linhas: filtradas,
-    htmlConteudo: htmlPopoverOrcamento,
-  });
   aposRenderTabela();
 }
 
-function montar(valoresOrcamento) {
+function montar(valoresOrcamento, valoresApoiadores) {
   linhas = extrairLinhas(valoresOrcamento);
+  linhasApoiadores = extrairLinhasApoiadores(valoresApoiadores || []);
+  apoiadoresPorMunicipio = montarMapaApoiadoresPorMunicipio(linhasApoiadores);
   montarFiltros(extrairRegioes(linhas));
   renderizarTabela();
 }
@@ -516,9 +718,10 @@ async function carregarOrcamento() {
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   try {
-    const [valoresOrcamento, valoresMunicipios] = await Promise.all([
+    const [valoresOrcamento, valoresMunicipios, valoresApoiadores] = await Promise.all([
       fetchPlanilha(cfg.PLANILHA),
       fetchPlanilha(cfgMun.PLANILHA).catch(() => []),
+      fetchPlanilha(cfgPessoal.PLANILHA_APOIADORES).catch(() => []),
     ]);
 
     if (valoresOrcamento === null) {
@@ -527,11 +730,10 @@ async function carregarOrcamento() {
     }
 
     mapaMunicipioRegiao = montarMapaMunicipios(valoresMunicipios || []);
-    montar(valoresOrcamento);
+    montar(valoresOrcamento, valoresApoiadores);
     limparStatus();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
-    popoverTabela.destruir();
     el.corpo.innerHTML = "";
     el.vazio.hidden = true;
   } finally {
@@ -556,11 +758,79 @@ function htmlCardsRelatorioPagina(doc) {
   );
 }
 
+function htmlRelatorioLinhaMaster(r) {
+  const totalExib = exibirMoeda(totalLinha(r));
+  return (
+    `<tr class="orcamento-estratificado-rel-master">` +
+    `<td class="orcamento-col-municipio"><strong>${escapeHtml(r.municipio)}</strong></td>` +
+    CAMPOS_NUMERICOS.map(
+      (c) =>
+        `<td class="text-end orcamento-col-${c.prop === "diaD" ? "diad" : c.prop}">${exibirMoeda(r[c.prop])}</td>`
+    ).join("") +
+    `<td class="text-end orcamento-col-total">${totalExib}</td>` +
+    `</tr>`
+  );
+}
+
+function htmlRelatorioLinhaApoiador(ap) {
+  const totalExib = exibirMoeda(ap.finTotal);
+  return (
+    `<tr class="orcamento-estratificado-rel-detail">` +
+    `<td class="orcamento-col-municipio orcamento-estratificado-rel-apoiador">${escapeHtml(ap.lideranca)}</td>` +
+    CAMPOS_NUMERICOS.map(
+      (c) =>
+        `<td class="text-end orcamento-col-${c.prop === "diaD" ? "diad" : c.prop}">${exibirMoeda(ap[c.prop])}</td>`
+    ).join("") +
+    `<td class="text-end orcamento-col-total">${totalExib}</td>` +
+    `</tr>`
+  );
+}
+
+function htmlTabelaRelatorioMasterDetail(filtradas) {
+  const thead =
+    "<thead><tr>" +
+    "<th class=\"orcamento-col-municipio\">município / liderança</th>" +
+    CAMPOS_NUMERICOS.map(
+      (c) => `<th class="text-end orcamento-col-${c.prop === "diaD" ? "diad" : c.prop}">${escapeHtml(c.rotulo)}</th>`
+    ).join("") +
+    "<th class=\"text-end orcamento-col-total\">total</th>" +
+    "</tr></thead>";
+
+  const tbody =
+    "<tbody>" +
+    filtradas
+      .map((r) => {
+        const apoiadores = apoiadoresDoMunicipio(r.municipio);
+        return htmlRelatorioLinhaMaster(r) + apoiadores.map(htmlRelatorioLinhaApoiador).join("");
+      })
+      .join("") +
+    "</tbody>";
+
+  return (
+    '<table class="rel-tabela orcamento-estratificado-tabela orcamento-estratificado-rel-md">' +
+    thead +
+    tbody +
+    "</table>"
+  );
+}
+
+function coletarTabelasRelatorioPagina(doc) {
+  const filtradas = [...linhasFiltradas()].sort(ordenarLinhas);
+  if (!filtradas.length) return [];
+
+  return [
+    {
+      titulo: "orçamento por município",
+      html: htmlTabelaRelatorioMasterDetail(filtradas),
+    },
+  ];
+}
+
 function ajustarTabelaRelatorioPagina(table) {
   if (!table?.classList?.contains("orcamento-estratificado-tabela")) return;
 
   const thMun = table.querySelector("thead th.orcamento-col-municipio");
-  if (thMun) {
+  if (thMun && !table.classList.contains("orcamento-estratificado-rel-md")) {
     thMun.className = "orcamento-col-municipio";
     thMun.textContent = "município";
   }
@@ -613,6 +883,11 @@ function estilosRelatorioPagina() {
     ".page-orcamento table.rel-tabela td.orcamento-col-diad," +
     ".page-orcamento table.rel-tabela th.orcamento-col-total," +
     ".page-orcamento table.rel-tabela td.orcamento-col-total{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}" +
+    ".page-orcamento table.orcamento-estratificado-rel-md .orcamento-estratificado-rel-master td{background:#f1f5f9!important;}" +
+    ".page-orcamento table.orcamento-estratificado-rel-md .orcamento-estratificado-rel-master strong{font-weight:700;color:#0f172a;}" +
+    ".page-orcamento table.orcamento-estratificado-rel-md .orcamento-estratificado-rel-detail td{background:#fff;}" +
+    ".page-orcamento table.orcamento-estratificado-rel-md .orcamento-estratificado-rel-apoiador{padding-left:1rem!important;color:#475569;font-size:7.5pt;}" +
+    ".page-orcamento table.orcamento-estratificado-rel-md .orcamento-estratificado-rel-master + .orcamento-estratificado-rel-detail td{border-top:none;}" +
     "@media print{" +
     ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-card," +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
@@ -621,6 +896,7 @@ function estilosRelatorioPagina() {
 }
 
 window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
+window.coletarTabelasRelatorioPagina = coletarTabelasRelatorioPagina;
 window.estilosRelatorioPagina = estilosRelatorioPagina;
 window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
 
@@ -628,6 +904,7 @@ function initOrcamento() {
   el = {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
+    visualizarRegistrosNulos: document.getElementById("visualizarRegistrosNulos"),
     buscaMunicipio: document.getElementById("buscaMunicipio"),
     corpo: document.getElementById("corpoOrcamento"),
     vazio: document.getElementById("vazio"),
@@ -640,6 +917,15 @@ function initOrcamento() {
   if (!el.corpo || !el.filtroRegioes) return;
 
   el.buscaMunicipio?.addEventListener("input", renderizarTabela);
+  el.visualizarRegistrosNulos?.addEventListener("change", renderizarTabela);
+  el.corpo.addEventListener("click", aoClicarLinhaMaster);
+  el.corpo.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    const tr = ev.target.closest("tr.orcamento-estratificado-linha-master");
+    if (!tr || !el.corpo.contains(tr)) return;
+    ev.preventDefault();
+    aoClicarLinhaMaster({ target: tr });
+  });
   initPageSmTabs(alinharColunasTabela);
   window.addEventListener("resize", alinharColunasTabela);
   alinharColunasTabela();

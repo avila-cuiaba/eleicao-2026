@@ -193,27 +193,13 @@ function calcularTotais(valores, indices, linhas) {
   const estratificadas = linhas.filter((r) => r.estratificada);
   const agrupadas = linhas.filter((r) => !r.estratificada);
 
-  let kpiEstratificadas = 0;
-  (cfg.LINHAS_ESTRATIFICADAS || []).forEach((linha1) => {
-    const linha = valores[linha1 - 1];
-    if (linha) kpiEstratificadas += parseNumero(linha[indices.orcamento]);
-  });
-
-  let kpiAgrupadas = 0;
-  for (let linha1 = cfg.LINHA_INICIO_DADOS; linha1 <= valores.length; linha1++) {
-    if (linhaEstratificada(linha1)) continue;
-    const linha = valores[linha1 - 1];
-    if (!linha) continue;
-    kpiAgrupadas += parseNumero(linha[indices.orcamento]);
-  }
-
   const somaC = (lista) => somarColuna(lista, "orcNum");
   const somaH = (lista) => somarColuna(lista, "pagNum");
 
   return {
-    kpiAgrupadas,
-    kpiEstratificadas,
-    kpiTotal: kpiAgrupadas + kpiEstratificadas,
+    kpiTotal: somarColuna(linhas, "orcNum"),
+    kpiPagamento: somarColuna(linhas, "pagNum"),
+    kpiAPagar: somarColuna(linhas, "aPagarNum"),
     grafico: {
       agrupadas: { orcamento: somaC(agrupadas), pagamento: somaH(agrupadas) },
       estratificadas: { orcamento: somaC(estratificadas), pagamento: somaH(estratificadas) },
@@ -223,14 +209,14 @@ function calcularTotais(valores, indices, linhas) {
 
 function atualizarKpis(totais) {
   el.kpiTotal.textContent = exibirMoedaKpi(totais.kpiTotal);
-  el.kpiAgrupadas.textContent = exibirMoedaKpi(totais.kpiAgrupadas);
-  el.kpiEstratificadas.textContent = exibirMoedaKpi(totais.kpiEstratificadas);
+  el.kpiPagamento.textContent = exibirMoedaKpi(totais.kpiPagamento);
+  el.kpiAPagar.textContent = exibirMoedaKpi(totais.kpiAPagar);
 }
 
 function limparKpis() {
   el.kpiTotal.textContent = "";
-  el.kpiAgrupadas.textContent = "";
-  el.kpiEstratificadas.textContent = "";
+  el.kpiPagamento.textContent = "";
+  el.kpiAPagar.textContent = "";
 }
 
 function opcoesGrafico(totais) {
@@ -530,27 +516,30 @@ function estilosRelatorioPagina() {
     ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-row-detalhe{display:flex;gap:8px;width:60%;max-width:60%;margin:0 auto;}" +
     ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-row-detalhe > .col-6{flex:1 1 0;min-width:0;padding:0;max-width:none;width:auto;}" +
     ".page-orcamento-geral .rel-orcamento-geral-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-body," +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-body{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.2rem;padding:0.35rem 0.3rem;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .dashboard-kpi-rotulo," +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .dashboard-kpi-valor{text-align:center;width:100%;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra," +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-ilustra{display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:8px;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-total{background:linear-gradient(155deg,#ecfeff 0%,#cffafe 50%,#a5f3fc 100%)!important;border:1px solid rgba(8,145,178,0.22)!important;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-total .dashboard-kpi-rotulo{font-weight:700;font-size:7pt;color:#0e7490;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-valor-total{font-size:10pt;font-weight:800!important;color:#0e7490;line-height:1.1;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra-total{background:linear-gradient(145deg,#22d3ee,#0891b2);color:#fff;width:32px;height:32px;box-shadow:0 2px 6px rgba(8,145,178,0.22);}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-body{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.2rem;padding:0.35rem 0.3rem;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-total .dashboard-kpi-rotulo," +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-total .dashboard-kpi-valor," +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-pagamento .dashboard-kpi-rotulo," +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-pagamento .dashboard-kpi-valor," +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-apagar .dashboard-kpi-rotulo," +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-apagar .dashboard-kpi-valor{text-align:center;width:100%;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra{display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:8px;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-total{background:linear-gradient(155deg,#ecfdf5 0%,#bbf7d0 50%,#86efac 100%)!important;border:1px solid rgba(22,163,74,0.24)!important;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-total .dashboard-kpi-rotulo{font-weight:700;font-size:7pt;color:#166534;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-valor-total{font-size:10pt;font-weight:800!important;line-height:1.1;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-total .orcamento-kpi-valor-total{color:#15803d;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra-total{background:linear-gradient(145deg,#4ade80,#16a34a);color:#fff;width:32px;height:32px;box-shadow:0 2px 6px rgba(22,163,74,0.22);}" +
     ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra-total svg{width:18px;height:18px;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-agrupadas{background:linear-gradient(155deg,#faf6f1 0%,#e8dcc8 55%,#d4b896 100%)!important;border:1px solid rgba(146,64,14,0.22)!important;border-left:4px solid #a16207!important;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-agrupadas .dashboard-kpi-rotulo{color:#78350f;font-weight:700;font-size:7pt;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-agrupadas .dashboard-kpi-valor{color:#92400e;font-size:9pt;font-weight:700;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-ilustra-agrupadas{background:linear-gradient(145deg,#d4b896,#a16207);color:#fff;width:28px;height:28px;box-shadow:0 2px 6px rgba(146,64,14,0.22);}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-ilustra-agrupadas svg{width:16px;height:16px;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-estratificadas{background:linear-gradient(155deg,#fff7ed 0%,#fed7aa 55%,#fdba74 100%)!important;border:1px solid rgba(234,88,12,0.26)!important;border-left:4px solid #ea580c!important;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-estratificadas .dashboard-kpi-rotulo{color:#c2410c;font-weight:700;font-size:7pt;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-estratificadas .dashboard-kpi-valor{color:#ea580c;font-size:9pt;font-weight:700;}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-ilustra-estratificadas{background:linear-gradient(145deg,#fdba74,#ea580c);color:#fff;width:28px;height:28px;box-shadow:0 2px 6px rgba(234,88,12,0.22);}" +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-ilustra-estratificadas svg{width:16px;height:16px;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-pagamento{background:linear-gradient(155deg,#ecfeff 0%,#cffafe 50%,#a5f3fc 100%)!important;border:1px solid rgba(8,145,178,0.22)!important;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-pagamento .dashboard-kpi-rotulo{font-weight:700;font-size:7pt;color:#0e7490;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-pagamento .orcamento-kpi-valor-total{color:#0891b2;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra-pagamento{background:linear-gradient(145deg,#22d3ee,#0891b2);color:#fff;width:32px;height:32px;box-shadow:0 2px 6px rgba(8,145,178,0.22);}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra-pagamento svg{width:18px;height:18px;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-apagar{background:linear-gradient(155deg,#fef2f2 0%,#fecaca 50%,#fca5a5 100%)!important;border:1px solid rgba(248,113,113,0.35)!important;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-apagar .dashboard-kpi-rotulo{font-weight:700;font-size:7pt;color:#b91c1c;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-card-apagar .orcamento-kpi-valor-total{color:#64748b;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra-apagar{background:linear-gradient(145deg,#f87171,#dc2626);color:#fff;width:32px;height:32px;box-shadow:0 2px 6px rgba(248,113,113,0.28);}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra-apagar svg{width:18px;height:18px;}" +
     ".page-orcamento-geral table.rel-tabela .orcamento-tabela-stack-col{display:none!important;}" +
     ".page-orcamento-geral table.rel-tabela th.orcamento-geral-col-num.orcamento-tabela-desktop-col," +
     ".page-orcamento-geral table.rel-tabela td.orcamento-geral-col-num," +
@@ -563,8 +552,7 @@ function estilosRelatorioPagina() {
     ".page-orcamento-geral table.rel-tabela tbody tr.orcamento-geral-linha-estratificada > td:first-child{border-left:4px solid #ea580c;}" +
     "@media print{" +
     ".page-orcamento-geral .rel-orcamento-geral-kpis .dashboard-kpi-card," +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra," +
-    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-geral-kpi-ilustra{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
+    ".page-orcamento-geral .rel-orcamento-geral-kpis .orcamento-kpi-ilustra{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
     "}"
   );
 }
@@ -577,8 +565,8 @@ function initOrcamentoGeral() {
   el = {
     status: document.getElementById("status"),
     kpiTotal: document.getElementById("kpiTotal"),
-    kpiAgrupadas: document.getElementById("kpiAgrupadas"),
-    kpiEstratificadas: document.getElementById("kpiEstratificadas"),
+    kpiPagamento: document.getElementById("kpiPagamento"),
+    kpiAPagar: document.getElementById("kpiAPagar"),
     grafico: document.getElementById("graficoComparativo"),
     corpo: document.getElementById("corpoOrcamentoGeral"),
   };

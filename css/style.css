@@ -1086,6 +1086,89 @@ body.page-parcerias .parcerias-tabela col.apoiadores-col-parcerias-stack {
   line-height: 1.1;
 }
 
+.orcamento-kpi-card-pagamento {
+  background: linear-gradient(155deg, #ecfeff 0%, #cffafe 50%, #a5f3fc 100%);
+  border: 1px solid rgba(8, 145, 178, 0.22) !important;
+  box-shadow: 0 4px 14px rgba(8, 145, 178, 0.12) !important;
+}
+
+.orcamento-kpi-card-pagamento .dashboard-kpi-rotulo {
+  font-weight: 700;
+  color: #0e7490;
+}
+
+.orcamento-kpi-card-pagamento .orcamento-kpi-valor-total {
+  color: #0891b2;
+}
+
+.orcamento-kpi-ilustra-pagamento {
+  background: linear-gradient(145deg, #22d3ee, #0891b2);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(8, 145, 178, 0.28);
+}
+
+.orcamento-kpi-card-pagamento .orcamento-kpi-ilustra-pagamento {
+  width: 44px;
+  height: 44px;
+}
+
+.orcamento-kpi-card-pagamento .orcamento-kpi-ilustra-pagamento svg {
+  width: 24px;
+  height: 24px;
+}
+
+.orcamento-kpi-card-apagar {
+  background: linear-gradient(155deg, #fef2f2 0%, #fecaca 50%, #fca5a5 100%);
+  border: 1px solid rgba(248, 113, 113, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(248, 113, 113, 0.14) !important;
+}
+
+.orcamento-kpi-card-apagar .dashboard-kpi-rotulo {
+  font-weight: 700;
+  color: #b91c1c;
+}
+
+.orcamento-kpi-card-apagar .orcamento-kpi-valor-total {
+  color: #64748b;
+}
+
+.orcamento-kpi-ilustra-apagar {
+  background: linear-gradient(145deg, #f87171, #dc2626);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(248, 113, 113, 0.28);
+}
+
+.orcamento-kpi-card-apagar .orcamento-kpi-ilustra-apagar {
+  width: 44px;
+  height: 44px;
+}
+
+.orcamento-kpi-card-apagar .orcamento-kpi-ilustra-apagar svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Pagamentos geral — orçamento total em verde (distinto do pagamento ciano) */
+body.page-pagamentos-geral .orcamento-kpi-card-total {
+  background: linear-gradient(155deg, #ecfdf5 0%, #bbf7d0 50%, #86efac 100%);
+  border: 1px solid rgba(22, 163, 74, 0.24) !important;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.12) !important;
+}
+
+body.page-pagamentos-geral .orcamento-kpi-card-total .dashboard-kpi-rotulo {
+  color: #166534;
+}
+
+body.page-pagamentos-geral .orcamento-kpi-card-total .orcamento-kpi-valor-total {
+  color: #15803d;
+}
+
+body.page-pagamentos-geral .orcamento-kpi-card-total .orcamento-kpi-ilustra-total {
+  background: linear-gradient(145deg, #4ade80, #16a34a);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(22, 163, 74, 0.28);
+}
+
 .orcamento-kpi-ilustra-pessoal {
   background: linear-gradient(145deg, #4ade80, #16a34a);
   color: #fff;
@@ -1940,11 +2023,89 @@ body.page-orcamento-geral .orcamento-geral-kpi-row-principal > .col-4 {
 .orcamento-geral-tabela tbody tr.orcamento-geral-linha-popover,
 .orcamento-desembolso-tabela tbody tr.orcamento-desembolso-linha-popover,
 .orcamento-estratificado-tabela tbody tr.orcamento-estratificado-linha-popover,
+.orcamento-estratificado-tabela tbody tr.orcamento-estratificado-linha-master,
 .apoiadores-tabela tbody tr.apoiadores-linha-popover,
 .pessoal-tabela tbody tr.pessoal-linha-popover,
 .dashboard-tabela tbody tr.dashboard-linha-popover,
 .registros-tabela tbody tr.registros-linha-popover {
   cursor: help;
+}
+
+.orcamento-estratificado-tabela tbody tr.orcamento-estratificado-linha-master {
+  cursor: pointer;
+}
+
+.orcamento-estratificado-tabela tbody tr.orcamento-estratificado-linha-sem-detalhe {
+  cursor: default;
+}
+
+.orcamento-estratificado-municipio-linha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.orcamento-estratificado-expansor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.orcamento-estratificado-expansor svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.orcamento-estratificado-linha-aberta .orcamento-estratificado-expansor {
+  transform: rotate(180deg);
+  color: #1f4e8c;
+}
+
+.orcamento-estratificado-linha-aberta > td {
+  background-color: #f8fafc !important;
+}
+
+.orcamento-estratificado-linha-aberta td.apoiadores-celula-num,
+.orcamento-estratificado-linha-aberta .orcamento-tabela-celula-direita,
+.orcamento-estratificado-linha-aberta .orcamento-total-badge,
+.orcamento-estratificado-linha-aberta .orcamento-tabela-stack-valor {
+  font-weight: 700;
+}
+
+.orcamento-estratificado-linha-apoiador > td {
+  background: #f8fafc !important;
+  border-top: none;
+  font-size: 0.78rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+.orcamento-estratificado-linha-master.orcamento-estratificado-linha-aberta + .orcamento-estratificado-linha-apoiador > td {
+  border-top: none;
+}
+
+.orcamento-estratificado-apoiador-marcador-vazio {
+  background: transparent !important;
+  opacity: 0;
+}
+
+.orcamento-estratificado-expansor--vazio {
+  visibility: hidden;
+}
+
+.orcamento-estratificado-apoiador-ident {
+  color: #475569;
+}
+
+.orcamento-estratificado-tabela.table-hover tbody tr.orcamento-estratificado-linha-apoiador:hover,
+.orcamento-estratificado-tabela.table-hover tbody tr.orcamento-estratificado-linha-apoiador:hover > td {
+  background-color: #f8fafc !important;
+  --bs-table-bg-state: #f8fafc;
 }
 
 .popover-marcador--orc-pessoal {
@@ -6414,7 +6575,8 @@ button.lista-evento-acao:focus-visible {
 }
 
 .page-dashboard .dashboard-filtro-visualizar-nulos.form-check,
-.page-pessoal .pessoal-filtro-visualizar-nulos.form-check {
+.page-pessoal .pessoal-filtro-visualizar-nulos.form-check,
+.page-orcamento .pessoal-filtro-visualizar-nulos.form-check {
   margin-left: 0.7rem;
   padding-left: 1.35rem;
   cursor: pointer;
@@ -6422,12 +6584,14 @@ button.lista-evento-acao:focus-visible {
 }
 
 .page-dashboard .dashboard-filtro-visualizar-nulos .form-check-input,
-.page-pessoal .pessoal-filtro-visualizar-nulos .form-check-input {
+.page-pessoal .pessoal-filtro-visualizar-nulos .form-check-input,
+.page-orcamento .pessoal-filtro-visualizar-nulos .form-check-input {
   margin-left: -1.35rem;
 }
 
 .page-dashboard .dashboard-filtro-visualizar-nulos .form-check-label,
-.page-pessoal .pessoal-filtro-visualizar-nulos .form-check-label {
+.page-pessoal .pessoal-filtro-visualizar-nulos .form-check-label,
+.page-orcamento .pessoal-filtro-visualizar-nulos .form-check-label {
   font-size: 0.72rem;
   font-weight: 500;
   color: #64748b;
@@ -6435,7 +6599,8 @@ button.lista-evento-acao:focus-visible {
 }
 
 .page-dashboard .dashboard-filtro-visualizar-nulos .form-check-input:checked ~ .form-check-label,
-.page-pessoal .pessoal-filtro-visualizar-nulos .form-check-input:checked ~ .form-check-label {
+.page-pessoal .pessoal-filtro-visualizar-nulos .form-check-input:checked ~ .form-check-label,
+.page-orcamento .pessoal-filtro-visualizar-nulos .form-check-input:checked ~ .form-check-label {
   color: #1e293b;
   font-weight: 600;
 }
@@ -7365,13 +7530,9 @@ body.page-pessoal .pessoal-kpi-slot--municipios .dashboard-kpi-valor {
 
 .pessoal-tabela col.pessoal-col-prefeito,
 .pessoal-tabela col.pessoal-col-vereador,
-.pessoal-tabela col.pessoal-col-agente {
-  width: 14%;
-}
-
-.pessoal-tabela col.pessoal-col-apoiadores,
-.pessoal-tabela col.pessoal-col-parceiros {
-  width: 10%;
+.pessoal-tabela col.pessoal-col-agente,
+.pessoal-tabela col.pessoal-col-apoiadores {
+  width: 20.5%;
 }
 
 .pessoal-th-municipio-composto {
@@ -7438,16 +7599,9 @@ body.page-pessoal .pessoal-kpi-slot--municipios .dashboard-kpi-valor {
 
   .pessoal-tabela col.pessoal-col-prefeito,
   .pessoal-tabela col.pessoal-col-vereador,
-  .pessoal-tabela col.pessoal-col-agente {
-    width: 13% !important;
-  }
-
+  .pessoal-tabela col.pessoal-col-agente,
   .pessoal-tabela col.pessoal-col-apoiadores {
-    width: 20% !important;
-  }
-
-  .pessoal-tabela col.pessoal-col-parceiros {
-    width: 19% !important;
+    width: 19.5% !important;
   }
 
   .pessoal-tabela th,
@@ -7464,8 +7618,10 @@ body.page-pessoal .pessoal-kpi-slot--municipios .dashboard-kpi-valor {
     padding-bottom: 0.4rem;
   }
 
-  .pessoal-tabela th.pessoal-col-apoiadores,
-  .pessoal-tabela th.pessoal-col-parceiros {
+  .pessoal-tabela th.pessoal-col-prefeito,
+  .pessoal-tabela th.pessoal-col-vereador,
+  .pessoal-tabela th.pessoal-col-agente,
+  .pessoal-tabela th.pessoal-col-apoiadores {
     font-size: 0.52rem;
   }
 

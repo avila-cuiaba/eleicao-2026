@@ -341,7 +341,6 @@ async function carregarOrcamentoGeral() {
   }
 
   mostrarStatus("Carregando orçamento geral...", "carregando");
-  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   try {
     const valores = await fetchPlanilha();
@@ -457,4 +456,6 @@ function initOrcamentoGeral() {
 }
 
 AUTH.exigir();
+PageLoader.init();
+if (configValida()) PageLoader.show();
 document.addEventListener("DOMContentLoaded", initOrcamentoGeral);
