@@ -420,6 +420,9 @@ function htmlItemCompromisso(ev) {
   const dataExibida =
     diaFiltro && AgendaAPI.compromissoNoDia(ev, diaFiltro) ? diaFiltro : inicio;
   const hora = ev.diaInteiro ? "dia inteiro" : AgendaAPI.fmtHora.format(inicio);
+  const horaClasse = ev.diaInteiro
+    ? "lista-evento-horario lista-evento-horario--dia-inteiro"
+    : "lista-evento-horario";
   const origem = normalizarOrigem(ev.origem);
   const rotuloOrigem = ev.origemTitulo || ORIGENS[origem]?.rotulo || origem;
   const dataIso = AgendaAPI.paraInputData
@@ -435,14 +438,15 @@ function htmlItemCompromisso(ev) {
         <span class="lista-evento-dia">${dataExibida.getDate()}</span>
         <span class="lista-evento-mes">${mesAbreviadoCardAgenda(dataExibida)}</span>
         <span class="lista-evento-semana">${DIAS_SEMANA_EXTENSO[dataExibida.getDay()] || ""}</span>
+        <span class="${horaClasse}">${escapar(hora)}</span>
       </div>
       <div class="lista-evento-corpo text-start">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
+        ${ev.local ? `<div class="lista-evento-local-linha"><span class="lista-evento-local lista-evento-local-badge">${escapar(ev.local)}</span></div>` : ""}
+        <div class="d-flex align-items-center gap-2 flex-wrap lista-evento-titulo-linha">
           <strong>${escapar(ev.titulo)}</strong>
           <span class="badge-origem badge-origem-${origem}">${escapar(rotuloOrigem)}</span>
         </div>
-        <span class="text-secondary small d-block">${hora}${ev.local ? " · " + escapar(ev.local) : ""}</span>
-        ${ev.descricao ? `<span class="small">${escapar(ev.descricao)}</span>` : ""}
+        ${ev.descricao ? `<span class="small lista-evento-descricao">${escapar(ev.descricao)}</span>` : ""}
       </div>
     </button>`;
 }
@@ -960,7 +964,17 @@ function montarUi() {
     calBackdrop: document.getElementById("agendaCalBackdrop"),
     btnToggleCalendario: document.getElementById("btnToggleCalendario"),
     btnFecharCalendario: document.getElementById("btnFecharCalendario"),
+    btnRelatorioTarefas: document.getElementById("btnRelatorioTarefas"),
   };
+}
+
+function abrirRelatorioTarefas() {
+  if (!window.Relatorio) return;
+  Relatorio.abrirJanela({
+    agendaListas: "tarefas",
+    titulo: "agenda",
+    subtitulo: "tarefas",
+  });
 }
 
 function initAgenda() {
@@ -983,6 +997,7 @@ function initAgenda() {
 
   ui.btnNova.addEventListener("click", () => abrirNovoEvento());
   ui.btnNovaDesktop?.addEventListener("click", () => abrirNovoEvento());
+  ui.btnRelatorioTarefas?.addEventListener("click", abrirRelatorioTarefas);
 
   ui.btnToggleCalendario?.addEventListener("click", () => toggleCalendarioMobile());
   ui.btnFecharCalendario?.addEventListener("click", () => fecharCalendarioMobile());
@@ -1056,6 +1071,10 @@ function estilosRelatorioPagina() {
     ".page-agenda .agenda-rel-origem{margin-top:0.12rem;font-size:8pt;color:#64748b;font-weight:400;}" +
     ".page-agenda .agenda-rel-data-extenso{font-weight:600;color:#1e293b;font-size:8.5pt;line-height:1.25;}" +
     ".page-agenda .agenda-rel-data-semana{margin-top:0.08rem;font-size:7.5pt;color:#64748b;font-weight:400;}" +
+    ".page-agenda .agenda-rel-horario{margin-top:0.22rem;font-size:10pt;font-weight:700;color:#1f4e8c;line-height:1.2;font-variant-numeric:tabular-nums;}" +
+    ".page-agenda .agenda-rel-horario--dia-inteiro{font-size:8pt;font-weight:600;color:#475569;text-transform:lowercase;}" +
+    ".page-agenda .agenda-rel-local{font-size:8pt;color:#64748b;line-height:1.3;}" +
+    ".page-agenda .agenda-rel-local-badge{display:inline-block;font-size:8.5pt;font-weight:700;padding:0.12rem 0.45rem;border-radius:999px;background:#f1f5f9;border:1px solid rgba(31,78,140,0.2);color:#1e293b;margin-bottom:0.15rem;}" +
     "@media print{" +
     ".page-agenda .rel-secao{page-break-inside:auto!important;break-inside:auto!important;}" +
     ".page-agenda .rel-secao + .rel-secao{page-break-before:avoid!important;break-before:avoid-page!important;}" +

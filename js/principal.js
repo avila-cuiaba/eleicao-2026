@@ -184,9 +184,12 @@ function tituloPagina(id) {
   return cfg.titulo;
 }
 
-function paginaTemRelatorio(cfg) {
+function paginaTemRelatorio(cfg, paginaId) {
   if (!cfg) return false;
   if (cfg.relatorio === false) return false;
+  const perfilCfg = AUTH.PERFIS[AUTH.perfilAtivo()];
+  if (perfilCfg?.paginas && !perfilCfg.paginas.includes(paginaId)) return false;
+  if (perfilCfg?.relatorio === true) return true;
   return cfg.relatorio === true || !!cfg.atualizar;
 }
 
@@ -204,7 +207,7 @@ function atualizarCabecalho(id) {
   }
   if (sub) sub.textContent = cfg.subtitulo;
   if (btnAtualizar) btnAtualizar.hidden = !cfg.atualizar;
-  if (btnRelatorio) btnRelatorio.hidden = !paginaTemRelatorio(cfg);
+  if (btnRelatorio) btnRelatorio.hidden = !paginaTemRelatorio(cfg, id);
   document.title = textoTitulo + " | Eleição 2026";
   if (window.LAYOUT) LAYOUT.atualizarMenu(id);
 }

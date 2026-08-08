@@ -23,6 +23,11 @@ const AUTH = {
       paginaInicial: "logistica-abastecimento",
       paginas: ["logistica-abastecimento"],
     },
+    faustinho: {
+      paginaInicial: "agenda",
+      paginas: ["agenda", "entregas"],
+      relatorio: true,
+    },
     campanha: {
       paginaInicial: "inicio",
       paginasExcluidas: ["pessoal-contratos", "pessoal-pagamentos"],

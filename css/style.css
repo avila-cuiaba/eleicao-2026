@@ -6300,6 +6300,41 @@ button.lista-evento-acao:focus-visible {
   height: 1.85rem;
 }
 
+.agenda-btn-relatorio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--brand, #1f4e8c);
+  line-height: 1;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.agenda-btn-relatorio:hover {
+  color: #183d6f;
+  background: rgba(31, 78, 140, 0.08);
+}
+
+.agenda-btn-relatorio:active {
+  transform: scale(0.96);
+}
+
+.agenda-btn-relatorio svg {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+.agenda-tarefas-cabecalho .agenda-tarefas-filtro {
+  flex-shrink: 0;
+}
+
 .agenda-listas-tab {
   flex: 1;
   border: 1px solid #d8dee6;
@@ -6490,9 +6525,55 @@ button.lista-evento-acao:focus-visible {
 
 .lista-evento-data {
   flex-shrink: 0;
-  width: 52px;
+  width: 58px;
   text-align: center;
   line-height: 1.1;
+}
+
+.lista-evento-horario {
+  display: block;
+  margin-top: 0.38rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.lista-evento-horario--dia-inteiro {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: #475569;
+}
+
+.lista-evento-local-linha {
+  margin-bottom: 0.35rem;
+}
+
+.lista-evento-local-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.25;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid rgba(31, 78, 140, 0.18);
+  color: #1e293b;
+}
+
+.lista-evento-titulo-linha {
+  margin-bottom: 0.08rem;
+}
+
+.lista-evento-descricao {
+  display: block;
+  margin-top: 0.12rem;
+  color: #475569;
 }
 
 .lista-evento-dia {

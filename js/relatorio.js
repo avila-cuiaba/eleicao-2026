@@ -447,8 +447,11 @@
     return blocos;
   },
 
-  coletarListasAgenda(doc) {
+  coletarListasAgenda(doc, opcoes) {
     const blocos = [];
+    const modo = opcoes?.agendaListas;
+    const incluirAtividades = !modo || modo === "atividades" || modo === "ambas";
+    const incluirTarefas = modo === "tarefas" || modo === "ambas";
     const esc = (v) => Relatorio.escapeHtml(v);
     const MESES_EXTENSO = [
       "janeiro",
@@ -513,6 +516,22 @@
       );
     }
 
+    function htmlHorarioRelatorio(horario) {
+      const txt = String(horario || "").trim();
+      if (!txt) return "";
+      const cls =
+        txt.toLowerCase() === "dia inteiro"
+          ? "agenda-rel-horario agenda-rel-horario--dia-inteiro"
+          : "agenda-rel-horario";
+      return `<div class="${cls}">${esc(txt)}</div>`;
+    }
+
+    function htmlDataComHorario(dt, horario) {
+      let html = htmlDataExtenso(dt);
+      html += htmlHorarioRelatorio(horario);
+      return html;
+    }
+
     function listaParaTabela(container, titulo, headers, colunas, classesTh) {
       if (!container || !Relatorio.elementoParaRelatorio(container)) return;
       const itens = Array.from(container.querySelectorAll(".lista-evento-item")).filter((el) =>
@@ -529,7 +548,10 @@
         .map((item) => {
           const tituloItem = item.querySelector("strong")?.textContent?.trim() || "—";
           const origem = item.querySelector(".badge-origem")?.textContent?.trim() || "";
-          const detalhe = item.querySelector(".text-secondary")?.textContent?.trim() || "";
+          const horario = item.querySelector(".lista-evento-horario")?.textContent?.trim() || "";
+          const local = item.querySelector(".lista-evento-local")?.textContent?.trim() || "";
+          const detalhe =
+            item.querySelector(".lista-evento-corpo > .text-secondary")?.textContent?.trim() || "";
           const descricao =
             item.querySelector(".lista-evento-corpo .small:not(.text-secondary)")?.textContent?.trim() ||
             "";
@@ -540,7 +562,16 @@
             ? `${dataDt.getDate()} ${MESES_EXTENSO[dataDt.getMonth()] || ""} ${dataDt.getFullYear()}`
             : [dataDia, dataMes].filter(Boolean).join(" ");
           const cols = colunas.map((fn, i) => {
-            const cel = fn({ tituloItem, origem, detalhe, descricao, data, dataDt });
+            const cel = fn({
+              tituloItem,
+              origem,
+              detalhe,
+              descricao,
+              data,
+              dataDt,
+              horario,
+              local,
+            });
             const html = cel && typeof cel === "object" && cel.html != null ? cel.html : esc(cel);
             const cls = classesTh && classesTh[i] ? ` class="${classesTh[i]}"` : "";
             return "<td" + cls + ">" + html + "</td>";
@@ -565,28 +596,39 @@
       });
     }
 
-    listaParaTabela(
-      doc.getElementById("listaEventos"),
-      "atividades",
-      ["data", "título", "detalhes"],
-      [
-        (r) => ({ html: htmlDataExtenso(r.dataDt) }),
-        (r) => ({ html: htmlTituloOrigem(r.tituloItem, r.origem) }),
-        (r) => [r.detalhe, r.descricao].filter(Boolean).join(" · "),
-      ],
-      ["agenda-rel-col-data", "agenda-rel-col-titulo", "agenda-rel-col-detalhes"]
-    );
+    if (incluirAtividades) {
+      listaParaTabela(
+        doc.getElementById("listaEventos"),
+        "atividades",
+        ["data", "título", "detalhes"],
+        [
+          (r) => ({ html: htmlDataComHorario(r.dataDt, r.horario) }),
+          (r) => ({ html: htmlTituloOrigem(r.tituloItem, r.origem) }),
+          (r) => {
+            const partes = [];
+            if (r.local) {
+              partes.push(`<div class="agenda-rel-local agenda-rel-local-badge">${esc(r.local)}</div>`);
+            }
+            if (r.descricao) partes.push(esc(r.descricao));
+            return partes.length ? partes.join("") : "—";
+          },
+        ],
+        ["agenda-rel-col-data", "agenda-rel-col-titulo", "agenda-rel-col-detalhes"]
+      );
+    }
 
-    listaParaTabela(
-      doc.getElementById("listaTarefas"),
-      "tarefas",
-      ["título", "detalhes"],
-      [
-        (r) => ({ html: htmlTituloOrigem(r.tituloItem, r.origem) }),
-        (r) => [r.detalhe, r.descricao].filter(Boolean).join(" · "),
-      ],
-      ["agenda-rel-col-titulo", "agenda-rel-col-detalhes"]
-    );
+    if (incluirTarefas) {
+      listaParaTabela(
+        doc.getElementById("listaTarefas"),
+        "tarefas",
+        ["título", "detalhes"],
+        [
+          (r) => ({ html: htmlTituloOrigem(r.tituloItem, r.origem) }),
+          (r) => [r.detalhe, r.descricao].filter(Boolean).join(" · "),
+        ],
+        ["agenda-rel-col-titulo", "agenda-rel-col-detalhes"]
+      );
+    }
 
     return blocos;
   },
@@ -802,7 +844,7 @@
       (typeof global.coletarTabelasRelatorioPagina === "function"
         ? global.coletarTabelasRelatorioPagina(doc)
         : this.coletarTabelas(doc));
-    const listasAgenda = this.coletarListasAgenda(doc);
+    const listasAgenda = this.coletarListasAgenda(doc, meta);
     const todosBlocos = tabelas.concat(listasAgenda);
     const temCards = String(cardsHtml || "").trim().length > 0;
 

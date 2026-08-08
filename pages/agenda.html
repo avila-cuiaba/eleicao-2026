@@ -185,11 +185,27 @@
           >
             <div class="card shadow-sm agenda-lista-card">
               <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2 agenda-tarefas-cabecalho">
                   <h2 class="h6 mb-0" id="tituloTarefas">tarefas</h2>
-                  <div class="agenda-tarefas-filtro" role="group" aria-label="filtro de tarefas">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      id="btnRelatorioTarefas"
+                      class="agenda-btn-relatorio"
+                      aria-label="relatório de tarefas"
+                      title="relatório de tarefas"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                        <path d="M6 9V2h12v7" />
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                        <rect x="6" y="14" width="12" height="8" />
+                      </svg>
+                      <span class="visually-hidden">relatório de tarefas</span>
+                    </button>
+                    <div class="agenda-tarefas-filtro" role="group" aria-label="filtro de tarefas">
                     <button type="button" class="agenda-filtro-badge is-ativo" data-filtro-tarefas="pendentes">pendentes</button>
                     <button type="button" class="agenda-filtro-badge" data-filtro-tarefas="todas">todas</button>
+                    </div>
                   </div>
                 </div>
                 <div id="listaTarefas" class="lista-eventos"></div>

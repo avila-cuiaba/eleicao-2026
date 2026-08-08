@@ -12,6 +12,7 @@
  *   SENHA_ACESSO_EUGENIO  → campanha (tudo exceto contratos/pagamentos)
  *   SENHA_ACESSO_MATERIAL  → perfil material (só material gráfico)
  *   SENHA_ACESSO_COMBUSTIVEL  → perfil combustivel (só abastecimentos / diário de bordo)
+ *   SENHA_ACESSO_FAUSTINHO  → perfil faustinho (agenda + entregas, com relatório)
  *   SENHA_ACESSO_AVILA    → acesso total (master)
  *   Se NENHUMA propriedade existir, o acesso fica ABERTO (sem proteção).
  *   O frontend envia a chave em ?chave=... (GET) ou { "chave": "..." } (POST).
@@ -252,6 +253,7 @@ var CADASTRO_ACESSO = [
   { prop: "SENHA_ACESSO_EUGENIO", perfil: "campanha", usuario: "Eugênio" },
   { prop: "SENHA_ACESSO_MATERIAL", perfil: "material", usuario: "Material" },
   { prop: "SENHA_ACESSO_COMBUSTIVEL", perfil: "combustivel", usuario: "Combustível" },
+  { prop: "SENHA_ACESSO_FAUSTINHO", perfil: "faustinho", usuario: "Faustinho" },
   { prop: "SENHA_ACESSO_AVILA", perfil: "master", usuario: "Avila" },
 ];
 
@@ -307,6 +309,9 @@ function planilhaPermitida(perfil, planilha) {
       chave === "micro-municipios"
     );
   }
+  if (perfil === "faustinho") {
+    return chave === "entregas" || chave === "municipios" || chave === "micro-municipios";
+  }
   if (perfil === "campanha") {
     return !PLANILHAS_SOMENTE_CONTRATOS[chave];
   }
@@ -319,9 +324,12 @@ function recursoPermitido(perfil, recurso, planilha) {
     perfil === "contratos" ||
     perfil === "reginaldo" ||
     perfil === "material" ||
-    perfil === "combustivel"
+    perfil === "combustivel" ||
+    perfil === "faustinho"
   ) {
-    if (recurso === "agenda" || recurso === "planilhas-cadastro") return false;
+    if (recurso === "agenda" || recurso === "planilhas-cadastro") {
+      return perfil === "faustinho" && recurso === "agenda";
+    }
     if (recurso === "planilha" || !recurso) {
       return planilhaPermitida(perfil, planilha || PLANILHA_PADRAO);
     }
