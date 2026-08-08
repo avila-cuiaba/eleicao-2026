@@ -6199,6 +6199,10 @@ button.lista-evento-acao:focus-visible {
   width: 100%;
 }
 
+.agenda-sel-periodo-wrap--mobile {
+  display: none;
+}
+
 .agenda-topo-linha--filtros .agenda-filtro-origens {
   justify-content: flex-end;
 }
@@ -6206,7 +6210,6 @@ button.lista-evento-acao:focus-visible {
 .agenda-btn-nova--calendario {
   display: none;
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 .agenda-btn-nova--filtros {
@@ -6469,10 +6472,30 @@ button.lista-evento-acao:focus-visible {
 @media (max-width: 576px) {
   .agenda-topo-linha--calendario {
     display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .agenda-btn-nova--calendario {
     display: inline-flex;
+    margin-left: auto;
+  }
+
+  .agenda-topo-linha--filtros {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .agenda-sel-periodo-wrap--mobile {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .agenda-topo-linha--filtros .agenda-filtro-origens {
+    flex: 1;
+    justify-content: flex-end;
+    min-width: 0;
   }
 
   .agenda-btn-nova--filtros {
