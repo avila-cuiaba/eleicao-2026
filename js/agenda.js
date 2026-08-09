@@ -967,6 +967,7 @@ async function carregarEventos() {
     statusPainel(ui.status, "", null);
     renderMiniCalendario();
     renderListas();
+    agendarSincronizacaoViewportAgenda();
   } catch (err) {
     statusPainel(ui.status, "Erro: " + err.message, "erro");
   }
@@ -1185,6 +1186,52 @@ function abrirRelatorioTarefas() {
   });
 }
 
+function agendaEstaNoShell() {
+  try {
+    return window.parent && window.parent !== window;
+  } catch (e) {
+    return false;
+  }
+}
+
+function sincronizarViewportAgenda() {
+  if (!agendaEstaNoShell()) return;
+  const altura =
+    window.innerHeight ||
+    document.documentElement.clientHeight ||
+    document.body.clientHeight;
+  if (!altura || altura < 100) return;
+  const px = altura + "px";
+  document.documentElement.style.height = px;
+  document.body.style.height = px;
+}
+
+function solicitarAjusteShellAgenda() {
+  if (!agendaEstaNoShell()) return;
+  try {
+    if (window.parent.ajustarAlturaFrame) {
+      window.parent.ajustarAlturaFrame();
+    }
+  } catch (e) {
+    /* ignorar */
+  }
+  requestAnimationFrame(() => {
+    sincronizarViewportAgenda();
+    requestAnimationFrame(sincronizarViewportAgenda);
+  });
+}
+
+let agendaViewportSyncTimer = null;
+
+function agendarSincronizacaoViewportAgenda() {
+  if (!agendaEstaNoShell()) return;
+  if (agendaViewportSyncTimer) clearTimeout(agendaViewportSyncTimer);
+  agendaViewportSyncTimer = setTimeout(() => {
+    agendaViewportSyncTimer = null;
+    solicitarAjusteShellAgenda();
+  }, 0);
+}
+
 function initAgenda() {
   montarUi();
   if (!ui.miniCal) return;
@@ -1248,6 +1295,8 @@ function initAgenda() {
 
   atualizarTituloHeader();
   atualizarBotaoCalendarioMobile();
+  agendarSincronizacaoViewportAgenda();
+  window.addEventListener("resize", agendarSincronizacaoViewportAgenda);
   carregarEventos();
 }
 

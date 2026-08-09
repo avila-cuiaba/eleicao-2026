@@ -4737,7 +4737,7 @@ body.page-agenda {
 }
 
 body.page-agenda .page-frame-content {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -4750,7 +4750,7 @@ body.page-agenda .page-frame-content {
   }
 
   body.page-agenda .page-frame-content {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;

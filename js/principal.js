@@ -388,12 +388,17 @@ function ajustarAlturaFrame() {
     frame.style.flex = "1 1 auto";
     frame.style.minHeight = "0";
 
+    const areaMain = main.clientHeight;
+
     if (preencheViewport || ehMobileShell()) {
-      frame.style.height = "";
+      if (areaMain > 0) {
+        frame.style.height = areaMain + "px";
+      } else {
+        frame.style.height = "";
+      }
       return;
     }
 
-    const areaMain = main.clientHeight;
     const docAltura = Math.max(
       doc.body?.scrollHeight || 0,
       doc.documentElement?.scrollHeight || 0,
