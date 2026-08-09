@@ -30,6 +30,10 @@ const ICONE_ASSINADO_SIM =
   '<i class="fa-solid fa-file-signature" aria-hidden="true"></i>';
 const ICONE_ASSINADO_NAO =
   '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+const ICONE_DOCUMENTOS_OK =
+  '<i class="fa-solid fa-file-circle-check" aria-hidden="true"></i>';
+const ICONE_DOCUMENTOS_PENDENTE =
+  '<i class="fa-solid fa-file-circle-xmark" aria-hidden="true"></i>';
 const ICONE_PAGAMENTO_DIRETO_REL =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
   '<path d="M11 11V6a2 2 0 0 1 4 0v1"/>' +
@@ -67,6 +71,7 @@ let linhaParaDestaqueSalvo = null;
 let camposDesbloqueadosFormulario = new Set();
 let linhasSelecionadasModal = new Set();
 let valorPixModalPorLinha = new Map();
+let pixPadraoAplicadoModal = false;
 let modalSelecao = null;
 let modalLancarPix = null;
 let linhasLotePix = [];
@@ -79,6 +84,7 @@ let colunaLoteValor = null;
 let colunaLoteContador = null;
 let colunaLoteLancado = null;
 let linhasSelecionadasLancarModal = new Set();
+let statusDocumentosPorLinha = new Map();
 let paginaAtualTabela = 1;
 
 function tamanhoPaginaTabela() {
@@ -210,7 +216,18 @@ async function alternarBloqueioCampoFormulario(campo) {
   atualizarBotaoCadeadoCampo(btn, camposDesbloqueadosFormulario.has(campo.id), campo.rotulo);
 }
 
-function vincularFormatacaoMoedaInput(input) {
+function formatarMoedaInputDigitando(input) {
+  if (!input) return;
+  const digits = String(input.value ?? "").replace(/\D/g, "");
+  if (!digits) {
+    input.value = "";
+    return;
+  }
+  const num = parseInt(digits, 10) / 100;
+  input.value = num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function vincularFormatacaoMoedaInput(input, opcao) {
   if (!input || input.dataset.moedaFormatada === "1") return;
   input.dataset.moedaFormatada = "1";
   input.placeholder = "0,00";
@@ -218,6 +235,19 @@ function vincularFormatacaoMoedaInput(input) {
     const formatado = valorMoedaGravar(input.value);
     input.value = formatado || "";
   });
+  if (opcao?.aoVivo) {
+    input.addEventListener("input", () => {
+      formatarMoedaInputDigitando(input);
+      const pos = input.value.length;
+      requestAnimationFrame(() => {
+        try {
+          input.setSelectionRange(pos, pos);
+        } catch (_) {
+          /* input sem foco */
+        }
+      });
+    });
+  }
 }
 
 function envolverCampoFormulario(campo, conteudo) {
@@ -995,6 +1025,108 @@ function montarFormulario(dados) {
     vincularSugestaoValorContrato();
     obterValoresReferenciaContrato();
   }
+  inserirPainelDocumentosFormulario(dados);
+}
+
+function documentosObrigatoriosLista() {
+  return cfg.DOCUMENTOS_OBRIGATORIOS || [];
+}
+
+function statusDocumentosLinha(item) {
+  const total = documentosObrigatoriosLista().length || 4;
+  if (!item?._linha) {
+    return { todosObrigatorios: false, carregados: 0, total, tipos: {} };
+  }
+  const st = statusDocumentosPorLinha.get(item._linha);
+  if (st) return st;
+  return { todosObrigatorios: false, carregados: 0, total, tipos: {} };
+}
+
+function itemDocumentosCompletos(item) {
+  return statusDocumentosLinha(item).todosObrigatorios === true;
+}
+
+function contratoPorCpfDigitos(cpfDigitos) {
+  const norm = cpfSomenteDigitos(cpfDigitos);
+  if (!norm) return null;
+  return linhas.find((item) => cpfSomenteDigitos(valorItem(item, colunaCpf)) === norm) || null;
+}
+
+function htmlIconeDocumentos(item) {
+  const st = statusDocumentosLinha(item);
+  const ok = st.todosObrigatorios;
+  const classe = ok
+    ? "contratos-icone-documentos contratos-icone-documentos--ok"
+    : "contratos-icone-documentos contratos-icone-documentos--pendente";
+  const icone = ok ? ICONE_DOCUMENTOS_OK : ICONE_DOCUMENTOS_PENDENTE;
+  const titulo = ok
+    ? "documentos obrigatórios completos"
+    : `${st.carregados || 0} de ${st.total || documentosObrigatoriosLista().length} documentos obrigatórios`;
+  return `<span class="${classe}" title="${escapeHtml(titulo)}" aria-label="${escapeHtml(titulo)}">${icone}</span>`;
+}
+
+function inserirPainelDocumentosFormulario(dados) {
+  if (!modoEdicao || !dados) return;
+  const st = statusDocumentosLinha(dados);
+  const docs = documentosObrigatoriosLista();
+  const panel = document.createElement("div");
+  panel.className =
+    "contratos-painel-documentos mt-3" +
+    (st.todosObrigatorios ? " contratos-painel-documentos--ok" : " contratos-painel-documentos--pendente");
+
+  const resumo = st.todosObrigatorios
+    ? "todos os documentos obrigatórios foram enviados"
+    : `${st.carregados || 0} de ${st.total || docs.length} documentos obrigatórios enviados`;
+
+  let listaHtml = docs
+    .map((doc) => {
+      const ok = st.tipos && st.tipos[doc.chave];
+      const icone = ok
+        ? '<i class="fa-solid fa-circle-check contratos-doc-icone--ok" aria-hidden="true"></i>'
+        : '<i class="fa-solid fa-circle-xmark contratos-doc-icone--pendente" aria-hidden="true"></i>';
+      return (
+        '<li class="contratos-painel-documentos-item">' +
+        icone +
+        "<span>" +
+        escapeHtml(doc.rotulo) +
+        "</span>" +
+        '<span class="contratos-painel-documentos-estado">' +
+        (ok ? "carregado" : "pendente") +
+        "</span>" +
+        "</li>"
+      );
+    })
+    .join("");
+
+  panel.innerHTML =
+    '<div class="contratos-painel-documentos-cab">documentos obrigatórios</div>' +
+    '<p class="contratos-painel-documentos-resumo small mb-2">' +
+    escapeHtml(resumo) +
+    "</p>" +
+    '<ul class="contratos-painel-documentos-lista list-unstyled mb-0">' +
+    listaHtml +
+    "</ul>" +
+    '<p class="text-secondary small mt-2 mb-0">para enviar arquivos, use a página <strong>pessoal-contratos</strong>.</p>';
+
+  el.formCampos.appendChild(panel);
+}
+
+async function carregarStatusDocumentosContratos() {
+  statusDocumentosPorLinha = new Map();
+  if (!linhas.length || !PlanilhaApi.configValida()) return;
+  try {
+    const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
+      acao: "status-documentos-contratos",
+      aba: cfg.ABA,
+      origem: "pessoal-pagamentos",
+    });
+    if (!json?.statusPorLinha) return;
+    Object.keys(json.statusPorLinha).forEach((linha) => {
+      statusDocumentosPorLinha.set(Number(linha), json.statusPorLinha[linha]);
+    });
+  } catch (e) {
+    console.warn("status documentos contratos:", e);
+  }
 }
 
 function dadosCamposSomenteLeituraEdicao() {
@@ -1296,7 +1428,12 @@ function htmlBarraProgressoQuitadoContrato(item) {
 }
 
 function itemElegivelModalPagamentosPix(item) {
-  return itemLancarSistema(item) && cpfEIgualChavePix(item) && saldoContratoElegivelPix(item);
+  return (
+    itemLancarSistema(item) &&
+    cpfEIgualChavePix(item) &&
+    saldoContratoElegivelPix(item) &&
+    itemDocumentosCompletos(item)
+  );
 }
 
 function linhasParaModalPagamentosPix() {
@@ -1312,28 +1449,43 @@ function idsLinhasListaSelecao() {
   return ordenarLinhasPorNome(linhasParaModalPagamentosPix()).map((item) => item._linha);
 }
 
+function linhaSelecionavelModalPix(item) {
+  if (!item) return false;
+  const numLinha = item._linha;
+  const valorTexto =
+    lerValorPixInput(numLinha) || obterValorPixLinha(numLinha, item);
+  if (pixPadraoAplicadoModal && valorPixExcedeSaldo(item, valorTexto)) return false;
+  return true;
+}
+
+function idsLinhasSelecionaveisModalPix() {
+  return idsLinhasListaSelecao().filter((id) => linhaSelecionavelModalPix(itemModalPorLinha(id)));
+}
+
 function atualizarCheckboxMarcarTodos() {
   const master = el.selecaoMarcarTodos;
   if (!master) return;
-  const ids = idsLinhasListaSelecao();
-  if (!ids.length) {
+  const idsLista = idsLinhasListaSelecao();
+  const ids = idsLinhasSelecionaveisModalPix();
+  if (!idsLista.length) {
     master.checked = false;
     master.indeterminate = false;
     master.disabled = true;
     return;
   }
-  master.disabled = false;
+  master.disabled = ids.length === 0;
   const marcados = ids.filter((id) => linhasSelecionadasModal.has(id)).length;
-  master.checked = marcados === ids.length;
+  master.checked = ids.length > 0 && marcados === ids.length;
   master.indeterminate = marcados > 0 && marcados < ids.length;
 }
 
 function marcarDesmarcarTodosSelecao(marcar) {
-  idsLinhasListaSelecao().forEach((id) => {
+  idsLinhasSelecionaveisModalPix().forEach((id) => {
     if (marcar) linhasSelecionadasModal.add(id);
     else linhasSelecionadasModal.delete(id);
   });
   el.corpoSelecaoPagamentos?.querySelectorAll(".pagamentos-selecao-check").forEach((input) => {
+    if (input.disabled) return;
     input.checked = marcar;
   });
   atualizarCheckboxMarcarTodos();
@@ -1351,6 +1503,93 @@ function formatarValorPixInput(valorTexto) {
   const s = String(valorTexto ?? "").trim();
   if (!s) return "";
   return valorMoedaGravar(s) || s;
+}
+
+const MSG_VALOR_PIX_EXCEDE_SALDO = "valor PIX maior que saldo contrato";
+
+function valorPixExcedeSaldo(item, valorTexto) {
+  const valorN = numeroMoeda(valorTexto);
+  const saldoN = numeroMoeda(valorItem(item, colunaSaldoContrato));
+  if (valorN == null || saldoN == null) return false;
+  return valorN > saldoN;
+}
+
+function atualizarEstadoValidacaoValorPixInput(input, item) {
+  if (!input || !item) return;
+  const valorTexto = String(input.value ?? "").trim();
+  const excede =
+    pixPadraoAplicadoModal && valorPixExcedeSaldo(item, valorTexto);
+  const valorN = numeroMoeda(valorTexto);
+  const valido =
+    pixPadraoAplicadoModal && !excede && valorTexto && valorN != null;
+  input.classList.toggle("pagamentos-selecao-valor-pix--excede", excede);
+  input.classList.toggle("pagamentos-selecao-valor-pix--valido", valido);
+  input.setAttribute("aria-invalid", excede ? "true" : "false");
+  const alerta = input.parentElement?.querySelector(".pagamentos-valor-pix-alerta");
+  if (alerta) {
+    alerta.hidden = !excede;
+    alerta.setAttribute("aria-hidden", excede ? "false" : "true");
+    alerta.title = excede ? MSG_VALOR_PIX_EXCEDE_SALDO : "";
+  }
+
+  const check = el.corpoSelecaoPagamentos?.querySelector(
+    `.pagamentos-selecao-check[data-linha="${item._linha}"]`
+  );
+  if (check) {
+    check.disabled = excede;
+    if (excede) {
+      check.checked = false;
+      linhasSelecionadasModal.delete(item._linha);
+    }
+  }
+
+  if (pixPadraoAplicadoModal) {
+    atualizarCheckboxMarcarTodos();
+    atualizarTotalPixModalSelecao();
+  }
+}
+
+function validarTodosValoresPixModal() {
+  if (!pixPadraoAplicadoModal || !el.corpoSelecaoPagamentos) return;
+  ordenarLinhasPorNome(linhasParaModalPagamentosPix()).forEach((item) => {
+    const input = el.corpoSelecaoPagamentos.querySelector(
+      `input.pagamentos-selecao-valor-pix[data-linha-pix="${item._linha}"]`
+    );
+    if (input) atualizarEstadoValidacaoValorPixInput(input, item);
+  });
+}
+
+function aplicarValorPixPadraoModal() {
+  const campo = el.valorPixPadraoSelecao;
+  const raw = String(campo?.value ?? "").trim();
+  if (!raw) {
+    AppToast.show("informe o valor PIX padrão.", "erro");
+    campo?.focus();
+    return;
+  }
+  const fmt = formatarValorPixInput(raw);
+  const n = numeroMoeda(fmt);
+  if (n == null) {
+    AppToast.show("valor PIX padrão inválido.", "erro");
+    campo?.focus();
+    return;
+  }
+  if (campo) campo.value = fmt;
+
+  pixPadraoAplicadoModal = true;
+  const lista = ordenarLinhasPorNome(linhasParaModalPagamentosPix());
+  lista.forEach((item) => {
+    const numLinha = item._linha;
+    valorPixModalPorLinha.set(numLinha, fmt);
+    const input = el.corpoSelecaoPagamentos?.querySelector(
+      `input.pagamentos-selecao-valor-pix[data-linha-pix="${numLinha}"]`
+    );
+    if (input) {
+      input.value = fmt;
+      atualizarEstadoValidacaoValorPixInput(input, item);
+    }
+  });
+  atualizarTotalPixModalSelecao();
 }
 
 function cpfEIgualChavePix(item) {
@@ -1563,6 +1802,13 @@ async function gerarArquivoCsvPagamentos() {
   for (const item of lista) {
     const numLinha = item._linha;
     const nome = String(valorItem(item, colunaNome) ?? "").trim();
+    if (!itemDocumentosCompletos(item)) {
+      AppToast.show(
+        `documentos obrigatórios incompletos${nome ? ` (${nome})` : ""}.`,
+        "erro"
+      );
+      return;
+    }
     const pix = String(valorItem(item, colunaChavePix) ?? "").trim();
     const inscricao = inscricaoCsvDeChavePix(pix);
     if (!inscricao) {
@@ -1574,6 +1820,13 @@ async function gerarArquivoCsvPagamentos() {
     }
 
     const valorTexto = lerValorPixInput(numLinha) || obterValorPixLinha(numLinha, item);
+    if (valorPixExcedeSaldo(item, valorTexto)) {
+      AppToast.show(
+        `valor PIX maior que saldo contrato${nome ? ` (${nome})` : ""}. Registro não será processado.`,
+        "erro"
+      );
+      return;
+    }
     const valor = valorPixParaCsv(valorTexto);
     if (!valor) {
       AppToast.show(
@@ -1696,6 +1949,8 @@ function renderizarTabelaSelecaoModal() {
     const valorPixInicial = formatarValorPixInput(obterValorPixLinha(numLinha, item));
     const tdValorPix = document.createElement("td");
     tdValorPix.className = "pagamentos-selecao-col-valor-pix text-end";
+    const wrapPix = document.createElement("div");
+    wrapPix.className = "pagamentos-selecao-valor-pix-wrap";
     const inputPix = document.createElement("input");
     inputPix.type = "text";
     inputPix.className = "form-control form-control-sm pagamentos-selecao-valor-pix text-end";
@@ -1705,21 +1960,35 @@ function renderizarTabelaSelecaoModal() {
     inputPix.value = valorPixInicial;
     inputPix.setAttribute("aria-label", `valor PIX — ${nome || "colaborador"}`);
     vincularFormatacaoMoedaInput(inputPix);
+    const alertaPix = document.createElement("span");
+    alertaPix.className = "pagamentos-valor-pix-alerta";
+    alertaPix.hidden = true;
+    alertaPix.setAttribute("aria-hidden", "true");
+    alertaPix.innerHTML = '<i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>';
+    wrapPix.appendChild(inputPix);
+    wrapPix.appendChild(alertaPix);
     inputPix.addEventListener("input", () => {
       valorPixModalPorLinha.set(numLinha, inputPix.value);
       atualizarTotalPixModalSelecao();
+      atualizarEstadoValidacaoValorPixInput(inputPix, item);
     });
     inputPix.addEventListener("blur", () => {
       const fmt = formatarValorPixInput(inputPix.value);
       inputPix.value = fmt;
       valorPixModalPorLinha.set(numLinha, fmt);
       atualizarTotalPixModalSelecao();
+      atualizarEstadoValidacaoValorPixInput(inputPix, item);
     });
-    tdValorPix.appendChild(inputPix);
+    if (pixPadraoAplicadoModal) atualizarEstadoValidacaoValorPixInput(inputPix, item);
+    tdValorPix.appendChild(wrapPix);
     tr.appendChild(tdValorPix);
 
     const input = tdCheck.querySelector("input");
     input?.addEventListener("change", () => {
+      if (input.disabled) {
+        input.checked = false;
+        return;
+      }
       alternarSelecaoLinhaModal(numLinha, input.checked);
       atualizarCheckboxMarcarTodos();
       atualizarTotalPixModalSelecao();
@@ -1732,6 +2001,7 @@ function renderizarTabelaSelecaoModal() {
 }
 
 function abrirModalSelecao() {
+  pixPadraoAplicadoModal = false;
   if (el.dataPagamentoSelecao && !el.dataPagamentoSelecao.value) {
     el.dataPagamentoSelecao.value = dataHojeInputDate();
   }
@@ -1795,12 +2065,20 @@ function itemLotePixJaLancado(item) {
 }
 
 function linhasLotePixElegiveisLancar() {
-  return linhasLotePixFiltradas().filter((item) => !itemLotePixJaLancado(item));
+  return linhasLotePixFiltradas().filter((item) => {
+    if (itemLotePixJaLancado(item)) return false;
+    const contrato = contratoPorCpfDigitos(valorItemLote(item, colunaLoteCpf));
+    if (!contrato) return false;
+    return itemDocumentosCompletos(contrato);
+  });
 }
 
-function htmlBadgeStatusLotePix(item) {
+function htmlBadgeStatusLotePix(item, docsOk) {
   if (itemLotePixJaLancado(item)) {
     return '<span class="pagamentos-lancar-badge pagamentos-lancar-badge--registrado">registrado</span>';
+  }
+  if (docsOk === false) {
+    return '<span class="pagamentos-lancar-badge pagamentos-lancar-badge--sem-docs">sem docs</span>';
   }
   return '<span class="pagamentos-lancar-badge pagamentos-lancar-badge--pendente">pendente</span>';
 }
@@ -1933,7 +2211,11 @@ function atualizarCheckboxMarcarTodosLancar() {
 
 function alternarSelecaoLinhaLancar(linha, marcado) {
   const item = linhasLotePix.find((r) => r._linha === linha);
-  if (marcado && item && itemLotePixJaLancado(item)) return;
+  if (marcado && item) {
+    if (itemLotePixJaLancado(item)) return;
+    const contrato = contratoPorCpfDigitos(valorItemLote(item, colunaLoteCpf));
+    if (!contrato || !itemDocumentosCompletos(contrato)) return;
+  }
   if (marcado) linhasSelecionadasLancarModal.add(linha);
   else linhasSelecionadasLancarModal.delete(linha);
 }
@@ -1980,6 +2262,15 @@ async function executarLancarPagamentosPix() {
     if (itemLotePixJaLancado(item)) {
       ignoradosLancados.push(String(valorItemLote(item, colunaLoteColaborador) ?? "").trim());
       continue;
+    }
+    const contrato = contratoPorCpfDigitos(valorItemLote(item, colunaLoteCpf));
+    if (!contrato || !itemDocumentosCompletos(contrato)) {
+      const nome = String(valorItemLote(item, colunaLoteColaborador) ?? "").trim();
+      AppToast.show(
+        `documentos obrigatórios incompletos${nome ? ` (${nome})` : ""}.`,
+        "erro"
+      );
+      return;
     }
     const cpf = cpfSomenteDigitos(valorItemLote(item, colunaLoteCpf));
     const dataIso = dataPagamentoIsoDeItemLote(item);
@@ -2101,17 +2392,21 @@ function renderizarTabelaLancarModal() {
     const tr = document.createElement("tr");
     const numLinha = item._linha;
     const jaLancado = itemLotePixJaLancado(item);
+    const contrato = contratoPorCpfDigitos(valorItemLote(item, colunaLoteCpf));
+    const docsOk = contrato && itemDocumentosCompletos(contrato);
+    const elegivel = !jaLancado && docsOk;
     if (jaLancado) linhasSelecionadasLancarModal.delete(numLinha);
-    const marcado = !jaLancado && linhasSelecionadasLancarModal.has(numLinha);
+    const marcado = elegivel && linhasSelecionadasLancarModal.has(numLinha);
     if (jaLancado) tr.classList.add("pagamentos-lancar-linha--lancada");
+    if (!jaLancado && !docsOk) tr.classList.add("pagamentos-lancar-linha--sem-docs");
 
     const tdCheck = document.createElement("td");
     tdCheck.className = "pagamentos-selecao-col-check text-center";
     tdCheck.innerHTML =
       `<input type="checkbox" class="form-check-input pagamentos-lancar-check" data-linha="${numLinha}"` +
       `${marcado ? " checked" : ""}` +
-      `${jaLancado ? " disabled" : ""}` +
-      ` aria-label="${jaLancado ? "registro já lançado" : "selecionar linha"}">`;
+      `${elegivel ? "" : " disabled"}` +
+      ` aria-label="${jaLancado ? "registro já lançado" : docsOk ? "selecionar linha" : "documentos obrigatórios incompletos"}">`;
     tr.appendChild(tdCheck);
 
     const colaborador = String(valorItemLote(item, colunaLoteColaborador) ?? "").trim();
@@ -2129,7 +2424,7 @@ function renderizarTabelaLancarModal() {
     );
 
     tr.appendChild(
-      criarTdHtml(htmlBadgeStatusLotePix(item), "pagamentos-lancar-col-status text-end")
+      criarTdHtml(htmlBadgeStatusLotePix(item, docsOk), "pagamentos-lancar-col-status text-end")
     );
 
     tdCheck.querySelector("input")?.addEventListener("change", (ev) => {
@@ -2275,7 +2570,7 @@ function htmlValoresContratoSaldoMobileStack(item) {
 function htmlMobileStackCorpo(item) {
   let html =
     '<div class="contratos-celula-stack">' +
-    `<span class="contratos-stack-nome contratos-stack-nome--com-assinado">${htmlIconeAssinado(item)}<span>${exibirValor(valorItem(item, colunaNome))}</span></span>` +
+    `<span class="contratos-stack-nome contratos-stack-nome--com-assinado">${htmlIconeAssinado(item)}${htmlIconeDocumentos(item)}<span>${exibirValor(valorItem(item, colunaNome))}</span></span>` +
     `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
     `<span class="contratos-stack-cpf">${htmlCelulaCpfChavePix(item)}</span>` +
     htmlValoresContratoSaldoMobileStack(item);
@@ -2608,6 +2903,12 @@ function montarCabecalhoTabela() {
   );
   thAssinado.title = rotuloTabela("ASSINADO");
   trDesktop.appendChild(thAssinado);
+  const thDocs = criarTh(
+    rotuloTabela("DOCUMENTOS"),
+    "contratos-col-documentos contratos-tabela-desktop-col text-center"
+  );
+  thDocs.title = "documentos obrigatórios";
+  trDesktop.appendChild(thDocs);
   trDesktop.appendChild(criarTh(rotuloTabela("CPF"), "contratos-col-cpf contratos-tabela-desktop-col"));
   trDesktop.appendChild(
     TabelaOrdenacao.criarThOrdenavel(
@@ -2666,6 +2967,12 @@ function criarLinhaTabela(item) {
     criarTdHtml(
       htmlIconeAssinado(item),
       "contratos-col-assinado contratos-tabela-desktop-col text-center"
+    )
+  );
+  tr.appendChild(
+    criarTdHtml(
+      htmlIconeDocumentos(item),
+      "contratos-col-documentos contratos-tabela-desktop-col text-center"
     )
   );
   tr.appendChild(
@@ -2812,6 +3119,7 @@ async function carregarContratos(silencioso) {
     colunas = dados.colunas;
     linhas = dados.linhas;
     resolverColunas();
+    await carregarStatusDocumentosContratos();
     paginaAtualTabela = 1;
 
     montarCabecalhoTabela();
@@ -2862,6 +3170,8 @@ function init() {
     vazioSelecaoPagamentos: document.getElementById("vazioSelecaoPagamentos"),
     selecaoMarcarTodos: document.getElementById("selecaoMarcarTodos"),
     dataPagamentoSelecao: document.getElementById("dataPagamentoSelecao"),
+    valorPixPadraoSelecao: document.getElementById("valorPixPadraoSelecao"),
+    btnAplicarValorPixPadrao: document.getElementById("btnAplicarValorPixPadrao"),
     btnGerarCsvPagamentos: document.getElementById("btnGerarCsvPagamentos"),
     gerarCsvSpinner: document.getElementById("gerarCsvSpinner"),
     gerarCsvIcone: document.getElementById("gerarCsvIcone"),
@@ -2929,6 +3239,10 @@ function init() {
     marcarDesmarcarTodosSelecao(el.selecaoMarcarTodos.checked);
     atualizarTotalPixModalSelecao();
   });
+  if (el.valorPixPadraoSelecao) {
+    vincularFormatacaoMoedaInput(el.valorPixPadraoSelecao, { aoVivo: true });
+  }
+  el.btnAplicarValorPixPadrao?.addEventListener("click", aplicarValorPixPadraoModal);
   el.btnGerarCsvPagamentos?.addEventListener("click", gerarArquivoCsvPagamentos);
   el.btnNovo?.addEventListener("click", abrirNovo);
   el.form?.addEventListener("submit", salvarFormulario);

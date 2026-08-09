@@ -28,11 +28,17 @@ const ICONE_ASSINADO_SIM =
   '<i class="fa-solid fa-file-signature" aria-hidden="true"></i>';
 const ICONE_ASSINADO_NAO =
   '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+const ICONE_ARQUIVOS =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+  '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>' +
+  "</svg>";
 
 let el = {};
 let colunas = [];
 let linhas = [];
 let modal = null;
+let modalArquivos = null;
+let itemArquivosEdicao = null;
 let modoEdicao = null;
 let itemEdicao = null;
 let colunaNome = null;
@@ -51,6 +57,7 @@ let cacheValoresReferenciaContrato = null;
 let promessaValoresReferenciaContrato = null;
 let linhaParaDestaqueSalvo = null;
 let paginaAtualTabela = 1;
+let arquivosContratoCarregando = false;
 
 function tamanhoPaginaTabela() {
   const n = cfg.TAMANHO_PAGINA_TABELA;
@@ -1207,6 +1214,261 @@ function montarFormulario(dados) {
   obterValoresReferenciaContrato();
 }
 
+function linhaArquivosContrato() {
+  return itemArquivosEdicao?._linha;
+}
+
+function documentosObrigatoriosContrato() {
+  return cfg.DOCUMENTOS_OBRIGATORIOS || [];
+}
+
+function rotuloTipoDocumento(chave) {
+  const doc = documentosObrigatoriosContrato().find((d) => d.chave === chave);
+  return doc?.rotulo || chave;
+}
+
+function abrirModalArquivos(item) {
+  itemArquivosEdicao = item;
+  const nome = exibirValor(valorItem(item, colunaNome));
+  const cpf = exibirValor(valorItem(item, colunaCpf));
+  const municipio = exibirValor(valorItem(item, colunaMunicipio));
+  const subpartes = [];
+  if (cpf) subpartes.push(cpf);
+  if (municipio) subpartes.push(municipio);
+  if (el.modalArquivosTitulo) el.modalArquivosTitulo.textContent = "documentos";
+  if (el.modalArquivosIdent) el.modalArquivosIdent.textContent = nome || "colaborador";
+  if (el.modalArquivosSub) el.modalArquivosSub.textContent = subpartes.join(" · ");
+  if (el.contratosArquivosStatus) el.contratosArquivosStatus.textContent = "";
+  if (el.contratosInputArquivos) {
+    el.contratosInputArquivos.value = "";
+    el.contratosInputArquivos.disabled = false;
+  }
+  modalArquivos?.show();
+  popularSelectTipoDocumento({});
+  carregarListaArquivosContrato();
+}
+
+function popularSelectTipoDocumento(statusTipos) {
+  const sel = el.contratosSelectTipoDocumento;
+  if (!sel) return;
+  const valorAtual = sel.value;
+  sel.innerHTML = documentosObrigatoriosContrato()
+    .map((doc) => {
+      const ok = statusTipos[doc.chave];
+      const suffix = ok ? " (substituir)" : "";
+      return (
+        '<option value="' +
+        escapeHtml(doc.chave) +
+        '">' +
+        escapeHtml(doc.rotulo + suffix) +
+        "</option>"
+      );
+    })
+    .join("");
+  if (valorAtual && sel.querySelector(`option[value="${valorAtual}"]`)) {
+    sel.value = valorAtual;
+  } else {
+    const pendente = documentosObrigatoriosContrato().find((d) => !statusTipos[d.chave]);
+    if (pendente) sel.value = pendente.chave;
+  }
+}
+
+function renderizarDocumentosObrigatorios(json) {
+  const lista = el.contratosListaObrigatorios;
+  const resumo = el.contratosArquivosResumo;
+  if (!lista) return;
+
+  const docs = documentosObrigatoriosContrato();
+  const statusTipos = json.documentosObrigatorios?.tipos || {};
+  const arquivosPorTipo = {};
+  (json.arquivos || []).forEach((a) => {
+    if (a.tipoDocumento) arquivosPorTipo[a.tipoDocumento] = a;
+  });
+
+  const total = docs.length;
+  const carregados =
+    json.documentosObrigatorios?.carregados ??
+    docs.filter((d) => statusTipos[d.chave]).length;
+  const todos =
+    json.documentosObrigatorios?.todosObrigatorios ?? carregados === total;
+
+  if (resumo) {
+    resumo.className =
+      "contratos-arquivos-resumo small mb-2" +
+      (todos ? " contratos-arquivos-resumo--ok" : " contratos-arquivos-resumo--pendente");
+    resumo.textContent = todos
+      ? "todos os documentos obrigatórios foram enviados"
+      : `${carregados} de ${total} documentos obrigatórios enviados`;
+  }
+
+  lista.innerHTML = docs
+    .map((doc) => {
+      const ok = statusTipos[doc.chave];
+      const arq = arquivosPorTipo[doc.chave];
+      const estado = ok ? "carregado" : "pendente";
+      const icone = ok
+        ? '<i class="fa-solid fa-circle-check contratos-doc-icone--ok" aria-hidden="true"></i>'
+        : '<i class="fa-solid fa-circle-xmark contratos-doc-icone--pendente" aria-hidden="true"></i>';
+      let arquivoHtml = "";
+      if (arq) {
+        const tam = formatarTamanhoArquivo(arq.tamanho);
+        const meta = tam ? `<span class="contratos-doc-arquivo-meta">${escapeHtml(tam)}</span>` : "";
+        arquivoHtml =
+          '<a class="contratos-doc-arquivo-link" href="' +
+          escapeHtml(arq.url) +
+          '" target="_blank" rel="noopener">' +
+          escapeHtml(arq.nome) +
+          "</a>" +
+          meta +
+          '<button type="button" class="btn btn-sm btn-link text-danger contratos-doc-btn-excluir" data-id="' +
+          escapeHtml(arq.id) +
+          '" title="excluir"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>';
+      }
+      return (
+        '<li class="contratos-doc-item contratos-doc-item--' +
+        estado +
+        '">' +
+        '<span class="contratos-doc-icone" aria-hidden="true">' +
+        icone +
+        "</span>" +
+        '<span class="contratos-doc-rotulo">' +
+        escapeHtml(doc.rotulo) +
+        "</span>" +
+        '<span class="contratos-doc-estado">' +
+        (ok ? "carregado" : "pendente") +
+        "</span>" +
+        '<span class="contratos-doc-arquivo">' +
+        arquivoHtml +
+        "</span>" +
+        "</li>"
+      );
+    })
+    .join("");
+
+  lista.querySelectorAll(".contratos-doc-btn-excluir").forEach((btn) => {
+    btn.addEventListener("click", () => excluirArquivoContrato(btn.dataset.id));
+  });
+
+  popularSelectTipoDocumento(statusTipos);
+}
+
+function formatarTamanhoArquivo(bytes) {
+  const n = Number(bytes);
+  if (!n || n < 0) return "";
+  if (n < 1024) return n + " B";
+  if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1048576).toFixed(1) + " MB";
+}
+
+function lerArquivoComoBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const idx = result.indexOf(",");
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error || new Error("Falha ao ler arquivo."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function carregarListaArquivosContrato() {
+  const lista = el.contratosListaObrigatorios;
+  const status = el.contratosArquivosStatus;
+  const linha = linhaArquivosContrato();
+  if (!lista || !linha) return;
+
+  if (status) status.textContent = "carregando documentos...";
+  try {
+    const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
+      acao: "listar-arquivos-contrato",
+      linha,
+      aba: cfg.ABA,
+      origem: "pessoal-contratos",
+    });
+    if (!json) return;
+    renderizarDocumentosObrigatorios(json);
+    if (status) status.textContent = "";
+  } catch (e) {
+    if (status) status.textContent = "";
+    lista.innerHTML =
+      '<li class="text-danger small">erro ao listar: ' + escapeHtml(e.message) + "</li>";
+  }
+}
+
+async function enviarArquivosSelecionados(input) {
+  const file = input?.files?.[0];
+  const linha = linhaArquivosContrato();
+  const tipoDocumento = el.contratosSelectTipoDocumento?.value?.trim() || "";
+  if (!file || !linha) return;
+  if (!tipoDocumento) {
+    AppToast.show("selecione o tipo de documento", "erro");
+    return;
+  }
+  const status = el.contratosArquivosStatus;
+  if (arquivosContratoCarregando) return;
+  arquivosContratoCarregando = true;
+  if (input) input.disabled = true;
+  if (el.contratosSelectTipoDocumento) el.contratosSelectTipoDocumento.disabled = true;
+
+  try {
+    if (status) status.textContent = `enviando: ${rotuloTipoDocumento(tipoDocumento)}`;
+    const base64 = await lerArquivoComoBase64(file);
+    const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
+      acao: "upload-arquivo-contrato",
+      linha,
+      aba: cfg.ABA,
+      origem: "pessoal-contratos",
+      dados: {
+        nomeArquivo: file.name,
+        mimeType: file.type || "application/octet-stream",
+        conteudoBase64: base64,
+        tipoDocumento,
+      },
+    });
+    if (!json) return;
+    if (status) status.textContent = "";
+    await carregarListaArquivosContrato();
+    AppToast.show(rotuloTipoDocumento(tipoDocumento) + " enviado", "sucesso");
+  } catch (e) {
+    if (status) status.textContent = "";
+    AppToast.show("erro ao enviar: " + e.message, "erro");
+  } finally {
+    arquivosContratoCarregando = false;
+    if (input) {
+      input.disabled = false;
+      input.value = "";
+    }
+    if (el.contratosSelectTipoDocumento) el.contratosSelectTipoDocumento.disabled = false;
+  }
+}
+
+async function excluirArquivoContrato(fileId) {
+  const linha = linhaArquivosContrato();
+  if (!fileId || !linha) return;
+  if (!(await AppConfirm.confirm("Excluir este arquivo?", { perigo: true, icon: "warning" }))) return;
+
+  const status = el.contratosArquivosStatus;
+  if (status) status.textContent = "excluindo...";
+  try {
+    const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
+      acao: "excluir-arquivo-contrato",
+      linha,
+      aba: cfg.ABA,
+      origem: "pessoal-contratos",
+      dados: { fileId },
+    });
+    if (!json) return;
+    if (status) status.textContent = "";
+    await carregarListaArquivosContrato();
+    AppToast.show("arquivo excluído", "sucesso");
+  } catch (e) {
+    if (status) status.textContent = "";
+    AppToast.show("erro ao excluir: " + e.message, "erro");
+  }
+}
+
 function vincularChavePixComCpf() {
   const cpfInput = document.getElementById("campo-cpf");
   const pixInput = document.getElementById("campo-chave-pix");
@@ -1480,6 +1742,9 @@ function criarTdHtml(html, classes) {
 function htmlBotoesAcoes() {
   return (
     '<div class="crud-acoes-icones">' +
+    '<button type="button" class="crud-acao-icone crud-acao-icone--arquivos" data-acao="arquivos" aria-label="documentos" title="documentos">' +
+    ICONE_ARQUIVOS +
+    "</button>" +
     '<button type="button" class="crud-acao-icone crud-acao-icone--imprimir" data-acao="imprimir" aria-label="imprimir contrato" title="imprimir">' +
     ICONE_IMPRIMIR +
     "</button>" +
@@ -1535,6 +1800,7 @@ async function imprimirContrato(item) {
 }
 
 function vincularAcoes(container, item) {
+  container.querySelector('[data-acao="arquivos"]')?.addEventListener("click", () => abrirModalArquivos(item));
   container.querySelector('[data-acao="imprimir"]')?.addEventListener("click", () => imprimirContrato(item));
   container.querySelector('[data-acao="editar"]')?.addEventListener("click", () => abrirEditar(item));
   container.querySelector('[data-acao="excluir"]')?.addEventListener("click", () => confirmarExcluir(item));
@@ -1781,6 +2047,16 @@ function init() {
     modalTitulo: document.getElementById("modalTitulo"),
     modalIcone: document.getElementById("modalIcone"),
     modalEl: document.getElementById("modalContrato"),
+    modalArquivosEl: document.getElementById("modalArquivos"),
+    modalArquivosTitulo: document.getElementById("modalArquivosTitulo"),
+    modalArquivosIdent: document.getElementById("modalArquivosIdent"),
+    modalArquivosSub: document.getElementById("modalArquivosSub"),
+    contratosInputArquivos: document.getElementById("contratosInputArquivos"),
+    contratosArquivosStatus: document.getElementById("contratosArquivosStatus"),
+    contratosListaObrigatorios: document.getElementById("contratosListaObrigatorios"),
+    contratosArquivosResumo: document.getElementById("contratosArquivosResumo"),
+    contratosSelectTipoDocumento: document.getElementById("contratosSelectTipoDocumento"),
+    btnArquivosFechar: document.getElementById("btnArquivosFechar"),
   };
 
   if (el.modalIcone && window.APP_ICON_SVG?.pessoal) {
@@ -1788,6 +2064,13 @@ function init() {
   }
 
   modal = bootstrap.Modal.getOrCreateInstance(el.modalEl);
+  if (el.modalArquivosEl) {
+    modalArquivos = bootstrap.Modal.getOrCreateInstance(el.modalArquivosEl);
+  }
+  el.contratosInputArquivos?.addEventListener("change", () =>
+    enviarArquivosSelecionados(el.contratosInputArquivos)
+  );
+  el.btnArquivosFechar?.addEventListener("click", () => modalArquivos?.hide());
   el.busca?.addEventListener("input", () => {
     paginaAtualTabela = 1;
     renderizarTabela();

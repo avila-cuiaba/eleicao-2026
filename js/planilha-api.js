@@ -101,13 +101,15 @@ const PlanilhaApi = {
     return json.valores || [];
   },
 
-  async gravar(planilha, { acao, linha, dados, aba, origem }) {
+  async gravar(planilha, opts) {
+    const { acao, linha, dados, aba, origem, ...extras } = opts || {};
     const corpo = {
       chave: AUTH.getChave(),
       planilha,
       acao: acao || "inserir",
       aba: aba || "",
       dados: dados || {},
+      ...extras,
     };
     if (linha != null) corpo.linha = linha;
     if (origem) corpo.origem = origem;

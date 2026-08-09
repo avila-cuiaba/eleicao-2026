@@ -9705,6 +9705,89 @@ body.page-pessoal-pagamentos .crud-busca-campo {
   color: #dc2626;
 }
 
+.contratos-icone-documentos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.1rem;
+  margin-right: 0.2rem;
+}
+
+.contratos-icone-documentos .fa-solid {
+  font-size: 0.95rem;
+}
+
+.contratos-icone-documentos--ok {
+  color: #059669;
+}
+
+.contratos-icone-documentos--pendente {
+  color: #dc2626;
+}
+
+.contratos-tabela th.contratos-col-documentos,
+.contratos-tabela td.contratos-col-documentos {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.contratos-painel-documentos {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  background: #f8fafc;
+}
+
+.contratos-painel-documentos--pendente {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.contratos-painel-documentos--ok {
+  border-color: #6ee7b7;
+  background: #ecfdf5;
+}
+
+.contratos-painel-documentos-cab {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  text-transform: lowercase;
+  margin-bottom: 0.35rem;
+}
+
+.contratos-painel-documentos-resumo {
+  color: #475569;
+}
+
+.contratos-painel-documentos-lista {
+  font-size: 0.78rem;
+}
+
+.contratos-painel-documentos-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0;
+}
+
+.contratos-painel-documentos-estado {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: lowercase;
+}
+
+.pagamentos-lancar-badge--sem-docs {
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+
+.pagamentos-lancar-linha--sem-docs {
+  opacity: 0.72;
+}
+
 .contratos-tabela th.contratos-col-assinado,
 .contratos-tabela td.contratos-col-assinado {
   width: 3.25rem;
@@ -10176,14 +10259,54 @@ body.page-pessoal-pagamentos .crud-busca-campo {
 }
 
 .pagamentos-selecao-col-valor-pix {
-  width: 7.5rem;
-  min-width: 7.5rem;
+  width: 8.75rem;
+  min-width: 8.75rem;
+}
+
+.pagamentos-selecao-valor-pix-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+.pagamentos-selecao-valor-pix-wrap .pagamentos-selecao-valor-pix {
+  flex: 1 1 auto;
+  min-width: 5.5rem;
 }
 
 .pagamentos-selecao-valor-pix {
   font-variant-numeric: tabular-nums;
   min-width: 6.5rem;
   font-size: 0.75rem;
+}
+
+.pagamentos-selecao-valor-pix--excede {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 0.12rem rgba(220, 38, 38, 0.18);
+}
+
+.pagamentos-selecao-valor-pix--valido {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 0.12rem rgba(22, 163, 74, 0.18);
+}
+
+.pagamentos-valor-pix-alerta {
+  display: inline-flex;
+  align-items: center;
+  color: #dc2626;
+  font-size: 0.95rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pagamentos-valor-pix-alerta[hidden] {
+  display: none !important;
+}
+
+.pagamentos-selecao-check:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 #modalSelecaoPagamentos .pagamentos-selecao-col-valor-pix > .pagamentos-selecao-linha1 {
@@ -10507,6 +10630,70 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
   gap: 0.5rem 0.75rem;
 }
 
+.pagamentos-selecao-pix-padrao {
+  flex: 0 0 auto;
+}
+
+.pagamentos-selecao-pix-padrao-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pagamentos-selecao-pix-padrao-input {
+  width: 5.75rem;
+  min-width: 5.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pagamentos-pix-padrao-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid #b8d4f0;
+  border-radius: 8px;
+  background: #e8f2fc;
+  color: #1f4e8c;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pagamentos-pix-padrao-btn:hover:not(:disabled),
+.pagamentos-pix-padrao-btn:focus-visible:not(:disabled) {
+  background: #d8e8f8;
+  border-color: #94b8e0;
+  color: #183d6f;
+}
+
+.pagamentos-pix-padrao-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+#modalSelecaoPagamentos .pagamentos-csv-btn.pagamentos-pix-acao-icone--csv {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #a7d9b8;
+  border-radius: 8px;
+  background: #ecfdf3;
+  color: #15803d;
+  box-shadow: none;
+}
+
+#modalSelecaoPagamentos .pagamentos-csv-btn.pagamentos-pix-acao-icone--csv:hover:not(:disabled),
+#modalSelecaoPagamentos .pagamentos-csv-btn.pagamentos-pix-acao-icone--csv:focus-visible:not(:disabled) {
+  background: #d8f5e4;
+  border-color: #6fb884;
+  color: #166534;
+}
+
+#modalSelecaoPagamentos .pagamentos-csv-btn.pagamentos-pix-acao-icone--csv .fa-solid {
+  font-size: 1rem;
+}
+
 .pagamentos-selecao-total-card {
   margin-left: auto;
   flex: 0 1 auto;
@@ -10565,6 +10752,231 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
 
 .contratos-tabela tbody tr.contratos-linha-salva > td {
   animation: contratosLinhaSalvaFade 3s ease-out forwards;
+}
+
+.contratos-arquivos-secao {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.75rem;
+}
+
+.contratos-arquivos-modal-dialog {
+  max-width: 32rem;
+}
+
+.contratos-arquivos-modal-cab {
+  min-width: 0;
+}
+
+.contratos-arquivos-modal-ident {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-top: 0.15rem;
+}
+
+.contratos-arquivos-modal-sub {
+  margin-top: 0.1rem;
+}
+
+.contratos-arquivos-modal-body {
+  padding-top: 0.75rem;
+}
+
+.contratos-arquivos-resumo {
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.contratos-arquivos-resumo--pendente {
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+
+.contratos-arquivos-resumo--ok {
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+}
+
+.contratos-doc-lista {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0.35rem 0.5rem;
+}
+
+.contratos-doc-item {
+  display: grid;
+  grid-template-columns: 1.25rem 1fr auto;
+  grid-template-areas:
+    "icone rotulo estado"
+    "icone arquivo arquivo";
+  gap: 0.1rem 0.45rem;
+  align-items: center;
+  padding: 0.4rem 0.15rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+}
+
+.contratos-doc-item:last-child {
+  border-bottom: none;
+}
+
+.contratos-doc-icone {
+  grid-area: icone;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contratos-doc-icone--ok {
+  color: #059669;
+}
+
+.contratos-doc-icone--pendente {
+  color: #dc2626;
+}
+
+.contratos-doc-rotulo {
+  grid-area: rotulo;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.contratos-doc-estado {
+  grid-area: estado;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: lowercase;
+}
+
+.contratos-doc-item--carregado .contratos-doc-estado {
+  color: #059669;
+}
+
+.contratos-doc-arquivo {
+  grid-area: arquivo;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.contratos-doc-arquivo-link {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+}
+
+.contratos-doc-arquivo-meta {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.contratos-doc-btn-excluir {
+  flex: 0 0 auto;
+  padding: 0 0.2rem;
+  line-height: 1;
+}
+
+.contratos-doc-select-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: lowercase;
+}
+
+.contratos-doc-enviar-titulo {
+  font-weight: 600;
+  color: #475569;
+  text-transform: lowercase;
+}
+
+.contratos-arquivos-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.contratos-arquivos-titulo {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  text-transform: lowercase;
+}
+
+.contratos-arquivos-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.contratos-arquivos-btn-enviar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.contratos-arquivos-status {
+  min-width: 0;
+}
+
+.contratos-arquivos-lista {
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.contratos-arquivos-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.8rem;
+}
+
+.contratos-arquivos-item:last-child {
+  border-bottom: none;
+}
+
+.contratos-arquivos-icone {
+  flex: 0 0 auto;
+  color: #64748b;
+  width: 1.1rem;
+  text-align: center;
+}
+
+.contratos-arquivos-nome {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.contratos-arquivos-nome:hover {
+  text-decoration: underline;
+}
+
+.contratos-arquivos-meta {
+  flex: 0 0 auto;
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.contratos-arquivos-btn-excluir {
+  flex: 0 0 auto;
+  padding: 0 0.25rem;
+  line-height: 1;
 }
 
 .contratos-tabela .contratos-col-acoes .crud-acoes-icones {
@@ -10636,12 +11048,26 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
   background: rgba(15, 118, 110, 0.08);
 }
 
+.crud-acao-icone--arquivos:hover {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+}
+
 .crud-acao-icone--lupa:hover {
   color: #0e7490;
   background: rgba(8, 145, 178, 0.1);
 }
 
 @media (max-width: 991.98px) {
+  .contratos-tabela .crud-acao-icone--arquivos {
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.1);
+  }
+
+  .contratos-tabela .crud-acao-icone--arquivos:hover {
+    background: rgba(124, 58, 237, 0.18);
+  }
+
   .contratos-tabela .crud-acao-icone--imprimir {
     color: #0f766e;
     background: rgba(15, 118, 110, 0.1);

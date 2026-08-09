@@ -198,6 +198,16 @@ const CONFIG = {
       "valor do contrato",
     ],
     COLUNA_ASSINADO: ["assinado", "assinatura", "contrato-assinado", "contrato assinado"],
+    COLUNA_ID_REGISTRO: ["id-registro", "id registro"],
+    COLUNA_PASTA_DRIVE: ["pasta-drive-id", "pasta drive id"],
+    // Pasta raiz no Drive para arquivos anexados (subpastas por registro).
+    DRIVE_CONTRATOS_RAIZ_ID: "1ALWi9HuDJqAO7HW1iIqhNL0UNaiWCcFU",
+    DOCUMENTOS_OBRIGATORIOS: [
+      { chave: "identidade", rotulo: "identidade" },
+      { chave: "comprovante-residencia", rotulo: "comprovante de residência" },
+      { chave: "cnh", rotulo: "CNH" },
+      { chave: "contrato-assinado", rotulo: "contrato assinado" },
+    ],
     // Fallback por índice (A=0) quando o cabeçalho não bater com os aliases.
     INDICES: {
       NOME: 0,
@@ -867,6 +877,7 @@ CONFIG.PESSOAL_PAGAMENTOS = Object.assign({}, CONFIG.CONTRATOS, {
   ROTULOS: Object.assign({}, CONFIG.CONTRATOS.ROTULOS, {
     CPF: "CPF / chave pix",
     VALOR_PAGO: "pago",
+    DOCUMENTOS: "docs",
   }),
   TAMANHO_PAGINA_TABELA: 20,
   PLANILHA_LOTE_PIX: "pagamentos-pix-lote",

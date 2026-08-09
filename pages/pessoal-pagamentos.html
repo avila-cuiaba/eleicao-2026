@@ -179,6 +179,28 @@
                       autocomplete="off"
                     />
                   </div>
+                  <div class="pagamentos-selecao-pix-padrao">
+                    <label class="form-label small mb-0" for="valorPixPadraoSelecao">valor PIX padrão</label>
+                    <div class="pagamentos-selecao-pix-padrao-linha">
+                      <input
+                        type="text"
+                        id="valorPixPadraoSelecao"
+                        class="form-control form-control-sm pagamentos-selecao-pix-padrao-input text-end"
+                        placeholder="0,00"
+                        inputmode="decimal"
+                        autocomplete="off"
+                      />
+                      <button
+                        type="button"
+                        id="btnAplicarValorPixPadrao"
+                        class="btn pagamentos-pix-padrao-btn"
+                        title="aplicar valor PIX aos registros"
+                        aria-label="aplicar valor PIX aos registros"
+                      >
+                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     id="btnGerarCsvPagamentos"

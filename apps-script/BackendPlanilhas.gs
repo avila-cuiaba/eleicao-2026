@@ -160,6 +160,15 @@ const CABECALHOS = ["data", "nome", "cidade", "observacao"];
 // Google Doc "modelo-contrato" (renomear no Drive não altera o ID).
 const CONTRATO_TEMPLATE_DOC_ID = "1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s";
 const CONTRATO_TEMPLATE_NOME = "modelo-contrato";
+// Pasta raiz no Drive para arquivos anexados aos registros de contratos.
+const CONTRATOS_DRIVE_RAIZ_ID = "1ALWi9HuDJqAO7HW1iIqhNL0UNaiWCcFU";
+const CONTRATO_DOC_DESCRICAO_PREFIX = "contrato-doc:";
+const CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS = [
+  "identidade",
+  "comprovante-residencia",
+  "cnh",
+  "contrato-assinado",
+];
 
 // Dados fixos da campanha Eleição 2026 — ajuste aqui se CNPJ/endereço mudar.
 const CONTRATO_CAMPANHA = {
@@ -1338,10 +1347,338 @@ function ehColunaSaldoContratoPlanilha(col, indiceZero) {
   return norm === "saldo-contrato" || norm === "saldo contrato" || norm === "saldo do contrato";
 }
 
+function ehColunaSistemaArquivosContrato(col, indiceZero) {
+  const norm = normalizarChavePlanilha(col);
+  return (
+    norm === "id registro" ||
+    norm === "id-registro" ||
+    norm === "pasta drive id" ||
+    norm === "pasta-drive-id"
+  );
+}
+
+function garantirColunasArquivosContratos(sheet) {
+  const ultimaCol = sheet.getLastColumn();
+  let cabecalhos =
+    ultimaCol > 0 ? sheet.getRange(1, 1, 1, ultimaCol).getValues()[0] : [];
+  let idxId = indiceColunaCabecalho(cabecalhos, ["id-registro", "id registro"]);
+  let idxPasta = indiceColunaCabecalho(cabecalhos, ["pasta-drive-id", "pasta drive id"]);
+  let colAtual = cabecalhos.length;
+  if (idxId === -1) {
+    colAtual++;
+    sheet.getRange(1, colAtual).setValue("id-registro");
+    idxId = colAtual - 1;
+  }
+  if (idxPasta === -1) {
+    colAtual++;
+    sheet.getRange(1, colAtual).setValue("pasta-drive-id");
+    idxPasta = colAtual - 1;
+  }
+  SpreadsheetApp.flush();
+  const novaUltima = sheet.getLastColumn();
+  cabecalhos = sheet.getRange(1, 1, 1, novaUltima).getValues()[0];
+  return {
+    cabecalhos: cabecalhos,
+    idxId: indiceColunaCabecalho(cabecalhos, ["id-registro", "id registro"]),
+    idxPasta: indiceColunaCabecalho(cabecalhos, ["pasta-drive-id", "pasta drive id"]),
+  };
+}
+
+function sanitizarNomePastaDrive(nome) {
+  return (
+    String(nome || "")
+      .replace(/[\\/:*?"<>|]/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120) || "contrato"
+  );
+}
+
+function nomePastaArquivosContrato(registro, idRegistro) {
+  const nome = valorRegistroContrato(registro, ["nome-completo", "nome completo", "nome"]);
+  const cpf = formatarCpfContrato(valorRegistroContrato(registro, ["cpf"]));
+  const base = sanitizarNomePastaDrive(nome || "contrato");
+  const sufixo = cpf || String(idRegistro || "").slice(0, 8);
+  return base + " - " + sufixo;
+}
+
+function obterPastaRaizArquivosContratos() {
+  return DriveApp.getFolderById(CONTRATOS_DRIVE_RAIZ_ID);
+}
+
+function aplicarCompartilhamentoArquivoDrive(file) {
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+}
+
+function provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos) {
+  const info = garantirColunasArquivosContratos(sheet);
+  const cab = info.cabecalhos;
+  const idxId = info.idxId;
+  const idxPasta = info.idxPasta;
+  const linhaVals = sheet.getRange(numLinha, 1, 1, cab.length).getValues()[0];
+  let idRegistro = String(linhaVals[idxId] || "").trim();
+  let pastaId = String(linhaVals[idxPasta] || "").trim();
+
+  if (!idRegistro) {
+    idRegistro = Utilities.getUuid();
+    sheet.getRange(numLinha, idxId + 1).setValue(idRegistro);
+    linhaVals[idxId] = idRegistro;
+  }
+
+  let pastaValida = false;
+  if (pastaId) {
+    try {
+      const pasta = DriveApp.getFolderById(pastaId);
+      pastaValida = !pasta.isTrashed();
+    } catch (e) {
+      pastaValida = false;
+    }
+  }
+
+  if (!pastaValida) {
+    const registro = linhaParaObjeto(cab, linhaVals);
+    const raiz = obterPastaRaizArquivosContratos();
+    const nomePasta = nomePastaArquivosContrato(registro, idRegistro);
+    const pasta = raiz.createFolder(nomePasta);
+    pastaId = pasta.getId();
+    sheet.getRange(numLinha, idxPasta + 1).setValue(pastaId);
+  }
+
+  SpreadsheetApp.flush();
+  return { idRegistro: idRegistro, pastaId: pastaId, cabecalhos: cab };
+}
+
+function normalizarTipoDocumentoContrato(tipo) {
+  let norm = normalizarChavePlanilha(tipo).replace(/\s+/g, "-");
+  if (norm === "comprovante-de-residencia") norm = "comprovante-residencia";
+  if (CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS.indexOf(norm) !== -1) return norm;
+  return "";
+}
+
+function descricaoTipoDocumentoContrato(tipo) {
+  return CONTRATO_DOC_DESCRICAO_PREFIX + tipo;
+}
+
+function tipoDocumentoDeArquivoContrato(file) {
+  const desc = String(file.getDescription() || "").trim();
+  if (desc.indexOf(CONTRATO_DOC_DESCRICAO_PREFIX) === 0) {
+    return normalizarTipoDocumentoContrato(desc.slice(CONTRATO_DOC_DESCRICAO_PREFIX.length));
+  }
+  return "";
+}
+
+function removerArquivosTipoNaPastaContrato(pasta, tipo) {
+  const iter = pasta.getFiles();
+  while (iter.hasNext()) {
+    const f = iter.next();
+    if (f.isTrashed()) continue;
+    if (tipoDocumentoDeArquivoContrato(f) === tipo) f.setTrashed(true);
+  }
+}
+
+function montarStatusDocumentosObrigatoriosContrato(arquivos) {
+  const tipos = {};
+  CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS.forEach(function (t) {
+    tipos[t] = false;
+  });
+  (arquivos || []).forEach(function (a) {
+    const tipo = a.tipoDocumento;
+    if (tipo && tipos[tipo] !== undefined) tipos[tipo] = true;
+  });
+  let carregados = 0;
+  CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS.forEach(function (t) {
+    if (tipos[t]) carregados++;
+  });
+  return {
+    tipos: tipos,
+    total: CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS.length,
+    carregados: carregados,
+    todosObrigatorios: carregados === CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS.length,
+  };
+}
+
+function listarArquivosSerializadosPastaContrato(pastaId) {
+  const id = String(pastaId || "").trim();
+  if (!id) return [];
+  try {
+    const pasta = DriveApp.getFolderById(id);
+    if (pasta.isTrashed()) return [];
+    const arquivos = [];
+    const iter = pasta.getFiles();
+    while (iter.hasNext()) {
+      const f = iter.next();
+      if (f.isTrashed()) continue;
+      arquivos.push(serializarArquivoContrato(f));
+    }
+    return arquivos;
+  } catch (e) {
+    return [];
+  }
+}
+
+function statusDocumentosLinhaContrato(sheet, numLinha, cabecalhosInicial) {
+  const info = garantirColunasArquivosContratos(sheet);
+  const cab = info.cabecalhos;
+  const linhaVals = sheet.getRange(numLinha, 1, 1, cab.length).getValues()[0];
+  const pastaId = String(linhaVals[info.idxPasta] || "").trim();
+  const arquivos = listarArquivosSerializadosPastaContrato(pastaId);
+  return montarStatusDocumentosObrigatoriosContrato(arquivos);
+}
+
+function contratoDocumentosObrigatoriosCompletos(sheet, numLinha, cabecalhos) {
+  return statusDocumentosLinhaContrato(sheet, numLinha, cabecalhos).todosObrigatorios;
+}
+
+function linhaContratoTemDados(valores) {
+  if (!valores || !valores.length) return false;
+  for (let i = 0; i < valores.length; i++) {
+    if (String(valores[i] ?? "").trim() !== "") return true;
+  }
+  return false;
+}
+
+function statusDocumentosContratosPlanilha(sheet, cabecalhos, corpo) {
+  const info = garantirColunasArquivosContratos(sheet);
+  const ultimaLinha = sheet.getLastRow();
+  const statusPorLinha = {};
+  if (ultimaLinha < 2) {
+    return responder({ ok: true, statusPorLinha: statusPorLinha });
+  }
+
+  const linhasPedidas = corpo && corpo.linhas;
+  let pedidoSet = null;
+  if (linhasPedidas && linhasPedidas.length) {
+    pedidoSet = {};
+    for (let i = 0; i < linhasPedidas.length; i++) {
+      const n = Math.floor(Number(linhasPedidas[i]));
+      if (n >= 2) pedidoSet[n] = true;
+    }
+  }
+
+  for (let linha = 2; linha <= ultimaLinha; linha++) {
+    if (pedidoSet && !pedidoSet[linha]) continue;
+    const linhaVals = sheet.getRange(linha, 1, 1, info.cabecalhos.length).getValues()[0];
+    if (!linhaContratoTemDados(linhaVals)) continue;
+    statusPorLinha[linha] = statusDocumentosLinhaContrato(sheet, linha, cabecalhos);
+  }
+
+  return responder({ ok: true, statusPorLinha: statusPorLinha });
+}
+
+function mimeTypeIconeArquivoContrato(mime) {
+  const m = String(mime || "").toLowerCase();
+  if (m.indexOf("pdf") !== -1) return "pdf";
+  if (m.indexOf("image") !== -1) return "image";
+  if (m.indexOf("word") !== -1 || m.indexOf("document") !== -1) return "word";
+  return "file";
+}
+
+function serializarArquivoContrato(file) {
+  const tipoDocumento = tipoDocumentoDeArquivoContrato(file);
+  return {
+    id: file.getId(),
+    nome: file.getName(),
+    mimeType: file.getMimeType(),
+    url: file.getUrl(),
+    tamanho: file.getSize(),
+    atualizado: file.getLastUpdated().toISOString(),
+    icone: mimeTypeIconeArquivoContrato(file.getMimeType()),
+    tipoDocumento: tipoDocumento,
+  };
+}
+
+function listarArquivosContratoPlanilha(sheet, cabecalhos, corpo) {
+  const numLinha = Number(corpo.linha);
+  if (!numLinha || numLinha < 2) {
+    throw new Error("Linha inválida.");
+  }
+  const prov = provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos);
+  const arquivos = listarArquivosSerializadosPastaContrato(prov.pastaId);
+  arquivos.sort(function (a, b) {
+    return String(a.nome).localeCompare(String(b.nome), "pt-BR");
+  });
+  const documentosObrigatorios = montarStatusDocumentosObrigatoriosContrato(arquivos);
+  return responder({
+    ok: true,
+    arquivos: arquivos,
+    idRegistro: prov.idRegistro,
+    pastaId: prov.pastaId,
+    documentosObrigatorios: documentosObrigatorios,
+  });
+}
+
+function uploadArquivoContratoPlanilha(sheet, cabecalhos, corpo) {
+  const numLinha = Number(corpo.linha);
+  if (!numLinha || numLinha < 2) {
+    throw new Error("Linha inválida.");
+  }
+  const dados = corpo.dados || corpo;
+  const nomeArquivo = String(dados.nomeArquivo || corpo.nomeArquivo || "").trim();
+  const mimeType = String(dados.mimeType || corpo.mimeType || "").trim();
+  const base64 = String(dados.conteudoBase64 || corpo.conteudoBase64 || "").trim();
+  const tipoDocumento = normalizarTipoDocumentoContrato(
+    dados.tipoDocumento || corpo.tipoDocumento || ""
+  );
+  if (!nomeArquivo) throw new Error("Nome do arquivo é obrigatório.");
+  if (!mimeType) throw new Error("Tipo do arquivo é obrigatório.");
+  if (!base64) throw new Error("Conteúdo do arquivo é obrigatório.");
+  if (!tipoDocumento) {
+    throw new Error(
+      "Tipo de documento inválido. Use: identidade, comprovante de residência, CNH ou contrato assinado."
+    );
+  }
+
+  const prov = provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos);
+  const bytes = Utilities.base64Decode(base64);
+  const blob = Utilities.newBlob(bytes, mimeType, nomeArquivo);
+  const pasta = DriveApp.getFolderById(prov.pastaId);
+  removerArquivosTipoNaPastaContrato(pasta, tipoDocumento);
+  const file = pasta.createFile(blob);
+  file.setDescription(descricaoTipoDocumentoContrato(tipoDocumento));
+  aplicarCompartilhamentoArquivoDrive(file);
+  return responder({
+    ok: true,
+    arquivo: serializarArquivoContrato(file),
+    idRegistro: prov.idRegistro,
+    pastaId: prov.pastaId,
+    tipoDocumento: tipoDocumento,
+  });
+}
+
+function arquivoNaPastaContrato(fileId, pastaId) {
+  try {
+    const file = DriveApp.getFileById(fileId);
+    const parents = file.getParents();
+    while (parents.hasNext()) {
+      if (parents.next().getId() === pastaId) return file;
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
+
+function excluirArquivoContratoPlanilha(sheet, cabecalhos, corpo) {
+  const numLinha = Number(corpo.linha);
+  if (!numLinha || numLinha < 2) {
+    throw new Error("Linha inválida.");
+  }
+  const fileId = String((corpo.dados && corpo.dados.fileId) || corpo.fileId || "").trim();
+  if (!fileId) throw new Error("ID do arquivo é obrigatório.");
+
+  const prov = provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos);
+  const file = arquivoNaPastaContrato(fileId, prov.pastaId);
+  if (!file) throw new Error("Arquivo não encontrado neste registro.");
+
+  file.setTrashed(true);
+  return responder({ ok: true });
+}
+
 function atualizarLinhaContratos(sheet, numLinha, existente, cabecalhos, dados) {
   const novaLinha = existente.slice();
   cabecalhos.forEach(function (col, i) {
     if (ehColunaSaldoContratoPlanilha(col, i)) return;
+    if (ehColunaSistemaArquivosContrato(col, i)) return;
     const val = valorDadosColuna(dados, col);
     if (val === undefined) return;
     sheet.getRange(numLinha, i + 1).setValue(val);
@@ -1354,6 +1691,7 @@ function indicesColunasAtualizadasContratos(cabecalhos, dados) {
   const indices = [];
   cabecalhos.forEach(function (col, i) {
     if (ehColunaSaldoContratoPlanilha(col, i)) return;
+    if (ehColunaSistemaArquivosContrato(col, i)) return;
     if (valorDadosColuna(dados, col) !== undefined) indices.push(i);
   });
   return indices;
@@ -1535,6 +1873,7 @@ function inserirLinhaContratos(sheet, cabecalhos, dados, corpo) {
   sheet.appendRow(linha);
   const numLinha = sheet.getLastRow();
   aplicarFormulaSaldoContratoLinha(sheet, numLinha, cabecalhos);
+  provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos);
   SpreadsheetApp.flush();
   return numLinha;
 }
@@ -1830,6 +2169,16 @@ function lancarPagamentosPixContratos(sheet, cabecalhos, payload, corpo) {
       continue;
     }
 
+    if (!contratoDocumentosObrigatoriosCompletos(sheet, numLinha, cabecalhos)) {
+      erros.push({
+        indice: i,
+        rotulo: rotulo,
+        mensagem:
+          "Documentos obrigatórios incompletos (identidade, comprovante de residência, CNH e contrato assinado).",
+      });
+      continue;
+    }
+
     const existente = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
     const par = primeiroParPgtoVazio(existente, pares);
     if (!par) {
@@ -1908,6 +2257,34 @@ function doPostPlanilha(corpo) {
 
   if (acao === "imprimir-contrato") {
     return imprimirContratoPdf(corpo);
+  }
+
+  if (acao === "listar-arquivos-contrato") {
+    if (planilha !== "contratos") {
+      throw new Error("Listagem de arquivos só é permitida na planilha contratos.");
+    }
+    return listarArquivosContratoPlanilha(sheet, cabecalhos, corpo);
+  }
+
+  if (acao === "upload-arquivo-contrato") {
+    if (planilha !== "contratos") {
+      throw new Error("Upload só é permitido na planilha contratos.");
+    }
+    return uploadArquivoContratoPlanilha(sheet, cabecalhos, corpo);
+  }
+
+  if (acao === "excluir-arquivo-contrato") {
+    if (planilha !== "contratos") {
+      throw new Error("Exclusão de arquivo só é permitida na planilha contratos.");
+    }
+    return excluirArquivoContratoPlanilha(sheet, cabecalhos, corpo);
+  }
+
+  if (acao === "status-documentos-contratos") {
+    if (planilha !== "contratos") {
+      throw new Error("Consulta de documentos só é permitida na planilha contratos.");
+    }
+    return statusDocumentosContratosPlanilha(sheet, cabecalhos, corpo);
   }
 
   if (acao === "registrar-lote-pagamentos-pix") {
