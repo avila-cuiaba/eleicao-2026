@@ -382,7 +382,8 @@ function ajustarAlturaFrame() {
       doc.body?.classList.contains("page-pagamentos-lideranca") ||
       doc.body?.classList.contains("page-mobilizacao-estrutura-resumo") ||
       doc.body?.classList.contains("page-mobilizacao-estrutura") ||
-      doc.body?.classList.contains("page-mobilizacao");
+      doc.body?.classList.contains("page-mobilizacao") ||
+      doc.body?.classList.contains("page-agenda");
 
     frame.style.flex = "1 1 auto";
     frame.style.minHeight = "0";

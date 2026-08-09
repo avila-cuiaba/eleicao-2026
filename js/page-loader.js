@@ -83,6 +83,9 @@ function notificarAlturaFrame() {
     ) {
       return;
     }
+    if (document.body?.classList.contains("page-agenda")) {
+      return;
+    }
   } catch (e) {
     /* ignorar */
   }

@@ -741,7 +741,7 @@ function renderListas() {
     vincularChecksTarefas();
   }
 
-  notificarAlturaFrame();
+  // Não notificar o shell: altura fixa no iframe; scroll interno na lista.
 }
 
 function escapar(txt) {
