@@ -1222,9 +1222,18 @@ function documentosObrigatoriosContrato() {
   return cfg.DOCUMENTOS_OBRIGATORIOS || [];
 }
 
+function documentosOpcionaisContrato() {
+  return cfg.DOCUMENTOS_OPCIONAIS || [];
+}
+
+function documentosTodosTiposContrato() {
+  return [...documentosObrigatoriosContrato(), ...documentosOpcionaisContrato()];
+}
+
 function rotuloTipoDocumento(chave) {
-  const doc = documentosObrigatoriosContrato().find((d) => d.chave === chave);
-  return doc?.rotulo || chave;
+  const doc = documentosTodosTiposContrato().find((d) => d.chave === chave);
+  if (!doc) return chave;
+  return doc.rotuloSelect || doc.rotulo || chave;
 }
 
 function abrirModalArquivos(item) {
@@ -1232,17 +1241,25 @@ function abrirModalArquivos(item) {
   const nome = exibirValor(valorItem(item, colunaNome));
   const cpf = exibirValor(valorItem(item, colunaCpf));
   const municipio = exibirValor(valorItem(item, colunaMunicipio));
-  const subpartes = [];
-  if (cpf) subpartes.push(cpf);
-  if (municipio) subpartes.push(municipio);
   if (el.modalArquivosTitulo) el.modalArquivosTitulo.textContent = "documentos";
   if (el.modalArquivosIdent) el.modalArquivosIdent.textContent = nome || "colaborador";
-  if (el.modalArquivosSub) el.modalArquivosSub.textContent = subpartes.join(" · ");
-  if (el.contratosArquivosStatus) el.contratosArquivosStatus.textContent = "";
+  if (el.modalArquivosCpf) {
+    el.modalArquivosCpf.textContent = cpf || "";
+    el.modalArquivosCpf.hidden = !cpf;
+  }
+  if (el.modalArquivosMunicipio) {
+    el.modalArquivosMunicipio.textContent = municipio || "";
+    el.modalArquivosMunicipio.hidden = !municipio;
+  }
   if (el.contratosInputArquivos) {
     el.contratosInputArquivos.value = "";
     el.contratosInputArquivos.disabled = false;
   }
+  const tabObr = document.getElementById("tabDocObrigatorios");
+  if (tabObr) bootstrap.Tab.getOrCreateInstance(tabObr).show();
+  if (el.contratosListaObrigatorios) el.contratosListaObrigatorios.innerHTML = "";
+  if (el.contratosListaOpcionais) el.contratosListaOpcionais.innerHTML = "";
+  definirCarregandoListaDocumentos(true);
   modalArquivos?.show();
   popularSelectTipoDocumento({});
   carregarListaArquivosContrato();
@@ -1252,43 +1269,131 @@ function popularSelectTipoDocumento(statusTipos) {
   const sel = el.contratosSelectTipoDocumento;
   if (!sel) return;
   const valorAtual = sel.value;
-  sel.innerHTML = documentosObrigatoriosContrato()
+  const obr = documentosObrigatoriosContrato();
+  const opc = documentosOpcionaisContrato();
+  let html = obr
     .map((doc) => {
       const ok = statusTipos[doc.chave];
       const suffix = ok ? " (substituir)" : "";
+      const label = rotuloTipoDocumento(doc.chave);
       return (
         '<option value="' +
         escapeHtml(doc.chave) +
         '">' +
-        escapeHtml(doc.rotulo + suffix) +
+        escapeHtml(label + suffix) +
         "</option>"
       );
     })
     .join("");
+  if (opc.length) {
+    html +=
+      '<option value="" disabled>— opcionais —</option>' +
+      opc
+        .map((doc) => {
+          const ok = statusTipos[doc.chave];
+          const suffix = ok ? " (substituir)" : "";
+          const label = rotuloTipoDocumento(doc.chave);
+          return (
+            '<option value="' +
+            escapeHtml(doc.chave) +
+            '">' +
+            escapeHtml(label + suffix) +
+            "</option>"
+          );
+        })
+        .join("");
+  }
+  sel.innerHTML = html;
   if (valorAtual && sel.querySelector(`option[value="${valorAtual}"]`)) {
     sel.value = valorAtual;
   } else {
-    const pendente = documentosObrigatoriosContrato().find((d) => !statusTipos[d.chave]);
+    const pendente = obr.find((d) => !statusTipos[d.chave]);
     if (pendente) sel.value = pendente.chave;
   }
 }
 
-function renderizarDocumentosObrigatorios(json) {
-  const lista = el.contratosListaObrigatorios;
-  const resumo = el.contratosArquivosResumo;
-  if (!lista) return;
+function htmlItemDocumentoLista(doc, statusTipos, arquivosPorTipo, opcional) {
+  const ok = statusTipos[doc.chave];
+  const arq = arquivosPorTipo[doc.chave];
+  const estado = opcional ? (ok ? "carregado" : "opcional") : ok ? "carregado" : "pendente";
+  const icone = ok
+    ? '<i class="fa-solid fa-circle-check contratos-doc-icone--ok" aria-hidden="true"></i>'
+    : opcional
+      ? '<i class="fa-solid fa-triangle-exclamation contratos-doc-icone--opcional" aria-hidden="true"></i>'
+      : '<i class="fa-solid fa-circle-xmark contratos-doc-icone--pendente" aria-hidden="true"></i>';
+  let arquivoHtml = "";
+  if (arq) {
+    const tam = formatarTamanhoArquivo(arq.tamanho);
+    const meta = tam ? `<span class="contratos-doc-arquivo-meta">${escapeHtml(tam)}</span>` : "";
+    arquivoHtml =
+      '<a class="contratos-doc-arquivo-link" href="' +
+      escapeHtml(arq.url) +
+      '" target="_blank" rel="noopener">' +
+      escapeHtml(arq.nome) +
+      "</a>" +
+      meta +
+      '<button type="button" class="btn btn-sm btn-link text-danger contratos-doc-btn-excluir" data-id="' +
+      escapeHtml(arq.id) +
+      '" title="excluir"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>';
+  }
+  const estadoTexto = opcional ? (ok ? "carregado" : "opcional") : ok ? "carregado" : "pendente";
+  return (
+    '<li class="contratos-doc-item contratos-doc-item--' +
+    estado +
+    '">' +
+    '<span class="contratos-doc-icone" aria-hidden="true">' +
+    icone +
+    "</span>" +
+    '<span class="contratos-doc-rotulo">' +
+    escapeHtml(doc.rotulo) +
+    "</span>" +
+    '<span class="contratos-doc-estado">' +
+    estadoTexto +
+    "</span>" +
+    '<span class="contratos-doc-arquivo">' +
+    arquivoHtml +
+    "</span>" +
+    "</li>"
+  );
+}
 
-  const docs = documentosObrigatoriosContrato();
+function vincularBotoesExcluirDocumento(container) {
+  container?.querySelectorAll(".contratos-doc-btn-excluir").forEach((btn) => {
+    btn.addEventListener("click", () => excluirArquivoContrato(btn.dataset.id));
+  });
+}
+
+function atualizarTabsDocumentos(docsObr, docsOpc, statusTipos) {
+  const obrCarregados = docsObr.filter((d) => statusTipos[d.chave]).length;
+  const opcCarregados = docsOpc.filter((d) => statusTipos[d.chave]).length;
+  if (el.tabDocObrigatoriosLabel) {
+    el.tabDocObrigatoriosLabel.textContent =
+      docsObr.length ? `obrigatórios (${obrCarregados}/${docsObr.length})` : "obrigatórios";
+  }
+  if (el.tabDocOpcionaisLabel) {
+    el.tabDocOpcionaisLabel.textContent =
+      docsOpc.length ? `opcionais (${opcCarregados}/${docsOpc.length})` : "opcionais";
+  }
+}
+
+function renderizarDocumentosObrigatorios(json) {
+  const listaObr = el.contratosListaObrigatorios;
+  const listaOpc = el.contratosListaOpcionais;
+  const resumo = el.contratosArquivosResumo;
+  if (!listaObr) return;
+
+  const docsObr = documentosObrigatoriosContrato();
+  const docsOpc = documentosOpcionaisContrato();
   const statusTipos = json.documentosObrigatorios?.tipos || {};
   const arquivosPorTipo = {};
   (json.arquivos || []).forEach((a) => {
     if (a.tipoDocumento) arquivosPorTipo[a.tipoDocumento] = a;
   });
 
-  const total = docs.length;
+  const total = docsObr.length;
   const carregados =
     json.documentosObrigatorios?.carregados ??
-    docs.filter((d) => statusTipos[d.chave]).length;
+    docsObr.filter((d) => statusTipos[d.chave]).length;
   const todos =
     json.documentosObrigatorios?.todosObrigatorios ?? carregados === total;
 
@@ -1301,54 +1406,19 @@ function renderizarDocumentosObrigatorios(json) {
       : `${carregados} de ${total} documentos obrigatórios enviados`;
   }
 
-  lista.innerHTML = docs
-    .map((doc) => {
-      const ok = statusTipos[doc.chave];
-      const arq = arquivosPorTipo[doc.chave];
-      const estado = ok ? "carregado" : "pendente";
-      const icone = ok
-        ? '<i class="fa-solid fa-circle-check contratos-doc-icone--ok" aria-hidden="true"></i>'
-        : '<i class="fa-solid fa-circle-xmark contratos-doc-icone--pendente" aria-hidden="true"></i>';
-      let arquivoHtml = "";
-      if (arq) {
-        const tam = formatarTamanhoArquivo(arq.tamanho);
-        const meta = tam ? `<span class="contratos-doc-arquivo-meta">${escapeHtml(tam)}</span>` : "";
-        arquivoHtml =
-          '<a class="contratos-doc-arquivo-link" href="' +
-          escapeHtml(arq.url) +
-          '" target="_blank" rel="noopener">' +
-          escapeHtml(arq.nome) +
-          "</a>" +
-          meta +
-          '<button type="button" class="btn btn-sm btn-link text-danger contratos-doc-btn-excluir" data-id="' +
-          escapeHtml(arq.id) +
-          '" title="excluir"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>';
-      }
-      return (
-        '<li class="contratos-doc-item contratos-doc-item--' +
-        estado +
-        '">' +
-        '<span class="contratos-doc-icone" aria-hidden="true">' +
-        icone +
-        "</span>" +
-        '<span class="contratos-doc-rotulo">' +
-        escapeHtml(doc.rotulo) +
-        "</span>" +
-        '<span class="contratos-doc-estado">' +
-        (ok ? "carregado" : "pendente") +
-        "</span>" +
-        '<span class="contratos-doc-arquivo">' +
-        arquivoHtml +
-        "</span>" +
-        "</li>"
-      );
-    })
+  listaObr.innerHTML = docsObr
+    .map((doc) => htmlItemDocumentoLista(doc, statusTipos, arquivosPorTipo, false))
     .join("");
+  vincularBotoesExcluirDocumento(listaObr);
 
-  lista.querySelectorAll(".contratos-doc-btn-excluir").forEach((btn) => {
-    btn.addEventListener("click", () => excluirArquivoContrato(btn.dataset.id));
-  });
+  if (listaOpc) {
+    listaOpc.innerHTML = docsOpc
+      .map((doc) => htmlItemDocumentoLista(doc, statusTipos, arquivosPorTipo, true))
+      .join("");
+    vincularBotoesExcluirDocumento(listaOpc);
+  }
 
+  atualizarTabsDocumentos(docsObr, docsOpc, statusTipos);
   popularSelectTipoDocumento(statusTipos);
 }
 
@@ -1375,11 +1445,10 @@ function lerArquivoComoBase64(file) {
 
 async function carregarListaArquivosContrato() {
   const lista = el.contratosListaObrigatorios;
-  const status = el.contratosArquivosStatus;
   const linha = linhaArquivosContrato();
   if (!lista || !linha) return;
 
-  if (status) status.textContent = "carregando documentos...";
+  if (!arquivosContratoCarregando) definirCarregandoListaDocumentos(true, "carregando documentos...");
   try {
     const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
       acao: "listar-arquivos-contrato",
@@ -1389,11 +1458,57 @@ async function carregarListaArquivosContrato() {
     });
     if (!json) return;
     renderizarDocumentosObrigatorios(json);
-    if (status) status.textContent = "";
   } catch (e) {
-    if (status) status.textContent = "";
     lista.innerHTML =
       '<li class="text-danger small">erro ao listar: ' + escapeHtml(e.message) + "</li>";
+  } finally {
+    if (!arquivosContratoCarregando) definirCarregandoListaDocumentos(false);
+  }
+}
+
+function definirCarregandoListaDocumentos(ativo, texto) {
+  const overlay = el.contratosDocCarregando;
+  if (!overlay) return;
+  overlay.classList.toggle("d-none", !ativo);
+  overlay.setAttribute("aria-hidden", ativo ? "false" : "true");
+  overlay.setAttribute("aria-busy", ativo ? "true" : "false");
+  const txt = overlay.querySelector(".contratos-doc-carregando-texto");
+  if (txt && texto) txt.textContent = texto;
+  else if (txt && ativo) txt.textContent = "carregando documentos...";
+}
+
+function definirEstadoUploadArquivos(ativo, texto) {
+  arquivosContratoCarregando = ativo;
+
+  const overlay = el.modalArquivosEnviando;
+  if (overlay) {
+    overlay.classList.toggle("d-none", !ativo);
+    overlay.setAttribute("aria-hidden", ativo ? "false" : "true");
+    overlay.setAttribute("aria-busy", ativo ? "true" : "false");
+  }
+  if (el.modalArquivosEnviandoTexto) {
+    el.modalArquivosEnviandoTexto.textContent = texto || "enviando...";
+  }
+
+  const btnEnviar = el.contratosBtnEnviarArquivo;
+  const btnIcone = btnEnviar?.querySelector(".contratos-arquivos-btn-icone");
+  const btnTexto = btnEnviar?.querySelector(".contratos-arquivos-btn-texto");
+  const btnSpinner = btnEnviar?.querySelector(".contratos-arquivos-btn-spinner");
+  if (btnEnviar) {
+    btnEnviar.classList.toggle("contratos-arquivos-btn-enviar--carregando", ativo);
+    if (ativo) btnEnviar.setAttribute("aria-disabled", "true");
+    else btnEnviar.removeAttribute("aria-disabled");
+  }
+  if (btnIcone) btnIcone.classList.toggle("d-none", ativo);
+  if (btnTexto) btnTexto.textContent = ativo ? "enviando..." : "selecionar arquivo";
+  if (btnSpinner) btnSpinner.classList.toggle("d-none", !ativo);
+
+  if (el.contratosInputArquivos) el.contratosInputArquivos.disabled = ativo;
+  if (el.contratosSelectTipoDocumento) el.contratosSelectTipoDocumento.disabled = ativo;
+  if (el.btnArquivosFechar) el.btnArquivosFechar.disabled = ativo;
+  if (el.btnArquivosFecharHeader) {
+    el.btnArquivosFecharHeader.disabled = ativo;
+    el.btnArquivosFecharHeader.setAttribute("aria-disabled", ativo ? "true" : "false");
   }
 }
 
@@ -1406,14 +1521,12 @@ async function enviarArquivosSelecionados(input) {
     AppToast.show("selecione o tipo de documento", "erro");
     return;
   }
-  const status = el.contratosArquivosStatus;
   if (arquivosContratoCarregando) return;
-  arquivosContratoCarregando = true;
-  if (input) input.disabled = true;
-  if (el.contratosSelectTipoDocumento) el.contratosSelectTipoDocumento.disabled = true;
+
+  const rotulo = rotuloTipoDocumento(tipoDocumento);
+  definirEstadoUploadArquivos(true, `enviando ${rotulo}...`);
 
   try {
-    if (status) status.textContent = `enviando: ${rotuloTipoDocumento(tipoDocumento)}`;
     const base64 = await lerArquivoComoBase64(file);
     const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
       acao: "upload-arquivo-contrato",
@@ -1428,19 +1541,18 @@ async function enviarArquivosSelecionados(input) {
       },
     });
     if (!json) return;
-    if (status) status.textContent = "";
     await carregarListaArquivosContrato();
-    AppToast.show(rotuloTipoDocumento(tipoDocumento) + " enviado", "sucesso");
+    const ehOpcional = documentosOpcionaisContrato().some((d) => d.chave === tipoDocumento);
+    const tabBtn = ehOpcional
+      ? document.getElementById("tabDocOpcionais")
+      : document.getElementById("tabDocObrigatorios");
+    if (tabBtn) bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+    AppToast.show(rotulo + " enviado", "sucesso");
   } catch (e) {
-    if (status) status.textContent = "";
     AppToast.show("erro ao enviar: " + e.message, "erro");
   } finally {
-    arquivosContratoCarregando = false;
-    if (input) {
-      input.disabled = false;
-      input.value = "";
-    }
-    if (el.contratosSelectTipoDocumento) el.contratosSelectTipoDocumento.disabled = false;
+    definirEstadoUploadArquivos(false);
+    if (input) input.value = "";
   }
 }
 
@@ -1449,8 +1561,7 @@ async function excluirArquivoContrato(fileId) {
   if (!fileId || !linha) return;
   if (!(await AppConfirm.confirm("Excluir este arquivo?", { perigo: true, icon: "warning" }))) return;
 
-  const status = el.contratosArquivosStatus;
-  if (status) status.textContent = "excluindo...";
+  definirCarregandoListaDocumentos(true, "excluindo...");
   try {
     const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
       acao: "excluir-arquivo-contrato",
@@ -1459,12 +1570,14 @@ async function excluirArquivoContrato(fileId) {
       origem: "pessoal-contratos",
       dados: { fileId },
     });
-    if (!json) return;
-    if (status) status.textContent = "";
+    if (!json) {
+      definirCarregandoListaDocumentos(false);
+      return;
+    }
     await carregarListaArquivosContrato();
     AppToast.show("arquivo excluído", "sucesso");
   } catch (e) {
-    if (status) status.textContent = "";
+    definirCarregandoListaDocumentos(false);
     AppToast.show("erro ao excluir: " + e.message, "erro");
   }
 }
@@ -2048,15 +2161,24 @@ function init() {
     modalIcone: document.getElementById("modalIcone"),
     modalEl: document.getElementById("modalContrato"),
     modalArquivosEl: document.getElementById("modalArquivos"),
+    modalArquivosEnviando: document.getElementById("modalArquivosEnviando"),
+    modalArquivosEnviandoTexto: document.getElementById("modalArquivosEnviandoTexto"),
     modalArquivosTitulo: document.getElementById("modalArquivosTitulo"),
     modalArquivosIdent: document.getElementById("modalArquivosIdent"),
-    modalArquivosSub: document.getElementById("modalArquivosSub"),
+    modalArquivosCpf: document.getElementById("modalArquivosCpf"),
+    modalArquivosMunicipio: document.getElementById("modalArquivosMunicipio"),
     contratosInputArquivos: document.getElementById("contratosInputArquivos"),
+    contratosBtnEnviarArquivo: document.getElementById("contratosBtnEnviarArquivo"),
+    contratosDocCarregando: document.getElementById("contratosDocCarregando"),
     contratosArquivosStatus: document.getElementById("contratosArquivosStatus"),
     contratosListaObrigatorios: document.getElementById("contratosListaObrigatorios"),
+    contratosListaOpcionais: document.getElementById("contratosListaOpcionais"),
     contratosArquivosResumo: document.getElementById("contratosArquivosResumo"),
     contratosSelectTipoDocumento: document.getElementById("contratosSelectTipoDocumento"),
+    tabDocObrigatoriosLabel: document.getElementById("tabDocObrigatoriosLabel"),
+    tabDocOpcionaisLabel: document.getElementById("tabDocOpcionaisLabel"),
     btnArquivosFechar: document.getElementById("btnArquivosFechar"),
+    btnArquivosFecharHeader: document.getElementById("btnArquivosFecharHeader"),
   };
 
   if (el.modalIcone && window.APP_ICON_SVG?.pessoal) {

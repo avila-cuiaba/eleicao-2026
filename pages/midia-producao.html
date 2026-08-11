@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="producao-midia-page">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mídia — produção</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="bg-light page-frame-body page-producao-midia">
+  <div class="page-frame-content">
+    <div id="status" class="alert d-none mb-3" role="status" aria-live="polite"></div>
+
+    <div class="producao-midia-kpi-painel mb-3" aria-label="Resumo das solicitações">
+      <div class="row g-2">
+        <div class="col-6 col-md-4">
+          <div class="card dashboard-kpi-card border-0 shadow-sm h-100 producao-midia-kpi-card">
+            <div class="card-body py-2 text-center">
+              <div class="dashboard-kpi-rotulo">pendentes</div>
+              <div class="dashboard-kpi-valor" id="kpiPendentes">0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-4">
+          <div class="card dashboard-kpi-card border-0 shadow-sm h-100 producao-midia-kpi-card">
+            <div class="card-body py-2 text-center">
+              <div class="dashboard-kpi-rotulo">finalizadas</div>
+              <div class="dashboard-kpi-valor" id="kpiFinalizadas">0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="card dashboard-kpi-card border-0 shadow-sm h-100 producao-midia-kpi-card">
+            <div class="card-body py-2 text-center">
+              <div class="dashboard-kpi-rotulo">total</div>
+              <div class="dashboard-kpi-valor" id="kpiTotal">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tabelaCard" class="card shadow-sm border-0 crud-tabela-card">
+      <div class="card-header bg-white border-bottom py-2 px-3">
+        <div class="crud-toolbar">
+          <button type="button" id="btnNova" class="btn btn-sm btn-primary">nova solicitação</button>
+          <div class="producao-midia-filtro-status btn-group btn-group-sm" role="group" aria-label="Filtrar por status">
+            <button type="button" class="btn btn-outline-secondary active" data-filtro="todas">todas</button>
+            <button type="button" class="btn btn-outline-secondary" data-filtro="pendentes">pendentes</button>
+            <button type="button" class="btn btn-outline-secondary" data-filtro="finalizadas">finalizadas</button>
+          </div>
+          <label class="crud-busca-campo mb-0" for="buscaProducaoMidia">
+            <span class="visually-hidden">buscar</span>
+            <span class="crud-busca-inner">
+              <span class="crud-busca-icone" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+              </span>
+              <input
+                type="search"
+                id="buscaProducaoMidia"
+                class="form-control form-control-sm crud-busca-input"
+                placeholder="buscar"
+                autocomplete="off"
+              />
+            </span>
+          </label>
+        </div>
+        <p class="small text-secondary mb-0 mt-2 producao-midia-hint">
+          clique em uma solicitação <strong>pendente</strong> para registrar a finalização.
+        </p>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-sm mb-0 crud-tabela producao-midia-tabela">
+            <thead class="table-light">
+              <tr>
+                <th>solicitação</th>
+                <th>peça</th>
+                <th>tema</th>
+                <th>tipo</th>
+                <th>solicitante</th>
+                <th>executor</th>
+                <th>finalizada</th>
+                <th class="text-center">status</th>
+              </tr>
+            </thead>
+            <tbody id="corpoTabela"></tbody>
+          </table>
+        </div>
+        <p id="vazio" class="text-secondary small text-center py-4 mb-0" hidden>Nenhum registro encontrado.</p>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalProducaoMidia" tabindex="-1" aria-labelledby="modalTitulo" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+          <form id="formProducaoMidia">
+            <div class="modal-header py-2">
+              <h2 class="modal-title h6 mb-0" id="modalTitulo">nova solicitação</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-2">
+                <label for="campoPeca" class="form-label small mb-1">peça</label>
+                <select id="campoPeca" class="form-select form-select-sm" required>
+                  <option value="">selecione...</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label for="campoTema" class="form-label small mb-1">tema</label>
+                <input type="text" id="campoTema" class="form-control form-control-sm" required autocomplete="off" />
+              </div>
+              <div class="mb-2">
+                <label for="campoTipoMaterial" class="form-label small mb-1">tipo de material</label>
+                <select id="campoTipoMaterial" class="form-select form-select-sm" required>
+                  <option value="">selecione...</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label for="campoExecutor" class="form-label small mb-1">executor</label>
+                <select id="campoExecutor" class="form-select form-select-sm" required>
+                  <option value="">selecione...</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small mb-1">solicitante</label>
+                <div id="campoSolicitante" class="form-control form-control-sm bg-light text-secondary"></div>
+              </div>
+              <p class="small text-secondary mb-0">data e hora da solicitação serão registradas ao salvar.</p>
+            </div>
+            <div class="modal-footer py-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">cancelar</button>
+              <button type="submit" id="btnSalvar" class="btn btn-sm btn-primary">salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
+      <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
+      <span class="visually-hidden">Carregando</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/page-loader.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/app-confirm.js"></script>
+  <script src="../js/planilha-api.js"></script>
+  <script src="../js/producao-midia.js"></script>
+</body>
+</html>

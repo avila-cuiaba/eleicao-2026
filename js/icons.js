@@ -29,6 +29,11 @@ window.APP_ICON_SVG = {
     '<path d="M16 3h5v5M8 3H3v5M16 21h5v-5M8 21H3v-5"/>' +
     '<path d="M21 12H3"/>' +
     "</svg>",
+  midia:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
+    '<rect x="3" y="5" width="14" height="14" rx="2"/>' +
+    '<path d="M17 9l4-2v10l-4-2"/>' +
+    "</svg>",
   orcamento:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
     '<path d="M21 12a9 9 0 1 1-9-9c0 1.5.36 2.92 1 4.18V12a4 4 0 0 0 4 4h4.82A9 9 0 0 1 21 12z"/>' +
@@ -121,6 +126,11 @@ window.APP_MENU = [
       { id: "logistica-abastecimento", label: "abastecimentos" },
     ],
   },
+  {
+    id: "midia",
+    label: "mídia",
+    filhos: [{ id: "midia-producao", label: "produção" }],
+  },
   { id: "agenda", label: "agenda" },
   { id: "entregas", label: "entregas" },
   { id: "planilhas", label: "planilhas" },
@@ -151,6 +161,9 @@ window.APP_ICONE = {
     }
     if (paginaId === "logistica-material-grafico" || paginaId === "logistica-abastecimento") {
       return "logistica";
+    }
+    if (paginaId === "midia-producao") {
+      return "midia";
     }
     if (paginaId === "dashboard") {
       return "desempenho";

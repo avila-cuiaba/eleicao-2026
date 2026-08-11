@@ -75,6 +75,13 @@ const PAGINAS = {
     atualizar: true,
     menuGrupo: "logistica",
   },
+  "midia-producao": {
+    titulo: "mídia",
+    subtitulo: "produção",
+    arquivo: "pages/midia-producao.html",
+    atualizar: true,
+    menuGrupo: "midia",
+  },
   "orcamento-geral": {
     titulo: "orçamento",
     subtitulo: "planejamento geral",
@@ -154,6 +161,7 @@ const PAGINAS = {
 function resolverPagina(id) {
   if (id === "pessoal") return "pessoal-visao-geral";
   if (id === "logistica") return "logistica-material-grafico";
+  if (id === "midia") return "midia-producao";
   if (id === "orcamento") return "orcamento-estratificado";
   if (id === "mobilizacao") return "mobilizacao-estrutura";
   if (id === "desempenho") return "dashboard";
@@ -383,7 +391,8 @@ function ajustarAlturaFrame() {
       doc.body?.classList.contains("page-mobilizacao-estrutura-resumo") ||
       doc.body?.classList.contains("page-mobilizacao-estrutura") ||
       doc.body?.classList.contains("page-mobilizacao") ||
-      doc.body?.classList.contains("page-agenda");
+      doc.body?.classList.contains("page-agenda") ||
+      doc.body?.classList.contains("page-producao-midia");
 
     frame.style.flex = "1 1 auto";
     frame.style.minHeight = "0";

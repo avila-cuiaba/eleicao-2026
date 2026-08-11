@@ -19,7 +19,7 @@ const AUTH = {
     },
     material: {
       paginaInicial: "logistica-material-grafico",
-      paginas: ["logistica-material-grafico"],
+      paginas: ["logistica-material-grafico", "midia-producao"],
     },
     combustivel: {
       paginaInicial: "logistica-abastecimento",

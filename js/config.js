@@ -50,6 +50,7 @@ const CONFIG = {
     { chave: "material-grafico-entregas", titulo: "Logística — Material gráfico (entregas)" },
     { chave: "diario-bordo", titulo: "Logística — Diário bordo" },
     { chave: "diario-bordo-veiculos", titulo: "Logística — Diário bordo (veículos)" },
+    { chave: "producao-midia", titulo: "Mídia — Produção" },
   ],
 
   MATERIAL_GRAFICO: {
@@ -143,6 +144,37 @@ const CONFIG = {
     ],
   },
 
+  PRODUCAO_MIDIA: {
+    PLANILHA: "producao-midia",
+    ABA: "",
+    LINHA_INICIO_DADOS: 2,
+    COLUNA_DT_HR_SOLICITA: ["dt-hr-solicita", "dt hr solicita", "data solicita", "data-hora solicita"],
+    COLUNA_PECA: ["peca", "peça"],
+    COLUNA_TEMA: ["tema"],
+    COLUNA_TIPO_MATERIAL: ["tipo-material", "tipo material", "material"],
+    COLUNA_SOLICITANTE: ["solicitante"],
+    COLUNA_EXECUTOR: ["executor", "exeutor"],
+    COLUNA_FINALIZADA_EM: ["finalizada-em", "finalizada em", "finalizada"],
+    PECAS: {
+      PLANILHA: "material-grafico",
+      ABA: "",
+      LINHA_INICIO_DADOS: 2,
+      COLUNA_INDICE: 1,
+    },
+    TIPOS_MATERIAL: {
+      PLANILHA: "material-grafico",
+      ABA: "",
+      LINHA_INICIO_DADOS: 2,
+      COLUNA_INDICE: 2,
+    },
+    EXECUTORES: {
+      PLANILHA: "diario-bordo-veiculos",
+      ABA: "parametros",
+      LINHA_INICIO_DADOS: 2,
+      COLUNA_INDICE: 6,
+    },
+  },
+
   ENTREGAS: {
     PLANILHA: "entregas",
     ABA: "",
@@ -203,10 +235,22 @@ const CONFIG = {
     // Pasta raiz no Drive para arquivos anexados (subpastas por registro).
     DRIVE_CONTRATOS_RAIZ_ID: "1ALWi9HuDJqAO7HW1iIqhNL0UNaiWCcFU",
     DOCUMENTOS_OBRIGATORIOS: [
-      { chave: "identidade", rotulo: "identidade" },
-      { chave: "comprovante-residencia", rotulo: "comprovante de residência" },
-      { chave: "cnh", rotulo: "CNH" },
-      { chave: "contrato-assinado", rotulo: "contrato assinado" },
+      { chave: "copia-rg", rotulo: "cópia RG", rotuloSelect: "RG" },
+      { chave: "copia-cpf", rotulo: "cópia CPF", rotuloSelect: "CPF" },
+      {
+        chave: "copia-comprovante-endereco",
+        rotulo: "cópia comprovante de endereço",
+        rotuloSelect: "comprovante de endereço",
+      },
+      {
+        chave: "copia-cartao-conta",
+        rotulo: "cópia ou foto do cartão com número da conta",
+        rotuloSelect: "cartão com número da conta",
+      },
+    ],
+    DOCUMENTOS_OPCIONAIS: [
+      { chave: "copia-cnh", rotulo: "cópia CNH", rotuloSelect: "CNH" },
+      { chave: "titulo-eleitor", rotulo: "título eleitor", rotuloSelect: "título eleitor" },
     ],
     // Fallback por índice (A=0) quando o cabeçalho não bater com os aliases.
     INDICES: {

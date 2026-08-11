@@ -105,33 +105,127 @@
     <div class="modal fade" id="modalArquivos" tabindex="-1" aria-labelledby="modalArquivosTitulo" aria-hidden="true">
       <div class="modal-dialog modal-dialog-scrollable contratos-modal-dialog contratos-arquivos-modal-dialog">
         <div class="modal-content contratos-modal-content contratos-arquivos-modal-content">
+          <div
+            id="modalArquivosEnviando"
+            class="contratos-modal-salvando d-none"
+            aria-hidden="true"
+            aria-busy="false"
+          >
+            <div class="spinner-border text-primary contratos-modal-salvando-spinner" role="status">
+              <span class="visually-hidden">Enviando</span>
+            </div>
+            <span id="modalArquivosEnviandoTexto" class="contratos-modal-salvando-texto">enviando...</span>
+          </div>
           <div class="modal-header">
             <div class="contratos-arquivos-modal-cab">
               <h2 class="modal-title h6 mb-0" id="modalArquivosTitulo">documentos</h2>
               <p class="contratos-arquivos-modal-ident mb-0" id="modalArquivosIdent"></p>
-              <p class="contratos-arquivos-modal-sub text-secondary small mb-0" id="modalArquivosSub"></p>
+              <p class="contratos-arquivos-modal-sub text-secondary small mb-0" id="modalArquivosCpf" hidden></p>
+              <p class="contratos-arquivos-modal-sub text-secondary small mb-0" id="modalArquivosMunicipio" hidden></p>
             </div>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            <button
+              type="button"
+              id="btnArquivosFecharHeader"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Fechar"
+            ></button>
           </div>
           <div class="modal-body contratos-arquivos-modal-body">
             <p class="text-secondary small mb-2">PDF, imagens e outros formatos.</p>
             <div id="contratosArquivosResumo" class="contratos-arquivos-resumo small mb-2" aria-live="polite"></div>
-            <ul id="contratosListaObrigatorios" class="contratos-doc-lista list-unstyled mb-3"></ul>
-            <p class="contratos-doc-enviar-titulo small text-secondary mb-2">enviar documento</p>
-            <div class="contratos-arquivos-upload row g-2 align-items-center">
-              <div class="col-12 col-sm-6">
+            <div class="contratos-doc-card">
+              <div
+                id="contratosDocCarregando"
+                class="contratos-doc-carregando d-none"
+                role="status"
+                aria-live="polite"
+                aria-hidden="true"
+                aria-busy="false"
+              >
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                  <span class="visually-hidden">Carregando documentos</span>
+                </div>
+                <span class="contratos-doc-carregando-texto">carregando documentos...</span>
+              </div>
+            <ul class="nav nav-tabs contratos-doc-tabs" id="contratosDocTabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link active"
+                  id="tabDocObrigatorios"
+                  data-bs-toggle="tab"
+                  data-bs-target="#painelDocObrigatorios"
+                  type="button"
+                  role="tab"
+                  aria-controls="painelDocObrigatorios"
+                  aria-selected="true"
+                >
+                  <span id="tabDocObrigatoriosLabel">obrigatórios</span>
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link"
+                  id="tabDocOpcionais"
+                  data-bs-toggle="tab"
+                  data-bs-target="#painelDocOpcionais"
+                  type="button"
+                  role="tab"
+                  aria-controls="painelDocOpcionais"
+                  aria-selected="false"
+                >
+                  <span id="tabDocOpcionaisLabel">opcionais</span>
+                </button>
+              </li>
+            </ul>
+            <div class="tab-content contratos-doc-tab-content" id="contratosDocTabContent">
+              <div
+                class="tab-pane fade show active"
+                id="painelDocObrigatorios"
+                role="tabpanel"
+                aria-labelledby="tabDocObrigatorios"
+              >
+                <ul id="contratosListaObrigatorios" class="contratos-doc-lista list-unstyled mb-0"></ul>
+              </div>
+              <div
+                class="tab-pane fade"
+                id="painelDocOpcionais"
+                role="tabpanel"
+                aria-labelledby="tabDocOpcionais"
+              >
+                <ul
+                  id="contratosListaOpcionais"
+                  class="contratos-doc-lista contratos-doc-lista--opcional list-unstyled mb-0"
+                ></ul>
+              </div>
+            </div>
+            </div>
+            <p class="contratos-doc-enviar-titulo small text-secondary mb-2 mt-3">enviar documento</p>
+            <div class="row g-2 align-items-end contratos-arquivos-upload">
+              <div class="col-6">
                 <label class="form-label contratos-doc-select-label mb-1" for="contratosSelectTipoDocumento">tipo</label>
                 <select id="contratosSelectTipoDocumento" class="form-select form-select-sm"></select>
               </div>
-              <div class="col-12 col-sm-6">
-                <label class="form-label contratos-doc-select-label mb-1 d-block">arquivo</label>
-                <label class="btn btn-sm btn-outline-secondary contratos-arquivos-btn-enviar mb-0 w-100">
-                  <i class="fa-solid fa-paperclip" aria-hidden="true"></i> selecionar arquivo
+              <div class="col-6">
+                <label
+                  id="contratosBtnEnviarArquivo"
+                  class="btn btn-sm btn-outline-secondary contratos-arquivos-btn-enviar mb-0 w-100"
+                  aria-label="selecionar arquivo"
+                >
+                  <span class="contratos-arquivos-btn-icone" aria-hidden="true">
+                    <i class="fa-solid fa-paperclip"></i>
+                  </span>
+                  <span class="contratos-arquivos-btn-texto">selecionar arquivo</span>
+                  <span
+                    class="contratos-arquivos-btn-spinner spinner-border spinner-border-sm d-none"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
                   <input type="file" id="contratosInputArquivos" class="contratos-arquivos-input" hidden />
                 </label>
               </div>
             </div>
-            <span id="contratosArquivosStatus" class="contratos-arquivos-status small text-secondary d-block mt-2"></span>
+            <span id="contratosArquivosStatus" class="contratos-arquivos-status d-none" hidden></span>
           </div>
           <div class="modal-footer">
             <button type="button" id="btnArquivosFechar" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">fechar</button>

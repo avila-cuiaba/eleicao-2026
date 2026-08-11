@@ -141,6 +141,11 @@ function criarCadastroPlanilhas() {
     id: planilhaMaterialGraficoId,
     gid: 966187834,
   };
+  // Mídia — solicitações de produção (peça, tema, executor, finalização).
+  p["producao-midia"] = {
+    id: planilhaMaterialGraficoId,
+    gid: 830105356,
+  };
 
   // Aliases (nomes antigos — compatibilidade).
   p["planilha-2"] = p.votacao;
@@ -164,11 +169,15 @@ const CONTRATO_TEMPLATE_NOME = "modelo-contrato";
 const CONTRATOS_DRIVE_RAIZ_ID = "1ALWi9HuDJqAO7HW1iIqhNL0UNaiWCcFU";
 const CONTRATO_DOC_DESCRICAO_PREFIX = "contrato-doc:";
 const CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS = [
-  "identidade",
-  "comprovante-residencia",
-  "cnh",
-  "contrato-assinado",
+  "copia-rg",
+  "copia-cpf",
+  "copia-comprovante-endereco",
+  "copia-cartao-conta",
 ];
+const CONTRATO_TIPOS_DOCUMENTO_OPCIONAIS = ["copia-cnh", "titulo-eleitor"];
+const CONTRATO_TIPOS_DOCUMENTO_TODOS = CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS.concat(
+  CONTRATO_TIPOS_DOCUMENTO_OPCIONAIS
+);
 
 // Dados fixos da campanha Eleição 2026 — ajuste aqui se CNPJ/endereço mudar.
 const CONTRATO_CAMPANHA = {
@@ -308,7 +317,12 @@ function planilhaPermitida(perfil, planilha) {
     return false;
   }
   if (perfil === "material") {
-    return chave === "material-grafico" || chave === "material-grafico-entregas";
+    return (
+      chave === "material-grafico" ||
+      chave === "material-grafico-entregas" ||
+      chave === "producao-midia" ||
+      chave === "diario-bordo-veiculos"
+    );
   }
   if (perfil === "combustivel") {
     return (
@@ -1450,8 +1464,14 @@ function provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos) {
 
 function normalizarTipoDocumentoContrato(tipo) {
   let norm = normalizarChavePlanilha(tipo).replace(/\s+/g, "-");
-  if (norm === "comprovante-de-residencia") norm = "comprovante-residencia";
-  if (CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS.indexOf(norm) !== -1) return norm;
+  if (norm === "identidade") norm = "copia-rg";
+  if (norm === "comprovante-de-residencia" || norm === "comprovante-residencia") {
+    norm = "copia-comprovante-endereco";
+  }
+  if (norm === "cnh") norm = "copia-cnh";
+  if (norm === "comprovante-de-endereco") norm = "copia-comprovante-endereco";
+  if (norm === "cartao-conta" || norm === "copia-cartao") norm = "copia-cartao-conta";
+  if (CONTRATO_TIPOS_DOCUMENTO_TODOS.indexOf(norm) !== -1) return norm;
   return "";
 }
 
@@ -1478,7 +1498,7 @@ function removerArquivosTipoNaPastaContrato(pasta, tipo) {
 
 function montarStatusDocumentosObrigatoriosContrato(arquivos) {
   const tipos = {};
-  CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS.forEach(function (t) {
+  CONTRATO_TIPOS_DOCUMENTO_TODOS.forEach(function (t) {
     tipos[t] = false;
   });
   (arquivos || []).forEach(function (a) {
@@ -1624,7 +1644,7 @@ function uploadArquivoContratoPlanilha(sheet, cabecalhos, corpo) {
   if (!base64) throw new Error("Conteúdo do arquivo é obrigatório.");
   if (!tipoDocumento) {
     throw new Error(
-      "Tipo de documento inválido. Use: identidade, comprovante de residência, CNH ou contrato assinado."
+      "Tipo de documento inválido. Obrigatórios: cópia RG, cópia CPF, comprovante de endereço, cartão com conta. Opcionais: cópia CNH, título eleitor."
     );
   }
 
@@ -2174,7 +2194,7 @@ function lancarPagamentosPixContratos(sheet, cabecalhos, payload, corpo) {
         indice: i,
         rotulo: rotulo,
         mensagem:
-          "Documentos obrigatórios incompletos (identidade, comprovante de residência, CNH e contrato assinado).",
+          "Documentos obrigatórios incompletos (cópia RG, cópia CPF, comprovante de endereço e cartão com conta).",
       });
       continue;
     }
