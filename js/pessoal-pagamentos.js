@@ -26,15 +26,6 @@ const ICONE_BANCO =
   "</svg>";
 const ICONE_NAO_LANCAR_SISTEMA =
   '<i class="fa-solid fa-hand-holding-circle-dollar" aria-hidden="true"></i>';
-const ICONE_ASSINADO_SIM =
-  '<i class="fa-solid fa-file-signature" aria-hidden="true"></i>';
-const ICONE_ASSINADO_NAO =
-  '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
-const ICONE_DOCUMENTOS_OK =
-  '<i class="fa-solid fa-file-circle-check" aria-hidden="true"></i>';
-const ICONE_DOCUMENTOS_PENDENTE =
-  '<i class="fa-solid fa-file-circle-xmark" aria-hidden="true"></i>';
-const ICONE_PAGAMENTO_DIRETO_REL =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
   '<path d="M11 11V6a2 2 0 0 1 4 0v1"/>' +
   '<path d="M9 11V7a2 2 0 0 1 4 0v4"/>' +
@@ -1052,17 +1043,22 @@ function contratoPorCpfDigitos(cpfDigitos) {
   return linhas.find((item) => cpfSomenteDigitos(valorItem(item, colunaCpf)) === norm) || null;
 }
 
+function htmlIconeCirculoStatus(ok, titulo) {
+  const icone = ok
+    ? '<i class="fa-solid fa-circle-check pagamentos-cpf-pix-icone pagamentos-cpf-pix-icone--ok" aria-hidden="true"></i>'
+    : '<i class="fa-solid fa-circle-xmark pagamentos-cpf-pix-icone pagamentos-cpf-pix-icone--erro" aria-hidden="true"></i>';
+  return (
+    `<span class="pagamentos-status-icone-celula" title="${escapeHtml(titulo)}" aria-label="${escapeHtml(titulo)}">${icone}</span>`
+  );
+}
+
 function htmlIconeDocumentos(item) {
   const st = statusDocumentosLinha(item);
   const ok = st.todosObrigatorios;
-  const classe = ok
-    ? "contratos-icone-documentos contratos-icone-documentos--ok"
-    : "contratos-icone-documentos contratos-icone-documentos--pendente";
-  const icone = ok ? ICONE_DOCUMENTOS_OK : ICONE_DOCUMENTOS_PENDENTE;
   const titulo = ok
     ? "documentos obrigatórios completos"
     : `${st.carregados || 0} de ${st.total || documentosObrigatoriosLista().length} documentos obrigatórios`;
-  return `<span class="${classe}" title="${escapeHtml(titulo)}" aria-label="${escapeHtml(titulo)}">${icone}</span>`;
+  return htmlIconeCirculoStatus(ok, titulo);
 }
 
 function inserirPainelDocumentosFormulario(dados) {
@@ -1311,12 +1307,8 @@ function itemAssinado(item) {
 
 function htmlIconeAssinado(item) {
   const ok = itemAssinado(item);
-  const classe = ok
-    ? "contratos-icone-assinado contratos-icone-assinado--sim"
-    : "contratos-icone-assinado contratos-icone-assinado--nao";
-  const icone = ok ? ICONE_ASSINADO_SIM : ICONE_ASSINADO_NAO;
   const titulo = ok ? "assinado" : "não assinado";
-  return `<span class="${classe}" title="${titulo}" aria-label="${titulo}">${icone}</span>`;
+  return htmlIconeCirculoStatus(ok, titulo);
 }
 
 function resolverColunasOVRelatorio() {

@@ -47,6 +47,10 @@ const PAGINAS = {
     arquivo: "pages/contratos.html",
     atualizar: true,
     menuGrupo: "pessoal",
+    relatorioOpcoes: [
+      { id: "geral", rotulo: "relatório geral" },
+      { id: "clicksign", rotulo: "contatos para clicksign" },
+    ],
   },
   "pessoal-pagamentos": {
     titulo: "pessoal",
@@ -201,12 +205,59 @@ function paginaTemRelatorio(cfg, paginaId) {
   return cfg.relatorio === true || !!cfg.atualizar;
 }
 
+function escapeHtmlShell(texto) {
+  const div = document.createElement("div");
+  div.textContent = texto == null ? "" : String(texto);
+  return div.innerHTML;
+}
+
+function atualizarMenuRelatorioShell(cfg, id) {
+  const temRelatorio = paginaTemRelatorio(cfg, id);
+  const btnSimples = document.getElementById("btnRelatorioShell");
+  const menuWrap = document.getElementById("relatorioShellMenuWrap");
+  const menuLista = document.getElementById("relatorioShellDropdownLista");
+  const opcoes = cfg.relatorioOpcoes;
+
+  if (!temRelatorio) {
+    if (btnSimples) btnSimples.hidden = true;
+    if (menuWrap) menuWrap.hidden = true;
+    return;
+  }
+
+  if (opcoes?.length) {
+    if (btnSimples) btnSimples.hidden = true;
+    if (menuWrap) menuWrap.hidden = false;
+    if (menuLista) {
+      menuLista.innerHTML = opcoes
+        .map(
+          (op) =>
+            `<li><button type="button" class="dropdown-item" data-relatorio-opcao="${escapeHtmlShell(op.id)}">${escapeHtmlShell(op.rotulo)}</button></li>`
+        )
+        .join("");
+    }
+    return;
+  }
+
+  if (menuWrap) menuWrap.hidden = true;
+  if (btnSimples) btnSimples.hidden = false;
+}
+
+function initRelatorioShellMenu() {
+  const menuLista = document.getElementById("relatorioShellDropdownLista");
+  if (!menuLista || menuLista.dataset.relatorioVinculado === "1") return;
+  menuLista.dataset.relatorioVinculado = "1";
+  menuLista.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-relatorio-opcao]");
+    if (!btn) return;
+    executarRelatorioShell(btn.getAttribute("data-relatorio-opcao"));
+  });
+}
+
 function atualizarCabecalho(id) {
   const cfg = PAGINAS[id] || PAGINAS.inicio;
   const titulo = document.getElementById("appHeaderTitulo");
   const sub = document.getElementById("appHeaderSub");
   const btnAtualizar = document.getElementById("btnAtualizarShell");
-  const btnRelatorio = document.getElementById("btnRelatorioShell");
   const textoTitulo = tituloPagina(id);
   if (titulo) {
     const iconId = iconeIdPagina(id);
@@ -215,7 +266,7 @@ function atualizarCabecalho(id) {
   }
   if (sub) sub.textContent = cfg.subtitulo;
   if (btnAtualizar) btnAtualizar.hidden = !cfg.atualizar;
-  if (btnRelatorio) btnRelatorio.hidden = !paginaTemRelatorio(cfg, id);
+  atualizarMenuRelatorioShell(cfg, id);
   document.title = textoTitulo + " | Eleição 2026";
   if (window.LAYOUT) LAYOUT.atualizarMenu(id);
 }
@@ -301,9 +352,14 @@ function deveUsarMensagemRelatorio(frame) {
   return !framePermiteAcessoDireto(frame);
 }
 
-function solicitarRelatorioPorMensagem(frame) {
+function solicitarRelatorioPorMensagem(frame, opcao) {
   const win = frame?.contentWindow;
   if (!win) return;
+
+  if (opcao === "clicksign") {
+    win.postMessage({ tipo: "eleicao-relatorio", opcao: "clicksign" }, "*");
+    return;
+  }
 
   const janela = window.open("", "_blank");
   if (!janela) {
@@ -324,22 +380,41 @@ function solicitarRelatorioPorMensagem(frame) {
   }
 
   relatorioJanelaPendente = janela;
-  win.postMessage({ tipo: "eleicao-relatorio" }, "*");
+  win.postMessage({ tipo: "eleicao-relatorio", opcao: opcao || "geral" }, "*");
 }
 
-function executarRelatorioShell() {
+async function executarRelatorioShell(opcao) {
   const frame = document.getElementById("appFrame");
   if (!frame) return;
 
+  const opcoesExec = opcao ? { opcao } : undefined;
+
   if (!deveUsarMensagemRelatorio(frame)) {
-    const html = obterHtmlRelatorioDoFrame(frame);
-    if (typeof html === "string" && html) {
-      abrirRelatorioHtml(html);
-      return;
+    try {
+      const win = frame.contentWindow;
+      if (win && typeof win.executarRelatorioPagina === "function") {
+        const resultado = await win.executarRelatorioPagina(opcoesExec);
+        if (resultado?.tipo === "html" && resultado.html) {
+          abrirRelatorioHtml(resultado.html);
+        } else if (resultado?.tipo === "erro") {
+          window.alert(resultado.mensagem || "não foi possível gerar o relatório.");
+        }
+        return;
+      }
+
+      if (!opcao || opcao === "geral") {
+        const html = obterHtmlRelatorioDoFrame(frame);
+        if (typeof html === "string" && html) {
+          abrirRelatorioHtml(html);
+          return;
+        }
+      }
+    } catch (e) {
+      /* file:// ou origem cruzada — usar postMessage */
     }
   }
 
-  solicitarRelatorioPorMensagem(frame);
+  solicitarRelatorioPorMensagem(frame, opcao || "geral");
 }
 
 // Chamado pelo menu lateral e pelos links dentro do iframe (parent.carregarPagina).
@@ -470,7 +545,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   document.getElementById("btnAtualizarShell")?.addEventListener("click", executarAtualizarShell);
-  document.getElementById("btnRelatorioShell")?.addEventListener("click", executarRelatorioShell);
+  initRelatorioShellMenu();
+  document.getElementById("btnRelatorioShell")?.addEventListener("click", () => executarRelatorioShell());
 
   frame?.addEventListener("load", () => {
     agendarAjusteFrame();
@@ -499,6 +575,11 @@ window.addEventListener("message", (event) => {
     if (event.data.erro) {
       janela.close();
       window.alert(event.data.erro);
+      return;
+    }
+
+    if (event.data.semAlerta) {
+      janela.close();
       return;
     }
 

@@ -147,33 +147,51 @@ window.addEventListener("message", (event) => {
   }
 
   if (event.data?.tipo === "eleicao-relatorio") {
-    let html = null;
-    let erro = null;
+    (async () => {
+      let html = null;
+      let erro = null;
+      let semAlerta = false;
 
-    try {
-      html = montarHtmlRelatorioNoIframe();
-      if (!html) {
-        erro = window.Relatorio
-          ? "nenhum dado para imprimir."
-          : "módulo de relatório não carregado nesta página.";
+      try {
+        const opcao = event.data?.opcao;
+        const opcoesExec = opcao ? { opcao } : undefined;
+        if (typeof window.executarRelatorioPagina === "function") {
+          const resultado = await window.executarRelatorioPagina(opcoesExec);
+          if (resultado?.tipo === "html" && resultado.html) {
+            html = resultado.html;
+          } else if (resultado?.tipo === "erro") {
+            erro = resultado.mensagem || "não foi possível gerar o relatório.";
+          } else if (resultado?.tipo === "txt" || resultado?.tipo === "cancelado") {
+            semAlerta = true;
+          }
+        } else {
+          html = montarHtmlRelatorioNoIframe();
+          if (!html) {
+            erro = window.Relatorio
+              ? "nenhum dado para imprimir."
+              : "módulo de relatório não carregado nesta página.";
+          }
+        }
+      } catch (e) {
+        erro = e?.message || "não foi possível gerar o relatório.";
       }
-    } catch (e) {
-      erro = e?.message || "não foi possível gerar o relatório.";
-    }
 
-    try {
-      window.parent.postMessage(
-        {
-          tipo: "eleicao-relatorio-html",
-          html: typeof html === "string" && html ? html : null,
-          mensagem: "nenhum dado para imprimir.",
-          erro: html ? null : erro,
-        },
-        "*"
-      );
-    } catch (e) {
-      /* ignorar */
-    }
+      try {
+        window.parent.postMessage(
+          {
+            tipo: "eleicao-relatorio-html",
+            html: typeof html === "string" && html ? html : null,
+            mensagem: "nenhum dado para imprimir.",
+            erro: html ? null : erro,
+            semAlerta,
+          },
+          "*"
+        );
+      } catch (e) {
+        /* ignorar */
+      }
+    })();
+    return;
   }
 });
 

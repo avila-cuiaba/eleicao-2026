@@ -44,6 +44,8 @@ let itemEdicao = null;
 let colunaNome = null;
 let colunaNomeMae = null;
 let colunaCpf = null;
+let colunaCelular = null;
+let colunaDataNascimento = null;
 let colunaMunicipio = null;
 let colunaVinculo = null;
 let colunaLancarSistema = null;
@@ -310,6 +312,52 @@ function formatarCpf(valor) {
     "-" +
     digitos.slice(9)
   );
+}
+
+function celularSomenteDigitos(valor) {
+  return String(valor ?? "").replace(/\D/g, "");
+}
+
+function formatarCelular(valor) {
+  const digitos = celularSomenteDigitos(valor).slice(0, 11);
+  if (!digitos) return "";
+  if (digitos.length <= 2) return "(" + digitos;
+  if (digitos.length <= 6) {
+    return "(" + digitos.slice(0, 2) + ") " + digitos.slice(2);
+  }
+  if (digitos.length <= 10) {
+    return "(" + digitos.slice(0, 2) + ") " + digitos.slice(2, 6) + "-" + digitos.slice(6);
+  }
+  return "(" + digitos.slice(0, 2) + ") " + digitos.slice(2, 7) + "-" + digitos.slice(7);
+}
+
+function planilhaDataParaInputDate(val) {
+  if (val == null || val === "") return "";
+  if (val instanceof Date && !Number.isNaN(val.getTime())) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, "0");
+    const d = String(val.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(val).trim();
+  if (!s) return "";
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (br) {
+    const d = br[1].padStart(2, "0");
+    const m = br[2].padStart(2, "0");
+    return `${br[3]}-${m}-${d}`;
+  }
+  return "";
+}
+
+function inputDateParaPlanilha(val) {
+  const s = String(val ?? "").trim();
+  if (!s) return "";
+  const p = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!p) return s;
+  return `${p[3]}/${p[2]}/${p[1]}`;
 }
 
 function valorCheckboxSim(val) {
@@ -1104,6 +1152,34 @@ function criarCampoCpf(campo, dados) {
   return wrap;
 }
 
+function criarCampoCelular(campo, dados) {
+  const wrap = criarCampoTexto(campo, dados, ' inputmode="tel" maxlength="15"');
+  const input = wrap.querySelector("input");
+  if (input) {
+    input.value = formatarCelular(input.value);
+    input.addEventListener("input", () => {
+      const pos = input.selectionStart;
+      const antes = input.value.length;
+      input.value = formatarCelular(input.value);
+      const depois = input.value.length;
+      const novaPos = Math.max(0, (pos || 0) + (depois - antes));
+      input.setSelectionRange(novaPos, novaPos);
+    });
+  }
+  return wrap;
+}
+
+function criarCampoData(campo, dados) {
+  const id = "campo-" + campo.id;
+  const valor = dados && campo.coluna ? planilhaDataParaInputDate(dados[campo.coluna.chave]) : "";
+  const wrap = document.createElement("div");
+  wrap.className = "mb-1";
+  wrap.innerHTML =
+    `<label class="${classeRotulo(campo)}" for="${id}">${escapeHtml(campo.rotulo)}</label>` +
+    `<input type="date" class="form-control form-control-sm" id="${id}" name="${escapeHtml(chaveGravacao(campo.coluna))}" value="${escapeHtml(valor)}" autocomplete="off">`;
+  return wrap;
+}
+
 function criarCampoMoeda(campo, dados) {
   const valor = dados && campo.coluna ? dados[campo.coluna.chave] : "";
   const exibicao = valorMoedaGravar(valor) || String(valor ?? "").trim();
@@ -1150,8 +1226,27 @@ function classeColunaFormularioContratos(campo, chaveGrupo) {
       ? "col-9 col-lg-10 contratos-col-nome-assinado-nome"
       : "col-3 col-lg-2 contratos-col-nome-assinado-assinado";
   }
+  if (
+    chaveGrupo === "documentos-cpf-titulo" ||
+    chaveGrupo === "documentos-nascimento-celular"
+  ) {
+    return "col-6 contratos-col-documentos-par";
+  }
   const largura = campo.largura || 12;
   return largura >= 12 ? "col-12" : "col-12 col-md-" + largura;
+}
+
+function classeRowFormularioContratos(chaveGrupo) {
+  if (chaveGrupo === "nome-assinado") {
+    return "row g-2 mb-2 contratos-row-nome-assinado";
+  }
+  if (
+    chaveGrupo === "documentos-cpf-titulo" ||
+    chaveGrupo === "documentos-nascimento-celular"
+  ) {
+    return "row g-2 mb-2 contratos-row-documentos-dupla";
+  }
+  return "row g-2 mb-2";
 }
 
 function montarFormulario(dados) {
@@ -1180,10 +1275,7 @@ function montarFormulario(dados) {
 
   ordem.forEach((chaveGrupo) => {
     const row = document.createElement("div");
-    row.className =
-      chaveGrupo === "nome-assinado"
-        ? "row g-2 mb-2 contratos-row-nome-assinado"
-        : "row g-2 mb-2";
+    row.className = classeRowFormularioContratos(chaveGrupo);
     grupos.get(chaveGrupo).forEach((campo) => {
       const col = document.createElement("div");
       col.className = classeColunaFormularioContratos(campo, chaveGrupo);
@@ -1192,6 +1284,10 @@ function montarFormulario(dados) {
         col.appendChild(criarCampoCheckbox(campo, dados));
       } else if (campo.tipo === "cpf") {
         col.appendChild(criarCampoCpf(campo, dados));
+      } else if (campo.tipo === "celular") {
+        col.appendChild(criarCampoCelular(campo, dados));
+      } else if (campo.tipo === "data") {
+        col.appendChild(criarCampoData(campo, dados));
       } else if (campo.tipo === "moeda") {
         col.appendChild(criarCampoMoeda(campo, dados));
       } else if (campo.tipo === "select") {
@@ -1607,6 +1703,10 @@ function lerFormulario() {
       dados[chave] = valorCheckboxGravar(campo, input.checked);
     } else if (campo.tipo === "cpf") {
       dados[chave] = formatarCpf(input.value);
+    } else if (campo.tipo === "celular") {
+      dados[chave] = formatarCelular(input.value);
+    } else if (campo.tipo === "data") {
+      dados[chave] = inputDateParaPlanilha(input.value);
     } else if (campo.tipo === "moeda") {
       dados[chave] = valorMoedaGravar(input.value);
     } else {
@@ -1740,6 +1840,12 @@ function resolverColunas() {
   colunaNome = PlanilhaApi.acharColuna(colunas, cfg.COLUNA_NOME, idx.NOME);
   colunaNomeMae = PlanilhaApi.acharColuna(colunas, cfg.COLUNA_NOME_MAE, idx.NOME_MAE);
   colunaCpf = PlanilhaApi.acharColuna(colunas, cfg.COLUNA_CPF, idx.CPF);
+  colunaCelular = PlanilhaApi.acharColuna(colunas, cfg.COLUNA_CELULAR, idx.CELULAR);
+  colunaDataNascimento = PlanilhaApi.acharColuna(
+    colunas,
+    cfg.COLUNA_DATA_NASCIMENTO,
+    idx.DATA_NASCIMENTO
+  );
   colunaMunicipio = PlanilhaApi.acharColuna(colunas, cfg.COLUNA_MUNICIPIO, idx.MUNICIPIO);
   colunaVinculo = PlanilhaApi.acharColuna(colunas, cfg.COLUNA_VINCULO, idx.VINCULO);
   colunaLancarSistema = PlanilhaApi.acharColuna(
@@ -1755,7 +1861,7 @@ function resolverColunas() {
   colunaTipoContrato = PlanilhaApi.acharColuna(
     colunas,
     ["tipo-contrato", "tipo contrato", "tipo de contrato"],
-    idx.TIPO_CONTRATO != null ? idx.TIPO_CONTRATO : 10
+    idx.TIPO_CONTRATO != null ? idx.TIPO_CONTRATO : 12
   );
   colunaAssinado = PlanilhaApi.acharColuna(
     colunas,
@@ -1901,12 +2007,20 @@ async function imprimirContrato(item) {
       origem: "pessoal-contratos",
     });
     if (!json) return;
-    const url = json.downloadUrl || json.url;
+    const url = json.url;
     if (!url) throw new Error("PDF não gerado.");
-    window.open(url, "_blank", "noopener,noreferrer");
-    AppToast.show("contrato gerado para impressão", "sucesso");
+    if (json.salvoNoDrive) {
+      AppToast.show(
+        "contrato salvo na pasta do colaborador no Drive (" + (json.nome || "PDF") + ")",
+        "sucesso"
+      );
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      window.open(json.downloadUrl || url, "_blank", "noopener,noreferrer");
+      AppToast.show("contrato gerado", "sucesso");
+    }
   } catch (e) {
-    AppToast.show("Erro ao imprimir: " + e.message, "erro");
+    AppToast.show("Erro ao gerar contrato: " + e.message, "erro");
   } finally {
     limparStatus();
   }
@@ -2354,6 +2468,120 @@ function estilosRelatorioPagina() {
 }
 
 window.estilosRelatorioPagina = estilosRelatorioPagina;
+
+function montarHtmlRelatorioGeral() {
+  if (!window.Relatorio?.montarHtml) return null;
+  return window.Relatorio.montarHtml({ documento: document });
+}
+
+function textoCampoTxtRelatorio(valor) {
+  return String(valor ?? "")
+    .replace(/\r\n/g, " ")
+    .replace(/\n/g, " ")
+    .replace(/\t/g, " ")
+    .trim();
+}
+
+function formatarDataTxtRelatorio(valor) {
+  const iso = planilhaDataParaInputDate(valor);
+  return iso ? inputDateParaPlanilha(iso) : textoCampoTxtRelatorio(valor);
+}
+
+const TXT_CLICKSIGN_LARGURAS = {
+  NOME: 50,
+  CPF: 14,
+  DATA_NASCIMENTO: 10,
+  CELULAR: 15,
+  ESPACO_COLUNAS: 2,
+};
+
+function colunaTxtAlinhada(valor, largura) {
+  const s = textoCampoTxtRelatorio(valor);
+  if (s.length > largura) return s.slice(0, largura);
+  return s.padEnd(largura, " ");
+}
+
+function linhaTxtRelatorioClicksign(nome, cpf, nasc, cel) {
+  const gap = " ".repeat(TXT_CLICKSIGN_LARGURAS.ESPACO_COLUNAS);
+  return (
+    colunaTxtAlinhada(nome, TXT_CLICKSIGN_LARGURAS.NOME) +
+    gap +
+    colunaTxtAlinhada(cpf, TXT_CLICKSIGN_LARGURAS.CPF) +
+    gap +
+    colunaTxtAlinhada(nasc, TXT_CLICKSIGN_LARGURAS.DATA_NASCIMENTO) +
+    gap +
+    colunaTxtAlinhada(cel, TXT_CLICKSIGN_LARGURAS.CELULAR)
+  );
+}
+
+function montarTxtRelatorioDadosCadastro() {
+  const items = linhasFiltradas();
+  if (!items.length) return null;
+
+  const header = linhaTxtRelatorioClicksign("nome", "CPF", "data-nascimento", "celular");
+  const linhasTxt = items.map((item) => {
+    const nome = valorItem(item, colunaNome);
+    const cpf = formatarCpf(valorItem(item, colunaCpf));
+    const nasc = formatarDataTxtRelatorio(valorItem(item, colunaDataNascimento));
+    const cel = formatarCelular(valorItem(item, colunaCelular));
+    return linhaTxtRelatorioClicksign(nome, cpf, nasc, cel);
+  });
+
+  return header + "\n" + linhasTxt.join("\n");
+}
+
+function nomeArquivoTxtRelatorioClicksign() {
+  const hoje = new Date();
+  const y = hoje.getFullYear();
+  const m = String(hoje.getMonth() + 1).padStart(2, "0");
+  const d = String(hoje.getDate()).padStart(2, "0");
+  return `contatos-clicksign-${y}${m}${d}.txt`;
+}
+
+function baixarArquivoTexto(conteudo, nomeArquivo) {
+  const blob = new Blob([conteudo], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nomeArquivo;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function executarRelatorioPagina(opcoes) {
+  const opcao = opcoes?.opcao;
+
+  if (opcao === "clicksign") {
+    const conteudo = montarTxtRelatorioDadosCadastro();
+    if (!conteudo) {
+      return { tipo: "erro", mensagem: "nenhum dado para exportar." };
+    }
+    baixarArquivoTexto(conteudo, nomeArquivoTxtRelatorioClicksign());
+    AppToast.show("arquivo TXT para Clicksign gerado.", "sucesso");
+    return { tipo: "txt" };
+  }
+
+  const html = montarHtmlRelatorioGeral();
+  if (!html) {
+    return { tipo: "erro", mensagem: "nenhum dado para imprimir." };
+  }
+  return { tipo: "html", html };
+}
+
+window.montarHtmlRelatorioPagina = montarHtmlRelatorioGeral;
+window.executarRelatorioPagina = executarRelatorioPagina;
+
+window.gerarRelatorioPagina = async function gerarRelatorioPagina(opcoes) {
+  if (opcoes && opcoes.apenasHtml) {
+    return montarHtmlRelatorioGeral();
+  }
+  if (opcoes?.opcao) {
+    const resultado = await executarRelatorioPagina(opcoes);
+    if (resultado?.tipo === "html") return resultado.html;
+    return false;
+  }
+  return montarHtmlRelatorioGeral();
+};
 
 AUTH.exigir();
 document.addEventListener("DOMContentLoaded", init);

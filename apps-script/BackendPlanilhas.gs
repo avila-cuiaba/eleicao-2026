@@ -432,6 +432,10 @@ function doGetPlanilha(p) {
   const planilha = p.planilha || PLANILHA_PADRAO;
   const nomeAba = p.aba || ABA_PADRAO;
   const sheet = obterSheet(planilha, nomeAba);
+  if (deveAuditarContratos(planilha)) {
+    garantirColunaCelularContratos(sheet);
+    garantirColunaDataNascimentoContratos(sheet);
+  }
   const valores = sheet.getDataRange().getValues();
 
   let dados = [];
@@ -700,6 +704,32 @@ function formatarCpfContrato(valor) {
   );
 }
 
+function formatarCelularContrato(valor) {
+  const digitos = String(valor ?? "").replace(/\D/g, "").slice(0, 11);
+  if (!digitos) return "";
+  if (digitos.length <= 2) return "(" + digitos;
+  if (digitos.length <= 6) {
+    return "(" + digitos.slice(0, 2) + ") " + digitos.slice(2);
+  }
+  if (digitos.length <= 10) {
+    return "(" + digitos.slice(0, 2) + ") " + digitos.slice(2, 6) + "-" + digitos.slice(6);
+  }
+  return "(" + digitos.slice(0, 2) + ") " + digitos.slice(2, 7) + "-" + digitos.slice(7);
+}
+
+function formatarDataNascimentoContrato(valor) {
+  if (valor instanceof Date && !isNaN(valor.getTime())) {
+    return formatarDataContrato(valor);
+  }
+  const s = String(valor ?? "").trim();
+  if (!s) return "";
+  const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (br) return s;
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[3] + "/" + iso[2] + "/" + iso[1];
+  return s;
+}
+
 function formatarDataContrato(data) {
   const d = data || new Date();
   return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd/MM/yyyy");
@@ -800,6 +830,19 @@ function camposMarcadoresContrato() {
     { id: "nome-mae", aliases: ["nome-mae", "nome mae", "nome mãe"] },
     { id: "nome-pai", aliases: ["nome-pai", "nome pai"] },
     { id: "cpf", aliases: ["cpf"], formatar: formatarCpfContrato },
+    { id: "celular", aliases: ["celular", "telefone", "cel"], formatar: formatarCelularContrato },
+    {
+      id: "data-nascimento",
+      aliases: [
+        "data-nascimento",
+        "data nascimento",
+        "data de nascimento",
+        "nascimento",
+        "dt-nascimento",
+        "dt nascimento",
+      ],
+      formatar: formatarDataNascimentoContrato,
+    },
     {
       id: "titulo-eleitor",
       aliases: ["titulo-eleitor", "titulo eleitor", "título de eleitor"],
@@ -1024,26 +1067,74 @@ function obterArquivoModeloContrato() {
   );
 }
 
-function gerarPdfContratoDeRegistro(registro) {
+function cpfDigitosArquivoContrato(registro) {
+  const raw = valorRegistroContrato(registro, ["cpf"]);
+  let digitos = String(raw ?? "").replace(/\D/g, "");
+  if (!digitos) return "sem-cpf";
+  if (digitos.length < 11) digitos = digitos.padStart(11, "0");
+  return digitos.slice(0, 11);
+}
+
+function nomeArquivoPdfContrato(registro) {
+  const nomeRaw = String(
+    valorRegistroContrato(registro, ["nome-completo", "nome completo", "nome"]) || "colaborador"
+  ).trim();
+  const nome = sanitizarNomePastaDrive(nomeRaw);
+  const cpf = cpfDigitosArquivoContrato(registro);
+  return "contrato-" + nome + "-" + cpf + ".pdf";
+}
+
+function removerContratosPdfColaboradorNaPasta(pasta, registro) {
+  const nome = sanitizarNomePastaDrive(
+    String(
+      valorRegistroContrato(registro, ["nome-completo", "nome completo", "nome"]) || "colaborador"
+    ).trim()
+  );
+  const prefix = "contrato-" + nome + "-";
+  const iter = pasta.getFiles();
+  while (iter.hasNext()) {
+    const arquivo = iter.next();
+    if (arquivo.isTrashed()) continue;
+    const nomeArquivo = String(arquivo.getName() || "");
+    if (
+      nomeArquivo.toLowerCase().indexOf(prefix.toLowerCase()) === 0 &&
+      nomeArquivo.toLowerCase().endsWith(".pdf")
+    ) {
+      arquivo.setTrashed(true);
+    }
+  }
+}
+
+function gerarPdfContratoDeRegistro(registro, pastaId) {
   const modelo = obterArquivoModeloContrato();
   const nomeBase =
     valorRegistroContrato(registro, ["nome-completo", "nome completo", "nome"]) ||
     "colaborador";
+  const nomePdf = nomeArquivoPdfContrato(registro);
 
   const copia = modelo.makeCopy("Contrato - " + nomeBase);
   const doc = DocumentApp.openById(copia.getId());
   substituirMarcadoresDocumento(doc, montarMapaSubstituicoesContrato(registro));
   doc.saveAndClose();
 
-  const pdfBlob = copia.getAs(MimeType.PDF).setName("Contrato - " + nomeBase + ".pdf");
-  const pdfFile = DriveApp.createFile(pdfBlob);
-  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  const pdfBlob = copia.getAs(MimeType.PDF).setName(nomePdf);
+  let pdfFile;
+  const pastaDestino = String(pastaId || "").trim();
+  if (pastaDestino) {
+    const pasta = DriveApp.getFolderById(pastaDestino);
+    removerContratosPdfColaboradorNaPasta(pasta, registro);
+    pdfFile = pasta.createFile(pdfBlob);
+  } else {
+    pdfFile = DriveApp.createFile(pdfBlob);
+  }
+  aplicarCompartilhamentoArquivoDrive(pdfFile);
   copia.setTrashed(true);
 
   return {
     url: pdfFile.getUrl(),
     downloadUrl: "https://drive.google.com/uc?export=download&id=" + pdfFile.getId(),
     nome: pdfFile.getName(),
+    pastaId: pastaDestino || "",
     modeloId: modelo.getId(),
     modeloNome: modelo.getName(),
   };
@@ -1054,6 +1145,7 @@ function imprimirContratoPdf(corpo) {
   const nomeAba = corpo.aba || ABA_PADRAO;
   const numLinha = Number(corpo.linha);
   let registro = corpo.dados || {};
+  let pastaId = "";
 
   if (numLinha >= 2) {
     const sheet = obterSheet(planilha, nomeAba);
@@ -1061,15 +1153,19 @@ function imprimirContratoPdf(corpo) {
     const cabecalhos = sheet.getRange(1, 1, 1, ultimaColuna).getValues()[0];
     const existente = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
     registro = linhaParaObjeto(cabecalhos, existente);
+    const prov = provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos);
+    pastaId = prov.pastaId;
   }
 
-  const pdf = gerarPdfContratoDeRegistro(registro);
+  const pdf = gerarPdfContratoDeRegistro(registro, pastaId);
   return responder({
     ok: true,
     url: pdf.url,
     downloadUrl: pdf.downloadUrl,
     nome: pdf.nome,
+    pastaId: pdf.pastaId,
     modelo: pdf.modeloNome,
+    salvoNoDrive: !!pastaId,
   });
 }
 
@@ -1369,6 +1465,47 @@ function ehColunaSistemaArquivosContrato(col, indiceZero) {
     norm === "pasta drive id" ||
     norm === "pasta-drive-id"
   );
+}
+
+function garantirColunaCelularContratos(sheet) {
+  const ultimaCol = sheet.getLastColumn();
+  if (ultimaCol < 1) return;
+  const cabecalhos = sheet.getRange(1, 1, 1, ultimaCol).getValues()[0];
+  if (indiceColunaCabecalho(cabecalhos, ["celular", "telefone", "cel"]) !== -1) return;
+
+  const idxCpf = indiceColunaCabecalho(cabecalhos, ["cpf"]);
+  if (idxCpf === -1) return;
+
+  const colCpf1Based = idxCpf + 1;
+  sheet.insertColumnAfter(colCpf1Based);
+  sheet.getRange(1, colCpf1Based + 1).setValue("celular");
+  SpreadsheetApp.flush();
+}
+
+function garantirColunaDataNascimentoContratos(sheet) {
+  const ultimaCol = sheet.getLastColumn();
+  if (ultimaCol < 1) return;
+  const cabecalhos = sheet.getRange(1, 1, 1, ultimaCol).getValues()[0];
+  if (
+    indiceColunaCabecalho(cabecalhos, [
+      "data-nascimento",
+      "data nascimento",
+      "data de nascimento",
+      "nascimento",
+      "dt-nascimento",
+      "dt nascimento",
+    ]) !== -1
+  ) {
+    return;
+  }
+
+  const idxCelular = indiceColunaCabecalho(cabecalhos, ["celular", "telefone", "cel"]);
+  if (idxCelular === -1) return;
+
+  const colCelular1Based = idxCelular + 1;
+  sheet.insertColumnAfter(colCelular1Based);
+  sheet.getRange(1, colCelular1Based + 1).setValue("data-nascimento");
+  SpreadsheetApp.flush();
 }
 
 function garantirColunasArquivosContratos(sheet) {
@@ -2268,6 +2405,11 @@ function doPostPlanilha(corpo) {
   const nomeAba = corpo.aba || ABA_PADRAO;
   const sheet = obterSheet(planilha, nomeAba);
   const acao = String(corpo.acao || "inserir").toLowerCase();
+
+  if (deveAuditarContratos(planilha)) {
+    garantirColunaCelularContratos(sheet);
+    garantirColunaDataNascimentoContratos(sheet);
+  }
 
   const ultimaColuna = sheet.getLastColumn();
   const cabecalhos =

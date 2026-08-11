@@ -293,6 +293,19 @@ html {
   flex-shrink: 0;
 }
 
+.app-header-relatorio-menu {
+  flex-shrink: 0;
+}
+
+.app-header-relatorio-dropdown-menu {
+  font-size: 0.8125rem;
+  min-width: 11rem;
+}
+
+.app-header-relatorio-dropdown-menu .dropdown-item {
+  padding: 0.35rem 0.75rem;
+}
+
 .app-topbar {
   display: flex;
   align-items: center;
@@ -9746,20 +9759,26 @@ body.page-pessoal-pagamentos .crud-busca-campo {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 1.1rem;
-  margin-right: 0.2rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  line-height: 1;
 }
 
 .contratos-icone-documentos .fa-solid {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
+  line-height: 1;
 }
 
 .contratos-icone-documentos--ok {
-  color: #059669;
+  color: #0f766e;
 }
 
 .contratos-icone-documentos--pendente {
   color: #dc2626;
+}
+
+.contratos-stack-nome--com-assinado .contratos-icone-documentos {
+  margin-right: 0.15rem;
 }
 
 .contratos-tabela th.contratos-col-documentos,
@@ -10246,6 +10265,18 @@ body.page-pessoal-pagamentos .crud-busca-campo {
   align-items: flex-end;
 }
 
+.contratos-row-documentos-dupla {
+  align-items: flex-end;
+}
+
+.contratos-row-documentos-dupla .contratos-col-documentos-par {
+  min-width: 0;
+}
+
+.contratos-row-documentos-dupla .form-label {
+  font-size: 0.8125rem;
+}
+
 .contratos-row-nome-assinado .contratos-col-nome-assinado-assinado .contratos-form-check {
   margin-bottom: 0.25rem;
 }
@@ -10374,6 +10405,22 @@ body.page-pessoal-pagamentos .crud-busca-campo {
 
 .pagamentos-cpf-pix-icone--erro {
   color: #b91c1c;
+}
+
+body.page-pessoal-pagamentos .pagamentos-status-icone-celula {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+body.page-pessoal-pagamentos .contratos-col-assinado .pagamentos-status-icone-celula,
+body.page-pessoal-pagamentos .contratos-col-documentos .pagamentos-status-icone-celula {
+  width: 100%;
+}
+
+body.page-pessoal-pagamentos .contratos-stack-nome--com-assinado .pagamentos-status-icone-celula {
+  margin-right: 0.12rem;
 }
 
 body.page-pessoal-pagamentos .contratos-tabela td.contratos-col-saldo {
