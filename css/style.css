@@ -9127,6 +9127,43 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
     margin-bottom: 0;
   }
 
+  /* Marcadores: filtros de região em cima; cards KPI em largura total abaixo */
+  #pagePainelMarcadores .dashboard-micro-row,
+  #pagePainelMarcadores .pessoal-micro-row,
+  #pagePainelMarcadores .apoiadores-micro-row {
+    --bs-gutter-y: 1.25rem;
+    row-gap: 1.25rem;
+  }
+
+  #pagePainelMarcadores .dashboard-micro-row > [class*="col-"],
+  #pagePainelMarcadores .pessoal-micro-row > [class*="col-"],
+  #pagePainelMarcadores .apoiadores-micro-row > [class*="col-"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  #pagePainelMarcadores .dashboard-filtros-regiao-wrap,
+  #pagePainelMarcadores .pessoal-filtros-regiao-wrap,
+  #pagePainelMarcadores .dashboard-filtro-regioes {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #pagePainelMarcadores .apoiadores-kpi-layout,
+  #pagePainelMarcadores .pessoal-kpi-grid,
+  #pagePainelMarcadores .orcamento-kpi-layout,
+  #pagePainelMarcadores .dashboard-resumo-kpis,
+  #pagePainelMarcadores .apoiadores-kpi-grid,
+  #pagePainelMarcadores .parcerias-kpi-parceiros-section {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #pagePainelMarcadores .parcerias-kpi-parceiros-section {
+    margin-top: 1.25rem;
+  }
+
   #pagePainelRegistros.active {
     overflow: hidden;
   }
