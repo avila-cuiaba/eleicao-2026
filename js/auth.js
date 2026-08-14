@@ -187,15 +187,83 @@ const AUTH = {
       .filter(Boolean);
   },
 
+  _redirecionandoLogin: false,
+
+  erroEhSessaoOuSeguranca(erro) {
+    const msg = String(erro?.message ?? erro ?? "").toLowerCase();
+    return (
+      msg.includes("cross-origin") ||
+      msg.includes("blocked a frame") ||
+      msg.includes("failed to read a named property from") ||
+      msg.includes("permission denied")
+    );
+  },
+
+  mensagemErroUsuario(erro) {
+    if (this._redirecionandoLogin) {
+      return "Sua sessão expirou por inatividade. Redirecionando ao login…";
+    }
+    if (this.sessaoExpirada() || (!this._lerItem(this.STORAGE_KEY) && window.CONFIG?.EXIGIR_LOGIN)) {
+      return "Sua sessão expirou por inatividade. Faça login novamente.";
+    }
+    if (this.erroEhSessaoOuSeguranca(erro)) {
+      return "Sua sessão expirou por inatividade. Faça login novamente.";
+    }
+    const msg = String(erro?.message ?? erro ?? "")
+      .replace(/^Error:\s*/i, "")
+      .trim();
+    return msg || "Falha na operação.";
+  },
+
   urlLogin() {
-    const base = window.parent !== window ? window.parent.location : window.location;
-    return new URL("login.html", base).href;
+    const emIframe = window.parent !== window;
+    if (emIframe) {
+      try {
+        return new URL("login.html", window.parent.location.href).href;
+      } catch (e) {
+        try {
+          return new URL("../login.html", window.location.href).href;
+        } catch (err) {
+          return "../login.html";
+        }
+      }
+    }
+    try {
+      return new URL("login.html", window.location.href).href;
+    } catch (e) {
+      return "login.html";
+    }
   },
 
   irLogin() {
+    if (this._redirecionandoLogin) return;
+    this._redirecionandoLogin = true;
+
     const url = this.urlLogin();
-    if (window.parent !== window) window.parent.location.replace(url);
-    else window.location.replace(url);
+    const emIframe = window.parent !== window;
+
+    if (emIframe) {
+      try {
+        window.parent.location.replace(url);
+        return;
+      } catch (e) {
+        try {
+          window.parent.postMessage({ tipo: "eleicao-login", url }, "*");
+        } catch (err) {
+          /* ignorar */
+        }
+      }
+    }
+
+    try {
+      window.location.replace(url);
+    } catch (e) {
+      try {
+        window.location.href = emIframe ? "../login.html" : "login.html";
+      } catch (err) {
+        /* último recurso — não propagar SecurityError à UI */
+      }
+    }
   },
 
   exigir() {
@@ -214,6 +282,21 @@ const AUTH = {
 
   tratarResposta(json) {
     if (json && json.naoAutorizado) {
+      this.limpar();
+      this.irLogin();
+      return false;
+    }
+    if (window.CONFIG?.EXIGIR_LOGIN && this.sessaoExpirada()) {
+      this.limpar();
+      this.irLogin();
+      return false;
+    }
+    return true;
+  },
+
+  verificarSessao() {
+    if (!window.CONFIG?.EXIGIR_LOGIN) return true;
+    if (this.sessaoExpirada()) {
       this.limpar();
       this.irLogin();
       return false;

@@ -601,6 +601,9 @@ function montarHtmlRelatorio() {
 
   return (
     "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\" />" +
+    (window.Relatorio && typeof Relatorio.metaTituloImpressaoHtml === "function"
+      ? Relatorio.metaTituloImpressaoHtml(textoCabecalho)
+      : '<meta name="rel-titulo-impressao" content="' + MobComum.escapeHtml(textoCabecalho) + '" />') +
     "<title>" +
     MobComum.escapeHtml(textoCabecalho) +
     "</title>" +

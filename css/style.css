@@ -13215,22 +13215,37 @@ body.page-producao-midia .page-frame-content {
   flex-shrink: 0;
 }
 
-.mat-graf-accordion-btn .mat-graf-btn-entregas {
+.mat-graf-accordion-acoes {
   display: none;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 0.55rem;
+}
+
+.mat-graf-accordion-btn:not(.collapsed) .mat-graf-accordion-acoes {
+  display: inline-flex;
+}
+
+.mat-graf-accordion-btn .mat-graf-btn-entregas,
+.mat-graf-accordion-btn .mat-graf-btn-imprimir {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   width: 2.15rem;
   height: 2.15rem;
-  margin-left: auto;
-  margin-right: 0.55rem;
   border-radius: 0.4rem;
-  color: #0e7490;
   cursor: pointer;
 }
 
-.mat-graf-accordion-btn:not(.collapsed) .mat-graf-btn-entregas {
-  display: inline-flex;
+.mat-graf-accordion-btn .mat-graf-btn-entregas {
+  color: #0e7490;
+}
+
+.mat-graf-accordion-btn .mat-graf-btn-imprimir {
+  color: #0f766e;
 }
 
 .mat-graf-accordion-btn .mat-graf-btn-entregas .fa-solid {
@@ -13239,8 +13254,18 @@ body.page-producao-midia .page-frame-content {
   pointer-events: none;
 }
 
+.mat-graf-accordion-btn .mat-graf-btn-imprimir svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  pointer-events: none;
+}
+
 .mat-graf-accordion-btn .mat-graf-btn-entregas:hover {
   background: rgba(8, 145, 178, 0.12);
+}
+
+.mat-graf-accordion-btn .mat-graf-btn-imprimir:hover {
+  background: rgba(15, 118, 110, 0.1);
 }
 
 .mat-graf-tabela {
@@ -13260,12 +13285,12 @@ body.page-producao-midia .page-frame-content {
   vertical-align: middle;
 }
 
-.mat-graf-col-item {
+.mat-graf-col-etiqueta {
   width: 1%;
-  min-width: 5.5rem;
+  min-width: 4.5rem;
+  max-width: 10rem;
   white-space: nowrap;
-  padding-right: 2.25rem;
-  font-variant-numeric: tabular-nums;
+  word-break: break-word;
 }
 
 .mat-graf-item-badge {
@@ -13276,6 +13301,44 @@ body.page-producao-midia .page-frame-content {
 .mat-graf-col-midia {
   min-width: 0;
   word-break: break-word;
+}
+
+.mat-graf-etiqueta-inline {
+  display: block;
+  margin-top: 0.12rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.25;
+}
+
+.mat-graf-entrega-etiqueta-midia-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
+  min-width: 0;
+}
+
+.mat-graf-entrega-etiqueta-midia-linha .mat-graf-entrega-etiqueta {
+  display: inline;
+}
+
+.mat-graf-entrega-etiqueta-midia-linha .mat-graf-entrega-etiqueta--destaque {
+  display: inline;
+}
+
+.mat-graf-entrega-etiqueta-midia-linha .mat-graf-entrega-midia {
+  display: inline;
+  font-size: 0.8rem;
+}
+
+.mat-graf-consulta-item-linha .mat-graf-entrega-midia {
+  font-size: 0.85rem;
+}
+
+.mat-graf-entrega-etiqueta--destaque {
+  font-weight: 600;
+  color: #334155;
 }
 
 .mat-graf-col-qtd,
@@ -13356,6 +13419,42 @@ body.page-producao-midia .page-frame-content {
   border-top: 1px solid #e2e8f0;
 }
 
+.mat-graf-btn-relatorio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: #0f766e;
+  line-height: 1;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.mat-graf-btn-relatorio:hover:not(:disabled) {
+  color: #0d5f56;
+  background: rgba(15, 118, 110, 0.1);
+}
+
+.mat-graf-btn-relatorio:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mat-graf-btn-relatorio svg {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.page-material-grafico .modal-header .btn-close {
+  margin: 0;
+}
+
 /* Backdrop entre modal de lista (z~1055) e formulário (z~1065) */
 .mat-graf-backdrop-entre {
   z-index: 1060;
@@ -13432,6 +13531,28 @@ body.page-producao-midia .page-frame-content {
   word-break: break-word;
 }
 
+.mat-graf-entrega-etiqueta {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.25;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.mat-graf-consulta-peca-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.65rem;
+  margin-top: 0.15rem;
+}
+
+.mat-graf-consulta-peca-linha .mat-graf-entrega-peca {
+  font-weight: 600;
+  color: #1e293b;
+}
+
 .mat-graf-mun-badge {
   display: inline-flex;
   align-items: center;
@@ -13466,8 +13587,8 @@ body.page-producao-midia .page-frame-content {
 .mat-graf-consulta-item-linha {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem 0.55rem;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
 }
 
 .mat-graf-consulta-peca {
@@ -13539,10 +13660,9 @@ body.page-producao-midia .page-frame-content {
 }
 
 .mat-graf-entrega-card-col--item {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.55rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
 }
 
 .mat-graf-entrega-card-col--qtd {
@@ -13573,14 +13693,6 @@ body.page-producao-midia .page-frame-content {
   display: inline-flex;
   align-items: center;
   gap: 0.05rem;
-}
-
-@media (max-width: 575.98px) {
-  .mat-graf-entrega-card-col--item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.15rem;
-  }
 }
 
 .mat-graf-entrega-qtd-input {
@@ -13704,17 +13816,16 @@ body.page-producao-midia .page-frame-content {
     margin-bottom: 0.5rem;
   }
 
-  .mat-graf-tabela thead th.mat-graf-col-item,
-  .mat-graf-tabela thead th.mat-graf-col-midia {
+  .mat-graf-tabela thead th.mat-graf-col-peca {
     display: none;
   }
 
   .mat-graf-tabela thead tr {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) max-content auto;
+    grid-template-columns: auto minmax(0, 1fr) max-content max-content auto;
     grid-template-areas:
-      "peca previsto lupa"
-      "peca entregas lupa";
+      "etiq-h material-h . . lupa"
+      ". . previsto-h entregas-h lupa";
     column-gap: 0.45rem;
     row-gap: 0.1rem;
     align-items: end;
@@ -13727,41 +13838,49 @@ body.page-producao-midia .page-frame-content {
     padding: 0;
   }
 
-  .mat-graf-tabela thead th.mat-graf-col-peca {
-    grid-area: peca;
+  .mat-graf-tabela thead th.mat-graf-col-etiqueta {
+    grid-area: etiq-h;
     width: auto;
     align-self: center;
   }
 
-  .mat-graf-tabela thead th.mat-graf-col-peca::after {
-    content: " / mídia";
+  .mat-graf-tabela thead th.mat-graf-col-midia {
+    grid-area: material-h;
+    width: auto;
+    align-self: center;
+  }
+
+  .mat-graf-tabela thead th.mat-graf-col-midia::after {
+    content: " / peça";
     font-weight: 600;
   }
 
   .mat-graf-tabela thead th.mat-graf-col-qtd {
-    grid-area: previsto;
+    grid-area: previsto-h;
     width: auto;
     text-align: right;
   }
 
   .mat-graf-tabela thead th.mat-graf-col-entregas {
-    grid-area: entregas;
+    grid-area: entregas-h;
     width: auto;
     text-align: right;
   }
 
   .mat-graf-tabela thead th.mat-graf-col-lupa {
     grid-area: lupa;
+    grid-row: 1 / 3;
+    align-self: center;
   }
 
   .mat-graf-tabela tbody tr {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) max-content auto;
+    grid-template-columns: auto minmax(0, 1fr) max-content max-content auto;
     grid-template-areas:
-      "peca peca previsto lupa"
-      "item midia entregas lupa";
+      "etiqueta material . . lupa"
+      ". . previsto entregas lupa";
     column-gap: 0.35rem;
-    row-gap: 0.2rem;
+    row-gap: 0.12rem;
     align-items: center;
     padding: 0.45rem 0;
     border-bottom: 1px solid #f1f5f9;
@@ -13772,23 +13891,31 @@ body.page-producao-midia .page-frame-content {
     padding: 0;
   }
 
-  .mat-graf-tabela tbody td.mat-graf-col-peca {
-    grid-area: peca;
-    min-width: 0;
-  }
-
-  .mat-graf-tabela tbody td.mat-graf-col-item {
-    grid-area: item;
+  .mat-graf-tabela tbody td.mat-graf-col-etiqueta {
+    grid-area: etiqueta;
     width: auto;
     padding-right: 0.15rem;
     white-space: nowrap;
+    font-weight: 600;
+    color: #334155;
+    align-self: start;
   }
 
   .mat-graf-tabela tbody td.mat-graf-col-midia {
-    grid-area: midia;
+    grid-area: material;
     color: #64748b;
     font-size: 0.8rem;
     min-width: 0;
+    line-height: 1.25;
+  }
+
+  .mat-graf-tabela tbody td.mat-graf-col-peca {
+    grid-area: material;
+    min-width: 0;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.25;
+    margin-top: -0.05rem;
   }
 
   .mat-graf-tabela tbody td.mat-graf-col-qtd {
@@ -13814,6 +13941,7 @@ body.page-producao-midia .page-frame-content {
 
   .mat-graf-tabela tbody td.mat-graf-col-lupa {
     grid-area: lupa;
+    grid-row: 1 / 3;
     align-self: center;
     justify-self: center;
     width: auto;

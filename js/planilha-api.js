@@ -14,6 +14,7 @@ const PlanilhaApi = {
   },
 
   mensagemErro(erro) {
+    if (window.AUTH?.mensagemErroUsuario) return AUTH.mensagemErroUsuario(erro);
     let msg = erro?.message != null ? String(erro.message) : String(erro ?? "");
     return msg.replace(/^Error:\s*/i, "").trim() || "Falha na operação.";
   },
@@ -94,6 +95,7 @@ const PlanilhaApi = {
   },
 
   async lerValores(planilha, aba) {
+    if (window.CONFIG?.EXIGIR_LOGIN && !AUTH.verificarSessao()) return null;
     const resp = await fetch(this.urlGet(planilha, aba), { method: "GET" });
     const json = await resp.json();
     if (!AUTH.tratarResposta(json)) return null;
@@ -102,6 +104,7 @@ const PlanilhaApi = {
   },
 
   async gravar(planilha, opts) {
+    if (window.CONFIG?.EXIGIR_LOGIN && !AUTH.verificarSessao()) return null;
     const { acao, linha, dados, aba, origem, ...extras } = opts || {};
     const corpo = {
       chave: AUTH.getChave(),

@@ -179,59 +179,6 @@ const CONTRATO_TIPOS_DOCUMENTO_TODOS = CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS.con
   CONTRATO_TIPOS_DOCUMENTO_OPCIONAIS
 );
 
-// Dados fixos da campanha Eleição 2026 — ajuste aqui se CNPJ/endereço mudar.
-const CONTRATO_CAMPANHA = {
-  ANO: 2026,
-  TITULO_ELEICOES: "ELEIÇÕES 2026",
-  CONTRATANTE_RAZAO: "ELEICAO 2026 DR. EUGENIO DE PAIVA DEPUTADO ESTADUAL",
-  CONTRATANTE_CNPJ: "47.431.376/0001-14",
-  CONTRATANTE_ENDERECO: "Rua 05, 2055, LC, na cidade de Água Boa - MT",
-  REPRESENTANTE_NOME: "REGINALDO MARTINS DEL COLLE",
-  REPRESENTANTE_CARGO: "Administrador Financeiro",
-  REPRESENTANTE_NACIONALIDADE: "brasileiro",
-  REPRESENTANTE_PROFISSAO: "Contador",
-  REPRESENTANTE_RG: "8118999 SSP/MG",
-  REPRESENTANTE_CPF: "893.843.936-49",
-  REPRESENTANTE_ENDERECO:
-    "Rua Travessa 04, s/n, Centro Sul, Nova Nazaré - MT, CEP 78638-000",
-  CARGO_CANDIDATO: "DEPUTADO ESTADUAL",
-  DATA_FIM_CAMPANHA: "04 de outubro de 2026",
-  FORO: "Cuiabá/MT",
-  LOCAL_ASSINATURA: "CUIABÁ-MT",
-  REMUNERACAO_PADRAO: {
-    valor: "600,00",
-    extenso: "SEISCENTOS REAIS",
-    horas: "04:00",
-    objeto: "CABO ELEITORAL",
-  },
-  REMUNERACAO_POR_TIPO: {
-    "apoiador 30 dias": {
-      valor: "600,00",
-      extenso: "SEISCENTOS REAIS",
-      horas: "04:00",
-      objeto: "CABO ELEITORAL",
-    },
-    "apoiador 45 dias": {
-      valor: "900,00",
-      extenso: "NOVECENTOS REAIS",
-      horas: "04:00",
-      objeto: "CABO ELEITORAL",
-    },
-    "apoiador lider": {
-      valor: "1.200,00",
-      extenso: "MIL E DUZENTOS REAIS",
-      horas: "04:00",
-      objeto: "APOIADOR LÍDER",
-    },
-    "apoiador customizado": {
-      valor: "600,00",
-      extenso: "SEISCENTOS REAIS",
-      horas: "04:00",
-      objeto: "CABO ELEITORAL",
-    },
-  },
-};
-
 // ===================== AGENDA =====================
 
 // Várias agendas alimentam o mesmo calendário na leitura.
@@ -435,6 +382,8 @@ function doGetPlanilha(p) {
   if (deveAuditarContratos(planilha)) {
     garantirColunaCelularContratos(sheet);
     garantirColunaDataNascimentoContratos(sheet);
+    garantirColunaLocalAssinaturaContratos(sheet);
+    garantirColunaDataContratoContratos(sheet);
   }
   const valores = sheet.getDataRange().getValues();
 
@@ -668,9 +617,10 @@ function escaparRegexDocs(texto) {
 function valorRegistroContrato(registro, chaves) {
   for (let i = 0; i < chaves.length; i++) {
     const chave = chaves[i];
-    if (registro[chave] != null && String(registro[chave]).trim() !== "") {
-      return String(registro[chave]).trim();
-    }
+    if (registro[chave] == null) continue;
+    const v = registro[chave];
+    if (v instanceof Date && !isNaN(v.getTime())) return v;
+    if (String(v).trim() !== "") return String(v).trim();
   }
 
   const lista = (chaves || []).map(function (a) {
@@ -681,10 +631,35 @@ function valorRegistroContrato(registro, chaves) {
     const k = chavesRegistro[j];
     if (k === "_linha") continue;
     if (lista.indexOf(normalizarChavePlanilha(k)) === -1) continue;
-    const s = String(registro[k] ?? "").trim();
+    const v = registro[k];
+    if (v instanceof Date && !isNaN(v.getTime())) return v;
+    const s = String(v ?? "").trim();
     if (s) return s;
   }
   return "";
+}
+
+/** Colunas fixas do cadastro (índice 0 = A) usadas na impressão do contrato. */
+const CONTRATOS_COLUNAS_IMPRESSAO = {
+  "local-assinatura": 7,
+  "data-contrato": 29,
+};
+
+function enrichirRegistroContratoColunas(registro, valores) {
+  if (!valores || !valores.length) return registro;
+  Object.keys(CONTRATOS_COLUNAS_IMPRESSAO).forEach(function (id) {
+    const idx = CONTRATOS_COLUNAS_IMPRESSAO[id];
+    if (idx >= valores.length) return;
+    if (valorRegistroContrato(registro, [id, id.replace(/-/g, " ")])) return;
+    const bruto = valores[idx];
+    if (bruto == null) return;
+    if (bruto instanceof Date && !isNaN(bruto.getTime())) {
+      registro[id] = bruto;
+      return;
+    }
+    if (String(bruto).trim() !== "") registro[id] = bruto;
+  });
+  return registro;
 }
 
 function formatarCpfContrato(valor) {
@@ -761,39 +736,168 @@ function formatarDataContratoExtenso(data) {
   return dia + " de " + nomeMes + " de " + ano;
 }
 
-function remuneracaoPorTipoContrato(tipoContrato) {
+// Carga horária no contrato conforme coluna M (tipo-contrato).
+const CARGA_HORARIA_POR_TIPO_CONTRATO = {
+  "apoiador meio periodo": "04",
+  "apoiador periodo integral": "08",
+  "apoiador lider": "08",
+};
+
+function cargaHorariaPorTipoContrato(tipoContrato) {
   const chave = normalizarChavePlanilha(tipoContrato || "");
-  const mapa = CONTRATO_CAMPANHA.REMUNERACAO_POR_TIPO || {};
+  const mapa = CARGA_HORARIA_POR_TIPO_CONTRATO;
   const chaves = Object.keys(mapa);
   for (let i = 0; i < chaves.length; i++) {
     if (normalizarChavePlanilha(chaves[i]) === chave) return mapa[chaves[i]];
   }
-  return CONTRATO_CAMPANHA.REMUNERACAO_PADRAO;
+  return "____";
 }
 
-function montarBlocoContratante() {
-  const c = CONTRATO_CAMPANHA;
-  return (
-    c.CONTRATANTE_RAZAO +
-    ", inscrito no CNPJ nº " +
-    c.CONTRATANTE_CNPJ +
-    ", com sede a " +
-    c.CONTRATANTE_ENDERECO +
-    ", neste ato representado pelo seu " +
-    c.REPRESENTANTE_CARGO +
-    " " +
-    c.REPRESENTANTE_NOME +
-    ", " +
-    c.REPRESENTANTE_NACIONALIDADE +
-    ", " +
-    c.REPRESENTANTE_PROFISSAO +
-    ", portador da cédula de identidade nº " +
-    c.REPRESENTANTE_RG +
-    " e cadastro de pessoa física nº " +
-    c.REPRESENTANTE_CPF +
-    ", residente e domiciliado à " +
-    c.REPRESENTANTE_ENDERECO
-  );
+function parseValorMonetarioContrato(valor) {
+  if (valor == null || valor === "") return null;
+  if (typeof valor === "number" && !isNaN(valor)) {
+    return Math.round(Math.abs(valor) * 100);
+  }
+  let s = String(valor).trim().replace(/\s/g, "").replace(/R\$/gi, "");
+  if (!s) return null;
+  if (s.indexOf(",") >= 0) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  }
+  const n = parseFloat(s);
+  if (isNaN(n)) return null;
+  return Math.round(Math.abs(n) * 100);
+}
+
+function formatarValorSalarioContrato(valor) {
+  const centavos = parseValorMonetarioContrato(valor);
+  if (centavos == null) return "";
+  const reais = Math.floor(centavos / 100);
+  const cents = centavos % 100;
+  const reaisFmt = String(reais).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return reaisFmt + "," + String(cents).padStart(2, "0");
+}
+
+function extensoGrupoMonetario(n) {
+  if (!n) return "";
+  const unidades = [
+    "",
+    "um",
+    "dois",
+    "três",
+    "quatro",
+    "cinco",
+    "seis",
+    "sete",
+    "oito",
+    "nove",
+  ];
+  const dezes = [
+    "dez",
+    "onze",
+    "doze",
+    "treze",
+    "quatorze",
+    "quinze",
+    "dezesseis",
+    "dezessete",
+    "dezoito",
+    "dezenove",
+  ];
+  const dezenas = [
+    "",
+    "",
+    "vinte",
+    "trinta",
+    "quarenta",
+    "cinquenta",
+    "sessenta",
+    "setenta",
+    "oitenta",
+    "noventa",
+  ];
+  const centenas = [
+    "",
+    "cem",
+    "duzentos",
+    "trezentos",
+    "quatrocentos",
+    "quinhentos",
+    "seiscentos",
+    "setecentos",
+    "oitocentos",
+    "novecentos",
+  ];
+  if (n === 100) return "cem";
+  let r = "";
+  const c = Math.floor(n / 100);
+  const resto = n % 100;
+  if (c) r += centenas[c];
+  if (resto >= 10 && resto < 20) {
+    if (r) r += " e ";
+    r += dezes[resto - 10];
+  } else {
+    const d = Math.floor(resto / 10);
+    const u = resto % 10;
+    if (d) {
+      if (r) r += " e ";
+      r += dezenas[d];
+    }
+    if (u) {
+      if (r) r += " e ";
+      r += unidades[u];
+    }
+  }
+  return r;
+}
+
+function valorMonetarioPorExtenso(valor) {
+  const centavos = parseValorMonetarioContrato(valor);
+  if (centavos == null) return "";
+  const reais = Math.floor(centavos / 100);
+  const cents = centavos % 100;
+  let txt = "";
+  if (reais === 0) {
+    txt = "zero reais";
+  } else if (reais === 1) {
+    txt = "um real";
+  } else {
+    const mil = Math.floor(reais / 1000);
+    const resto = reais % 1000;
+    const partes = [];
+    if (mil) {
+      partes.push(mil === 1 ? "mil" : extensoGrupoMonetario(mil) + " mil");
+    }
+    if (resto) {
+      if (partes.length && resto < 100) partes.push("e");
+      partes.push(extensoGrupoMonetario(resto));
+    }
+    txt = partes.join(" ").replace(/\s+/g, " ").trim() + " reais";
+  }
+  if (cents) {
+    const cTxt =
+      cents === 1 ? "um centavo" : extensoGrupoMonetario(cents) + " centavos";
+    txt += " e " + cTxt;
+  }
+  return txt.toLowerCase();
+}
+
+function parseDataContratoPlanilha(valor) {
+  if (valor instanceof Date && !isNaN(valor.getTime())) return valor;
+  const s = String(valor ?? "").trim();
+  if (!s) return null;
+  const br = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+  if (br) {
+    const ano = br[3].length === 2 ? "20" + br[3] : br[3];
+    const d = new Date(Number(ano), Number(br[2]) - 1, Number(br[1]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 function montarBlocoContratado(registro) {
@@ -803,90 +907,96 @@ function montarBlocoContratado(registro) {
     "nome",
   ]);
   const cpf = formatarCpfContrato(valorRegistroContrato(registro, ["cpf"]));
-  const titulo = valorRegistroContrato(registro, [
-    "titulo-eleitor",
-    "titulo eleitor",
-    "título de eleitor",
-  ]);
   const municipio = valorRegistroContrato(registro, ["municipio", "município"]);
 
   let bloco = nome || "________________________";
-  const partesDoc = [];
-  if (titulo) partesDoc.push("título de eleitor nº " + titulo);
-  if (cpf) partesDoc.push("cadastro de pessoa física nº " + cpf);
-  if (partesDoc.length === 1) {
-    bloco += ", portador(a) do " + partesDoc[0];
-  } else if (partesDoc.length === 2) {
-    bloco +=
-      ", portador(a) do " + partesDoc[0] + " e do " + partesDoc[1];
+  if (cpf) {
+    bloco += ", portador(a) do cadastro de pessoa física nº " + cpf;
   }
   if (municipio) bloco += ", residente e domiciliado(a) em " + municipio + "-MT";
   return bloco;
 }
 
+function nomeContratadoRegistro(registro) {
+  return valorRegistroContrato(registro, [
+    "nome-completo",
+    "nome completo",
+    "nome",
+  ]);
+}
+
+/**
+ * Substitui {{contratado-bloco}} e deixa o nome do contratado em negrito.
+ */
+function substituirTextoMarcadorContratadoBloco(textEl, start, end, bloco, nome) {
+  textEl.deleteText(start, end);
+  textEl.insertText(start, bloco);
+  if (nome) {
+    const fimNegrito = start + nome.length - 1;
+    if (fimNegrito >= start) {
+      textEl.setBold(start, fimNegrito, true);
+    }
+  }
+}
+
+function substituirContratadoBlocoDocumento(doc, registro) {
+  const nome = nomeContratadoRegistro(registro);
+  const bloco = montarBlocoContratado(registro);
+  const regex = regexMarcadorCampo("contratado-bloco");
+  const literais = [
+    "{{contratado-bloco}}",
+    "{ {contratado-bloco} }",
+    "{{ contratado-bloco }}",
+  ];
+  const partes = partesSubstituiveisDocumento(doc);
+
+  partes.forEach(function (parte) {
+    let found = parte.findText(regex);
+    while (found) {
+      const textEl = found.getElement().asText();
+      substituirTextoMarcadorContratadoBloco(
+        textEl,
+        found.getStartOffset(),
+        found.getEndOffsetInclusive(),
+        bloco,
+        nome
+      );
+      found = parte.findText(regex, found);
+    }
+    literais.forEach(function (lit) {
+      let f = parte.findText(escaparRegexDocs(lit));
+      while (f) {
+        const textEl = f.getElement().asText();
+        substituirTextoMarcadorContratadoBloco(
+          textEl,
+          f.getStartOffset(),
+          f.getEndOffsetInclusive(),
+          bloco,
+          nome
+        );
+        f = parte.findText(escaparRegexDocs(lit), f);
+      }
+    });
+  });
+}
+
 function camposMarcadoresContrato() {
   return [
     { id: "nome-completo", aliases: ["nome-completo", "nome completo", "nome"] },
-    { id: "nome-mae", aliases: ["nome-mae", "nome mae", "nome mãe"] },
-    { id: "nome-pai", aliases: ["nome-pai", "nome pai"] },
     { id: "cpf", aliases: ["cpf"], formatar: formatarCpfContrato },
-    { id: "celular", aliases: ["celular", "telefone", "cel"], formatar: formatarCelularContrato },
-    {
-      id: "data-nascimento",
-      aliases: [
-        "data-nascimento",
-        "data nascimento",
-        "data de nascimento",
-        "nascimento",
-        "dt-nascimento",
-        "dt nascimento",
-      ],
-      formatar: formatarDataNascimentoContrato,
-    },
-    {
-      id: "titulo-eleitor",
-      aliases: ["titulo-eleitor", "titulo eleitor", "título de eleitor"],
-    },
+    { id: "titulo-eleitor", aliases: ["titulo-eleitor", "titulo eleitor", "título de eleitor"] },
     { id: "municipio", aliases: ["municipio", "município"] },
-    {
-      id: "vinculado-coordenador",
-      aliases: [
-        "vinculado-coordenador",
-        "vinculado coordenador",
-        "vinculo",
-        "vínculo",
-      ],
-    },
-    {
-      id: "coordenador",
-      aliases: [
-        "vinculado-coordenador",
-        "vinculado coordenador",
-        "vinculo",
-        "vínculo",
-      ],
-    },
     { id: "tipo-contrato", aliases: ["tipo-contrato", "tipo contrato"] },
-    {
-      id: "recebe-bolsa-familia",
-      aliases: ["recebe-bolsa-familia", "recebe bolsa familia"],
-    },
-    { id: "lancamento-sistema", aliases: ["lancamento-sistema", "lancamento sistema"] },
     { id: "valor-contrato", aliases: ["valor-contrato", "valor contrato", "valor do contrato"] },
-    { id: "chave-pix", aliases: ["chave-pix", "chave pix", "pix"] },
-    { id: "titulo-eleicoes", aliases: [] },
-    { id: "ano-campanha", aliases: [] },
-    { id: "contratante-bloco", aliases: [] },
+    {
+      id: "local-assinatura",
+      aliases: ["local-assinatura", "local assinatura", "local de assinatura"],
+    },
+    { id: "data-contrato", aliases: ["data-contrato", "data contrato"] },
     { id: "contratado-bloco", aliases: [] },
-    { id: "objeto-servico", aliases: [] },
     { id: "carga-horaria", aliases: [] },
-    { id: "valor-remuneracao", aliases: [] },
-    { id: "valor-extenso", aliases: [] },
-    { id: "cargo-candidato", aliases: [] },
-    { id: "data-fim-campanha", aliases: [] },
-    { id: "foro", aliases: [] },
-    { id: "local-assinatura", aliases: [] },
-    { id: "data-contrato", aliases: [] },
+    { id: "valor-salario", aliases: [] },
+    { id: "valor-salario-extenso", aliases: [] },
     { id: "data-contrato-extenso", aliases: [] },
   ];
 }
@@ -894,34 +1004,36 @@ function camposMarcadoresContrato() {
 function montarMapaSubstituicoesContrato(registro) {
   const mapa = {};
   const campos = camposMarcadoresContrato();
-  const tipoContrato = valorRegistroContrato(registro, [
-    "tipo-contrato",
-    "tipo contrato",
-  ]);
-  const remuneracao = remuneracaoPorTipoContrato(tipoContrato);
-  const campanha = CONTRATO_CAMPANHA;
 
   campos.forEach(function (campo) {
     let valor = valorRegistroContrato(registro, campo.aliases);
     if (campo.formatar) valor = campo.formatar(valor);
-    mapa[campo.id] = valor;
+    if (campo.aliases.length) mapa[campo.id] = valor;
   });
 
-  mapa["titulo-eleicoes"] = campanha.TITULO_ELEICOES;
-  mapa["ano-campanha"] = String(campanha.ANO);
-  mapa["contratante-bloco"] = montarBlocoContratante();
+  const tipoContrato = valorRegistroContrato(registro, ["tipo-contrato", "tipo contrato"]);
+  const valorContrato = valorRegistroContrato(registro, [
+    "valor-contrato",
+    "valor contrato",
+    "valor do contrato",
+  ]);
+  const localAssinatura = valorRegistroContrato(registro, [
+    "local-assinatura",
+    "local assinatura",
+    "local de assinatura",
+  ]);
+  const dataContratoRaw = valorRegistroContrato(registro, ["data-contrato", "data contrato"]);
+  const dataContrato = parseDataContratoPlanilha(dataContratoRaw);
+
   mapa["contratado-bloco"] = montarBlocoContratado(registro);
-  mapa["objeto-servico"] = remuneracao.objeto;
-  mapa["carga-horaria"] = remuneracao.horas;
-  mapa["valor-remuneracao"] = remuneracao.valor;
-  mapa["valor-extenso"] = remuneracao.extenso;
-  mapa["cargo-candidato"] = campanha.CARGO_CANDIDATO;
-  mapa["data-fim-campanha"] = campanha.DATA_FIM_CAMPANHA;
-  mapa["foro"] = campanha.FORO;
-  mapa["local-assinatura"] = campanha.LOCAL_ASSINATURA;
-  const dataContrato = new Date();
-  mapa["data-contrato"] = formatarDataContrato(dataContrato);
-  mapa["data-contrato-extenso"] = formatarDataContratoExtenso(dataContrato);
+  mapa["carga-horaria"] = cargaHorariaPorTipoContrato(tipoContrato);
+  mapa["valor-salario"] = formatarValorSalarioContrato(valorContrato);
+  mapa["valor-salario-extenso"] = valorMonetarioPorExtenso(valorContrato);
+  mapa["local-assinatura"] = String(localAssinatura || "").trim();
+  mapa["data-contrato"] = dataContrato ? formatarDataContrato(dataContrato) : "";
+  mapa["data-contrato-extenso"] = dataContrato
+    ? formatarDataContratoExtenso(dataContrato)
+    : "";
 
   Object.keys(registro).forEach(function (chave) {
     if (chave === "_linha") return;
@@ -930,8 +1042,9 @@ function montarMapaSubstituicoesContrato(registro) {
       mapa.cpf = formatarCpfContrato(registro[chave]);
       return;
     }
-    if (mapa[norm.replace(/ /g, "-")] == null) {
-      mapa[norm.replace(/ /g, "-")] = String(registro[chave] ?? "").trim();
+    const id = norm.replace(/ /g, "-");
+    if (mapa[id] == null) {
+      mapa[id] = String(registro[chave] ?? "").trim();
     }
   });
 
@@ -971,6 +1084,7 @@ function substituirMarcadoresDocumento(doc, mapa) {
   const partes = partesSubstituiveisDocumento(doc);
 
   Object.keys(mapa).forEach(function (idMarcador) {
+    if (idMarcador === "contratado-bloco") return;
     const valor = mapa[idMarcador] != null ? String(mapa[idMarcador]) : "";
     const regex = regexMarcadorCampo(idMarcador);
     partes.forEach(function (parte) {
@@ -1114,6 +1228,7 @@ function gerarPdfContratoDeRegistro(registro, pastaId) {
 
   const copia = modelo.makeCopy("Contrato - " + nomeBase);
   const doc = DocumentApp.openById(copia.getId());
+  substituirContratadoBlocoDocumento(doc, registro);
   substituirMarcadoresDocumento(doc, montarMapaSubstituicoesContrato(registro));
   doc.saveAndClose();
 
@@ -1153,6 +1268,7 @@ function imprimirContratoPdf(corpo) {
     const cabecalhos = sheet.getRange(1, 1, 1, ultimaColuna).getValues()[0];
     const existente = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
     registro = linhaParaObjeto(cabecalhos, existente);
+    enrichirRegistroContratoColunas(registro, existente);
     const prov = provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos);
     pastaId = prov.pastaId;
   }
@@ -1434,13 +1550,20 @@ function atualizarLinhaPagamentosLideranca(sheet, numLinha, existente, cabecalho
   return novaLinha;
 }
 
-// Material gráfico: A–H (item…saldo) são só leitura no app; editar só I→ (municípios).
-// Saldo (H) costuma ser fórmula na planilha — nunca regravar.
-const MATERIAL_GRAFICO_COL_PRIMEIRO_MUNICIPIO = 8; // I (0-based)
+// Material gráfico: A–I (item…saldo) são só leitura no app; editar só J→ (municípios).
+// Saldo (I) costuma ser fórmula na planilha — nunca regravar.
+const MATERIAL_GRAFICO_COL_PRIMEIRO_MUNICIPIO = 9; // J (0-based)
+
+function indicePrimeiroMunicipioMaterialGrafico(cabecalhos) {
+  const idxSaldo = indiceColunaCabecalho(cabecalhos, ["saldo"]);
+  if (idxSaldo >= 0) return idxSaldo + 1;
+  return MATERIAL_GRAFICO_COL_PRIMEIRO_MUNICIPIO;
+}
 
 function atualizarLinhaMaterialGrafico(sheet, numLinha, existente, cabecalhos, dados) {
   const novaLinha = existente.slice();
-  for (let i = MATERIAL_GRAFICO_COL_PRIMEIRO_MUNICIPIO; i < cabecalhos.length; i++) {
+  const inicioMun = indicePrimeiroMunicipioMaterialGrafico(cabecalhos);
+  for (let i = inicioMun; i < cabecalhos.length; i++) {
     const col = cabecalhos[i];
     const val = valorDadosColuna(dados, col);
     if (val === undefined) continue;
@@ -1450,9 +1573,8 @@ function atualizarLinhaMaterialGrafico(sheet, numLinha, existente, cabecalhos, d
   return novaLinha;
 }
 
-// Colaboradores (contratos): coluna N — saldo-contrato com fórmula (valor menos pgto-1…4 e pgto-parceiro); nunca regravar na atualização.
+// Colaboradores (contratos): coluna P — saldo-contrato com fórmula (valor menos pgto-1…4 e pgto-parceiro); nunca regravar na atualização.
 function ehColunaSaldoContratoPlanilha(col, indiceZero) {
-  if (indiceZero === 13) return true;
   const norm = normalizarChavePlanilha(col);
   return norm === "saldo-contrato" || norm === "saldo contrato" || norm === "saldo do contrato";
 }
@@ -1506,6 +1628,42 @@ function garantirColunaDataNascimentoContratos(sheet) {
   sheet.insertColumnAfter(colCelular1Based);
   sheet.getRange(1, colCelular1Based + 1).setValue("data-nascimento");
   SpreadsheetApp.flush();
+}
+
+function garantirColunaLocalAssinaturaContratos(sheet) {
+  const colH1Based = 8;
+  const ultimaCol = Math.max(sheet.getLastColumn(), colH1Based);
+  const cabecalhos = sheet.getRange(1, 1, 1, ultimaCol).getValues()[0];
+  if (
+    indiceColunaCabecalho(cabecalhos, [
+      "local-assinatura",
+      "local assinatura",
+      "local de assinatura",
+    ]) !== -1
+  ) {
+    return;
+  }
+
+  const headerAtH = cabecalhos[colH1Based - 1];
+  if (headerAtH == null || String(headerAtH).trim() === "") {
+    sheet.getRange(1, colH1Based).setValue("local-assinatura");
+    SpreadsheetApp.flush();
+  }
+}
+
+function garantirColunaDataContratoContratos(sheet) {
+  const colAd1Based = 30;
+  const ultimaCol = Math.max(sheet.getLastColumn(), colAd1Based);
+  const cabecalhos = sheet.getRange(1, 1, 1, ultimaCol).getValues()[0];
+  if (indiceColunaCabecalho(cabecalhos, ["data-contrato", "data contrato"]) !== -1) {
+    return;
+  }
+
+  const headerAtAd = cabecalhos[colAd1Based - 1];
+  if (headerAtAd == null || String(headerAtAd).trim() === "") {
+    sheet.getRange(1, colAd1Based).setValue("data-contrato");
+    SpreadsheetApp.flush();
+  }
 }
 
 function garantirColunasArquivosContratos(sheet) {
@@ -1865,7 +2023,7 @@ function indiceSaldoContratoCabecalho(cabecalhos) {
   for (let i = 0; i < cabecalhos.length; i++) {
     if (ehColunaSaldoContratoPlanilha(cabecalhos[i], i)) return i;
   }
-  return cabecalhos.length > 13 ? 13 : -1;
+  return cabecalhos.length > 15 ? 15 : -1;
 }
 
 function valorNumericoSaldoContrato(val) {
@@ -1950,8 +2108,8 @@ function formulaSaldoContratoParaLinha(numLinha, cabecalhos, sheet) {
     "valor contrato",
     "valor do contrato",
   ]);
-  if (idxValor < 0 && cabecalhos.length > 12) {
-    idxValor = 12;
+  if (idxValor < 0 && cabecalhos.length > 14) {
+    idxValor = 14;
   }
   if (idxValor < 0) return null;
 
@@ -2017,13 +2175,26 @@ function aplicarFormulaSaldoContratoLinha(sheet, numLinha, cabecalhos) {
   }
 }
 
+function ehColunaLancamentoSistemaContrato(col, indiceZero) {
+  if (indiceZero === 11) return true;
+  const norm = normalizarChavePlanilha(col);
+  return (
+    norm === "lancamento sistema" ||
+    norm === "lancamento-sistema" ||
+    norm === "lancar sistema" ||
+    norm === "lançamento sistema" ||
+    norm === "lançar sistema"
+  );
+}
+
 function inserirLinhaContratos(sheet, cabecalhos, dados, corpo) {
   const agora = dataHoraCadastroContratoFormatada();
   const linha = cabecalhos.map(function (col, i) {
     if (ehColunaDataHoraCadastroContrato(col, i)) return agora;
     if (ehColunaSaldoContratoPlanilha(col, i)) return "";
     const val = valorDadosColuna(dados, col);
-    if (val !== undefined) return val;
+    if (val !== undefined && String(val).trim() !== "") return val;
+    if (ehColunaLancamentoSistemaContrato(col, i)) return "N";
     if (corpo[col] != null) return corpo[col];
     return "";
   });
@@ -2174,8 +2345,8 @@ function indiceParPgtoParceiroContratos(cabecalhos) {
     "data pgto parceiro",
     "data-pgto parceiro",
   ]);
-  if (ip < 0) ip = 23;
-  if (id < 0) id = 24;
+  if (ip < 0) ip = 25;
+  if (id < 0) id = 26;
   return { pgto: ip, data: id };
 }
 
@@ -2186,12 +2357,12 @@ function indicesParesPgtoContratos(cabecalhos) {
     { pgto: ["pgto-3", "pgto 3"], data: ["data-pgto-3", "data pgto 3", "data pgto-3"] },
     { pgto: ["pgto-4", "pgto 4"], data: ["data-pgto-4", "data pgto 4", "data pgto-4"] },
   ];
-  // Fallback: colunas O/P, Q/R, S/T, U/V (índice zero). pgto-parceiro (X/Y) não entra no lançamento automático PIX.
+  // Fallback: colunas Q/R, S/T, U/V, W/X (índice zero). pgto-parceiro (Z/AA) não entra no lançamento automático PIX.
   const fallback = [
-    [14, 15],
     [16, 17],
     [18, 19],
     [20, 21],
+    [22, 23],
   ];
   const pares = [];
   for (let i = 0; i < defs.length; i++) {
@@ -2409,6 +2580,8 @@ function doPostPlanilha(corpo) {
   if (deveAuditarContratos(planilha)) {
     garantirColunaCelularContratos(sheet);
     garantirColunaDataNascimentoContratos(sheet);
+    garantirColunaLocalAssinaturaContratos(sheet);
+    garantirColunaDataContratoContratos(sheet);
   }
 
   const ultimaColuna = sheet.getLastColumn();
@@ -3269,75 +3442,17 @@ function atualizarEventoAgenda(corpo) {
 // ===================== UTIL / AUTORIZAÇÃO MANUAL =====================
 
 /**
- * Reescreve o Google Doc modelo-contrato com o texto padrão (Eleição 2026).
- * Rode no editor Apps Script após colar o BackendPlanilhas.gs atualizado.
+ * O modelo Google Doc é mantido manualmente no Drive (link em AUTORIZAR-IMPRESSAO.md).
+ * Não reescreve o Doc automaticamente — evita apagar formatação.
  */
 function atualizarModeloContratoNoDrive() {
   const modelo = obterArquivoModeloContrato();
-  const doc = DocumentApp.openById(modelo.getId());
-  const corpo = doc.getBody();
-  corpo.clear();
-
-  const linhas = [
-    "CONTRATO DE PRESTAÇÃO DE SERVIÇO PARA CAMPANHA ELEITORAL – {{titulo-eleicoes}}",
-    "",
-    "CONTRATANTE: {{contratante-bloco}}",
-    "",
-    "CONTRATADO: {{contratado-bloco}}. As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Prestação de Serviços por Prazo Determinado para fins da Campanha Eleitoral {{ano-campanha}}, com base no Artigo 100 da Lei nº 9.504/1997 e mediante as seguintes cláusulas e condições:",
-    "",
-    "DO OBJETO DO CONTRATO",
-    "Cláusula Primeira: É objeto do presente contrato a prestação de serviços {{objeto-servico}} para a Campanha Eleitoral {{ano-campanha}}. Parágrafo Único: A prestação de serviços consistirá na realização de tarefas ou atividades mencionadas no caput deste artigo, por {{carga-horaria}} horas diárias, de segunda a sábado, sob a supervisão da coordenação – comitê.",
-    "",
-    "DAS OBRIGAÇÕES DO CONTRATADO",
-    "Cláusula Segunda: O CONTRATADO obriga-se a prestar os serviços respeitando os bons modos e costumes, adotando uma conduta ética e moral e respeitando as regras sociais e legais de modo a não denegrir, sob qualquer pretexto, o nome e a imagem do CONTRATANTE. §1º. Se, a qualquer título, a conduta do CONTRATADO deixar a desejar ou ferir os preceitos, não limitados, mencionados no caput desta cláusula, fica facultado ao CONTRATANTE rescindir o presente contrato de prestação de serviços, sem que seja devido ao CONTRATADO qualquer espécie de indenização.",
-    "§2º. Qualquer prejuízo que, eventualmente, venha a ser causado ao CONTRATANTE em face de conduta inadequada do CONTRATADO, facultará ao CONTRATANTE cobrá-lo do CONTRATADO ou descontar-lhe da remuneração que este tiver a receber, independentemente da faculdade de rescindir o contrato de prestação de serviços.",
-    "",
-    "DAS OBRIGAÇÕES DO CONTRATANTE",
-    "Cláusula Terceira: O CONTRATANTE obriga-se a dar o suporte físico, técnico e pessoal necessário para que o CONTRATADO possa bem exercer seus serviços, tarefas e atividades.",
-    "Cláusula Quarta: O CONTRATANTE obriga-se a pagar dentro do prazo ajustado pelas partes a remuneração devida ao CONTRATADO em face de sua prestação de serviços.",
-    "",
-    "DA REMUNERAÇÃO PELOS SERVIÇOS PRESTADOS",
-    "Cláusula Quinta: Pela prestação dos serviços ajustados neste instrumento, o CONTRATANTE pagará ao CONTRATADO a quantia mensal de R$ {{valor-remuneracao}} ({{valor-extenso}}), a serem pagos em 01 parcela. Parágrafo Único: Na eventualidade de ocorrer a rescisão do contrato antes de cumprida a carga horária semanal da prestação de serviços, a remuneração será paga pro-rata tempore pelo CONTRATANTE ao CONTRATADO.",
-    "",
-    "DO PRAZO DA PRESTAÇÃO DE SERVIÇOS",
-    "Cláusula Sexta: Como a prestação de serviços é contratada para a CAMPANHA ELEITORAL DE {{ano-campanha}}, da qual o CONTRATANTE participa como candidato à {{cargo-candidato}} seu prazo de duração está diretamente relacionado ao prazo de duração da Campanha Eleitoral, iniciando-se a partir da assinatura deste instrumento e terminado em {{data-fim-campanha}}.",
-    "",
-    "DAS CONDIÇÕES GERAIS",
-    "Cláusula Sétima: O presente contrato é ajustado pelas partes sem que haja ou gere vínculo empregatício, sendo regulado pela Lei nº 9.504, de 30 de setembro de 1997 e pelo Código Civil Brasileiro.",
-    "",
-    "DO FORO",
-    "Cláusula Oitava: Para dirimir quaisquer controvérsias oriundas do presente contrato, as partes elegem o foro da Comarca de {{foro}}, renunciando a qualquer outro.",
-    "E, por estarem justas e acordadas, as partes assinam o presente Contrato de Prestação de Serviços por Prazo Determinado para fins de Campanha Eleitoral {{ano-campanha}}, em 02 (duas) vias de iguais teor e forma, na presença de testemunhas.",
-    "",
-    "{{local-assinatura}}, {{data-contrato}}.",
-    "",
-    "_____________________                                        ______________________",
-    "CONTRATANTE                                                  CONTRATADO",
-    "",
-    "TESTEMUNHAS:    1:________________________                    2:_____________________",
-  ];
-
-  linhas.forEach(function (texto, indice) {
-    const par = corpo.appendParagraph(texto);
-    if (indice === 0) {
-      par.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-      par.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-    } else if (
-      texto.indexOf("DO OBJETO") === 0 ||
-      texto.indexOf("DAS OBRIGAÇÕES DO CONTRATADO") === 0 ||
-      texto.indexOf("DAS OBRIGAÇÕES DO CONTRATANTE") === 0 ||
-      texto.indexOf("DA REMUNERAÇÃO") === 0 ||
-      texto.indexOf("DO PRAZO") === 0 ||
-      texto.indexOf("DAS CONDIÇÕES") === 0 ||
-      texto.indexOf("DO FORO") === 0
-    ) {
-      par.setBold(true);
-    }
-  });
-
-  doc.saveAndClose();
   Logger.log(
-    "Modelo atualizado: " + modelo.getName() + " (id " + modelo.getId() + ")"
+    "Modelo atual no Drive: " +
+      modelo.getName() +
+      " (id " +
+      modelo.getId() +
+      "). Edite diretamente no Google Docs — ver AUTORIZAR-IMPRESSAO.md."
   );
   return modelo.getUrl();
 }
@@ -3350,9 +3465,12 @@ function testarImpressaoContrato() {
   const registroTeste = {
     "nome-completo": "Teste Autorização",
     cpf: "123.456.789-09",
-    municipio: "Teste",
-    "vinculado-coordenador": "Coordenador Teste",
-    "tipo-contrato": "apoiador 30 dias",
+    municipio: "Água Boa",
+    "titulo-eleitor": "123456789012",
+    "tipo-contrato": "apoiador meio período",
+    "valor-contrato": "600",
+    "local-assinatura": "Água Boa/MT",
+    "data-contrato": "15/08/2026",
   };
 
   const pdf = gerarPdfContratoDeRegistro(registroTeste);

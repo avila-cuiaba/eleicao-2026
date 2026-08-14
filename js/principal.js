@@ -70,6 +70,7 @@ const PAGINAS = {
     titulo: "logística",
     subtitulo: "material gráfico",
     arquivo: "pages/logistica-material-grafico.html",
+    atualizar: true,
     menuGrupo: "logistica",
   },
   "logistica-abastecimento": {
@@ -292,7 +293,7 @@ function abrirRelatorioHtml(html) {
   if (!html) return false;
   if (window.Relatorio?.abrirJanelaRelatorio?.(html)) return true;
 
-  const janela = window.open("", "_blank");
+  const janela = window.open("about:blank", "_blank");
   if (!janela) {
     window.alert("permita pop-ups para gerar o PDF.");
     return false;
@@ -300,6 +301,9 @@ function abrirRelatorioHtml(html) {
   janela.document.open();
   janela.document.write(html);
   janela.document.close();
+  if (window.Relatorio?.aplicarTituloImpressaoDocumento) {
+    Relatorio.aplicarTituloImpressaoDocumento(janela.document);
+  }
   return true;
 }
 
@@ -520,6 +524,21 @@ window.ehMobileShell = ehMobileShell;
 document.addEventListener("DOMContentLoaded", () => {
   AUTH.exigir();
 
+  if (window.CONFIG?.EXIGIR_LOGIN) {
+    const checarSessao = () => {
+      if (AUTH.sessaoExpirada()) {
+        AUTH.limpar();
+        AUTH.irLogin();
+        return false;
+      }
+      return true;
+    };
+    setInterval(checarSessao, 60000);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") checarSessao();
+    });
+  }
+
   const id = paginaDaUrl();
   const cfg = PAGINAS[id];
   const frame = document.getElementById("appFrame");
@@ -559,6 +578,19 @@ window.addEventListener("popstate", (e) => {
 });
 
 window.addEventListener("message", (event) => {
+  if (event.data?.tipo === "eleicao-login") {
+    const dest = event.data.url;
+    try {
+      if (dest && /login\.html/i.test(dest)) {
+        window.location.replace(dest);
+      } else {
+        window.location.replace("login.html");
+      }
+    } catch (e) {
+      window.location.href = "login.html";
+    }
+    return;
+  }
   if (event.data && event.data.tipo === "eleicao-nav" && event.data.pagina) {
     carregarPagina(event.data.pagina);
     return;

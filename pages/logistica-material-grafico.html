@@ -55,24 +55,46 @@
       <div class="modal-content">
         <div class="modal-header py-2">
           <h2 class="modal-title h6 mb-0" id="modalEntregasTitulo">entregas</h2>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          <div class="d-flex align-items-center gap-1 ms-auto">
+            <button
+              type="button"
+              id="btnEntregasRelatorio"
+              class="mat-graf-btn-relatorio"
+              aria-label="imprimir relatório de entregas"
+              title="imprimir relatório"
+              disabled
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <path d="M6 9V2h12v7" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              <span class="visually-hidden">imprimir relatório</span>
+            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
         </div>
         <div class="modal-body py-3">
           <div id="modalEntregasTopoCrud" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
             <div class="d-flex flex-wrap align-items-center gap-2 min-w-0">
               <span id="modalEntregasMunicipio" class="mat-graf-mun-badge"></span>
-              <span id="modalEntregasItem" class="mat-graf-item-badge d-none"></span>
+              <div id="modalEntregasMaterialLinha" class="mat-graf-entrega-etiqueta-midia-linha d-none">
+                <span id="modalEntregasEtiqueta" class="mat-graf-entrega-etiqueta mat-graf-entrega-etiqueta--destaque"></span>
+                <span id="modalEntregasMidia" class="mat-graf-entrega-midia"></span>
+              </div>
             </div>
             <button type="button" class="btn btn-sm btn-primary" id="btnEntregaNovo">incluir</button>
           </div>
           <div id="modalEntregasTopoConsulta" class="mat-graf-consulta-topo d-none mb-3">
             <span id="modalEntregasMunConsulta" class="mat-graf-mun-badge"></span>
             <div class="mat-graf-consulta-item-linha">
-              <span id="modalEntregasItemConsulta" class="mat-graf-item-badge"></span>
+              <span id="modalEntregasEtiquetaConsulta" class="mat-graf-entrega-etiqueta mat-graf-entrega-etiqueta--destaque"></span>
               <span id="modalEntregasMidiaConsulta" class="mat-graf-entrega-midia"></span>
             </div>
-            <div id="modalEntregasPecaConsulta" class="mat-graf-consulta-peca"></div>
-            <div class="mat-graf-consulta-resumo" aria-label="resumo do item">
+            <div class="mat-graf-consulta-peca-linha">
+              <span id="modalEntregasPecaConsulta" class="mat-graf-entrega-peca"></span>
+            </div>
+            <div class="mat-graf-consulta-resumo" aria-label="resumo do material">
               <div class="mat-graf-consulta-resumo-item">
                 <span class="mat-graf-consulta-resumo-rotulo">previsto</span>
                 <span id="modalEntregasPrevistoConsulta" class="mat-graf-consulta-resumo-valor">0</span>
@@ -141,7 +163,7 @@
                 <table class="table table-sm align-middle mb-0 mat-graf-entregas-form-tabela">
                   <thead>
                     <tr>
-                      <th>item / peça / mídia</th>
+                      <th>etiqueta / peça / mídia</th>
                       <th class="text-end">saldo</th>
                       <th class="text-end">quantidade</th>
                       <th class="text-center mat-graf-entrega-ok-th" aria-label="confirmar quantidade"></th>
@@ -155,7 +177,7 @@
             <div id="entregaFormUnico" class="d-none">
               <div class="row g-2">
                 <div class="col-12 col-sm-8">
-                  <label for="entregaProduto" class="form-label small mb-1">item / peça / mídia</label>
+                  <label for="entregaProduto" class="form-label small mb-1">etiqueta / peça / mídia</label>
                   <select class="form-select form-select-sm" id="entregaProduto"></select>
                 </div>
                 <div class="col-12 col-sm-4">
@@ -182,6 +204,7 @@
   <script src="../js/page-loader.js"></script>
   <script src="../js/planilha-api.js"></script>
   <script src="../js/master-crud.js"></script>
+  <script src="../js/relatorio.js"></script>
   <script src="../js/material-grafico.js"></script>
 </body>
 </html>

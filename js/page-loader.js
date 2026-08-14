@@ -70,8 +70,14 @@ function statusPainel(el, msg, tipo) {
   else el.className = "alert d-none";
 }
 
+function mensagemErroCarregamento(erro) {
+  if (window.AUTH?.mensagemErroUsuario) return AUTH.mensagemErroUsuario(erro);
+  return String(erro?.message ?? erro ?? "Falha na operação.");
+}
+
 window.PageLoader = PageLoader;
 window.statusPainel = statusPainel;
+window.mensagemErroCarregamento = mensagemErroCarregamento;
 
 function notificarAlturaFrame() {
   try {

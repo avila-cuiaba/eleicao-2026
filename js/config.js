@@ -58,22 +58,23 @@ const CONFIG = {
     ABA: "",
     LINHA_CABECALHO: 1,
     LINHA_INICIO_DADOS: 2,
-    // A–H: identificação e totais; I→: quantitativos por município.
+    // A–I: identificação e totais; J→: quantitativos por município.
     COLUNA_ITEM: ["item"],
     COLUNA_PECA: ["peca", "peça"],
     COLUNA_MIDIA: ["midia", "mídia"],
+    COLUNA_ETIQUETA: ["etiqueta"],
     COLUNA_TIRAGEM_1: ["tiragem 1", "tiragem-1", "tiragem1"],
     COLUNA_TIRAGEM_2: ["tiragem 2", "tiragem-2", "tiragem2"],
     COLUNA_TIRAGEM_3: ["tiragem 3", "tiragem-3", "tiragem3"],
     COLUNA_TIRAGEM_4: ["tiragem 4", "tiragem-4", "tiragem4"],
     COLUNA_SALDO: ["saldo"],
-    INDICE_PRIMEIRO_MUNICIPIO: 8, // I
+    INDICE_PRIMEIRO_MUNICIPIO: 9, // J (após saldo em I)
     OCULTAR_ZERO_PADRAO: true,
     ENTREGAS: {
       PLANILHA: "material-grafico-entregas",
       ABA: "",
       LINHA_INICIO_DADOS: 2,
-      // Cabeçalhos: DATA | PECA | MIDIA | MUNICIPIO | QUANTIDADE | RECEBEDOR | ITEM
+      // A data | B peça | C mídia | D município | E quantidade | F recebedor | G etiqueta | H item
       COLUNA_DATA: ["data", "data-entrega", "data entrega", "dt"],
       COLUNA_PECA: ["peca", "peça"],
       COLUNA_MIDIA: ["midia", "mídia"],
@@ -88,7 +89,16 @@ const CONFIG = {
         "qtd entrega",
       ],
       COLUNA_RECEBEDOR: ["recebedor", "recebedora", "quem recebeu", "recebeu"],
-      COLUNA_ITEM: ["item"],
+      COLUNA_ETIQUETA: ["etiqueta"],
+      COLUNA_ITEM: ["item", "cod item", "codigo item", "código item"],
+      INDICE_DATA: 0,
+      INDICE_PECA: 1,
+      INDICE_MIDIA: 2,
+      INDICE_MUNICIPIO: 3,
+      INDICE_QUANTIDADE: 4,
+      INDICE_RECEBEDOR: 5,
+      INDICE_ETIQUETA: 6,
+      INDICE_ITEM: 7,
     },
   },
 
@@ -207,6 +217,7 @@ const CONFIG = {
       "funcionário",
     ],
     COLUNA_NOME_MAE: ["nome-mae", "nome mae", "nome mãe", "mae", "mãe"],
+    COLUNA_NOME_PAI: ["nome-pai", "nome pai", "pai"],
     COLUNA_CPF: ["cpf"],
     COLUNA_CELULAR: ["celular", "telefone", "cel"],
     COLUNA_DATA_NASCIMENTO: [
@@ -239,6 +250,12 @@ const CONFIG = {
       "valor do contrato",
     ],
     COLUNA_ASSINADO: ["assinado", "assinatura", "contrato-assinado", "contrato assinado"],
+    COLUNA_LOCAL_ASSINATURA: [
+      "local-assinatura",
+      "local assinatura",
+      "local de assinatura",
+    ],
+    COLUNA_DATA_CONTRATO: ["data-contrato", "data contrato"],
     COLUNA_ID_REGISTRO: ["id-registro", "id registro"],
     COLUNA_PASTA_DRIVE: ["pasta-drive-id", "pasta drive id"],
     // Pasta raiz no Drive para arquivos anexados (subpastas por registro).
@@ -279,6 +296,8 @@ const CONFIG = {
       SALDO_CONTRATO: 15,
       CHAVE_PIX: 16,
       ASSINADO: 24,
+      LOCAL_ASSINATURA: 7,
+      DATA_CONTRATO: 29,
       PGTO_PARCEIRO: 25,
       DATA_PGTO_PARCEIRO: 26,
     },
@@ -325,6 +344,8 @@ const CONFIG = {
       VINCULO: "liderança",
       VALOR_CONTRATO: "valor contrato",
       SALDO_CONTRATO: "saldo contrato",
+      LOCAL_ASSINATURA: "local assinatura",
+      DATA_CONTRATO: "data contrato",
     },
     CAMPOS_FORMULARIO: [
       {
@@ -459,6 +480,8 @@ const CONFIG = {
         indice: 11,
         largura: 6,
         grupo: "beneficios",
+        valorSim: "S",
+        valorNao: "N",
       },
       {
         id: "tipo-contrato",
@@ -482,6 +505,23 @@ const CONFIG = {
         indice: 14,
         largura: 6,
         grupo: "tipo-valor",
+      },
+      {
+        id: "local-assinatura",
+        aliases: ["local-assinatura", "local assinatura", "local de assinatura"],
+        rotulo: "local assinatura",
+        indice: 7,
+        largura: 6,
+        grupo: "assinatura-contrato",
+      },
+      {
+        id: "data-contrato",
+        aliases: ["data-contrato", "data contrato"],
+        rotulo: "data contrato",
+        tipo: "data",
+        indice: 29,
+        largura: 6,
+        grupo: "assinatura-contrato",
       },
       {
         id: "chave-pix",
@@ -513,6 +553,10 @@ const CONFIG = {
       "valor contrato",
       "saldo-contrato",
       "saldo contrato",
+      "local-assinatura",
+      "local assinatura",
+      "data-contrato",
+      "data contrato",
     ],
   },
 

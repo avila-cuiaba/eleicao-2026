@@ -10,6 +10,8 @@ let itens = [];
 /** registros da aba de entregas */
 let entregasRegs = [];
 let entregasCols = null;
+/** metadados das colunas da aba entregas (para gravação) */
+let entregasColunas = [];
 /** munNorm -> itemNorm -> soma entregas */
 let mapaEntregas = new Map();
 
@@ -69,6 +71,12 @@ const ICONE_LUPA =
 
 const ICONE_PACOTE_ENTREGAS =
   '<i class="fa-solid fa-cart-flatbed-boxes" aria-hidden="true"></i>';
+
+const ICONE_IMPRIMIR =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+  '<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>' +
+  '<path d="M6 14h12v8H6z"/>' +
+  "</svg>";
 
 function htmlAcoesEntrega(numLinha) {
   if (!podeEditarEntregas() || !numLinha) return "";
@@ -206,8 +214,115 @@ function acharColuna(cabecalho, aliases, indiceFallback) {
   return indiceFallback != null ? indiceFallback : -1;
 }
 
-function acharColunaObj(colunas, aliases) {
-  return PlanilhaApi.acharColuna(colunas, aliases, null);
+function acharColunaObj(colunas, aliases, indiceFallback) {
+  return PlanilhaApi.acharColuna(colunas, aliases, indiceFallback);
+}
+
+function colunaEntregasPorIndice(colunas, indice) {
+  if (indice == null || indice < 0) return null;
+  return colunas.find((c) => c.indice === indice) || null;
+}
+
+function resolverColEntrega(colunas, cabecalho, aliasesCfg, indiceCfg, excluir) {
+  const aliases = cfgEnt[aliasesCfg];
+  let col = PlanilhaApi.acharColuna(colunas, aliases, null);
+  if (col && excluir && col.indice === excluir.indice) col = null;
+  if (!col && cabecalho?.length) {
+    const idx = acharColuna(cabecalho, aliases, -1);
+    if (idx >= 0) {
+      col = colunaEntregasPorIndice(colunas, idx);
+      if (col && excluir && col.indice === excluir.indice) col = null;
+    }
+  }
+  if (!col && cfgEnt[indiceCfg] != null) {
+    col = colunaEntregasPorIndice(colunas, cfgEnt[indiceCfg]);
+    if (col && excluir && col.indice === excluir.indice) col = null;
+  }
+  return col;
+}
+
+function resolverColsEntregas(colunas, cabecalho) {
+  const cab = cabecalho?.length ? cabecalho : null;
+  let item = resolverColEntrega(colunas, cab, "COLUNA_ITEM", "INDICE_ITEM", null);
+  const etiqueta = resolverColEntrega(
+    colunas,
+    cab,
+    "COLUNA_ETIQUETA",
+    "INDICE_ETIQUETA",
+    item
+  );
+  if (!item && etiqueta?.indice === cfgEnt.INDICE_ETIQUETA) {
+    item = colunaEntregasPorIndice(colunas, cfgEnt.INDICE_ITEM);
+  }
+  return {
+    data: resolverColEntrega(colunas, cab, "COLUNA_DATA", "INDICE_DATA", null),
+    peca: resolverColEntrega(colunas, cab, "COLUNA_PECA", "INDICE_PECA", null),
+    midia: resolverColEntrega(colunas, cab, "COLUNA_MIDIA", "INDICE_MIDIA", null),
+    municipio: resolverColEntrega(colunas, cab, "COLUNA_MUNICIPIO", "INDICE_MUNICIPIO", null),
+    quantidade: resolverColEntrega(
+      colunas,
+      cab,
+      "COLUNA_QUANTIDADE",
+      "INDICE_QUANTIDADE",
+      null
+    ),
+    recebedor: resolverColEntrega(colunas, cab, "COLUNA_RECEBEDOR", "INDICE_RECEBEDOR", null),
+    etiqueta,
+    item,
+  };
+}
+
+function colsEntregasOk(cols) {
+  if (!cols?.municipio || !cols?.quantidade) return false;
+  return Boolean(cols.item || (cols.peca && cols.midia));
+}
+
+function mensagemColsEntregasFaltando(cols) {
+  const faltam = [];
+  if (!cols?.municipio) faltam.push("município");
+  if (!cols?.quantidade) faltam.push("quantidade");
+  if (!cols?.item && !(cols?.peca && cols?.midia)) {
+    faltam.push("item (coluna H) ou peça+mídia");
+  }
+  return faltam.join(", ");
+}
+
+function itemCodigoRegistro(reg) {
+  if (!reg || !entregasCols) return "";
+  const direto = String(valorCol(reg, entregasCols.item) ?? "").trim();
+  if (direto) return direto;
+  const peca = String(valorCol(reg, entregasCols.peca) ?? "").trim();
+  const midia = String(valorCol(reg, entregasCols.midia) ?? "").trim();
+  if (!peca && !midia) return "";
+  const nPeca = PlanilhaApi.normalizarChave(peca);
+  const nMidia = PlanilhaApi.normalizarChave(midia);
+  const match = itens.find(
+    (it) =>
+      PlanilhaApi.normalizarChave(it.peca) === nPeca &&
+      PlanilhaApi.normalizarChave(it.midia) === nMidia
+  );
+  return match ? String(match.item ?? "").trim() : "";
+}
+
+function montarMapaEntregas(regs, cols) {
+  const mapa = new Map();
+  if (!colsEntregasOk(cols)) return mapa;
+
+  regs.forEach((reg) => {
+    const munN = PlanilhaApi.normalizarChave(valorCol(reg, cols.municipio));
+    const itN = itemNorm(itemCodigoRegistro(reg));
+    if (!munN || !itN) return;
+    const qtd = parseNumero(valorCol(reg, cols.quantidade));
+    if (!mapa.has(munN)) mapa.set(munN, new Map());
+    const porItem = mapa.get(munN);
+    porItem.set(itN, (porItem.get(itN) || 0) + qtd);
+  });
+  return mapa;
+}
+
+function indiceInicioMunicipiosMaterialGrafico(cabecalho, idxSaldo) {
+  if (idxSaldo >= 0) return idxSaldo + 1;
+  return cfg.INDICE_PRIMEIRO_MUNICIPIO ?? 9;
 }
 
 function parsePlanilha(valores) {
@@ -219,12 +334,13 @@ function parsePlanilha(valores) {
   const idxItem = acharColuna(cabecalho, cfg.COLUNA_ITEM, 0);
   const idxPeca = acharColuna(cabecalho, cfg.COLUNA_PECA, 1);
   const idxMidia = acharColuna(cabecalho, cfg.COLUNA_MIDIA, 2);
-  const idxT1 = acharColuna(cabecalho, cfg.COLUNA_TIRAGEM_1, 3);
-  const idxT2 = acharColuna(cabecalho, cfg.COLUNA_TIRAGEM_2, 4);
-  const idxT3 = acharColuna(cabecalho, cfg.COLUNA_TIRAGEM_3, 5);
-  const idxT4 = acharColuna(cabecalho, cfg.COLUNA_TIRAGEM_4, 6);
-  const idxSaldo = acharColuna(cabecalho, cfg.COLUNA_SALDO, 7);
-  const inicioMun = cfg.INDICE_PRIMEIRO_MUNICIPIO ?? 8;
+  const idxEtiqueta = acharColuna(cabecalho, cfg.COLUNA_ETIQUETA, 3);
+  const idxT1 = acharColuna(cabecalho, cfg.COLUNA_TIRAGEM_1, 4);
+  const idxT2 = acharColuna(cabecalho, cfg.COLUNA_TIRAGEM_2, 5);
+  const idxT3 = acharColuna(cabecalho, cfg.COLUNA_TIRAGEM_3, 6);
+  const idxT4 = acharColuna(cabecalho, cfg.COLUNA_TIRAGEM_4, 7);
+  const idxSaldo = acharColuna(cabecalho, cfg.COLUNA_SALDO, 8);
+  const inicioMun = indiceInicioMunicipiosMaterialGrafico(cabecalho, idxSaldo);
 
   const listaMun = [];
   for (let c = inicioMun; c < cabecalho.length; c++) {
@@ -244,6 +360,7 @@ function parsePlanilha(valores) {
     const item = String(row[idxItem] ?? "").trim();
     const peca = String(row[idxPeca] ?? "").trim();
     const midia = String(row[idxMidia] ?? "").trim();
+    const etiqueta = idxEtiqueta >= 0 ? String(row[idxEtiqueta] ?? "").trim() : "";
     if (!item && !peca && !midia) continue;
 
     const tiragem =
@@ -262,6 +379,7 @@ function parsePlanilha(valores) {
       item,
       peca,
       midia,
+      etiqueta,
       tiragem,
       saldo: parseNumero(row[idxSaldo]),
       qtds,
@@ -274,38 +392,6 @@ function parsePlanilha(valores) {
 function valorCol(reg, col) {
   if (!col) return "";
   return reg[col.chave] != null ? reg[col.chave] : "";
-}
-
-function resolverColsEntregas(colunas) {
-  return {
-    data: acharColunaObj(colunas, cfgEnt.COLUNA_DATA),
-    peca: acharColunaObj(colunas, cfgEnt.COLUNA_PECA),
-    midia: acharColunaObj(colunas, cfgEnt.COLUNA_MIDIA),
-    municipio: acharColunaObj(colunas, cfgEnt.COLUNA_MUNICIPIO),
-    quantidade: acharColunaObj(colunas, cfgEnt.COLUNA_QUANTIDADE),
-    recebedor: acharColunaObj(colunas, cfgEnt.COLUNA_RECEBEDOR),
-    item: acharColunaObj(colunas, cfgEnt.COLUNA_ITEM),
-  };
-}
-
-function colsEntregasOk(cols) {
-  return Boolean(cols?.municipio && cols?.item && cols?.quantidade);
-}
-
-function montarMapaEntregas(regs, cols) {
-  const mapa = new Map();
-  if (!colsEntregasOk(cols)) return mapa;
-
-  regs.forEach((reg) => {
-    const munN = PlanilhaApi.normalizarChave(valorCol(reg, cols.municipio));
-    const itN = itemNorm(valorCol(reg, cols.item));
-    if (!munN || !itN) return;
-    const qtd = parseNumero(valorCol(reg, cols.quantidade));
-    if (!mapa.has(munN)) mapa.set(munN, new Map());
-    const porItem = mapa.get(munN);
-    porItem.set(itN, (porItem.get(itN) || 0) + qtd);
-  });
-  return mapa;
 }
 
 function formatarDataExibir(v) {
@@ -444,15 +530,14 @@ function htmlLinhaItem(mun, row) {
     '<tr data-linha="' +
     item.linha +
     '">' +
-    '<td class="mat-graf-col-item">' +
-    '<span class="mat-graf-item-badge">' +
-    escapeHtml(item.item) +
-    "</span></td>" +
-    '<td class="mat-graf-col-peca">' +
-    escapeHtml(item.peca) +
+    '<td class="mat-graf-col-etiqueta">' +
+    escapeHtml(item.etiqueta || "—") +
     "</td>" +
     '<td class="mat-graf-col-midia">' +
     escapeHtml(item.midia) +
+    "</td>" +
+    '<td class="mat-graf-col-peca">' +
+    escapeHtml(item.peca) +
     "</td>" +
     htmlCelulaPrevisto(mun, row) +
     htmlCelulaEntregas(row) +
@@ -461,7 +546,7 @@ function htmlLinhaItem(mun, row) {
     escapeHtml(mun.norm) +
     '" data-item="' +
     escapeHtml(item.item) +
-    '" title="entregas deste item" aria-label="entregas deste item">' +
+    '" title="entregas deste material" aria-label="entregas deste material">' +
     ICONE_LUPA +
     "</button></td>" +
     "</tr>"
@@ -488,6 +573,263 @@ function htmlBotaoEntregasCabecalho(mun) {
   );
 }
 
+function htmlBotaoImprimirCabecalho(mun) {
+  return (
+    '<span class="mat-graf-btn-imprimir" role="button" tabindex="0" data-mun="' +
+    escapeHtml(mun.norm) +
+    '" title="imprimir" aria-label="imprimir">' +
+    ICONE_IMPRIMIR +
+    "</span>"
+  );
+}
+
+function filtrosRelatorio(opcoes) {
+  const munNorm = opcoes?.munNorm;
+  if (munNorm) {
+    const mun = municipios.find((m) => m.norm === munNorm);
+    if (mun) {
+      return [{ nome: "município", ativo: true, valor: mun.rotulo }];
+    }
+  }
+  const filtros = [];
+  const busca = String(el.buscaMunicipio?.value || "").trim();
+  if (busca) filtros.push({ nome: "buscar município", ativo: true, valor: busca });
+  const ocultar = el.chkOcultarZero?.checked !== false;
+  filtros.push({
+    nome: "ocultar previsto zero",
+    ativo: ocultar,
+    valor: ocultar ? "ativado" : "desativado",
+  });
+  return filtros;
+}
+
+function rotuloMaterialExibicao(cat) {
+  if (!cat) return "";
+  if (cat.etiqueta) return cat.etiqueta;
+  if (cat.peca && cat.midia) return cat.peca + " / " + cat.midia;
+  return String(cat.item ?? "").trim();
+}
+
+function htmlLinhaRelatorio(mun, row) {
+  const { item, qtd, entregue } = row;
+  const saldo = Math.max(0, qtd - entregue);
+  return (
+    "<tr>" +
+    "<td>" +
+    escapeHtml(item.etiqueta || "—") +
+    "</td>" +
+    "<td>" +
+    escapeHtml(item.midia) +
+    "</td>" +
+    "<td>" +
+    escapeHtml(item.peca) +
+    "</td>" +
+    '<td class="text-end">' +
+    escapeHtml(formatarQtd(qtd)) +
+    "</td>" +
+    '<td class="text-end">' +
+    escapeHtml(formatarQtd(entregue)) +
+    "</td>" +
+    '<td class="text-end">' +
+    escapeHtml(formatarQtd(saldo)) +
+    "</td>" +
+    "</tr>"
+  );
+}
+
+function htmlTabelaRelatorioMun(mun) {
+  const rows = itensDoMunicipio(mun);
+  if (!rows.length) {
+    return '<p class="rel-vazio">nenhum item neste município.</p>';
+  }
+  return (
+    '<table class="rel-tabela mat-graf-rel-tabela">' +
+    "<thead><tr>" +
+    "<th>etiqueta</th>" +
+    "<th>mídia</th>" +
+    "<th>peça</th>" +
+    '<th class="text-end">previsto</th>' +
+    '<th class="text-end">entregas</th>' +
+    '<th class="text-end">saldo</th>' +
+    "</tr></thead><tbody>" +
+    rows.map((row) => htmlLinhaRelatorio(mun, row)).join("") +
+    "</tbody></table>"
+  );
+}
+
+function htmlLinhaRelatorioEntrega(reg) {
+  const itemCod = itemCodigoRegistro(reg);
+  const cat = catalogoPorItem(itemCod);
+  const peca = String(valorCol(reg, entregasCols.peca) || cat?.peca || "").trim();
+  const midia = String(valorCol(reg, entregasCols.midia) || cat?.midia || "").trim();
+  const etiqueta = etiquetaEntrega(reg, cat);
+  return (
+    "<tr>" +
+    "<td>" +
+    escapeHtml(formatarDataExibir(valorCol(reg, entregasCols.data))) +
+    "</td>" +
+    "<td>" +
+    escapeHtml(etiqueta || "—") +
+    "</td>" +
+    "<td>" +
+    escapeHtml(midia || "—") +
+    "</td>" +
+    "<td>" +
+    escapeHtml(peca || "—") +
+    "</td>" +
+    '<td class="text-end">' +
+    escapeHtml(formatarQtd(valorCol(reg, entregasCols.quantidade))) +
+    "</td>" +
+    "<td>" +
+    escapeHtml(String(valorCol(reg, entregasCols.recebedor) ?? "").trim() || "—") +
+    "</td>" +
+    "</tr>"
+  );
+}
+
+function htmlTabelaRelatorioEntregas(lista) {
+  if (!lista.length) {
+    return '<p class="rel-vazio">nenhuma entrega registrada.</p>';
+  }
+  return (
+    '<table class="rel-tabela mat-graf-rel-entregas-tabela">' +
+    "<thead><tr>" +
+    "<th>data</th>" +
+    "<th>etiqueta</th>" +
+    "<th>mídia</th>" +
+    "<th>peça</th>" +
+    '<th class="text-end">quantidade</th>' +
+    "<th>recebedor</th>" +
+    "</tr></thead><tbody>" +
+    lista.map((reg) => htmlLinhaRelatorioEntrega(reg)).join("") +
+    "</tbody></table>"
+  );
+}
+
+function montarHtmlRelatorioEntregas() {
+  if (!munModal || !window.Relatorio || !colsEntregasOk(entregasCols)) return "";
+  const lista = entregasDoMunicipio(munModal, filtroItemModal);
+  if (!lista.length) return "";
+
+  const filtros = [{ nome: "município", ativo: true, valor: munModal.rotulo }];
+  if (filtroItemModal) {
+    const cat = catalogoPorItem(filtroItemModal);
+    const rotulo = rotuloMaterialExibicao(cat) || filtroItemModal;
+    filtros.push({ nome: "etiqueta", ativo: true, valor: rotulo });
+  }
+
+  let subtitulo = munModal.rotulo;
+  if (filtroItemModal) {
+    const cat = catalogoPorItem(filtroItemModal);
+    const rotulo = rotuloMaterialExibicao(cat) || filtroItemModal;
+    subtitulo += " — " + rotulo;
+  }
+
+  return Relatorio.montarHtml({
+    documento: document,
+    filtros,
+    tabelas: [{ titulo: "entregas", html: htmlTabelaRelatorioEntregas(lista) }],
+    subtitulo,
+  });
+}
+
+function imprimirRelatorioEntregas() {
+  const html = montarHtmlRelatorioEntregas();
+  if (!html) {
+    mostrarStatus("nenhum dado para imprimir.", "erro");
+    return;
+  }
+  abrirRelatorioHtml(html);
+}
+
+function montarHtmlRelatorioPagina(opcoes) {
+  if (!window.Relatorio) return "";
+  const munNorm = opcoes?.munNorm || opcoes?.municipio;
+  const lista = munNorm
+    ? municipios.filter((m) => m.norm === munNorm)
+    : municipiosFiltrados();
+  if (!lista.length) return "";
+
+  const blocos = lista
+    .map((mun) => ({
+      titulo: mun.rotulo,
+      html: htmlTabelaRelatorioMun(mun),
+    }))
+    .filter((b) => b.html && !b.html.includes("nenhum item"));
+
+  if (!blocos.length) return "";
+
+  const mun = munNorm ? lista[0] : null;
+  return Relatorio.montarHtml({
+    documento: opcoes?.documento || document,
+    filtros: filtrosRelatorio({ munNorm }),
+    tabelas: blocos,
+    subtitulo: mun ? mun.rotulo : undefined,
+  });
+}
+
+function abrirRelatorioHtml(html) {
+  if (!html) return false;
+  try {
+    if (
+      window.parent &&
+      window.parent !== window &&
+      typeof window.parent.abrirRelatorioHtml === "function"
+    ) {
+      window.parent.abrirRelatorioHtml(html);
+      return true;
+    }
+  } catch (e) {
+    /* origem cruzada */
+  }
+  if (window.Relatorio?.abrirJanelaRelatorio?.(html)) return true;
+  mostrarStatus("permita pop-ups para gerar o PDF.", "erro");
+  return false;
+}
+
+function imprimirRelatorioMunicipio(munNorm) {
+  const html = montarHtmlRelatorioPagina({ munNorm });
+  if (!html) {
+    mostrarStatus("nenhum dado para imprimir.", "erro");
+    return;
+  }
+  abrirRelatorioHtml(html);
+}
+
+function estilosRelatorioPagina() {
+  return (
+    ".page-material-grafico .rel-secao{page-break-inside:auto!important;break-inside:auto!important;margin:0.45rem 0 0.55rem;}" +
+    ".page-material-grafico .rel-secao + .rel-secao{page-break-before:auto!important;break-before:auto!important;}" +
+    "@media print{.page-material-grafico .rel-secao,.page-material-grafico .rel-secao + .rel-secao{page-break-inside:auto!important;break-inside:auto!important;page-break-before:auto!important;break-before:auto!important;}}" +
+    ".page-material-grafico table.mat-graf-rel-tabela{table-layout:fixed!important;width:100%!important;}" +
+    ".page-material-grafico table.mat-graf-rel-tabela th," +
+    ".page-material-grafico table.mat-graf-rel-tabela td{vertical-align:middle;}" +
+    ".page-material-grafico table.mat-graf-rel-tabela th:nth-child(1)," +
+    ".page-material-grafico table.mat-graf-rel-tabela td:nth-child(1){width:14%;}" +
+    ".page-material-grafico table.mat-graf-rel-tabela th:nth-child(2)," +
+    ".page-material-grafico table.mat-graf-rel-tabela td:nth-child(2){width:26%;}" +
+    ".page-material-grafico table.mat-graf-rel-tabela th:nth-child(3)," +
+    ".page-material-grafico table.mat-graf-rel-tabela td:nth-child(3){width:26%;}" +
+    ".page-material-grafico table.mat-graf-rel-tabela th:nth-child(n+4)," +
+    ".page-material-grafico table.mat-graf-rel-tabela td:nth-child(n+4){width:10%;}" +
+    ".page-material-grafico table.mat-graf-rel-tabela td:nth-child(n+4){font-variant-numeric:tabular-nums;}" +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela{table-layout:fixed!important;width:100%!important;}" +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela th:nth-child(1)," +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela td:nth-child(1){width:10%;}" +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela th:nth-child(2)," +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela td:nth-child(2){width:14%;}" +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela th:nth-child(3)," +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela td:nth-child(3){width:20%;}" +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela th:nth-child(4)," +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela td:nth-child(4){width:20%;}" +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela th:nth-child(5)," +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela td:nth-child(5){width:10%;}" +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela th:nth-child(6)," +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela td:nth-child(6){width:36%;}" +
+    ".page-material-grafico table.mat-graf-rel-entregas-tabela td:nth-child(5){font-variant-numeric:tabular-nums;}"
+  );
+}
+
 function htmlPainelMunicipio(mun, aberto) {
   const rows = itensDoMunicipio(mun);
   const dirtyCount = itens.filter((item) => isDirty(item, mun)).length;
@@ -504,9 +846,9 @@ function htmlPainelMunicipio(mun, aberto) {
       ? '<tfoot class="mat-graf-salvar-tfoot' +
         (dirtyCount ? "" : " d-none") +
         '"><tr class="mat-graf-salvar-row">' +
-        '<td class="mat-graf-col-item"></td>' +
-        '<td class="mat-graf-col-peca"></td>' +
+        '<td class="mat-graf-col-etiqueta"></td>' +
         '<td class="mat-graf-col-midia"></td>' +
+        '<td class="mat-graf-col-peca"></td>' +
         '<td class="mat-graf-col-qtd">' +
         '<button type="button" class="btn btn-sm btn-outline-primary mat-graf-btn-salvar-mun" data-mun="' +
         escapeHtml(mun.norm) +
@@ -520,12 +862,12 @@ function htmlPainelMunicipio(mun, aberto) {
       '<div class="table-responsive">' +
       '<table class="table table-sm align-middle mb-2 mat-graf-tabela">' +
       "<thead><tr>" +
-      '<th class="mat-graf-col-item">item</th>' +
-      '<th class="mat-graf-col-peca">peça</th>' +
+      '<th class="mat-graf-col-etiqueta">etiqueta</th>' +
       '<th class="mat-graf-col-midia">mídia</th>' +
+      '<th class="mat-graf-col-peca">peça</th>' +
       '<th class="mat-graf-col-qtd">previsto</th>' +
       '<th class="mat-graf-col-entregas">entregas</th>' +
-      '<th class="mat-graf-col-lupa" aria-label="entregas do item"></th>' +
+      '<th class="mat-graf-col-lupa" aria-label="entregas do material"></th>' +
       "</tr></thead><tbody>" +
       rows.map((row) => htmlLinhaItem(mun, row)).join("") +
       "</tbody>" +
@@ -553,8 +895,10 @@ function htmlPainelMunicipio(mun, aberto) {
     escapeHtml(mun.rotulo) +
     "</span>" +
     htmlMetaMunicipio(mun, dirtyCount) +
+    '<span class="mat-graf-accordion-acoes">' +
     htmlBotaoEntregasCabecalho(mun) +
-    "</button></h2>" +
+    htmlBotaoImprimirCabecalho(mun) +
+    "</span></button></h2>" +
     '<div id="' +
     collapseId +
     '" class="accordion-collapse collapse' +
@@ -755,7 +1099,7 @@ function entregasDoMunicipio(mun, itemFiltroNorm) {
         return false;
       }
       if (!filtroItem) return true;
-      return itemNorm(valorCol(reg, entregasCols.item)) === filtroItem;
+      return itemNorm(itemCodigoRegistro(reg)) === filtroItem;
     })
     .sort((a, b) => {
       const da = dataParaInput(valorCol(a, entregasCols.data));
@@ -767,6 +1111,12 @@ function entregasDoMunicipio(mun, itemFiltroNorm) {
 function catalogoPorItem(codigo) {
   const n = itemNorm(codigo);
   return itens.find((i) => itemNorm(i.item) === n) || null;
+}
+
+function etiquetaEntrega(reg, cat) {
+  const daPlanilha = String(valorCol(reg, entregasCols?.etiqueta) ?? "").trim();
+  if (daPlanilha) return daPlanilha;
+  return cat?.etiqueta || "";
 }
 
 function ocultarPopoversEntregas() {
@@ -790,7 +1140,7 @@ function destruirPopoversEntregas() {
 function htmlPopoverEntrega(campos) {
   const linhas = [
     ["data", campos.data],
-    ["item", campos.item],
+    ["etiqueta", campos.etiqueta],
     ["peça", campos.peca],
     ["mídia", campos.midia],
     ["quantidade", campos.quantidade],
@@ -817,15 +1167,16 @@ function htmlPopoverEntrega(campos) {
 function conteudoPopoverEntrega(numLinha) {
   const reg = entregasRegs.find((r) => r._linha === numLinha);
   if (!reg) return "<span class='text-secondary'>entrega não encontrada.</span>";
-  const itemCod = String(valorCol(reg, entregasCols.item) ?? "").trim();
+  const itemCod = itemCodigoRegistro(reg);
   const cat = catalogoPorItem(itemCod);
   const peca = String(valorCol(reg, entregasCols.peca) || cat?.peca || "").trim();
   const midia = String(
     valorCol(reg, entregasCols.midia) || cat?.midia || ""
   ).trim();
+  const etiqueta = etiquetaEntrega(reg, cat);
   return htmlPopoverEntrega({
     data: formatarDataExibir(valorCol(reg, entregasCols.data)),
-    item: itemCod,
+    etiqueta,
     peca,
     midia,
     quantidade: formatarQtd(valorCol(reg, entregasCols.quantidade)),
@@ -881,19 +1232,20 @@ function inicializarPopoversEntregas() {
     });
 }
 
-function htmlPecaMidiaEmpilhada(itemCod, peca, midia) {
+function htmlPecaMidiaEmpilhada(peca, midia, etiqueta) {
   return (
     '<td class="mat-graf-entrega-peca-midia">' +
-    (itemCod
-      ? '<span class="mat-graf-item-badge mat-graf-entrega-item">' +
-        escapeHtml(itemCod) +
+    '<div class="mat-graf-entrega-etiqueta-midia-linha">' +
+    (etiqueta
+      ? '<span class="mat-graf-entrega-etiqueta mat-graf-entrega-etiqueta--destaque">' +
+        escapeHtml(etiqueta) +
         "</span>"
       : "") +
-    '<span class="mat-graf-entrega-peca">' +
-    escapeHtml(peca) +
-    "</span>" +
     '<span class="mat-graf-entrega-midia">' +
     escapeHtml(midia) +
+    "</span></div>" +
+    '<span class="mat-graf-entrega-peca">' +
+    escapeHtml(peca) +
     "</span></td>"
   );
 }
@@ -939,11 +1291,13 @@ function htmlTabelaConsultaItem(lista) {
 function htmlCardsEntregasCrud(lista, pode) {
   return lista
     .map((reg) => {
-      const itemCod = String(valorCol(reg, entregasCols.item) ?? "").trim();
+      const itemCod = itemCodigoRegistro(reg);
       const cat = catalogoPorItem(itemCod);
+      const peca = String(valorCol(reg, entregasCols.peca) || cat?.peca || "").trim();
       const midia = String(
         valorCol(reg, entregasCols.midia) || cat?.midia || ""
       ).trim();
+      const etiqueta = etiquetaEntrega(reg, cat);
       const qtd = parseNumero(valorCol(reg, entregasCols.quantidade));
       const dataTxt = formatarDataExibir(valorCol(reg, entregasCols.data));
       const acoesCrud = pode ? htmlAcoesEntrega(reg._linha) : "";
@@ -956,11 +1310,17 @@ function htmlCardsEntregasCrud(lista, pode) {
         escapeHtml(dataTxt) +
         "</span></div>" +
         '<div class="mat-graf-entrega-card-col mat-graf-entrega-card-col--item">' +
-        '<span class="mat-graf-item-badge mat-graf-entrega-item">' +
-        escapeHtml(itemCod || "—") +
-        "</span>" +
+        '<div class="mat-graf-entrega-etiqueta-midia-linha">' +
+        (etiqueta
+          ? '<span class="mat-graf-entrega-etiqueta mat-graf-entrega-etiqueta--destaque">' +
+            escapeHtml(etiqueta) +
+            "</span>"
+          : '<span class="mat-graf-entrega-etiqueta">—</span>') +
         '<span class="mat-graf-entrega-midia">' +
         escapeHtml(midia || "—") +
+        "</span></div>" +
+        '<span class="mat-graf-entrega-peca">' +
+        escapeHtml(peca || "—") +
         "</span></div>" +
         '<div class="mat-graf-entrega-card-col mat-graf-entrega-card-col--qtd">' +
         '<span class="mat-graf-entrega-card-qtd">' +
@@ -997,10 +1357,12 @@ function renderListaEntregasModal() {
   if (!lista.length) {
     el.modalEntregasCorpo.innerHTML = "";
     el.modalEntregasVazio?.classList.remove("d-none");
+    if (el.btnEntregasRelatorio) el.btnEntregasRelatorio.disabled = true;
     return;
   }
 
   el.modalEntregasVazio?.classList.add("d-none");
+  if (el.btnEntregasRelatorio) el.btnEntregasRelatorio.disabled = false;
   el.modalEntregasCorpo.innerHTML = consulta
     ? htmlTabelaConsultaItem(lista)
     : htmlCardsEntregasCrud(lista, pode);
@@ -1014,13 +1376,10 @@ function preencherCabecalhoModalEntregas(mun, itemCodigo) {
   const cat = itemTxt ? catalogoPorItem(itemTxt) : null;
   const peca = cat?.peca || "";
   const midia = cat?.midia || "";
+  const etiqueta = cat?.etiqueta || "";
 
   if (el.modalEntregasTitulo) {
-    el.modalEntregasTitulo.textContent = modoConsultaItem
-      ? "entregas do item"
-      : filtroItemModal
-        ? "entregas do item"
-        : "entregas";
+    el.modalEntregasTitulo.textContent = modoConsultaItem ? "entregas do material" : "entregas";
   }
 
   if (modoConsultaItem) {
@@ -1028,8 +1387,8 @@ function preencherCabecalhoModalEntregas(mun, itemCodigo) {
       el.modalEntregasMunConsulta.textContent = mun.rotulo;
       el.modalEntregasMunConsulta.classList.toggle("d-none", !mun.rotulo);
     }
-    if (el.modalEntregasItemConsulta) {
-      el.modalEntregasItemConsulta.textContent = itemTxt || "—";
+    if (el.modalEntregasEtiquetaConsulta) {
+      el.modalEntregasEtiquetaConsulta.textContent = etiqueta || rotuloMaterialExibicao(cat) || "—";
     }
     if (el.modalEntregasMidiaConsulta) {
       el.modalEntregasMidiaConsulta.textContent = midia || "—";
@@ -1056,12 +1415,17 @@ function preencherCabecalhoModalEntregas(mun, itemCodigo) {
     el.modalEntregasMunicipio.textContent = mun.rotulo;
     el.modalEntregasMunicipio.classList.toggle("d-none", !mun.rotulo);
   }
-  if (el.modalEntregasItem) {
-    const rotuloItem = itemTxt
-      ? itemTxt + (peca ? " — " + peca : "")
-      : "";
-    el.modalEntregasItem.textContent = rotuloItem;
-    el.modalEntregasItem.classList.toggle("d-none", !rotuloItem);
+  const rotuloFiltro = cat ? etiqueta || rotuloMaterialExibicao(cat) : "";
+  if (el.modalEntregasEtiqueta) {
+    el.modalEntregasEtiqueta.textContent = rotuloFiltro || "";
+    el.modalEntregasEtiqueta.classList.toggle("d-none", !rotuloFiltro);
+  }
+  if (el.modalEntregasMidia) {
+    el.modalEntregasMidia.textContent = midia || "—";
+    el.modalEntregasMidia.classList.toggle("d-none", !cat);
+  }
+  if (el.modalEntregasMaterialLinha) {
+    el.modalEntregasMaterialLinha.classList.toggle("d-none", !cat);
   }
 }
 
@@ -1070,8 +1434,11 @@ function abrirModalEntregas(munNorm, itemCodigo, opcoes) {
   if (!mun) return;
 
   if (!colsEntregasOk(entregasCols)) {
+    const faltam = mensagemColsEntregasFaltando(entregasCols);
     MasterCrud.toast(
-      "aba de entregas sem colunas esperadas (data, peça, mídia, município, quantidade, recebedor, item).",
+      "aba de entregas sem colunas esperadas: " +
+        (faltam || "data, peça, mídia, município, quantidade, recebedor, etiqueta, item") +
+        ".",
       "erro"
     );
     return;
@@ -1100,10 +1467,14 @@ function montarSelectProdutoEdicao(itemSel) {
         escapeHtml(it.peca) +
         '" data-midia="' +
         escapeHtml(it.midia) +
+        '" data-etiqueta="' +
+        escapeHtml(it.etiqueta || "") +
         '"' +
         sel +
         ">" +
-        escapeHtml(it.item + " — " + it.peca + " / " + it.midia) +
+        escapeHtml(
+          (it.etiqueta ? it.etiqueta + " — " : "") + it.peca + " / " + it.midia
+        ) +
         "</option>"
       );
     })
@@ -1112,11 +1483,12 @@ function montarSelectProdutoEdicao(itemSel) {
 
 function produtoSelecionadoEdicao() {
   const opt = el.entregaProduto?.selectedOptions?.[0];
-  if (!opt) return { item: "", peca: "", midia: "" };
+  if (!opt) return { item: "", peca: "", midia: "", etiqueta: "" };
   return {
     item: opt.dataset.item || opt.value || "",
     peca: opt.dataset.peca || "",
     midia: opt.dataset.midia || "",
+    etiqueta: opt.dataset.etiqueta || "",
   };
 }
 
@@ -1166,7 +1538,7 @@ function abrirFormNovoLote() {
           '<tr data-item="' +
           escapeHtml(item.item) +
           '" class="mat-graf-entrega-linha is-off">' +
-          htmlPecaMidiaEmpilhada(item.item, item.peca, item.midia) +
+          htmlPecaMidiaEmpilhada(item.peca, item.midia, item.etiqueta) +
           '<td class="text-end text-muted">' +
           escapeHtml(formatarQtd(saldo)) +
           "</td>" +
@@ -1177,6 +1549,8 @@ function abrirFormNovoLote() {
           escapeHtml(item.peca) +
           '" data-midia="' +
           escapeHtml(item.midia) +
+          '" data-etiqueta="' +
+          escapeHtml(item.etiqueta || "") +
           '" data-sugerido="' +
           escapeHtml(String(saldo)) +
           '" value="" disabled autocomplete="off" aria-label="quantidade entrega" />' +
@@ -1254,7 +1628,7 @@ function abrirFormEditar(numLinha) {
   if (el.entregaData) {
     el.entregaData.value = dataParaInput(valorCol(reg, entregasCols.data));
   }
-  montarSelectProdutoEdicao(valorCol(reg, entregasCols.item));
+  montarSelectProdutoEdicao(itemCodigoRegistro(reg));
   if (el.entregaQtd) {
     el.entregaQtd.value = formatarQtd(valorCol(reg, entregasCols.quantidade));
   }
@@ -1272,7 +1646,7 @@ function chavePlanilhaCol(col) {
   return col?.chavePlanilha || col?.chave || "";
 }
 
-function dadosEntregaBase(dataStr, municipioRotulo, item, peca, midia, qtd, recebedor) {
+function dadosEntregaBase(dataStr, municipioRotulo, item, peca, midia, qtd, recebedor, etiqueta) {
   const dados = {};
   if (entregasCols.data) {
     dados[chavePlanilhaCol(entregasCols.data)] = dataStr;
@@ -1292,8 +1666,14 @@ function dadosEntregaBase(dataStr, municipioRotulo, item, peca, midia, qtd, rece
   if (entregasCols.recebedor) {
     dados[chavePlanilhaCol(entregasCols.recebedor)] = recebedor || "";
   }
-  if (entregasCols.item) {
-    dados[chavePlanilhaCol(entregasCols.item)] = item || "";
+  if (entregasCols.etiqueta) {
+    dados[chavePlanilhaCol(entregasCols.etiqueta)] = etiqueta || "";
+  }
+  const colItem =
+    entregasCols.item ||
+    colunaEntregasPorIndice(entregasColunas, cfgEnt.INDICE_ITEM);
+  if (colItem) {
+    dados[chavePlanilhaCol(colItem)] = item || "";
   }
   return dados;
 }
@@ -1323,7 +1703,8 @@ async function salvarFormEntrega(evento) {
         prod.peca,
         prod.midia,
         qtd,
-        recebedor
+        recebedor,
+        prod.etiqueta
       );
       await PlanilhaApi.gravar(cfgEnt.PLANILHA, {
         acao: "atualizar",
@@ -1344,6 +1725,7 @@ async function salvarFormEntrega(evento) {
         const itemCod = input.dataset.item || "";
         const peca = input.dataset.peca || "";
         const midia = input.dataset.midia || "";
+        const etiqueta = input.dataset.etiqueta || "";
         if (!itemCod) continue;
         const dados = dadosEntregaBase(
           dataStr,
@@ -1352,7 +1734,8 @@ async function salvarFormEntrega(evento) {
           peca,
           midia,
           qtd,
-          recebedor
+          recebedor,
+          etiqueta
         );
         await PlanilhaApi.gravar(cfgEnt.PLANILHA, {
           acao: "inserir",
@@ -1420,9 +1803,9 @@ async function carregar(mostrarLoader) {
   }
 
   try {
-    const [valores, dadosEnt] = await Promise.all([
+    const [valores, valoresEnt] = await Promise.all([
       PlanilhaApi.lerValores(cfg.PLANILHA, cfg.ABA || ""),
-      PlanilhaApi.ler(cfgEnt.PLANILHA, cfgEnt.ABA || "", cfgEnt.LINHA_INICIO_DADOS || 2),
+      PlanilhaApi.lerValores(cfgEnt.PLANILHA, cfgEnt.ABA || ""),
     ]);
     if (!valores) return;
 
@@ -1430,11 +1813,16 @@ async function carregar(mostrarLoader) {
     municipios = parseado.municipios;
     itens = parseado.itens;
 
+    const dadosEnt = valoresEnt
+      ? PlanilhaApi.parseValores(valoresEnt, cfgEnt.LINHA_INICIO_DADOS || 2)
+      : null;
     if (dadosEnt) {
-      entregasCols = resolverColsEntregas(dadosEnt.colunas || []);
+      entregasColunas = dadosEnt.colunas || [];
+      entregasCols = resolverColsEntregas(entregasColunas, valoresEnt[0]);
       entregasRegs = dadosEnt.linhas || [];
       mapaEntregas = montarMapaEntregas(entregasRegs, entregasCols);
     } else {
+      entregasColunas = [];
       entregasCols = null;
       entregasRegs = [];
       mapaEntregas = new Map();
@@ -1483,6 +1871,13 @@ function aoClicarAccordion(e) {
     });
     return;
   }
+  const btnImp = e.target.closest(".mat-graf-btn-imprimir");
+  if (btnImp) {
+    e.preventDefault();
+    e.stopPropagation();
+    imprimirRelatorioMunicipio(btnImp.dataset.mun);
+    return;
+  }
   const btnEnt = e.target.closest(".mat-graf-btn-entregas");
   if (btnEnt) {
     e.preventDefault();
@@ -1493,6 +1888,14 @@ function aoClicarAccordion(e) {
 }
 
 function aoTeclaEntregasCabecalho(e) {
+  const btnImp = e.target.closest(".mat-graf-btn-imprimir");
+  if (btnImp) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    e.stopPropagation();
+    imprimirRelatorioMunicipio(btnImp.dataset.mun);
+    return;
+  }
   const btnEnt = e.target.closest(".mat-graf-btn-entregas");
   if (!btnEnt) return;
   if (e.key !== "Enter" && e.key !== " ") return;
@@ -1536,12 +1939,15 @@ function init() {
     barraTexto: document.getElementById("matGrafBarraTexto"),
     btnSalvarTodos: document.getElementById("btnSalvarTodos"),
     modalEntregasTitulo: document.getElementById("modalEntregasTitulo"),
+    btnEntregasRelatorio: document.getElementById("btnEntregasRelatorio"),
     modalEntregasMunicipio: document.getElementById("modalEntregasMunicipio"),
-    modalEntregasItem: document.getElementById("modalEntregasItem"),
+    modalEntregasMaterialLinha: document.getElementById("modalEntregasMaterialLinha"),
+    modalEntregasEtiqueta: document.getElementById("modalEntregasEtiqueta"),
+    modalEntregasMidia: document.getElementById("modalEntregasMidia"),
     modalEntregasTopoCrud: document.getElementById("modalEntregasTopoCrud"),
     modalEntregasTopoConsulta: document.getElementById("modalEntregasTopoConsulta"),
     modalEntregasMunConsulta: document.getElementById("modalEntregasMunConsulta"),
-    modalEntregasItemConsulta: document.getElementById("modalEntregasItemConsulta"),
+    modalEntregasEtiquetaConsulta: document.getElementById("modalEntregasEtiquetaConsulta"),
     modalEntregasMidiaConsulta: document.getElementById("modalEntregasMidiaConsulta"),
     modalEntregasPecaConsulta: document.getElementById("modalEntregasPecaConsulta"),
     modalEntregasPrevistoConsulta: document.getElementById("modalEntregasPrevistoConsulta"),
@@ -1610,6 +2016,7 @@ function init() {
   el.accordion?.addEventListener("hidden.bs.collapse", () => notificarAlturaFrame());
 
   el.btnEntregaNovo?.addEventListener("click", abrirFormNovoLote);
+  el.btnEntregasRelatorio?.addEventListener("click", imprimirRelatorioEntregas);
   el.modalEntregasCorpo?.addEventListener("click", aoClicarListaEntregas);
   el.formEntrega?.addEventListener("submit", salvarFormEntrega);
   el.entregaQtd?.addEventListener("input", (e) => formatarInputQtdEvento(e.target));
@@ -1626,6 +2033,20 @@ function init() {
   });
 
   window.atualizarPagina = () => carregar(true);
+  window.montarHtmlRelatorioPagina = montarHtmlRelatorioPagina;
+  window.estilosRelatorioPagina = estilosRelatorioPagina;
+  window.gerarRelatorioPagina = function gerarRelatorioPagina(opcoes) {
+    if (opcoes && opcoes.apenasHtml) {
+      return montarHtmlRelatorioPagina(opcoes);
+    }
+    const html = montarHtmlRelatorioPagina(opcoes);
+    if (!html) {
+      mostrarStatus("nenhum dado para imprimir.", "erro");
+      return false;
+    }
+    abrirRelatorioHtml(html);
+    return html;
+  };
   carregar(true);
 }
 

@@ -31,19 +31,41 @@
   },
 
   obterMetaPagina() {
-    const meta = { titulo: document.title || "relatório", subtitulo: "" };
-    try {
-      const parentDoc = window.parent?.document;
-      if (!parentDoc || parentDoc === document) return meta;
-      const tituloEl = parentDoc.getElementById("appHeaderTitulo");
-      const subEl = parentDoc.getElementById("appHeaderSub");
+    const meta = { titulo: "relatório", subtitulo: "" };
+
+    function lerCabecalhoShell(doc) {
+      if (!doc) return;
+      const tituloEl = doc.getElementById("appHeaderTitulo");
+      const subEl = doc.getElementById("appHeaderSub");
       if (tituloEl) {
-        meta.titulo = (tituloEl.querySelector(".app-titulo-texto") || tituloEl).textContent.trim() || meta.titulo;
+        meta.titulo =
+          (tituloEl.querySelector(".app-titulo-texto") || tituloEl).textContent.trim() ||
+          meta.titulo;
       }
       if (subEl) meta.subtitulo = subEl.textContent.trim();
+    }
+
+    try {
+      const parentDoc = window.parent?.document;
+      if (parentDoc && parentDoc !== document) {
+        lerCabecalhoShell(parentDoc);
+        return meta;
+      }
     } catch (e) {
       /* iframe cross-origin */
     }
+
+    lerCabecalhoShell(document);
+
+    const tituloPagina = String(document.title || "").trim();
+    if (
+      meta.titulo === "relatório" &&
+      tituloPagina &&
+      !/\/|\.html|github\.io|eleicao-2026/i.test(tituloPagina)
+    ) {
+      meta.titulo = tituloPagina.replace(/\s*\|.*$/, "").trim().toLowerCase() || meta.titulo;
+    }
+
     return meta;
   },
 
@@ -78,6 +100,35 @@
     const subtitulo = String(metaPagina?.subtitulo || "").trim().toLowerCase();
     if (titulo && subtitulo) return titulo + " — " + subtitulo;
     return titulo || subtitulo || "relatório";
+  },
+
+  tituloImpressaoRelatorio(metaPagina) {
+    return this.textoCabecalhoRelatorio(metaPagina);
+  },
+
+  metaTituloImpressaoHtml(texto) {
+    const t = String(texto || "relatório").trim() || "relatório";
+    return (
+      '<meta name="rel-titulo-impressao" content="' + this.escapeHtml(t) + '" />'
+    );
+  },
+
+  aplicarTituloImpressaoDocumento(doc) {
+    if (!doc) return "";
+    let titulo = "";
+    try {
+      const meta = doc.querySelector('meta[name="rel-titulo-impressao"]');
+      if (meta?.content) titulo = String(meta.content).trim();
+      if (!titulo) {
+        const headTitle = doc.querySelector("title");
+        if (headTitle?.textContent) titulo = headTitle.textContent.trim();
+      }
+      if (!titulo || /\/|\.html|github\.io/i.test(titulo)) titulo = "relatório";
+      doc.title = titulo;
+    } catch (e) {
+      /* ignorar */
+    }
+    return titulo;
   },
 
   resolverMetaRelatorio(meta) {
@@ -856,8 +907,16 @@
   scriptImpressaoRelatorio() {
     return (
       '<scr' +
-      'ipt>(function(){function fechar(){try{window.close();}catch(e){}}' +
-      'function imprimir(){try{document.title=" ";}catch(e){}window.focus();window.print();}' +
+      'ipt>(function(){' +
+      'function tituloImpressao(){' +
+      'var m=document.querySelector("meta[name=rel-titulo-impressao]");' +
+      'if(m&&m.content)return String(m.content).trim();' +
+      'var t=(document.title||"").trim();' +
+      'if(t&&!/[\\/]|\\.html|github\\.io/i.test(t))return t;' +
+      'return"relatório";' +
+      '}' +
+      'function fechar(){try{window.close();}catch(e){}}' +
+      'function imprimir(){try{document.title=tituloImpressao();}catch(e){}window.focus();window.print();}' +
       'window.addEventListener("afterprint",fechar);' +
       'window.addEventListener("load",imprimir);' +
       '})();</scr' +
@@ -889,6 +948,7 @@
 
     return (
       "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\" />" +
+      this.metaTituloImpressaoHtml(textoCabecalho) +
       "<title>" +
       this.escapeHtml(textoCabecalho) +
       "</title>" +
@@ -1022,12 +1082,13 @@
   abrirJanelaRelatorio(html) {
     if (!html) return false;
 
-    const janela = window.open("", "_blank");
+    const janela = window.open("about:blank", "_blank");
     if (!janela) return false;
 
     janela.document.open();
     janela.document.write(html);
     janela.document.close();
+    this.aplicarTituloImpressaoDocumento(janela.document);
     return true;
   },
 

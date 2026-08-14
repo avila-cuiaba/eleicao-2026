@@ -1077,6 +1077,29 @@ function resolverCamposFormulario() {
     });
 }
 
+function resolverCampoFormularioContrato(id) {
+  const campo = (cfg.CAMPOS_FORMULARIO || []).find((c) => c.id === id);
+  if (!campo) return null;
+  const coluna = PlanilhaApi.acharColuna(colunas, campo.aliases, campo.indice);
+  if (!coluna) return null;
+  return { ...campo, coluna };
+}
+
+/** Campo oculto no modal — envia valor padrão na inserção e preserva na edição. */
+function dadosLancamentoSistemaAoSalvar() {
+  if (cfg.EXIBIR_CAMPO_LANCAR_SISTEMA_FORMULARIO !== false) return {};
+  const campo = resolverCampoFormularioContrato("lancar-sistema");
+  if (!campo?.coluna) return {};
+  const chave = chaveGravacao(campo.coluna);
+  if (modoEdicao && itemEdicao) {
+    const val = itemEdicao[campo.coluna.chave];
+    if (val != null && String(val).trim() !== "") {
+      return { [chave]: String(val).trim() };
+    }
+  }
+  return { [chave]: campo.valorNao ?? "N" };
+}
+
 function chaveGravacao(coluna) {
   if (!coluna) return "";
   const planilha = coluna.chavePlanilha != null ? String(coluna.chavePlanilha) : "";
@@ -1715,7 +1738,7 @@ function lerFormulario() {
       dados[chave] = v;
     }
   });
-  return dados;
+  return Object.assign({}, dadosLancamentoSistemaAoSalvar(), dados);
 }
 
 function abrirNovo() {
