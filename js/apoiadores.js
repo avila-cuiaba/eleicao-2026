@@ -69,6 +69,21 @@ let parametrosClassificacaoApoiador = [];
 const ordenacaoApoiadores = { col: "lideranca", dir: "asc" };
 const popoverTabela = PopoverTabela.criar();
 
+const ICONE_FECHADO_ORCAMENTO =
+  '<i class="fa-solid fa-badge-check" aria-hidden="true"></i>';
+
+function valorCheckboxSim(val) {
+  if (val === true || val === 1) return true;
+  if (val === false || val === 0 || val == null) return false;
+  const s = PlanilhaApi.normalizarChave(val);
+  if (s === "nao" || s === "n" || s === "false" || s === "0" || s === "no") return false;
+  return s === "sim" || s === "s" || s === "true" || s === "1" || s === "yes" || s === "x";
+}
+
+function valorCheckboxGravar(marcado) {
+  return marcado ? "S" : "N";
+}
+
 function atualizarMetadadosPlanilha(valores) {
   const cab = cabecalhoApoiadores(valores);
   const indices = resolverIndices(cab);
@@ -91,6 +106,11 @@ function atualizarMetadadosPlanilha(valores) {
   if (idxProprio != null && idxProprio >= 0) {
     const nome = String(cab[idxProprio] ?? "").trim();
     nomesColunaPlanilha.proprioApoiador = nome || "proprio-apoiador-valor";
+  }
+  const idxFechado = indices.fechadoOrcamento;
+  if (idxFechado != null && idxFechado >= 0) {
+    const nome = String(cab[idxFechado] ?? "").trim();
+    nomesColunaPlanilha.fechadoOrcamento = nome || "FECHADO-ORCAMENTO";
   }
 }
 
@@ -248,6 +268,10 @@ function dadosGravacaoApoiador(item, usarClassificacao) {
   dados[chaveProprio] =
     proprio === "" || proprio == null ? 0 : proprio;
 
+  if (item.gravarFechadoOrcamento && nomesColunaPlanilha.fechadoOrcamento) {
+    dados[nomesColunaPlanilha.fechadoOrcamento] = valorCheckboxGravar(item.fechadoOrcamento);
+  }
+
   return dados;
 }
 
@@ -269,6 +293,8 @@ function lerFormularioApoiador() {
     finIntegral: lerCampoMoeda(el.campoFinIntegral),
     finMeio: lerCampoMoeda(el.campoFinMeio),
     finCustomizado: lerCampoMoeda(el.campoFinCustom),
+    fechadoOrcamento: el.chkFechadoOrcamento?.checked ?? false,
+    gravarFechadoOrcamento: modoCrud === "atualizar",
   };
 }
 
@@ -394,7 +420,15 @@ function preencherFormularioApoiador(item) {
   el.campoFinIntegral.value = valorParaCampoMoeda(dados.finIntegral);
   el.campoFinMeio.value = valorParaCampoMoeda(dados.finMeio);
   el.campoFinCustom.value = valorParaCampoMoedaPadrao(dados.finCustomizado);
+  if (el.chkFechadoOrcamento) {
+    el.chkFechadoOrcamento.checked = temItem ? valorCheckboxSim(dados.fechadoOrcamento) : false;
+  }
+  if (el.rowFechadoOrcamento) el.rowFechadoOrcamento.hidden = !temItem;
   aplicarModoClassificacaoApoiador();
+}
+
+function alternarRowFechadoOrcamentoModal(exibir) {
+  if (el.rowFechadoOrcamento) el.rowFechadoOrcamento.hidden = !exibir;
 }
 
 function abrirModalIncluirApoiador() {
@@ -402,6 +436,7 @@ function abrirModalIncluirApoiador() {
   linhaCrud = null;
   el.modalTitulo.textContent = "incluir apoiador";
   if (el.chkUsarClassificacao) el.chkUsarClassificacao.checked = true;
+  alternarRowFechadoOrcamentoModal(false);
   preencherFormularioApoiador({});
   modalCrud.show();
 }
@@ -412,6 +447,7 @@ function abrirModalEditarApoiador(numLinha) {
   modoCrud = "atualizar";
   linhaCrud = numLinha;
   el.modalTitulo.textContent = "editar apoiador";
+  alternarRowFechadoOrcamentoModal(true);
   preencherFormularioApoiador(item);
   modalCrud.show();
 }
@@ -664,6 +700,23 @@ function resolverIndices(cabecalho) {
   }
   indices.proprioApoiador = idxProprio;
 
+  const aliasesFechado = [
+    "FECHADO-ORCAMENTO",
+    "fechado-orcamento",
+    "fechado orcamento",
+    "orcamento-fechado",
+    "orcamento fechado",
+    "fechado orçamento",
+    "fechado-orçamento",
+  ];
+  let idxFechado = normalizados.findIndex((n) =>
+    aliasesFechado.some((alias) => normalizarChave(alias) === n)
+  );
+  if (idxFechado === -1 && cfgAp.COLUNAS.FECHADO_ORCAMENTO != null) {
+    idxFechado = cfgAp.COLUNAS.FECHADO_ORCAMENTO;
+  }
+  indices.fechadoOrcamento = idxFechado;
+
   return indices;
 }
 
@@ -684,6 +737,25 @@ function exibirLideranca(val) {
     return "";
   }
   return escapeHtml(s);
+}
+
+function itemFechadoOrcamento(item) {
+  return valorCheckboxSim(item.fechadoOrcamento);
+}
+
+function htmlIconeFechadoOrcamento(item) {
+  const ok = itemFechadoOrcamento(item);
+  const classe = ok
+    ? "apoiadores-icone-fechado apoiadores-icone-fechado--sim"
+    : "apoiadores-icone-fechado apoiadores-icone-fechado--nao";
+  const titulo = ok ? "orçamento fechado" : "orçamento aberto";
+  return `<span class="${classe}" title="${titulo}" aria-label="${titulo}">${ICONE_FECHADO_ORCAMENTO}</span>`;
+}
+
+function htmlNomeLiderancaComFechado(r) {
+  const nome = exibirLideranca(r.lideranca);
+  const texto = nome || "—";
+  return `<span class="apoiadores-ident-nome-linha">${htmlIconeFechadoOrcamento(r)}<span class="apoiadores-ident-nome-texto">${texto}</span></span>`;
 }
 
 function exibirCelula(val) {
@@ -920,6 +992,7 @@ function extrairLinhas(valores) {
       finIntegral: valorCampo(linha, indices.finIntegral),
       finMeio: valorCampo(linha, indices.finMeio),
       finCustomizado: valorCampo(linha, indices.finCustomizado),
+      fechadoOrcamento: valorCampo(linha, indices.fechadoOrcamento),
       regiao: info?.regiao || "",
       regiaoNorm: info?.regiaoNorm || "",
     };
@@ -1113,7 +1186,7 @@ function htmlPopoverApoiador(r) {
   return `<div class="orcamento-geral-popover-corpo apoiadores-popover-corpo">
     <div class="apoiadores-popover-cabecalho">
       <div class="apoiadores-popover-topo">
-        <span class="apoiadores-popover-lideranca">${tituloPopoverApoiador(r)}</span>
+        <span class="apoiadores-popover-lideranca apoiadores-ident-nome-linha">${htmlIconeFechadoOrcamento(r)}<span class="apoiadores-ident-nome-texto">${escapeHtml(tituloPopoverApoiador(r))}</span></span>
         ${badge}
       </div>
       ${municipio ? `<div class="apoiadores-popover-municipio-muted">${municipio}</div>` : ""}
@@ -1153,7 +1226,7 @@ function renderizarLinha(r) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
   const municipioHtml = escapeHtml(r.municipio);
-  const liderancaHtml = exibirLideranca(r.lideranca);
+  const liderancaHtml = htmlNomeLiderancaComFechado(r);
   const acoesMaster = MasterCrud.acoesLinha(r._linha);
   const finBadge = badgeFinTotalHtml(r);
   const metaDesktop = htmlIdentMetaApoiador(r, finBadge);
@@ -1179,7 +1252,7 @@ function renderizarLinha(r) {
           <span class="dashboard-municipio-texto">
             <span class="dashboard-municipio-nome apoiadores-celula-texto-wrap">
               <span class="apoiadores-ident-stack apoiadores-ident-stack--mobile">
-                <span class="apoiadores-ident-nome">${liderancaHtml || "—"}</span>
+                <span class="apoiadores-ident-nome">${liderancaHtml}</span>
                 ${municipioMobile}
                 ${metaMobile}
               </span>
@@ -1315,6 +1388,8 @@ function initApoiadores() {
     campoClassificacao: document.getElementById("campoApClassificacao"),
     classificacaoEstrelas: document.getElementById("campoApClassificacaoEstrelas"),
     chkUsarClassificacao: document.getElementById("chkApUsarClassificacao"),
+    rowFechadoOrcamento: document.getElementById("rowApFechadoOrcamento"),
+    chkFechadoOrcamento: document.getElementById("chkApFechadoOrcamento"),
     campoProprioValor: document.getElementById("campoApProprioValor"),
     campoLideranca: document.getElementById("campoApLideranca"),
     campoMunicipio: document.getElementById("campoApMunicipio"),

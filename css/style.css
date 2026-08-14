@@ -4033,6 +4033,42 @@ body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-camp
   word-break: break-word;
 }
 
+.apoiadores-ident-nome-linha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.apoiadores-ident-nome-texto {
+  min-width: 0;
+  word-break: break-word;
+}
+
+.apoiadores-icone-fechado {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.2rem;
+  height: 1.2rem;
+  line-height: 1;
+}
+
+.apoiadores-icone-fechado .fa-solid {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.apoiadores-icone-fechado--sim {
+  color: #16a34a;
+}
+
+.apoiadores-icone-fechado--nao {
+  opacity: 0.28;
+  color: #64748b;
+}
+
 .apoiadores-sub-fin-total {
   display: block;
   font-size: 0.68rem;
@@ -11213,6 +11249,13 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
 .crud-acao-icone svg {
   width: 1rem;
   height: 1rem;
+}
+
+.crud-acao-icone:disabled,
+.crud-acao-icone.crud-acao-icone--desabilitado {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .crud-acao-icone--editar:hover {

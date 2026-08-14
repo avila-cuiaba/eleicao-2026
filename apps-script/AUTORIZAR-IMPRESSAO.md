@@ -28,7 +28,7 @@ https://docs.google.com/document/d/1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s/
 | `{{carga-horaria}}` | Coluna M `tipo-contrato`: meio período → `04`; integral/líder → `08` (o texto "horas diárias" fica no modelo) |
 | `{{valor-salario}}` | Coluna O `valor-contrato` (formato `600,00`) |
 | `{{valor-salario-extenso}}` | **Automático** a partir de `valor-contrato` (não precisa coluna na planilha) |
-| `{{local-assinatura}}` | Coluna H `local-assinatura` |
+| `{{local-assinatura}}` | Coluna H (índice 7): `local-assinatura` ou `municipio` — ignora valores de checkbox (S/N, sim/não) |
 | `{{data-contrato-extenso}}` | Coluna AD `data-contrato` (por extenso, ex.: 15 de agosto de 2026) |
 
 **Não é necessária** coluna `valor-salario-extenso` na planilha — o extenso é calculado no Apps Script.

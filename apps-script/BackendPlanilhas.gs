@@ -641,12 +641,46 @@ function valorRegistroContrato(registro, chaves) {
 
 /** Colunas fixas do cadastro (índice 0 = A) usadas na impressão do contrato. */
 const CONTRATOS_COLUNAS_IMPRESSAO = {
-  "local-assinatura": 7,
   "data-contrato": 29,
 };
 
+const CONTRATO_INDICE_COLUNA_H = 7;
+
+function valorTextoLocalAssinaturaValido(val) {
+  if (val == null) return false;
+  if (val instanceof Date && !isNaN(val.getTime())) return false;
+  const s = String(val).trim();
+  if (!s) return false;
+  const n = normalizarChavePlanilha(s);
+  if (n === "s" || n === "n" || n === "sim" || n === "nao" || n === "true" || n === "false") {
+    return false;
+  }
+  return true;
+}
+
+/** Coluna H (índice 7): cabeçalho municipio ou local-assinatura — não usar coluna I (checkbox). */
+function valorLocalAssinaturaContrato(registro, valores) {
+  const aliasesLocal = ["local-assinatura", "local assinatura", "local de assinatura"];
+  let v = valorRegistroContrato(registro, aliasesLocal);
+  if (valorTextoLocalAssinaturaValido(v)) return String(v).trim();
+
+  if (valores && valores.length > CONTRATO_INDICE_COLUNA_H) {
+    const bruto = valores[CONTRATO_INDICE_COLUNA_H];
+    if (valorTextoLocalAssinaturaValido(bruto)) return String(bruto).trim();
+  }
+
+  v = valorRegistroContrato(registro, ["municipio", "município"]);
+  if (valorTextoLocalAssinaturaValido(v)) return String(v).trim();
+
+  return "";
+}
+
 function enrichirRegistroContratoColunas(registro, valores) {
   if (!valores || !valores.length) return registro;
+
+  const local = valorLocalAssinaturaContrato(registro, valores);
+  if (local) registro["local-assinatura"] = local;
+
   Object.keys(CONTRATOS_COLUNAS_IMPRESSAO).forEach(function (id) {
     const idx = CONTRATOS_COLUNAS_IMPRESSAO[id];
     if (idx >= valores.length) return;
@@ -1001,11 +1035,12 @@ function camposMarcadoresContrato() {
   ];
 }
 
-function montarMapaSubstituicoesContrato(registro) {
+function montarMapaSubstituicoesContrato(registro, valoresLinha) {
   const mapa = {};
   const campos = camposMarcadoresContrato();
 
   campos.forEach(function (campo) {
+    if (campo.id === "local-assinatura") return;
     let valor = valorRegistroContrato(registro, campo.aliases);
     if (campo.formatar) valor = campo.formatar(valor);
     if (campo.aliases.length) mapa[campo.id] = valor;
@@ -1017,11 +1052,6 @@ function montarMapaSubstituicoesContrato(registro) {
     "valor contrato",
     "valor do contrato",
   ]);
-  const localAssinatura = valorRegistroContrato(registro, [
-    "local-assinatura",
-    "local assinatura",
-    "local de assinatura",
-  ]);
   const dataContratoRaw = valorRegistroContrato(registro, ["data-contrato", "data contrato"]);
   const dataContrato = parseDataContratoPlanilha(dataContratoRaw);
 
@@ -1029,7 +1059,7 @@ function montarMapaSubstituicoesContrato(registro) {
   mapa["carga-horaria"] = cargaHorariaPorTipoContrato(tipoContrato);
   mapa["valor-salario"] = formatarValorSalarioContrato(valorContrato);
   mapa["valor-salario-extenso"] = valorMonetarioPorExtenso(valorContrato);
-  mapa["local-assinatura"] = String(localAssinatura || "").trim();
+  mapa["local-assinatura"] = valorLocalAssinaturaContrato(registro, valoresLinha);
   mapa["data-contrato"] = dataContrato ? formatarDataContrato(dataContrato) : "";
   mapa["data-contrato-extenso"] = dataContrato
     ? formatarDataContratoExtenso(dataContrato)
@@ -1219,7 +1249,7 @@ function removerContratosPdfColaboradorNaPasta(pasta, registro) {
   }
 }
 
-function gerarPdfContratoDeRegistro(registro, pastaId) {
+function gerarPdfContratoDeRegistro(registro, pastaId, valoresLinha) {
   const modelo = obterArquivoModeloContrato();
   const nomeBase =
     valorRegistroContrato(registro, ["nome-completo", "nome completo", "nome"]) ||
@@ -1229,7 +1259,7 @@ function gerarPdfContratoDeRegistro(registro, pastaId) {
   const copia = modelo.makeCopy("Contrato - " + nomeBase);
   const doc = DocumentApp.openById(copia.getId());
   substituirContratadoBlocoDocumento(doc, registro);
-  substituirMarcadoresDocumento(doc, montarMapaSubstituicoesContrato(registro));
+  substituirMarcadoresDocumento(doc, montarMapaSubstituicoesContrato(registro, valoresLinha));
   doc.saveAndClose();
 
   const pdfBlob = copia.getAs(MimeType.PDF).setName(nomePdf);
@@ -1261,19 +1291,21 @@ function imprimirContratoPdf(corpo) {
   const numLinha = Number(corpo.linha);
   let registro = corpo.dados || {};
   let pastaId = "";
+  let valoresLinha = null;
 
   if (numLinha >= 2) {
     const sheet = obterSheet(planilha, nomeAba);
     const ultimaColuna = sheet.getLastColumn();
     const cabecalhos = sheet.getRange(1, 1, 1, ultimaColuna).getValues()[0];
     const existente = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
+    valoresLinha = existente;
     registro = linhaParaObjeto(cabecalhos, existente);
     enrichirRegistroContratoColunas(registro, existente);
     const prov = provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos);
     pastaId = prov.pastaId;
   }
 
-  const pdf = gerarPdfContratoDeRegistro(registro, pastaId);
+  const pdf = gerarPdfContratoDeRegistro(registro, pastaId, valoresLinha);
   return responder({
     ok: true,
     url: pdf.url,
@@ -1330,12 +1362,14 @@ function filtrarDadosAtualizacaoPagamentosContratos(corpo, dados) {
   return out;
 }
 
-/** Apoiadores (pessoal-apoiadores): não regravar F,H,J,N,T; E,G,I com fórmula; D = valor direto (padrão 0). */
-var APOIADORES_COLS_FORMULA_FIXAS = [5, 7, 9, 13, 19];
+/** Apoiadores (pessoal-apoiadores): não regravar F,H,J,N,T,Y; E,G,I com fórmula; D = valor direto (padrão 0). */
+var APOIADORES_COLS_FORMULA_FIXAS = [5, 7, 9, 13, 19, 24];
 var APOIADORES_COLS_PADRAO_FORMULA = [4, 6, 8];
 var APOIADORES_COL_PROPRIO_VALOR = 3;
 /** Colunas E, G, I (1-based) — quantidades por classificação (fórmula). */
 var APOIADORES_COLS_FORMULA_CLASSIFICACAO = [5, 7, 9];
+/** F,H,J,N,T,Y (0-based) — copiar fórmula de linha modelo ao inserir. */
+var APOIADORES_COLS_FORMULA_EXTENDER = [5, 7, 9, 13, 19, 24];
 var GID_ABA_PARAMETROS_CLASSIFICACAO = 1225905245;
 
 function ehPlanilhaApoiadoresPessoal(planilhaKey, origem) {
@@ -1481,6 +1515,33 @@ function aplicarFormulaClassificacaoColunaApoiador(sheet, numLinha, col) {
   if (formula) celula.setFormula(formula);
 }
 
+function buscarFormulaApoiadorModelo(sheet, col1Based, antesDeLinha) {
+  const limite = Math.min(antesDeLinha - 1, sheet.getLastRow());
+  for (let r = limite; r >= 2; r--) {
+    const f = sheet.getRange(r, col1Based).getFormula();
+    if (f && String(f).trim()) {
+      return { formula: f, linha: r };
+    }
+  }
+  return null;
+}
+
+function aplicarFormulaModeloColunaApoiador(sheet, numLinha, col1Based) {
+  const celula = sheet.getRange(numLinha, col1Based);
+  celula.clearContent();
+  const modelo = buscarFormulaApoiadorModelo(sheet, col1Based, numLinha);
+  if (!modelo || !modelo.formula) return;
+  const formula = ajustarFormulaSaldoParaLinha(modelo.formula, modelo.linha, numLinha);
+  if (formula) celula.setFormula(formula);
+}
+
+function aplicarFormulasExtensaoApoiadorLinha(sheet, numLinha) {
+  APOIADORES_COLS_FORMULA_EXTENDER.forEach(function (col0) {
+    aplicarFormulaModeloColunaApoiador(sheet, numLinha, col0 + 1);
+  });
+  SpreadsheetApp.flush();
+}
+
 function aplicarFormulasPadraoApoiadorLinha(sheet, numLinha) {
   APOIADORES_COLS_FORMULA_CLASSIFICACAO.forEach(function (col) {
     aplicarFormulaClassificacaoColunaApoiador(sheet, numLinha, col);
@@ -1492,6 +1553,19 @@ function valorProprioApoiadorParaGravacao(dados, col) {
   const val = valorDadosColuna(dados, col);
   if (val === undefined || val === null || String(val).trim() === "") return 0;
   return val;
+}
+
+/** Primeira linha (≥2) com colunas B (liderança) e C (município) vazias; senão após a última linha. */
+function primeiraLinhaVaziaApoiadoresLiderancaMunicipio(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 2;
+  const valores = sheet.getRange(2, 2, lastRow, 3).getValues();
+  for (let i = 0; i < valores.length; i++) {
+    if (celulaValorVaziaContrato(valores[i][0]) && celulaValorVaziaContrato(valores[i][1])) {
+      return i + 2;
+    }
+  }
+  return lastRow + 1;
 }
 
 function atualizarLinhaApoiadores(sheet, numLinha, existente, cabecalhos, dados, corpo) {
@@ -1513,19 +1587,28 @@ function atualizarLinhaApoiadores(sheet, numLinha, existente, cabecalhos, dados,
 
 function inserirLinhaApoiadores(sheet, cabecalhos, dados, corpo) {
   const editarPadrao = editarPadraoManualApoiador(corpo);
-  const linha = cabecalhos.map(function (col, i) {
-    if (indiceColunaBloqueadaApoiadores(i, editarPadrao)) return "";
+  const numLinha = primeiraLinhaVaziaApoiadoresLiderancaMunicipio(sheet);
+  cabecalhos.forEach(function (col, i) {
+    if (indiceColunaBloqueadaApoiadores(i, editarPadrao)) return;
     const val = valorDadosColuna(dados, col);
-    if (val !== undefined) return val;
-    if (corpo[col] != null) return corpo[col];
-    if (i === APOIADORES_COL_PROPRIO_VALOR) return valorProprioApoiadorParaGravacao(dados, col);
-    return "";
+    if (val !== undefined) {
+      sheet.getRange(numLinha, i + 1).setValue(val);
+      return;
+    }
+    if (corpo[col] != null) {
+      sheet.getRange(numLinha, i + 1).setValue(corpo[col]);
+      return;
+    }
+    if (i === APOIADORES_COL_PROPRIO_VALOR) {
+      sheet.getRange(numLinha, i + 1).setValue(valorProprioApoiadorParaGravacao(dados, col));
+      return;
+    }
+    sheet.getRange(numLinha, i + 1).setValue("");
   });
-  sheet.appendRow(linha);
-  const numLinha = sheet.getLastRow();
   if (!editarPadrao) {
     aplicarFormulasPadraoApoiadorLinha(sheet, numLinha);
   }
+  aplicarFormulasExtensaoApoiadorLinha(sheet, numLinha);
   SpreadsheetApp.flush();
   return numLinha;
 }

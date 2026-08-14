@@ -286,7 +286,7 @@ const CONFIG = {
       CELULAR: 3,
       DATA_NASCIMENTO: 4,
       TITULO_ELEITOR: 5,
-      MUNICIPIO: 6,
+      MUNICIPIO: 7,
       VINCULO: 9,
       BOLSA_FAMILIA: 10,
       LANCAMENTO_SISTEMA: 11,
@@ -433,7 +433,7 @@ const CONFIG = {
         rotulo: "município",
         tipo: "select",
         origem: "municipios",
-        indice: 6,
+        indice: 7,
         largura: 12,
       },
       {
@@ -716,6 +716,7 @@ const CONFIG = {
         FIN_MEIO: 9,
         APOIADOR_CUSTOMIZADO: 10,
         FIN_CUSTOMIZADO: 11,
+        FECHADO_ORCAMENTO: 29, // AD — FECHADO-ORCAMENTO (S/N)
       },
       COLUNAS_DESPACHO: [
         { prop: "pessoal", chave: "DESP_PESSOAL", aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
@@ -739,7 +740,7 @@ const CONFIG = {
         COL_PROPRIO_VALOR: 11,
       },
       // Colunas com fórmula na aba apoiadores (0-based) — nunca regravar pelo app.
-      COLUNAS_SOMENTE_FORMULA: [5, 7, 9, 13, 19],
+      COLUNAS_SOMENTE_FORMULA: [5, 7, 9, 13, 19, 24],
       // E, G, I — fórmula quando não “editar padrão”; D = valor direto (padrão 0,00).
       COLUNAS_PADRAO_FORMULA: [4, 6, 8],
     },

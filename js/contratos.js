@@ -409,6 +409,14 @@ function parseNumeroPlanilha(v) {
   return isNaN(n) ? 0 : n;
 }
 
+function orcamentoFechadoApoiador(val) {
+  if (val === true || val === 1) return true;
+  if (val === false || val === 0 || val == null) return false;
+  const s = PlanilhaApi.normalizarChave(val);
+  if (s === "nao" || s === "n" || s === "false" || s === "0" || s === "no") return false;
+  return s === "sim" || s === "s" || s === "true" || s === "1" || s === "yes" || s === "x";
+}
+
 const CATEGORIAS_TIPO_CONTRATO = [
   {
     id: "lider",
@@ -489,6 +497,19 @@ function indicesLinhaApoiadores(cab) {
       ["apoiador-customizado", "apoiador customizado", "customizado"],
       cfgAp.COLUNAS.APOIADOR_CUSTOMIZADO
     ),
+    fechadoOrcamento: indiceColunaApoiadores(
+      cab,
+      [
+        "FECHADO-ORCAMENTO",
+        "orcamento-fechado",
+        "orcamento fechado",
+        "fechado-orcamento",
+        "fechado orcamento",
+        "fechado orçamento",
+        "fechado-orçamento",
+      ],
+      cfgAp.COLUNAS.FECHADO_ORCAMENTO
+    ),
     finLider: cfgAp.COLUNAS.FIN_LIDER,
     finIntegral: cfgAp.COLUNAS.FIN_INTEGRAL,
     finMeio: cfgAp.COLUNAS.FIN_MEIO,
@@ -502,7 +523,14 @@ function extrairItemApoiadores(valores, linha, idx) {
   const lideranca = String(celula(valores, linha, idx.lideranca) ?? "").trim();
   const municipio = String(celula(valores, linha, idx.municipio) ?? "").trim();
   if (!lideranca || !municipio) return null;
-  const item = { lideranca, municipio, proprioApoiador: celula(valores, linha, idx.proprioApoiador) };
+  const fechadoOrcamento = celula(valores, linha, idx.fechadoOrcamento);
+  if (!orcamentoFechadoApoiador(fechadoOrcamento)) return null;
+  const item = {
+    lideranca,
+    municipio,
+    proprioApoiador: celula(valores, linha, idx.proprioApoiador),
+    fechadoOrcamento,
+  };
   CATEGORIAS_TIPO_CONTRATO.forEach((cat) => {
     item[cat.fin] = celula(valores, linha, idx[cat.fin]);
     item[cat.qtd] = celula(valores, linha, idx[cat.qtd]);
@@ -602,7 +630,7 @@ function obterAlertasLimiteLideranca(municipio, lideranca) {
   if (!ap) {
     if (municipio && lideranca) {
       alertas.push(
-        "liderança não encontrada na planilha apoiadores para este município."
+        "liderança não encontrada na planilha apoiadores para este município com orçamento fechado (S)."
       );
     }
     return alertas;
@@ -646,7 +674,7 @@ function validarPrevisaoSaldoInclusaoContrato(municipio, lideranca, tipo, valorC
     return {
       ok: false,
       mensagem:
-        "liderança não encontrada na planilha apoiadores para este município. cadastre em pessoal → apoiadores.",
+        "liderança não encontrada na planilha apoiadores para este município com orçamento fechado (S). cadastre em pessoal → apoiadores.",
     };
   }
 
@@ -710,8 +738,8 @@ function htmlPainelLimiteLideranca(municipio, lideranca) {
   if (!ap) {
     return (
       '<div class="contratos-painel-lideranca-alerta alert alert-warning py-2 px-2 small mb-0" role="status">' +
-      "liderança não encontrada na planilha <strong>apoiadores</strong> para este município. " +
-      'cadastre em <span class="text-nowrap">pessoal → apoiadores</span> antes de distribuir contratos.' +
+      "liderança não encontrada na planilha <strong>apoiadores</strong> para este município com <strong>orçamento fechado (S)</strong>. " +
+      'marque em <span class="text-nowrap">pessoal → apoiadores</span> antes de distribuir contratos.' +
       "</div>"
     );
   }
@@ -1106,6 +1134,31 @@ function chaveGravacao(coluna) {
   return planilha.trim() !== "" ? planilha : coluna.chave;
 }
 
+function valorCampoFormulario(dados, campo) {
+  if (!dados || !campo?.coluna) return "";
+  const col = campo.coluna;
+  const candidatos = [col.chave, col.chavePlanilha, chaveGravacao(col)];
+  for (let i = 0; i < candidatos.length; i++) {
+    const k = candidatos[i];
+    if (k == null || String(k).trim() === "") continue;
+    const v = dados[k];
+    if (v != null && String(v).trim() !== "") return String(v).trim();
+  }
+  return "";
+}
+
+function gravarValorCampoFormulario(dados, coluna, valor) {
+  if (!coluna) return;
+  const chave = chaveGravacao(coluna);
+  dados[chave] = valor;
+  if (coluna.chavePlanilha && coluna.chavePlanilha !== chave) {
+    dados[coluna.chavePlanilha] = valor;
+  }
+  if (coluna.chave && coluna.chave !== chave) {
+    dados[coluna.chave] = valor;
+  }
+}
+
 function classeRotulo(campo) {
   return campo.rotuloUpper ? "form-label contratos-label-upper" : "form-label";
 }
@@ -1146,7 +1199,7 @@ function vincularUppercaseCampoTexto(campo, input) {
 
 function criarCampoTexto(campo, dados, attrs) {
   const id = "campo-" + campo.id;
-  const valorBruto = dados && campo.coluna ? dados[campo.coluna.chave] : "";
+  const valorBruto = valorCampoFormulario(dados, campo);
   const valor = valorExibicaoCampoTexto(campo, valorBruto);
   const wrap = document.createElement("div");
   wrap.className = "mb-1";
@@ -1194,7 +1247,7 @@ function criarCampoCelular(campo, dados) {
 
 function criarCampoData(campo, dados) {
   const id = "campo-" + campo.id;
-  const valor = dados && campo.coluna ? planilhaDataParaInputDate(dados[campo.coluna.chave]) : "";
+  const valor = dados && campo.coluna ? planilhaDataParaInputDate(valorCampoFormulario(dados, campo)) : "";
   const wrap = document.createElement("div");
   wrap.className = "mb-1";
   wrap.innerHTML =
@@ -1204,7 +1257,7 @@ function criarCampoData(campo, dados) {
 }
 
 function criarCampoMoeda(campo, dados) {
-  const valor = dados && campo.coluna ? dados[campo.coluna.chave] : "";
+  const valor = valorCampoFormulario(dados, campo);
   const exibicao = valorMoedaGravar(valor) || String(valor ?? "").trim();
   const dadosExibicao = dados ? { ...dados } : {};
   if (campo.coluna) dadosExibicao[campo.coluna.chave] = exibicao;
@@ -1213,7 +1266,7 @@ function criarCampoMoeda(campo, dados) {
 
 function criarCampoSelect(campo, dados, opcoes) {
   const id = "campo-" + campo.id;
-  const valor = dados && campo.coluna ? String(dados[campo.coluna.chave] ?? "").trim() : "";
+  const valor = valorCampoFormulario(dados, campo);
   const placeholder =
     campo.origem === "liderancas" && !municipioSelecionadoNoForm(dados)
       ? "selecione o município primeiro"
@@ -1231,7 +1284,7 @@ function criarCampoSelect(campo, dados, opcoes) {
 
 function criarCampoCheckbox(campo, dados) {
   const id = "campo-" + campo.id;
-  const valor = dados && campo.coluna ? dados[campo.coluna.chave] : "";
+  const valor = valorCampoFormulario(dados, campo);
   const marcado = valorCheckboxSim(valor);
   const wrap = document.createElement("div");
   wrap.className = "mb-1";
@@ -1718,24 +1771,23 @@ function vincularChavePixComCpf() {
 function lerFormulario() {
   const dados = {};
   resolverCamposFormulario().forEach((campo) => {
-    const chave = chaveGravacao(campo.coluna);
     const input = document.getElementById("campo-" + campo.id);
     if (!input) return;
 
     if (campo.tipo === "checkbox") {
-      dados[chave] = valorCheckboxGravar(campo, input.checked);
+      gravarValorCampoFormulario(dados, campo.coluna, valorCheckboxGravar(campo, input.checked));
     } else if (campo.tipo === "cpf") {
-      dados[chave] = formatarCpf(input.value);
+      gravarValorCampoFormulario(dados, campo.coluna, formatarCpf(input.value));
     } else if (campo.tipo === "celular") {
-      dados[chave] = formatarCelular(input.value);
+      gravarValorCampoFormulario(dados, campo.coluna, formatarCelular(input.value));
     } else if (campo.tipo === "data") {
-      dados[chave] = inputDateParaPlanilha(input.value);
+      gravarValorCampoFormulario(dados, campo.coluna, inputDateParaPlanilha(input.value));
     } else if (campo.tipo === "moeda") {
-      dados[chave] = valorMoedaGravar(input.value);
+      gravarValorCampoFormulario(dados, campo.coluna, valorMoedaGravar(input.value));
     } else {
       let v = input.value.trim();
       if (campo.uppercase) v = v.toLocaleUpperCase("pt-BR");
-      dados[chave] = v;
+      gravarValorCampoFormulario(dados, campo.coluna, v);
     }
   });
   return Object.assign({}, dadosLancamentoSistemaAoSalvar(), dados);
@@ -1901,6 +1953,33 @@ function itemAssinado(item) {
   return valorCheckboxSim(valorItem(item, colunaAssinado));
 }
 
+function itemImprimirContratoDesabilitado(item) {
+  return itemAssinado(item);
+}
+
+function arquivoEContratoPdfColaborador(arquivo) {
+  const nome = String(arquivo?.nome || "").trim().toLowerCase();
+  if (!nome.endsWith(".pdf")) return false;
+  return nome.indexOf("contrato-") === 0;
+}
+
+async function pastaColaboradorTemContratoPdf(linha) {
+  if (!linha) return false;
+  try {
+    const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
+      acao: "listar-arquivos-contrato",
+      linha,
+      aba: cfg.ABA,
+      origem: "pessoal-contratos",
+    });
+    if (!json?.arquivos?.length) return false;
+    return json.arquivos.some((arq) => arquivoEContratoPdfColaborador(arq));
+  } catch (e) {
+    console.warn("verificar contrato pdf:", e);
+    return false;
+  }
+}
+
 function htmlIconeAssinado(item) {
   const ok = itemAssinado(item);
   const classe = ok
@@ -1981,13 +2060,28 @@ function criarTdHtml(html, classes) {
   return td;
 }
 
-function htmlBotoesAcoes() {
+function htmlBotoesAcoes(item) {
+  const imprimirOff = item && itemImprimirContratoDesabilitado(item);
+  const imprimirCls =
+    "crud-acao-icone crud-acao-icone--imprimir" +
+    (imprimirOff ? " crud-acao-icone--desabilitado" : "");
+  const imprimirTitulo = imprimirOff
+    ? "contrato assinado — impressão desabilitada"
+    : "imprimir contrato";
+  const imprimirAttrs = imprimirOff ? " disabled aria-disabled=\"true\"" : "";
+
   return (
     '<div class="crud-acoes-icones">' +
     '<button type="button" class="crud-acao-icone crud-acao-icone--arquivos" data-acao="arquivos" aria-label="documentos" title="documentos">' +
     ICONE_ARQUIVOS +
     "</button>" +
-    '<button type="button" class="crud-acao-icone crud-acao-icone--imprimir" data-acao="imprimir" aria-label="imprimir contrato" title="imprimir">' +
+    '<button type="button" class="' +
+    imprimirCls +
+    '" data-acao="imprimir" aria-label="imprimir contrato" title="' +
+    escapeHtml(imprimirTitulo) +
+    '"' +
+    imprimirAttrs +
+    ">" +
     ICONE_IMPRIMIR +
     "</button>" +
     '<button type="button" class="crud-acao-icone crud-acao-icone--editar" data-acao="editar" aria-label="editar" title="editar">' +
@@ -2000,12 +2094,12 @@ function htmlBotoesAcoes() {
   );
 }
 
-function htmlAcoesDesktop() {
-  return htmlBotoesAcoes();
+function htmlAcoesDesktop(item) {
+  return htmlBotoesAcoes(item);
 }
 
-function htmlAcoesMobile() {
-  return htmlBotoesAcoes();
+function htmlAcoesMobile(item) {
+  return htmlBotoesAcoes(item);
 }
 
 function montarDadosImpressao(item) {
@@ -2020,8 +2114,31 @@ function montarDadosImpressao(item) {
 }
 
 async function imprimirContrato(item) {
-  mostrarStatus("Gerando PDF do contrato...", "carregando");
+  if (itemImprimirContratoDesabilitado(item)) return;
+
+  mostrarStatus("", "carregando");
+
   try {
+    const linha = item?._linha;
+    if (linha) {
+      const jaExiste = await pastaColaboradorTemContratoPdf(linha);
+      if (jaExiste) {
+        limparStatus();
+        const confirmar = await AppConfirm.confirm(
+          "já existe um contrato deste colaborador.\ndeseja gerar um novo?\no arquivo anterior será substituído.",
+          {
+            titulo: "contrato existente",
+            icon: "warning",
+            confirmar: "gerar novo",
+            cancelar: "cancelar",
+          }
+        );
+        if (!confirmar) return;
+      }
+    }
+
+    mostrarStatus("", "carregando");
+
     const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
       acao: "imprimir-contrato",
       linha: item._linha,
@@ -2051,7 +2168,10 @@ async function imprimirContrato(item) {
 
 function vincularAcoes(container, item) {
   container.querySelector('[data-acao="arquivos"]')?.addEventListener("click", () => abrirModalArquivos(item));
-  container.querySelector('[data-acao="imprimir"]')?.addEventListener("click", () => imprimirContrato(item));
+  const btnImprimir = container.querySelector('[data-acao="imprimir"]');
+  if (btnImprimir && !btnImprimir.disabled) {
+    btnImprimir.addEventListener("click", () => imprimirContrato(item));
+  }
   container.querySelector('[data-acao="editar"]')?.addEventListener("click", () => abrirEditar(item));
   container.querySelector('[data-acao="excluir"]')?.addEventListener("click", () => confirmarExcluir(item));
 }
@@ -2154,7 +2274,7 @@ function criarLinhaTabela(item) {
   );
 
   const tdAcoesDesktop = criarTdHtml(
-    htmlAcoesDesktop(),
+    htmlAcoesDesktop(item),
     "crud-col-acoes text-end text-nowrap contratos-col-acoes contratos-tabela-desktop-col"
   );
   vincularAcoes(tdAcoesDesktop, item);
@@ -2165,7 +2285,7 @@ function criarLinhaTabela(item) {
   tr.appendChild(tdStack);
 
   const tdAcoesMobile = criarTdHtml(
-    htmlAcoesMobile(),
+    htmlAcoesMobile(item),
     "text-end contratos-col-acoes contratos-tabela-mobile-col"
   );
   vincularAcoes(tdAcoesMobile, item);

@@ -131,6 +131,17 @@ const PlanilhaApi = {
 
   acharColuna(colunas, aliases, indiceFallback) {
     const lista = (aliases || []).map((a) => this.normalizarChave(a));
+    const matches = (colunas || []).filter(
+      (col) =>
+        lista.includes(this.normalizarChave(col.chave)) ||
+        lista.includes(this.normalizarChave(col.chavePlanilha))
+    );
+    if (matches.length > 1 && indiceFallback != null) {
+      const porIndice = matches.find((col) => col.indice === indiceFallback);
+      if (porIndice) return porIndice;
+    }
+    if (matches.length) return matches[0];
+
     const porNome = colunas.find(
       (col) =>
         lista.includes(this.normalizarChave(col.chave)) ||
