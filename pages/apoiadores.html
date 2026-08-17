@@ -117,6 +117,24 @@
               />
             </span>
           </label>
+          <label class="apoiadores-filtro-fechado" for="chkFiltroFechadoOrcamento">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="chkFiltroFechadoOrcamento"
+              checked
+            />
+            <span class="apoiadores-filtro-fechado-texto">orçamento fechado</span>
+          </label>
+          <label class="apoiadores-filtro-fechado" for="chkFiltroAbertoOrcamento">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="chkFiltroAbertoOrcamento"
+              checked
+            />
+            <span class="apoiadores-filtro-fechado-texto">orçamento aberto</span>
+          </label>
         </div>
         <div class="dashboard-tabela-head table-light">
           <table class="table mb-0 apoiadores-tabela">
@@ -233,17 +251,6 @@
         </div>
         <div class="modal-body">
           <form id="formApoiadorCrud" class="row g-3">
-            <div class="col-12">
-              <span class="form-label d-block" id="campoApClassificacaoRotulo">classificação da liderança</span>
-              <input type="hidden" id="campoApClassificacao" value="0" />
-              <div class="apoiadores-classificacao-linha">
-                <div id="campoApClassificacaoEstrelas" class="apoiadores-rating" role="group" aria-labelledby="campoApClassificacaoRotulo"></div>
-                <div class="form-check apoiadores-check-usar-classificacao mb-0">
-                  <input class="form-check-input" type="checkbox" id="chkApUsarClassificacao" checked />
-                  <label class="form-check-label" for="chkApUsarClassificacao">usar classificação da liderança</label>
-                </div>
-              </div>
-            </div>
             <div class="col-12 col-sm-6">
               <label class="form-label" for="campoApLideranca">liderança</label>
               <input type="text" class="form-control form-control-sm" id="campoApLideranca" required />
@@ -254,45 +261,264 @@
                 <option value="">selecione</option>
               </select>
             </div>
+            <div class="col-12">
+              <ul class="nav nav-tabs entregas-dados-tabs apoiadores-modal-tabs" id="apModalTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link active"
+                    id="tabApPessoal"
+                    data-bs-toggle="tab"
+                    data-bs-target="#apTabPessoal"
+                    type="button"
+                    role="tab"
+                    aria-controls="apTabPessoal"
+                    aria-selected="true"
+                  >
+                    pessoal
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link"
+                    id="tabApLogistica"
+                    data-bs-toggle="tab"
+                    data-bs-target="#apTabLogistica"
+                    type="button"
+                    role="tab"
+                    aria-controls="apTabLogistica"
+                    aria-selected="false"
+                  >
+                    logística
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link"
+                    id="tabApParceiro"
+                    data-bs-toggle="tab"
+                    data-bs-target="#apTabParceiro"
+                    type="button"
+                    role="tab"
+                    aria-controls="apTabParceiro"
+                    aria-selected="false"
+                  >
+                    parceiro
+                  </button>
+                </li>
+              </ul>
+              <div class="tab-content apoiadores-modal-tab-content" id="apModalTabContent">
+                <div class="tab-pane fade show active" id="apTabPessoal" role="tabpanel" aria-labelledby="tabApPessoal" tabindex="0">
+                  <ul class="nav nav-tabs entregas-dados-tabs apoiadores-modal-tabs apoiadores-modal-subtabs" id="apPessoalSubTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link active"
+                        id="tabApPessoalOrcamento"
+                        data-bs-toggle="tab"
+                        data-bs-target="#apTabPessoalOrcamento"
+                        type="button"
+                        role="tab"
+                        aria-controls="apTabPessoalOrcamento"
+                        aria-selected="true"
+                      >
+                        orçamento
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link"
+                        id="tabApPessoalDesembolso"
+                        data-bs-toggle="tab"
+                        data-bs-target="#apTabPessoalDesembolso"
+                        type="button"
+                        role="tab"
+                        aria-controls="apTabPessoalDesembolso"
+                        aria-selected="false"
+                      >
+                        desembolso
+                      </button>
+                    </li>
+                  </ul>
+                  <div class="tab-content apoiadores-modal-subtab-content" id="apPessoalSubTabContent">
+                    <div class="tab-pane fade show active" id="apTabPessoalOrcamento" role="tabpanel" aria-labelledby="tabApPessoalOrcamento" tabindex="0">
+                      <div class="row g-3 apoiadores-modal-tab-pane-row">
+                        <div class="col-12">
+                          <span class="form-label d-block" id="campoApClassificacaoRotulo">classificação da liderança</span>
+                          <input type="hidden" id="campoApClassificacao" value="0" />
+                          <div class="apoiadores-classificacao-linha">
+                            <div id="campoApClassificacaoEstrelas" class="apoiadores-rating" role="group" aria-labelledby="campoApClassificacaoRotulo"></div>
+                            <div class="form-check apoiadores-check-usar-classificacao mb-0">
+                              <input class="form-check-input" type="checkbox" id="chkApUsarClassificacao" checked />
+                              <label class="form-check-label" for="chkApUsarClassificacao">usar classificação da liderança</label>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <div class="row g-2 apoiadores-modal-linha-proprio-custom">
+                            <div class="col-4">
+                              <label class="form-label d-block" for="campoApProprioValor">próprio apoiador</label>
+                              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApProprioValor" data-moeda-apoiador inputmode="decimal" placeholder="R$ 0,00" aria-label="próprio apoiador" />
+                            </div>
+                            <div class="col-8">
+                              <label class="form-label d-block" for="campoApCustom">apoiador customizado</label>
+                              <div class="row g-2 master-crud-modal-par apoiadores-modal-par-custom">
+                                <div class="col-6">
+                                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApCustom" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador customizado" />
+                                </div>
+                                <div class="col-6">
+                                  <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApFinCustom" data-moeda-apoiador inputmode="decimal" placeholder="R$ 0,00" aria-label="valor financeiro apoiador customizado" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <div class="row g-2 align-items-end apoiadores-modal-linha-tres-apoiadores">
+                            <div class="col-4">
+                              <label class="form-label d-block" for="campoApLider">apoiador lider</label>
+                              <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApLider" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador lider" />
+                              <input type="text" class="form-control form-control-sm master-crud-modal-fin d-none" id="campoApFinLider" inputmode="decimal" tabindex="-1" aria-hidden="true" />
+                            </div>
+                            <div class="col-4">
+                              <label class="form-label d-block" for="campoApIntegral">apoiador integral</label>
+                              <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApIntegral" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador integral" />
+                              <input type="text" class="form-control form-control-sm master-crud-modal-fin d-none" id="campoApFinIntegral" inputmode="decimal" tabindex="-1" aria-hidden="true" />
+                            </div>
+                            <div class="col-4">
+                              <label class="form-label d-block" for="campoApMeio">apoiador meio</label>
+                              <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApMeio" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador meio" />
+                              <input type="text" class="form-control form-control-sm master-crud-modal-fin d-none" id="campoApFinMeio" inputmode="decimal" tabindex="-1" aria-hidden="true" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="apTabPessoalDesembolso" role="tabpanel" aria-labelledby="tabApPessoalDesembolso" tabindex="0">
+                      <div class="row g-3 apoiadores-modal-tab-pane-row">
+                        <div class="col-6 col-sm-4">
+                          <label class="form-label" for="campoApDesembJul30">30 Jul</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApDesembJul30" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="desembolso 30 Jul" />
+                        </div>
+                        <div class="col-6 col-sm-4">
+                          <label class="form-label" for="campoApDesembAgo15">15 Ago</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApDesembAgo15" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="desembolso 15 Ago" />
+                        </div>
+                        <div class="col-6 col-sm-4">
+                          <label class="form-label" for="campoApDesembAgo30">30 Ago</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApDesembAgo30" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="desembolso 30 Ago" />
+                        </div>
+                        <div class="col-6 col-sm-4">
+                          <label class="form-label" for="campoApDesembSet15">15 Set</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApDesembSet15" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="desembolso 15 Set" />
+                        </div>
+                        <div class="col-6 col-sm-4">
+                          <label class="form-label" for="campoApDesembSet30">30 Set</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApDesembSet30" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="desembolso 30 Set" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="tab-pane fade" id="apTabLogistica" role="tabpanel" aria-labelledby="tabApLogistica" tabindex="0">
+                  <ul class="nav nav-tabs entregas-dados-tabs apoiadores-modal-tabs apoiadores-modal-subtabs" id="apLogisticaSubTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link active"
+                        id="tabApLogisticaOrcamento"
+                        data-bs-toggle="tab"
+                        data-bs-target="#apTabLogisticaOrcamento"
+                        type="button"
+                        role="tab"
+                        aria-controls="apTabLogisticaOrcamento"
+                        aria-selected="true"
+                      >
+                        orçamento
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link"
+                        id="tabApLogisticaDesembolso"
+                        data-bs-toggle="tab"
+                        data-bs-target="#apTabLogisticaDesembolso"
+                        type="button"
+                        role="tab"
+                        aria-controls="apTabLogisticaDesembolso"
+                        aria-selected="false"
+                      >
+                        desembolso
+                      </button>
+                    </li>
+                  </ul>
+                  <div class="tab-content apoiadores-modal-subtab-content" id="apLogisticaSubTabContent">
+                    <div class="tab-pane fade show active" id="apTabLogisticaOrcamento" role="tabpanel" aria-labelledby="tabApLogisticaOrcamento" tabindex="0">
+                      <div class="row g-3 apoiadores-modal-tab-pane-row">
+                        <div class="col-7 col-sm-4">
+                          <label class="form-label" for="campoApLogCombustivel">combustível</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApLogCombustivel" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="combustível logística" />
+                        </div>
+                        <div class="col-7 col-sm-4">
+                          <label class="form-label" for="campoApLogDiversos">diversos</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApLogDiversos" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="diversos logística" />
+                        </div>
+                        <div class="col-7 col-sm-4">
+                          <label class="form-label" for="campoApLogDiaD">dia D</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApLogDiaD" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="dia D logística" />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="apTabLogisticaDesembolso" role="tabpanel" aria-labelledby="tabApLogisticaDesembolso" tabindex="0">
+                      <div class="row g-3 apoiadores-modal-tab-pane-row">
+                        <div class="col-6 col-sm-4">
+                          <label class="form-label" for="campoApLogDesembJul30">30 Jul</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApLogDesembJul30" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="desembolso logística 30 Jul" />
+                        </div>
+                        <div class="col-6 col-sm-4">
+                          <label class="form-label" for="campoApLogDesembAgo15">15 Ago</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApLogDesembAgo15" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="desembolso logística 15 Ago" />
+                        </div>
+                        <div class="col-6 col-sm-4">
+                          <label class="form-label" for="campoApLogDesembAgo30">30 Ago</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApLogDesembAgo30" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="desembolso logística 30 Ago" />
+                        </div>
+                        <div class="col-6 col-sm-4">
+                          <label class="form-label" for="campoApLogDesembSet15">15 Set</label>
+                          <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApLogDesembSet15" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="desembolso logística 15 Set" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="tab-pane fade" id="apTabParceiro" role="tabpanel" aria-labelledby="tabApParceiro" tabindex="0">
+                  <div class="row g-3 apoiadores-modal-tab-pane-row">
+                    <div class="col-6 col-sm-5">
+                      <label class="form-label" for="campoApParPessoal">pessoal</label>
+                      <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApParPessoal" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="pessoal parceiro" />
+                    </div>
+                    <div class="col-6 col-sm-5">
+                      <label class="form-label" for="campoApParCombustivel">combustível</label>
+                      <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApParCombustivel" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="combustível parceiro" />
+                    </div>
+                    <div class="col-6 col-sm-5">
+                      <label class="form-label" for="campoApParDiversos">diversos</label>
+                      <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApParDiversos" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="diversos parceiro" />
+                    </div>
+                    <div class="col-6 col-sm-5">
+                      <label class="form-label" for="campoApParDiaD">dia D</label>
+                      <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApParDiaD" data-moeda-apoiador inputmode="decimal" placeholder="0,00" aria-label="dia D parceiro" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="col-12" id="rowApFechadoOrcamento" hidden>
               <div class="form-check mb-0">
                 <input class="form-check-input" type="checkbox" id="chkApFechadoOrcamento" />
-                <label class="form-check-label" for="chkApFechadoOrcamento">fechado orçamento</label>
-              </div>
-            </div>
-            <div class="col-4">
-              <label class="form-label" for="campoApProprioValor">proprio apoiador (valor)</label>
-              <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApProprioValor" data-moeda-apoiador inputmode="decimal" placeholder="R$ 0,00" aria-label="valor proprio apoiador" />
-            </div>
-            <div class="col-12">
-              <label class="form-label d-block" for="campoApCustom">apoiador customizado</label>
-              <div class="row g-2 master-crud-modal-par">
-                <div class="col-4">
-                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApCustom" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador customizado" />
-                </div>
-                <div class="col-4">
-                  <input type="text" class="form-control form-control-sm master-crud-modal-fin" id="campoApFinCustom" data-moeda-apoiador inputmode="decimal" placeholder="R$ 0,00" aria-label="valor financeiro apoiador customizado" />
-                </div>
+                <label class="form-check-label" for="chkApFechadoOrcamento">orçamento fechado</label>
               </div>
             </div>
             <div class="col-12">
-              <div class="row g-2 align-items-end apoiadores-modal-linha-tres-apoiadores">
-                <div class="col-4">
-                  <label class="form-label d-block" for="campoApLider">apoiador lider</label>
-                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApLider" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador lider" />
-                  <input type="text" class="form-control form-control-sm master-crud-modal-fin d-none" id="campoApFinLider" inputmode="decimal" tabindex="-1" aria-hidden="true" />
-                </div>
-                <div class="col-4">
-                  <label class="form-label d-block" for="campoApIntegral">apoiador integral</label>
-                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApIntegral" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador integral" />
-                  <input type="text" class="form-control form-control-sm master-crud-modal-fin d-none" id="campoApFinIntegral" inputmode="decimal" tabindex="-1" aria-hidden="true" />
-                </div>
-                <div class="col-4">
-                  <label class="form-label d-block" for="campoApMeio">apoiador meio</label>
-                  <input type="number" class="form-control form-control-sm master-crud-input-num" id="campoApMeio" min="0" step="1" inputmode="numeric" aria-label="quantidade apoiador meio" />
-                  <input type="text" class="form-control form-control-sm master-crud-modal-fin d-none" id="campoApFinMeio" inputmode="decimal" tabindex="-1" aria-hidden="true" />
-                </div>
-              </div>
+              <label class="form-label" for="campoApObservacao">observação</label>
+              <textarea class="form-control form-control-sm" id="campoApObservacao" rows="3" placeholder="informações da liderança"></textarea>
             </div>
           </form>
         </div>

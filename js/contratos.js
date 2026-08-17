@@ -1,6 +1,8 @@
 // Página contratos: CRUD na planilha contratos (colunas dinâmicas).
 
-const cfg = CONFIG.CONTRATOS;
+const cfg = document.body?.classList.contains("page-contratos-juliana")
+  ? Object.assign({}, CONFIG.CONTRATOS, { FILTRO_CONTRATO_QUEM: "Juliana" })
+  : CONFIG.CONTRATOS;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
 const cfgPessoal = CONFIG.PESSOAL;
 const cfgAp = cfgPessoal.APOIADORES;
@@ -52,6 +54,7 @@ let colunaLancarSistema = null;
 let colunaValorContrato = null;
 let colunaTipoContrato = null;
 let colunaAssinado = null;
+let colunaContratoQuem = null;
 let listaMunicipiosForm = [];
 let coordenadoresPorMunicipio = new Map();
 let apoiadorPorMunLider = new Map();
@@ -251,8 +254,17 @@ function aplicarOrdenacaoContratos(lista) {
   return TabelaOrdenacao.aplicar(lista, ordenacaoContratos, COMPARADORES_ORDENACAO_CONTRATOS);
 }
 
+function aplicarFiltroContratoQuem(lista) {
+  const filtro = cfg.FILTRO_CONTRATO_QUEM;
+  if (!filtro || !colunaContratoQuem) return lista;
+  const alvo = PlanilhaApi.normalizarChave(filtro);
+  return lista.filter(
+    (item) => PlanilhaApi.normalizarChave(valorItem(item, colunaContratoQuem)) === alvo
+  );
+}
+
 function linhasFiltradas() {
-  return aplicarOrdenacaoContratos(aplicarBusca(linhas.slice()));
+  return aplicarOrdenacaoContratos(aplicarFiltroContratoQuem(aplicarBusca(linhas.slice())));
 }
 
 function cpfSomenteDigitos(valor) {
@@ -924,6 +936,7 @@ function municipioSelecionadoNoForm(dados) {
 
 function opcoesCampoSelect(campo, dados) {
   if (campo.origem === "tipo-contrato") return cfg.OPCOES_TIPO_CONTRATO || [];
+  if (campo.origem === "contrato-quem") return cfg.OPCOES_CONTRATO_QUEM || [];
   if (campo.origem === "municipios") return listaMunicipiosForm;
   if (campo.origem === "liderancas") {
     const municipio = municipioSelecionadoNoForm(dados);
@@ -1020,6 +1033,29 @@ function definirValorContratoSomenteLeitura(somenteLeitura) {
   else input.removeAttribute("aria-readonly");
 }
 
+function cargaHorariaSugeridaPorTipo(tipo) {
+  const mapa = cfg.CARGA_HORARIA_POR_TIPO || {};
+  const chave = PlanilhaApi.normalizarChave(tipo || "");
+  if (!chave) return "";
+  const entradas = Object.keys(mapa);
+  for (let i = 0; i < entradas.length; i++) {
+    if (PlanilhaApi.normalizarChave(entradas[i]) === chave) {
+      return String(mapa[entradas[i]] ?? "").trim();
+    }
+  }
+  return "";
+}
+
+function aplicarCargaHorariaPorTipoSelecionado() {
+  const selTipo = document.getElementById("campo-tipo-contrato");
+  const input = document.getElementById("campo-carga-horaria");
+  if (!selTipo || !input) return;
+  const tipo = selTipo.value?.trim() || "";
+  const sugerido = cargaHorariaSugeridaPorTipo(tipo);
+  if (sugerido) input.value = sugerido;
+  else if (!tipo) input.value = "";
+}
+
 async function aplicarValorContratoPorTipoSelecionado() {
   const selTipo = document.getElementById("campo-tipo-contrato");
   const tipo = selTipo?.value?.trim() || "";
@@ -1064,11 +1100,13 @@ function vincularSugestaoValorContrato() {
 
   selTipo._contratosMudouTipo = async () => {
     await aplicarValorContratoPorTipoSelecionado();
+    aplicarCargaHorariaPorTipoSelecionado();
     atualizarPainelLimiteLideranca();
   };
 
   selTipo.addEventListener("change", selTipo._contratosMudouTipo);
   aplicarValorContratoPorTipoSelecionado();
+  aplicarCargaHorariaPorTipoSelecionado();
 }
 
 function vincularFiltroCoordenador(dados) {
@@ -1304,7 +1342,8 @@ function classeColunaFormularioContratos(campo, chaveGrupo) {
   }
   if (
     chaveGrupo === "documentos-cpf-titulo" ||
-    chaveGrupo === "documentos-nascimento-celular"
+    chaveGrupo === "documentos-nascimento-celular" ||
+    chaveGrupo === "pix-contrato-quem"
   ) {
     return "col-6 contratos-col-documentos-par";
   }
@@ -1322,6 +1361,9 @@ function classeRowFormularioContratos(chaveGrupo) {
   ) {
     return "row g-2 mb-2 contratos-row-documentos-dupla";
   }
+  if (chaveGrupo === "pix-contrato-quem") {
+    return "row g-2 mb-2 contratos-row-pix-contrato-quem";
+  }
   return "row g-2 mb-2";
 }
 
@@ -1332,7 +1374,7 @@ function montarFormulario(dados) {
     el.formCampos.innerHTML =
       '<p class="text-danger small mb-0">' +
       "Nenhum campo do formulário foi encontrado na planilha de contratos. " +
-      "Confira em <strong>?p=planilhas</strong> se a aba exibida é a de colaboradores " +
+      "Confira se a aba exibida é a de colaboradores " +
       "(cabeçalhos como nome-completo, cpf, municipio), não a de auditoria." +
       "</p>";
     return;
@@ -1626,7 +1668,7 @@ async function carregarListaArquivosContrato() {
       acao: "listar-arquivos-contrato",
       linha,
       aba: cfg.ABA,
-      origem: "pessoal-contratos",
+      origem: origemGravacaoContratos(),
     });
     if (!json) return;
     renderizarDocumentosObrigatorios(json);
@@ -1704,7 +1746,7 @@ async function enviarArquivosSelecionados(input) {
       acao: "upload-arquivo-contrato",
       linha,
       aba: cfg.ABA,
-      origem: "pessoal-contratos",
+      origem: origemGravacaoContratos(),
       dados: {
         nomeArquivo: file.name,
         mimeType: file.type || "application/octet-stream",
@@ -1739,7 +1781,7 @@ async function excluirArquivoContrato(fileId) {
       acao: "excluir-arquivo-contrato",
       linha,
       aba: cfg.ABA,
-      origem: "pessoal-contratos",
+      origem: origemGravacaoContratos(),
       dados: { fileId },
     });
     if (!json) {
@@ -1793,18 +1835,33 @@ function lerFormulario() {
   return Object.assign({}, dadosLancamentoSistemaAoSalvar(), dados);
 }
 
+function origemGravacaoContratos() {
+  return cfg.FILTRO_CONTRATO_QUEM ? "pessoal-contratos-juliana" : "pessoal-contratos";
+}
+
+function aplicarDefaultsFormularioJuliana() {
+  if (!cfg.FILTRO_CONTRATO_QUEM) return;
+  const sel = document.getElementById("campo-contrato-quem");
+  if (sel && !sel.value) sel.value = cfg.FILTRO_CONTRATO_QUEM;
+}
+
 function abrirNovo() {
   modoEdicao = null;
   itemEdicao = null;
-  el.modalTitulo.textContent = "novo contrato";
+  el.modalTitulo.textContent = cfg.FILTRO_CONTRATO_QUEM
+    ? "novo contrato — " + cfg.FILTRO_CONTRATO_QUEM
+    : "novo contrato";
   montarFormulario(null);
+  aplicarDefaultsFormularioJuliana();
   modal.show();
 }
 
 function abrirEditar(item) {
   modoEdicao = item._linha;
   itemEdicao = item;
-  el.modalTitulo.textContent = "editar contrato";
+  el.modalTitulo.textContent = cfg.FILTRO_CONTRATO_QUEM
+    ? "editar contrato — " + cfg.FILTRO_CONTRATO_QUEM
+    : "editar contrato";
   montarFormulario(item);
   modal.show();
 }
@@ -1818,7 +1875,7 @@ async function confirmarExcluir(item) {
       acao: "excluir",
       linha: item._linha,
       aba: cfg.ABA,
-      origem: "pessoal-contratos",
+      origem: origemGravacaoContratos(),
     });
     if (!json) return;
     mostrarStatus("Registro excluído.", "sucesso");
@@ -1882,7 +1939,7 @@ async function salvarFormulario(evento) {
       linha: modoEdicao,
       dados,
       aba: cfg.ABA,
-      origem: "pessoal-contratos",
+      origem: origemGravacaoContratos(),
     });
     if (!json) return;
 
@@ -1943,6 +2000,11 @@ function resolverColunas() {
     cfg.COLUNA_ASSINADO,
     idx.ASSINADO
   );
+  colunaContratoQuem = PlanilhaApi.acharColuna(
+    colunas,
+    cfg.COLUNA_CONTRATO_QUEM,
+    idx.CONTRATO_QUEM
+  );
 }
 
 function itemLancarSistema(item) {
@@ -1970,7 +2032,7 @@ async function pastaColaboradorTemContratoPdf(linha) {
       acao: "listar-arquivos-contrato",
       linha,
       aba: cfg.ABA,
-      origem: "pessoal-contratos",
+      origem: origemGravacaoContratos(),
     });
     if (!json?.arquivos?.length) return false;
     return json.arquivos.some((arq) => arquivoEContratoPdfColaborador(arq));
@@ -2034,10 +2096,40 @@ function htmlValorContratoMobileStack(item) {
   );
 }
 
+function paginaContratosJuliana() {
+  return document.body?.classList.contains("page-contratos-juliana") || !!cfg.FILTRO_CONTRATO_QUEM;
+}
+
+function htmlBadgeContratoQuem(item) {
+  if (paginaContratosJuliana()) return "";
+  if (!colunaContratoQuem || !item) return "";
+  const val = String(valorItem(item, colunaContratoQuem) ?? "").trim();
+  if (PlanilhaApi.normalizarChave(val) !== "juliana") return "";
+  return (
+    '<span class="contratos-icone-contrato-quem" title="Juliana" aria-label="contrato Juliana">' +
+    '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>' +
+    "</span>"
+  );
+}
+
+function htmlNomeTabelaContrato(item) {
+  const nome = exibirValor(valorItem(item, colunaNome));
+  const badge = htmlBadgeContratoQuem(item);
+  if (!badge) return escapeHtml(nome);
+  return (
+    '<span class="contratos-nome-celula">' +
+    '<span class="contratos-nome-celula-texto">' +
+    escapeHtml(nome) +
+    "</span>" +
+    badge +
+    "</span>"
+  );
+}
+
 function htmlMobileStackCorpo(item) {
   return (
     '<div class="contratos-celula-stack">' +
-    `<span class="contratos-stack-nome contratos-stack-nome--com-assinado">${htmlIconeAssinado(item)}<span>${exibirValor(valorItem(item, colunaNome))}</span></span>` +
+    `<span class="contratos-stack-nome contratos-stack-nome--com-assinado">${htmlIconeAssinado(item)}<span>${htmlNomeTabelaContrato(item)}</span></span>` +
     `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
     `<span class="contratos-stack-cpf">${exibirValor(valorItem(item, colunaCpf))}</span>` +
     htmlValorContratoMobileStack(item) +
@@ -2084,12 +2176,14 @@ function htmlBotoesAcoes(item) {
     ">" +
     ICONE_IMPRIMIR +
     "</button>" +
-    '<button type="button" class="crud-acao-icone crud-acao-icone--editar" data-acao="editar" aria-label="editar" title="editar">' +
-    ICONE_EDITAR +
-    "</button>" +
-    '<button type="button" class="crud-acao-icone crud-acao-icone--excluir" data-acao="excluir" aria-label="excluir" title="excluir">' +
-    ICONE_EXCLUIR +
-    "</button>" +
+    (paginaContratosJuliana()
+      ? ""
+      : '<button type="button" class="crud-acao-icone crud-acao-icone--editar" data-acao="editar" aria-label="editar" title="editar">' +
+        ICONE_EDITAR +
+        "</button>" +
+        '<button type="button" class="crud-acao-icone crud-acao-icone--excluir" data-acao="excluir" aria-label="excluir" title="excluir">' +
+        ICONE_EXCLUIR +
+        "</button>") +
     "</div>"
   );
 }
@@ -2144,7 +2238,7 @@ async function imprimirContrato(item) {
       linha: item._linha,
       dados: montarDadosImpressao(item),
       aba: cfg.ABA,
-      origem: "pessoal-contratos",
+      origem: origemGravacaoContratos(),
     });
     if (!json) return;
     const url = json.url;
@@ -2241,7 +2335,7 @@ function criarLinhaTabela(item) {
 
   tr.appendChild(
     criarTdHtml(
-      exibirValor(valorItem(item, colunaNome)),
+      htmlNomeTabelaContrato(item),
       "contratos-col-nome contratos-tabela-desktop-col"
     )
   );
@@ -2461,6 +2555,9 @@ function init() {
     irParaPaginaTabela(totalPaginasTabela(linhasFiltradas().length));
   });
   el.btnNovo?.addEventListener("click", abrirNovo);
+  if (paginaContratosJuliana() && el.btnNovo) {
+    el.btnNovo.classList.add("d-none");
+  }
   el.form?.addEventListener("submit", salvarFormulario);
 
   TabelaOrdenacao.vincular(

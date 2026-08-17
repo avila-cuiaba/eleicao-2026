@@ -1,4 +1,4 @@
-// Página parcerias: aba apoiadores (gid 1856813297) — liderança, município, parceria, orçamento, repasse; filtro Z.
+// Página parcerias: aba apoiadores — parceria, orçamento; repasse = Z+AA+AB+AC (pessoal, combustível, diversos, dia D).
 
 const fmt = new Intl.NumberFormat("pt-BR");
 const fmtMoeda = new Intl.NumberFormat("pt-BR", {
@@ -7,6 +7,7 @@ const fmtMoeda = new Intl.NumberFormat("pt-BR", {
 });
 const cfg = CONFIG.PESSOAL;
 const cfgPar = cfg.PARCERIAS;
+const cfgAp = cfg.APOIADORES;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
 const COLS_TABELA = 6;
 
@@ -19,15 +20,36 @@ const CAMPOS_PLANILHA = [
     chave: "ORCAMENTO",
     aliases: ["orcamento", "orçamento"],
   },
+];
+
+const CAMPOS_REPASSE_PARCEIRO = [
+  { prop: "parPessoal", chave: "PAR_PESSOAL", aliases: ["pessoal", "parceiro-pessoal"] },
   {
-    prop: "repasseParceria",
-    chave: "REPASSE_PARCERIA",
-    aliases: ["repasse parceria", "repasse-parceria", "repasse-federal", "repasse federal"],
+    prop: "parCombustivel",
+    chave: "PAR_COMBUSTIVEL",
+    aliases: ["parceiro-combustivel", "combustivel-parceiro"],
   },
+  { prop: "parDiversos", chave: "PAR_DIVERSOS", aliases: ["parceiro-diversos", "diversos-parceiro"] },
   {
-    prop: "repasseFederal",
-    chave: "REPASSE_FEDERAL",
-    aliases: ["repasse-federal", "repasse federal"],
+    prop: "parDiaD",
+    chave: "PAR_DIA_D",
+    aliases: ["parceiro-diad", "parceiro dia d", "dia-d-parceiro", "diad-parceiro"],
+  },
+];
+
+const LINHAS_POPOVER_DESPESAS = [
+  { rotulo: "pessoal", prop: "parPessoal", marcador: "popover-marcador--orc-pessoal" },
+  {
+    rotulo: "combustivel",
+    prop: "parCombustivel",
+    marcador: "popover-marcador--orc-combustivel",
+  },
+  { rotulo: "diversos", prop: "parDiversos", marcador: "popover-marcador--orc-diversos" },
+  {
+    rotulo: "dia D",
+    prop: "parDiaD",
+    marcador: "popover-marcador--orc-diad",
+    preserveCase: true,
   },
 ];
 
@@ -35,6 +57,7 @@ let el = {};
 let linhas = [];
 let regioes = [];
 let mapaMunicipioRegiao = new Map();
+const popoverTabela = PopoverTabela.criar();
 
 function configValida() {
   return CONFIG.WEB_APP_URL && !CONFIG.WEB_APP_URL.startsWith("COLE_AQUI");
@@ -131,7 +154,30 @@ function resolverIndices(cabecalho) {
     indices[campo.prop] = idx;
   });
 
+  CAMPOS_REPASSE_PARCEIRO.forEach((campo) => {
+    let idx = -1;
+    if (cfgPar.COLUNAS[campo.chave] != null) {
+      idx = cfgPar.COLUNAS[campo.chave];
+    }
+    if (idx === -1 && cfgAp.COLUNAS[campo.chave] != null) {
+      idx = cfgAp.COLUNAS[campo.chave];
+    }
+    if (idx === -1 && campo.aliases) {
+      idx = normalizados.findIndex((n) =>
+        campo.aliases.some((alias) => normalizarChave(alias) === n)
+      );
+    }
+    indices[campo.prop] = idx;
+  });
+
   return indices;
+}
+
+function calcularRepasseParceria(linha, indices) {
+  return CAMPOS_REPASSE_PARCEIRO.reduce(
+    (acc, campo) => acc + parseNumero(valorCampo(linha, indices[campo.prop])),
+    0
+  );
 }
 
 function valorCampo(linha, idx) {
@@ -235,7 +281,7 @@ function linhasFiltradas() {
 
     if (
       termo &&
-      !itemCombinaBuscaMulticampo(item, termo, ["lideranca", "municipio", "parceria"], normalizarChave)
+      !itemCombinaBuscaMulticampo(item, termo, ["parceria"], normalizarChave)
     ) {
       return false;
     }
@@ -292,18 +338,23 @@ function extrairLinhas(valores) {
     const linha = valores[i];
     if (!linha) continue;
 
-    const repasseFederal = valorCampo(linha, indices.repasseFederal);
-    if (!celulaPreenchida(repasseFederal)) continue;
+    const repasseParceria = calcularRepasseParceria(linha, indices);
+    if (repasseParceria <= 0) continue;
 
     const municipio = String(valorCampo(linha, indices.municipio) ?? "").trim();
     const info = municipio ? mapaMunicipioRegiao.get(normalizarChave(municipio)) : null;
 
     const item = {
+      _linha: i + 1,
       lideranca: valorCampo(linha, indices.lideranca),
       municipio,
       parceria: valorCampo(linha, indices.parceria),
       orcamento: valorCampo(linha, indices.orcamento),
-      repasseParceria: valorCampo(linha, indices.repasseParceria),
+      parPessoal: valorCampo(linha, indices.parPessoal),
+      parCombustivel: valorCampo(linha, indices.parCombustivel),
+      parDiversos: valorCampo(linha, indices.parDiversos),
+      parDiaD: valorCampo(linha, indices.parDiaD),
+      repasseParceria,
       regiao: info?.regiao || "",
       regiaoNorm: info?.regiaoNorm || "",
     };
@@ -540,6 +591,92 @@ function aposRenderTabela() {
   });
 }
 
+function badgeOrcamentoHtml(r) {
+  const s = String(r.orcamento ?? "").trim();
+  if (!s && parseNumero(r.orcamento) <= 0) return "";
+  return `<span class="apoiadores-fin-badge">${exibirMoeda(r.orcamento)}</span>`;
+}
+
+function badgeRepasseHtml(r) {
+  if (parseNumero(r.repasseParceria) <= 0) return "";
+  return `<span class="apoiadores-fin-badge">${exibirMoeda(r.repasseParceria)}</span>`;
+}
+
+function htmlPopoverRepasseParceria(r) {
+  const badge = badgeRepasseHtml(r);
+  if (!badge) return "";
+  return `<div class="apoiadores-popover-linha apoiadores-popover-linha--fin apoiadores-popover-linha--repasse-parceria">
+    <span class="apoiadores-popover-rotulo">repasse parceria</span>
+    <span class="apoiadores-popover-fin apoiadores-popover-fin--badge">${badge}</span>
+  </div>`;
+}
+
+function tituloPopoverParceria(r) {
+  return String(r.lideranca ?? "").trim() || "—";
+}
+
+function itemPopoverMoedaParceria(r, linha) {
+  const fin = fmtMoeda.format(parseNumero(r[linha.prop]));
+  const temMarcador = Boolean(linha.marcador);
+  let rotuloClass = temMarcador
+    ? "apoiadores-popover-rotulo apoiadores-popover-rotulo--com-marcador"
+    : "apoiadores-popover-rotulo";
+  if (linha.preserveCase) rotuloClass += " apoiadores-popover-rotulo--case";
+  const marcador = temMarcador
+    ? `<span class="orcamento-geral-popover-marcador ${linha.marcador}" aria-hidden="true"></span>`
+    : "";
+  return `<div class="apoiadores-popover-linha apoiadores-popover-linha--fin">
+    <span class="${rotuloClass}">${marcador}${linha.rotulo}</span>
+    <span class="apoiadores-popover-fin">${fin}</span>
+  </div>`;
+}
+
+function tituloImpressaoPopoverParceria(r) {
+  const partes = [
+    String(r.lideranca ?? "").trim(),
+    String(r.municipio ?? "").trim(),
+    String(r.parceria ?? "").trim(),
+  ].filter(Boolean);
+  return partes.join(" · ") || "parceria";
+}
+
+function htmlPopoverParceria(r) {
+  const lideranca = exibirTexto(r.lideranca) || "—";
+  const parceria = exibirTexto(r.parceria) || "—";
+  const municipio = exibirTexto(r.municipio);
+  const badgeOrcamento = badgeOrcamentoHtml(r);
+  const despesas = LINHAS_POPOVER_DESPESAS
+    .map((linha) => itemPopoverMoedaParceria(r, linha))
+    .join("");
+
+  return `<div class="orcamento-geral-popover-corpo apoiadores-popover-corpo">
+    <div class="apoiadores-popover-cabecalho">
+      <div class="apoiadores-popover-topo">
+        <span class="apoiadores-popover-lideranca apoiadores-ident-nome-linha">
+          <span class="apoiadores-ident-nome-texto">${lideranca}</span>
+        </span>
+        ${badgeOrcamento}
+      </div>
+      <div class="apoiadores-popover-municipio-linha">
+        ${municipio ? `<span class="apoiadores-popover-municipio-muted">${municipio}</span>` : "<span></span>"}
+        ${PopoverTabela.htmlBotaoImprimir(
+          tituloImpressaoPopoverParceria(r),
+          r._popoverPrintKey || `par-${r._linha}`
+        )}
+      </div>
+      <hr class="apoiadores-popover-divisor" aria-hidden="true">
+    </div>
+    <div class="apoiadores-popover-tabela">
+      <div class="apoiadores-popover-linha apoiadores-popover-linha--fin apoiadores-popover-linha--parceria-nome">
+        <span class="apoiadores-popover-rotulo">parceria</span>
+        <span class="apoiadores-popover-fin apoiadores-popover-parceria-nome">${parceria}</span>
+      </div>
+      ${htmlPopoverRepasseParceria(r)}
+      ${despesas}
+    </div>
+  </div>`;
+}
+
 function renderizarLinha(r) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
@@ -552,15 +689,19 @@ function renderizarLinha(r) {
     ? `<span class="apoiadores-sub-municipio">${municipioHtml}</span>`
     : "";
 
-  return `<tr>
+  return `<tr class="apoiadores-linha-popover" tabindex="0" aria-label="detalhes da parceria">
     <td class="apoiadores-col-ident">
       <span class="apoiadores-celula-desktop apoiadores-celula-texto">${liderancaHtml}</span>
       <span class="apoiadores-celula-mobile">
         <span class="dashboard-municipio-celula">
           <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
           <span class="dashboard-municipio-texto">
-            <span class="dashboard-municipio-nome">${liderancaHtml || municipioHtml}</span>
-            ${municipioSub}
+            <span class="dashboard-municipio-nome apoiadores-celula-texto-wrap">
+              <span class="apoiadores-ident-stack apoiadores-ident-stack--mobile">
+                <span class="apoiadores-ident-nome">${liderancaHtml || municipioHtml}</span>
+                ${municipioSub}
+              </span>
+            </span>
           </span>
         </span>
       </span>
@@ -593,6 +734,7 @@ function renderizarTabela() {
 
   if (!linhas.length) {
     limparKpis();
+    popoverTabela.destruir();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhum registro na planilha.</td></tr>`;
     aposRenderTabela();
@@ -601,6 +743,7 @@ function renderizarTabela() {
 
   if (!selecionadas.length) {
     zerarKpis();
+    popoverTabela.destruir();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">selecione ao menos uma região</td></tr>`;
     aposRenderTabela();
@@ -609,6 +752,7 @@ function renderizarTabela() {
 
   if (!filtradas.length) {
     zerarKpis();
+    popoverTabela.destruir();
     el.corpo.innerHTML =
       `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">Nenhuma parceria para os filtros selecionados.</td></tr>`;
     aposRenderTabela();
@@ -617,6 +761,14 @@ function renderizarTabela() {
 
   atualizarKpis(filtradas);
   el.corpo.innerHTML = filtradas.map(renderizarLinha).join("");
+  popoverTabela.inicializar({
+    corpo: el.corpo,
+    seletorLinha: "tr.apoiadores-linha-popover",
+    linhas: filtradas,
+    htmlConteudo: htmlPopoverParceria,
+    tituloImpressao: tituloImpressaoPopoverParceria,
+    printKey: (r, idx) => `par-${r._linha ?? idx}`,
+  });
   aposRenderTabela();
 }
 

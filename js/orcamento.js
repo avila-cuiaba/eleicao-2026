@@ -7,8 +7,12 @@ const fmtMoeda = new Intl.NumberFormat("pt-BR", {
 const cfg = CONFIG.ORCAMENTO;
 const cfgPessoal = CONFIG.PESSOAL;
 const cfgOrcApoiadores = cfgPessoal.ORCAMENTO_POR_LIDERANCA;
+const cfgApoiadores = cfgPessoal.APOIADORES;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
 const COLS_TABELA = 8;
+
+const ICONE_FECHADO_ORCAMENTO =
+  '<i class="fa-solid fa-badge-check" aria-hidden="true"></i>';
 
 const CAMPOS_NUMERICOS = [
   { prop: "pessoal", rotulo: "pessoal" },
@@ -113,6 +117,32 @@ function escapeHtml(texto) {
 
 function celulaPreenchida(val) {
   return String(val ?? "").trim() !== "";
+}
+
+function valorFechadoOrcamentoSim(val) {
+  if (val === true || val === 1) return true;
+  if (val === false || val === 0 || val == null || val === "") return false;
+  const s = normalizarChave(val);
+  if (s === "nao" || s === "n" || s === "false" || s === "0" || s === "no") return false;
+  return s === "sim" || s === "s" || s === "true" || s === "1" || s === "yes" || s === "x";
+}
+
+function htmlIconeFechadoOrcamento(item) {
+  const ok = valorFechadoOrcamentoSim(item.fechadoOrcamento);
+  const classe = ok
+    ? "apoiadores-icone-fechado apoiadores-icone-fechado--sim"
+    : "apoiadores-icone-fechado apoiadores-icone-fechado--nao";
+  const titulo = ok ? "orçamento fechado" : "orçamento aberto";
+  return `<span class="${classe}" title="${titulo}" aria-label="${titulo}">${ICONE_FECHADO_ORCAMENTO}</span>`;
+}
+
+function htmlLiderancaApoiadorComFechado(ap) {
+  return (
+    `<span class="apoiadores-ident-nome-linha">` +
+    `${htmlIconeFechadoOrcamento(ap)}` +
+    `<span class="apoiadores-ident-nome-texto">${escapeHtml(ap.lideranca)}</span>` +
+    `</span>`
+  );
 }
 
 function urlConsulta(planilha) {
@@ -411,6 +441,23 @@ function resolverIndicesApoiador(cabecalho) {
     indices[campo.prop] = idx;
   });
 
+  const aliasesFechado = [
+    "FECHADO-ORCAMENTO",
+    "fechado-orcamento",
+    "fechado orcamento",
+    "orcamento-fechado",
+    "orcamento fechado",
+    "fechado orçamento",
+    "fechado-orçamento",
+  ];
+  let idxFechado = normalizados.findIndex((n) =>
+    aliasesFechado.some((alias) => normalizarChave(alias) === n)
+  );
+  if (idxFechado === -1 && cfgApoiadores.COLUNAS.FECHADO_ORCAMENTO != null) {
+    idxFechado = cfgApoiadores.COLUNAS.FECHADO_ORCAMENTO;
+  }
+  indices.fechadoOrcamento = idxFechado;
+
   return indices;
 }
 
@@ -463,6 +510,7 @@ function extrairLinhasApoiadores(valores) {
       combustivel: valorCampo(linha, indices.combustivel),
       diversos: valorCampo(linha, indices.diversos),
       diaD: valorCampo(linha, indices.diaD),
+      fechadoOrcamento: valorCampo(linha, indices.fechadoOrcamento),
       regiao: info.regiao,
       regiaoNorm: info.regiaoNorm,
     };
@@ -527,7 +575,7 @@ function htmlLinhaApoiador(ap) {
     `<span class="dashboard-municipio-texto">` +
     `<span class="orcamento-estratificado-municipio-linha">` +
     `<span class="orcamento-estratificado-expansor orcamento-estratificado-expansor--vazio" aria-hidden="true"></span>` +
-    `<span class="orcamento-estratificado-apoiador-ident">${escapeHtml(ap.lideranca)}</span>` +
+    `<span class="orcamento-estratificado-apoiador-ident">${htmlLiderancaApoiadorComFechado(ap)}</span>` +
     `</span>` +
     `</span>` +
     `</span>` +
@@ -776,7 +824,7 @@ function htmlRelatorioLinhaApoiador(ap) {
   const totalExib = exibirMoeda(ap.finTotal);
   return (
     `<tr class="orcamento-estratificado-rel-detail">` +
-    `<td class="orcamento-col-municipio orcamento-estratificado-rel-apoiador">${escapeHtml(ap.lideranca)}</td>` +
+    `<td class="orcamento-col-municipio orcamento-estratificado-rel-apoiador">${htmlLiderancaApoiadorComFechado(ap)}</td>` +
     CAMPOS_NUMERICOS.map(
       (c) =>
         `<td class="text-end orcamento-col-${c.prop === "diaD" ? "diad" : c.prop}">${exibirMoeda(ap[c.prop])}</td>`

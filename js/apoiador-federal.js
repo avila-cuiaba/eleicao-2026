@@ -1,11 +1,24 @@
 // Página apoiador federal: liderança, município, federal + filtro por região.
 
 const fmt = new Intl.NumberFormat("pt-BR");
+const fmtMoeda = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 const cfg = CONFIG.PESSOAL;
 const cfgAf = cfg.APOIADOR_FEDERAL;
+const cfgAp = cfg.APOIADORES;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
-const COLS_TABELA = 3;
+const COLS_TABELA = 5;
 const COLS_TABELA_RESUMO = 3;
+
+const CAMPOS_ORC_APOIADORES = [
+  { prop: "pessoal", chave: "DESP_PESSOAL", aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
+  { prop: "logCombustivel", chave: "LOG_COMBUSTIVEL", aliases: ["combustivel", "combustível"] },
+  { prop: "logDiversos", chave: "LOG_DIVERSOS", aliases: ["diversos"] },
+  { prop: "logDiaD", chave: "LOG_DIA_D", aliases: ["dia d", "dia-d", "diad"] },
+];
+const CAMPOS_PAR_APOIADORES = cfgAp.COLUNAS_PARCEIRO_MODAL || [];
 
 const CAMPOS_PLANILHA = [
   { prop: "lideranca", chave: "LIDERANCA", aliases: ["lideranca", "liderança"] },
@@ -13,12 +26,26 @@ const CAMPOS_PLANILHA = [
   { prop: "federal", chave: "FEDERAL", aliases: ["federal", "apoiador federal", "deputado federal"] },
 ];
 
-let el = {};
+const COLGROUP_AFEDERAL_DESKTOP =
+  "<col class=\"apoiadores-col-ident\" />" +
+  "<col class=\"apoiadores-col-municipio\" />" +
+  "<col class=\"apoiadores-col-lider\" />" +
+  "<col class=\"apoiadores-col-orc-total\" />" +
+  "<col class=\"apoiadores-col-par-total\" />";
+
+const COLGROUP_AFEDERAL_MOBILE =
+  "<col class=\"apoiadores-col-ident\" />" +
+  "<col class=\"apoiadores-col-lider\" />";
+
+let afederalLayoutMobile = false;
+let afederalResizeTimer = null;
+let afederalWasMobile = false;
 let linhas = [];
 let regioes = [];
 let mapaMunicipioRegiao = new Map();
 let nomesColunaPlanilha = {};
 let opcoesFederal = [];
+let mapaFinanceiroApoiadores = new Map();
 let modalCrud = null;
 let modoCrud = "inserir";
 let linhaCrud = null;
@@ -324,6 +351,156 @@ function exibirCelula(val) {
   return escapeHtml(s);
 }
 
+function exibirMoeda(val) {
+  const n = parseNumero(val);
+  if (n > 0) return fmtMoeda.format(n);
+  return "";
+}
+
+function temSubcabecalhoApoiadores(linha) {
+  if (!linha?.length) return false;
+  const norm = linha.map((h) => normalizarChave(h));
+  const marcadores = ["lider", "integral", "meio", "customizado"];
+  return marcadores.filter((m) => norm.includes(m)).length >= 2;
+}
+
+function cabecalhoApoiadores(valores) {
+  const linha1 = valores[0] || [];
+  const linha2 = valores[1];
+  if (!temSubcabecalhoApoiadores(linha2)) return linha1;
+
+  const n = Math.max(linha1.length, (linha2 || []).length);
+  const cab = [];
+  for (let i = 0; i < n; i++) {
+    const sup = String(linha2[i] ?? "").trim();
+    const grp = String(linha1[i] ?? "").trim();
+    cab.push(sup || grp);
+  }
+  return cab;
+}
+
+function linhaInicioDadosApoiadores(valores) {
+  if (temSubcabecalhoApoiadores(valores[1])) return 3;
+  return cfgAp.LINHA_INICIO_DADOS;
+}
+
+function resolverIndicesCamposFixosApoiadorAf(cabecalho, campos) {
+  const normalizados = (cabecalho || []).map((h) => normalizarChave(h));
+  const indices = {};
+  campos.forEach((campo) => {
+    let idx = -1;
+    if (cfgAp.COLUNAS[campo.chave] != null) {
+      idx = cfgAp.COLUNAS[campo.chave];
+    }
+    if (idx === -1 && campo.aliases?.length) {
+      idx = normalizados.findIndex((n) =>
+        campo.aliases.some((alias) => normalizarChave(alias) === n)
+      );
+    }
+    indices[campo.prop] = idx;
+  });
+  return indices;
+}
+
+function resolverIndicesFinanceiroApoiadores(cabecalho) {
+  const normalizados = (cabecalho || []).map((h) => normalizarChave(h));
+  const indices = {};
+
+  let idxLider = normalizados.findIndex((n) =>
+    ["lideranca", "liderança"].some((alias) => normalizarChave(alias) === n)
+  );
+  if (idxLider === -1 && cfgAf.COLUNAS.LIDERANCA != null) {
+    idxLider = cfgAf.COLUNAS.LIDERANCA;
+  }
+  indices.lideranca = idxLider;
+
+  let idxMun = normalizados.findIndex((n) =>
+    ["municipio", "município"].some((alias) => normalizarChave(alias) === n)
+  );
+  if (idxMun === -1 && cfgAf.COLUNAS.MUNICIPIO != null) {
+    idxMun = cfgAf.COLUNAS.MUNICIPIO;
+  }
+  indices.municipio = idxMun;
+
+  Object.assign(
+    indices,
+    resolverIndicesCamposFixosApoiadorAf(cabecalho, CAMPOS_ORC_APOIADORES),
+    resolverIndicesCamposFixosApoiadorAf(cabecalho, CAMPOS_PAR_APOIADORES)
+  );
+
+  return indices;
+}
+
+function calcularOrcamentoApoiador(item) {
+  return CAMPOS_ORC_APOIADORES.reduce((acc, c) => acc + parseNumero(item[c.prop]), 0);
+}
+
+function calcularParceiroApoiador(item) {
+  return CAMPOS_PAR_APOIADORES.reduce((acc, c) => acc + parseNumero(item[c.prop]), 0);
+}
+
+function chaveLiderancaMunicipio(lideranca, municipio) {
+  return normalizarChave(lideranca) + "|" + normalizarChave(municipio);
+}
+
+function montarMapaFinanceiroApoiadores(valores) {
+  const map = new Map();
+  if (!valores?.length) return map;
+
+  const cab = cabecalhoApoiadores(valores);
+  const indices = resolverIndicesFinanceiroApoiadores(cab);
+  const inicio = linhaInicioDadosApoiadores(valores) - 1;
+
+  for (let i = inicio; i < valores.length; i++) {
+    const linha = valores[i];
+    if (!linha) continue;
+
+    const lideranca = String(valorCampo(linha, indices.lideranca) ?? "").trim();
+    const municipio = String(valorCampo(linha, indices.municipio) ?? "").trim();
+    if (!lideranca && !municipio) continue;
+
+    const item = {};
+    CAMPOS_ORC_APOIADORES.forEach((c) => {
+      item[c.prop] = valorCampo(linha, indices[c.prop]);
+    });
+    CAMPOS_PAR_APOIADORES.forEach((c) => {
+      item[c.prop] = valorCampo(linha, indices[c.prop]);
+    });
+
+    map.set(chaveLiderancaMunicipio(lideranca, municipio), {
+      orcamentoTotal: calcularOrcamentoApoiador(item),
+      parceiroTotal: calcularParceiroApoiador(item),
+    });
+  }
+
+  return map;
+}
+
+function enriquecerLinhasFinanceiras(itens) {
+  (itens || []).forEach((r) => {
+    const info = mapaFinanceiroApoiadores.get(chaveLiderancaMunicipio(r.lideranca, r.municipio));
+    r.orcamentoTotal = info?.orcamentoTotal ?? 0;
+    r.parceiroTotal = info?.parceiroTotal ?? 0;
+  });
+}
+
+function badgeOrcamentoHtml(valor) {
+  const n = parseNumero(valor);
+  if (n <= 0) return "";
+  return `<span class="apoiadores-fin-badge afederal-badge-orcamento">${fmtMoeda.format(n)}</span>`;
+}
+
+function badgeParceiroHtml(valor) {
+  const n = parseNumero(valor);
+  if (n <= 0) return "";
+  return `<span class="apoiadores-fin-badge">${fmtMoeda.format(n)}</span>`;
+}
+
+function htmlIdentMetaAfederal(html) {
+  if (!html) return "";
+  return `<span class="apoiadores-ident-meta">${html}</span>`;
+}
+
 function ordenarRegioes(a, b) {
   const ordem = cfg.ORDEM_REGIOES || [];
   const indice = (norm) => {
@@ -530,19 +707,85 @@ function largurasColunasAfederal() {
       "apoiadores-col-ident": "58%",
       "apoiadores-col-municipio": "0",
       "apoiadores-col-lider": "42%",
+      "apoiadores-col-orc-total": "0",
+      "apoiadores-col-par-total": "0",
     };
   }
   return {
-    "apoiadores-col-ident": "34%",
-    "apoiadores-col-municipio": "34%",
-    "apoiadores-col-lider": "32%",
+    "apoiadores-col-ident": "26%",
+    "apoiadores-col-municipio": "20%",
+    "apoiadores-col-orc-total": "14%",
+    "apoiadores-col-lider": "16%",
+    "apoiadores-col-par-total": "14%",
   };
 }
 
-function sincronizarLargurasColunas(headTable, bodyTable) {
+function mobileAfederalAtivo() {
+  return window.matchMedia("(max-width: 1199.98px)").matches;
+}
+
+function aplicarEstruturaColunasAfederal(headTable, bodyTable) {
+  const mobile = mobileAfederalAtivo();
+  afederalLayoutMobile = mobile;
+
+  [headTable, bodyTable].forEach((table) => {
+    if (!table?.classList.contains("afederal-tabela")) return;
+    table.classList.toggle("afederal-layout-mobile", mobile);
+    const colgroup = table.querySelector("colgroup");
+    if (colgroup) {
+      colgroup.innerHTML = mobile ? COLGROUP_AFEDERAL_MOBILE : COLGROUP_AFEDERAL_DESKTOP;
+    }
+  });
+
+  if (headTable) {
+    headTable.querySelectorAll("thead th").forEach((th) => {
+      const ocultar =
+        mobile &&
+        (th.classList.contains("apoiadores-col-municipio") ||
+          th.classList.contains("apoiadores-col-orc-total") ||
+          th.classList.contains("apoiadores-col-par-total"));
+      th.hidden = ocultar;
+    });
+  }
+}
+
+function aplicarLargurasColunasAfederalMobile(table, larguraTabela) {
+  const largura = Math.max(larguraTabela || 0, 0);
+  if (!largura || !table) return;
+
+  const cols = table.querySelectorAll("colgroup col");
+  const liderPx = Math.max(Math.round(largura * 0.46), 132);
+  const identPx = Math.max(largura - liderPx, 0);
+
+  if (cols.length === 2) {
+    cols[0].style.width = identPx + "px";
+    cols[1].style.width = liderPx + "px";
+    return;
+  }
+
+  cols.forEach((col) => {
+    const cls = Array.from(col.classList).find((c) => c.startsWith("apoiadores-col-"));
+    if (cls === "apoiadores-col-ident") col.style.width = identPx + "px";
+    else if (cls === "apoiadores-col-lider") col.style.width = liderPx + "px";
+    else col.style.width = "0px";
+  });
+}
+
+function sincronizarLargurasColunas(headTable, bodyTable, larguraBase) {
   const mobile = window.matchMedia("(max-width: 1199.98px)").matches;
   const larguras = largurasColunasAfederal();
   [headTable, bodyTable].forEach((table) => {
+    if (!table) return;
+    if (mobile && table.classList.contains("afederal-tabela")) {
+      const ref =
+        larguraBase ||
+        table.closest(".dashboard-tabela-body-scroll")?.clientWidth ||
+        table.closest(".dashboard-tabela-head")?.clientWidth ||
+        table.clientWidth;
+      aplicarLargurasColunasAfederalMobile(table, ref);
+      return;
+    }
+
     table.querySelectorAll("colgroup col").forEach((col) => {
       const cls = Array.from(col.classList).find((c) => c.startsWith("apoiadores-col-"));
       if (mobile && cls && larguras[cls] != null) {
@@ -569,7 +812,8 @@ function alinharColunasTabela() {
   const barra = bodyScroll.offsetWidth - bodyScroll.clientWidth;
   headWrap.style.paddingRight = barra > 0 ? barra + "px" : "0px";
 
-  sincronizarLargurasColunas(headTable, bodyTable);
+  aplicarEstruturaColunasAfederal(headTable, bodyTable);
+  sincronizarLargurasColunas(headTable, bodyTable, largura);
 }
 
 function aposRenderTabela() {
@@ -585,10 +829,45 @@ function renderizarLinha(r) {
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
   const municipioHtml = escapeHtml(r.municipio);
   const liderancaHtml = exibirTexto(r.lideranca);
+  const federalHtml = exibirTexto(r.federal);
   const acoesMaster = MasterCrud.acoesLinha(r._linha);
   const municipioSub = r.municipio
     ? `<span class="apoiadores-sub-municipio">${municipioHtml}</span>`
     : "";
+  const badgeOrc = badgeOrcamentoHtml(r.orcamentoTotal);
+  const badgePar = badgeParceiroHtml(r.parceiroTotal);
+  const metaOrcMobile = htmlIdentMetaAfederal(badgeOrc);
+  const metaParMobile = htmlIdentMetaAfederal(badgePar);
+  const nomeLiderancaMobile = liderancaHtml || "—";
+
+  if (mobileAfederalAtivo()) {
+    const municipioLinha = r.municipio
+      ? `<div class="afederal-mobile-linha-sub afederal-mobile-grid-mun">
+          <span class="dashboard-municipio-celula">
+            <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
+            <span class="dashboard-municipio-texto">
+              <span class="dashboard-municipio-nome">${municipioHtml}</span>
+            </span>
+          </span>
+        </div>`
+      : "";
+
+    return `<tr>
+      <td class="apoiadores-col-ident">
+        <div class="afederal-mobile-col afederal-mobile-grid afederal-mobile-grid-ident">
+          <span class="afederal-mobile-nome">${nomeLiderancaMobile}</span>
+          <span class="afederal-mobile-linha-fim">${badgeOrc}${acoesMaster}</span>
+          ${municipioLinha}
+        </div>
+      </td>
+      <td class="apoiadores-col-lider afederal-mobile-stack">
+        <div class="afederal-mobile-col afederal-mobile-grid afederal-mobile-grid-federal">
+          <span class="afederal-mobile-nome">${federalHtml || "—"}</span>
+          <span class="afederal-mobile-linha-fim">${badgePar}</span>
+        </div>
+      </td>
+    </tr>`;
+  }
 
   return `<tr>
     <td class="apoiadores-col-ident">
@@ -599,8 +878,14 @@ function renderizarLinha(r) {
         <span class="dashboard-municipio-celula">
           <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
           <span class="dashboard-municipio-texto">
-            <span class="dashboard-municipio-nome apoiadores-celula-texto-wrap">${liderancaHtml || municipioHtml}${acoesMaster}</span>
-            ${municipioSub}
+            <span class="dashboard-municipio-nome apoiadores-celula-texto-wrap">
+              <span class="apoiadores-ident-stack apoiadores-ident-stack--mobile">
+                <span class="apoiadores-ident-nome">${liderancaHtml || municipioHtml}</span>
+                ${municipioSub}
+                ${metaOrcMobile}
+              </span>
+              ${acoesMaster}
+            </span>
           </span>
         </span>
       </span>
@@ -613,7 +898,17 @@ function renderizarLinha(r) {
         </span>
       </span>
     </td>
-    <td class="apoiadores-col-lider apoiadores-celula-texto">${exibirTexto(r.federal)}</td>
+    <td class="apoiadores-col-lider apoiadores-celula-texto">
+      <span class="apoiadores-celula-desktop">${federalHtml}</span>
+      <span class="apoiadores-celula-mobile">
+        <span class="apoiadores-ident-stack apoiadores-ident-stack--mobile afederal-mobile-federal">
+          <span class="apoiadores-ident-nome">${federalHtml || "—"}</span>
+          ${metaParMobile}
+        </span>
+      </span>
+    </td>
+    <td class="text-end apoiadores-col-orc-total apoiadores-celula-num afederal-col-desktop">${exibirMoeda(r.orcamentoTotal)}</td>
+    <td class="text-end apoiadores-col-par-total apoiadores-celula-num afederal-col-desktop">${exibirMoeda(r.parceiroTotal)}</td>
   </tr>`;
 }
 
@@ -695,6 +990,7 @@ function renderizarTabela() {
 function montar(valores) {
   atualizarMetadadosPlanilha(valores);
   linhas = extrairLinhas(valores);
+  enriquecerLinhasFinanceiras(linhas);
   montarFiltros(extrairRegioes(linhas));
   renderizarTudo();
 }
@@ -721,6 +1017,7 @@ async function carregar() {
     }
 
     mapaMunicipioRegiao = montarMapaMunicipios(valoresMunicipios || []);
+    mapaFinanceiroApoiadores = montarMapaFinanceiroApoiadores(valores || []);
     montar(valores);
     limparStatus();
   } catch (e) {
@@ -807,6 +1104,18 @@ window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
 window.coletarTabelasRelatorioPagina = coletarTabelasRelatorioPagina;
 window.estilosRelatorioPagina = estilosRelatorioPagina;
 
+function aoResizeAfederal() {
+  clearTimeout(afederalResizeTimer);
+  afederalResizeTimer = setTimeout(() => {
+    const nowMobile = mobileAfederalAtivo();
+    if (nowMobile !== afederalWasMobile) {
+      afederalWasMobile = nowMobile;
+      renderizarTabela();
+    }
+    alinharColunasTabela();
+  }, 120);
+}
+
 function init() {
   el = {
     status: document.getElementById("status"),
@@ -844,7 +1153,8 @@ function init() {
       notificarAlturaFrame();
     });
   });
-  window.addEventListener("resize", alinharColunasTabela);
+  afederalWasMobile = mobileAfederalAtivo();
+  window.addEventListener("resize", aoResizeAfederal);
   PageLoader.init("pageLoader");
   alinharColunasTabela();
   carregar();

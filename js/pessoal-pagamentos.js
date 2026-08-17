@@ -974,7 +974,7 @@ function montarFormulario(dados) {
     el.formCampos.innerHTML =
       '<p class="text-danger small mb-0">' +
       "Nenhum campo do formulário foi encontrado na planilha de contratos. " +
-      "Confira em <strong>?p=planilhas</strong> se a aba exibida é a de colaboradores " +
+      "Confira se a aba exibida é a de colaboradores " +
       "(cabeçalhos como nome-completo, cpf, municipio), não a de auditoria." +
       "</p>";
     return;

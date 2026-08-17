@@ -105,9 +105,29 @@ window.LAYOUT = {
     );
   },
 
+  escapeHtml(texto) {
+    const div = document.createElement("div");
+    div.textContent = texto == null ? "" : String(texto);
+    return div.innerHTML;
+  },
+
+  htmlUsuarioSidebar() {
+    if (!window.AUTH || typeof AUTH.getUsuario !== "function") return "";
+    const usuario = AUTH.getUsuario();
+    if (!usuario) return "";
+    return (
+      '<span class="app-sidebar-usuario">usuário: ' +
+      this.escapeHtml(usuario) +
+      "</span>"
+    );
+  },
+
   montarSidebar(paginaAtiva) {
     const links = this.getMenu()
       .map((item) => {
+        if (item.separador) {
+          return '<div class="app-sidebar-separador" role="presentation"></div>';
+        }
         if (item.filhos?.length) return this.renderGrupo(item, paginaAtiva);
         return this.renderLink(item, paginaAtiva);
       })
@@ -124,6 +144,7 @@ window.LAYOUT = {
       "</span>" +
       "<span>Eleição 2026</span></a>" +
       '<span class="app-sidebar-sub">campanha Dr. Eugênio</span>' +
+      this.htmlUsuarioSidebar() +
       "</div>" +
       '<nav class="app-sidebar-nav" aria-label="Menu principal">' +
       links +
@@ -192,6 +213,11 @@ window.LAYOUT = {
     if (sidebar) sidebar.innerHTML = this.montarSidebar(pagina);
     if (window.AUTH && AUTH.getPerfil()) {
       document.body.setAttribute("data-perfil", AUTH.getPerfil());
+      if (AUTH.ehSomenteLeitura && AUTH.ehSomenteLeitura()) {
+        document.body.setAttribute("data-somente-leitura", "1");
+      } else {
+        document.body.removeAttribute("data-somente-leitura");
+      }
     }
   },
 

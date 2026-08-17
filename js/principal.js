@@ -60,11 +60,11 @@ const PAGINAS = {
     menuGrupo: "pessoal",
   },
   "pessoal-parcerias": {
-    titulo: "pessoal",
-    subtitulo: "parceria — contratos",
+    titulo: "orçamento",
+    subtitulo: "parceria",
     arquivo: "pages/parcerias.html",
     atualizar: true,
-    menuGrupo: "pessoal",
+    menuGrupo: "orcamento",
   },
   "logistica-material-grafico": {
     titulo: "logística",
@@ -115,6 +115,24 @@ const PAGINAS = {
     atualizar: true,
     menuGrupo: "orcamento",
   },
+  "orcamento-juliana": {
+    titulo: "Juliana",
+    subtitulo: "orçamento por liderança (federal Juliana)",
+    arquivo: "pages/orcamento-juliana.html",
+    atualizar: true,
+    menuGrupo: "juliana",
+  },
+  "pessoal-contratos-juliana": {
+    titulo: "Juliana",
+    subtitulo: "contratos (contrato-quem Juliana)",
+    arquivo: "pages/contratos-juliana.html",
+    atualizar: true,
+    menuGrupo: "juliana",
+    relatorioOpcoes: [
+      { id: "geral", rotulo: "relatório geral" },
+      { id: "clicksign", rotulo: "contatos para clicksign" },
+    ],
+  },
   "pagamentos-geral": {
     titulo: "pagamentos",
     subtitulo: "geral",
@@ -155,12 +173,6 @@ const PAGINAS = {
     atualizar: true,
     menuGrupo: "desempenho",
   },
-  planilhas: {
-    titulo: "planilhas",
-    subtitulo: "diagnóstico do Google Sheets",
-    arquivo: "pages/planilhas.html",
-    atualizar: true,
-  },
 };
 
 function resolverPagina(id) {
@@ -170,6 +182,7 @@ function resolverPagina(id) {
   if (id === "orcamento") return "orcamento-estratificado";
   if (id === "mobilizacao") return "mobilizacao-estrutura";
   if (id === "desempenho") return "dashboard";
+  if (id === "juliana") return "orcamento-juliana";
   if (id === "apoiador-federal") return "pessoal-apoiador-federal";
   const resolved = id && PAGINAS[id] ? id : "inicio";
   if (AUTH.getChave() && !AUTH.podeAcessarPagina(resolved)) {
@@ -460,6 +473,7 @@ function ajustarAlturaFrame() {
       doc.body?.classList.contains("page-pessoal") ||
       doc.body?.classList.contains("page-apoiadores") ||
       doc.body?.classList.contains("page-orcamento-pessoal-apoiadores") ||
+      doc.body?.classList.contains("page-orcamento-juliana") ||
       doc.body?.classList.contains("page-apoiador-federal") ||
       doc.body?.classList.contains("page-parcerias") ||
       doc.body?.classList.contains("page-orcamento") ||

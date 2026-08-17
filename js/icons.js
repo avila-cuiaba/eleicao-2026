@@ -75,6 +75,11 @@ window.APP_ICON_SVG = {
     '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>' +
     '<rect x="6" y="14" width="12" height="8"/>' +
     "</svg>",
+  juliana:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
+    '<circle cx="12" cy="8" r="4"/>' +
+    '<path d="M6 21v-1a6 6 0 0 1 12 0v1"/>' +
+    "</svg>",
 };
 
 window.APP_MENU = [
@@ -97,7 +102,6 @@ window.APP_MENU = [
       { id: "pessoal-apoiador-federal", label: "apoiador / federal" },
       { id: "pessoal-contratos", label: "contratos" },
       { id: "pessoal-pagamentos", label: "pagamentos" },
-      { id: "pessoal-parcerias", label: "parceria" },
     ],
   },
   {
@@ -108,6 +112,7 @@ window.APP_MENU = [
       { id: "orcamento-estratificado", label: "por município" },
       { id: "orcamento-pessoal-apoiadores", label: "por liderança" },
       { id: "orcamento-desembolso", label: "desembolso" },
+      { id: "pessoal-parcerias", label: "parceria" },
     ],
   },
   {
@@ -126,14 +131,17 @@ window.APP_MENU = [
       { id: "logistica-abastecimento", label: "abastecimentos" },
     ],
   },
-  {
-    id: "midia",
-    label: "mídia",
-    filhos: [{ id: "midia-producao", label: "produção" }],
-  },
   { id: "agenda", label: "agenda" },
   { id: "entregas", label: "entregas" },
-  { id: "planilhas", label: "planilhas" },
+  { separador: true },
+  {
+    id: "juliana",
+    label: "Juliana",
+    filhos: [
+      { id: "orcamento-juliana", label: "orçamento" },
+      { id: "pessoal-contratos-juliana", label: "contratos" },
+    ],
+  },
 ];
 
 window.APP_ICONE = {
@@ -143,8 +151,7 @@ window.APP_ICONE = {
       paginaId === "pessoal-apoiadores" ||
       paginaId === "pessoal-apoiador-federal" ||
       paginaId === "pessoal-contratos" ||
-      paginaId === "pessoal-pagamentos" ||
-      paginaId === "pessoal-parcerias"
+      paginaId === "pessoal-pagamentos"
     ) {
       return "pessoal";
     }
@@ -152,12 +159,16 @@ window.APP_ICONE = {
       paginaId === "orcamento-geral" ||
       paginaId === "orcamento-estratificado" ||
       paginaId === "orcamento-pessoal-apoiadores" ||
-      paginaId === "orcamento-desembolso"
+      paginaId === "orcamento-desembolso" ||
+      paginaId === "pessoal-parcerias"
     ) {
       return "orcamento";
     }
     if (paginaId === "pagamentos-geral" || paginaId === "pagamentos-lideranca") {
       return "pagamentos";
+    }
+    if (paginaId === "orcamento-juliana" || paginaId === "pessoal-contratos-juliana") {
+      return "juliana";
     }
     if (paginaId === "logistica-material-grafico" || paginaId === "logistica-abastecimento") {
       return "logistica";

@@ -7,8 +7,16 @@ const fmtMoeda = new Intl.NumberFormat("pt-BR", {
 });
 const cfg = CONFIG.PESSOAL;
 const cfgOrc = cfg.ORCAMENTO_POR_LIDERANCA;
+const cfgApoiadores = cfg.APOIADORES;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
+const filtroFederalJuliana = document.body.classList.contains("page-orcamento-juliana")
+  ? "Juliana"
+  : "";
+const somenteLeituraOrcamentoJuliana = !!filtroFederalJuliana;
 const COLS_TABELA = 8;
+
+const ICONE_FECHADO_ORCAMENTO =
+  '<i class="fa-solid fa-badge-check" aria-hidden="true"></i>';
 
 const CAMPOS_PLANILHA = [
   { prop: "lideranca", chave: "LIDERANCA", aliases: ["lideranca", "liderança"] },
@@ -54,9 +62,13 @@ function atualizarMetadadosPlanilha(valores) {
   });
 }
 
-function dadosGravacaoApoiador(item) {
+function dadosGravacaoApoiador(item, bloquearIdentidade) {
   const dados = {};
+  const propsBloqueados = bloquearIdentidade
+    ? new Set(["lideranca", "municipio", "pessoal"])
+    : null;
   CAMPOS_PLANILHA.forEach((campo) => {
+    if (propsBloqueados?.has(campo.prop)) return;
     const chave = nomesColunaPlanilha[campo.prop];
     if (chave) dados[chave] = item[campo.prop] ?? "";
   });
@@ -134,6 +146,20 @@ function preencherFormularioApoiador(item) {
   el.campoCombustivel.value = valorParaCampoMoeda(dados.combustivel);
   el.campoDiversos.value = valorParaCampoMoeda(dados.diversos);
   el.campoDiaD.value = valorParaCampoMoeda(dados.diaD);
+  aplicarModoCamposModalOrcamento();
+}
+
+function aplicarModoCamposModalOrcamento() {
+  const edicao = modoCrud === "atualizar";
+  if (el.campoLideranca) {
+    el.campoLideranca.disabled = edicao;
+    el.campoLideranca.required = !edicao;
+  }
+  if (el.campoMunicipio) {
+    el.campoMunicipio.disabled = edicao;
+    el.campoMunicipio.required = !edicao;
+  }
+  if (el.campoPessoal) el.campoPessoal.disabled = edicao;
 }
 
 function abrirModalIncluirApoiador() {
@@ -156,7 +182,10 @@ function abrirModalEditarApoiador(numLinha) {
 
 async function salvarApoiadorCrud() {
   const form = lerFormularioApoiador();
-  if (!form.lideranca || !form.municipio) {
+  if (modoCrud === "atualizar") {
+    const item = itemPorLinha(linhaCrud);
+    if (!item) return;
+  } else if (!form.lideranca || !form.municipio) {
     MasterCrud.toast("preencha liderança e município.", "erro");
     return;
   }
@@ -165,7 +194,7 @@ async function salvarApoiadorCrud() {
   try {
     const payload = {
       acao: modoCrud === "atualizar" ? "atualizar" : "inserir",
-      dados: dadosGravacaoApoiador(form),
+      dados: dadosGravacaoApoiador(form, modoCrud === "atualizar"),
       origem: "orcamento-pessoal-apoiadores",
     };
     if (modoCrud === "atualizar") payload.linha = linhaCrud;
@@ -254,6 +283,33 @@ function celulaPreenchida(val) {
   return String(val ?? "").trim() !== "";
 }
 
+function valorFechadoOrcamentoSim(val) {
+  if (val === true || val === 1) return true;
+  if (val === false || val === 0 || val == null || val === "") return false;
+  const s = normalizarChave(val);
+  if (s === "nao" || s === "n" || s === "false" || s === "0" || s === "no") return false;
+  return s === "sim" || s === "s" || s === "true" || s === "1" || s === "yes" || s === "x";
+}
+
+function htmlIconeFechadoOrcamento(item) {
+  const ok = valorFechadoOrcamentoSim(item.fechadoOrcamento);
+  const classe = ok
+    ? "apoiadores-icone-fechado apoiadores-icone-fechado--sim"
+    : "apoiadores-icone-fechado apoiadores-icone-fechado--nao";
+  const titulo = ok ? "orçamento fechado" : "orçamento aberto";
+  return `<span class="${classe}" title="${titulo}" aria-label="${titulo}">${ICONE_FECHADO_ORCAMENTO}</span>`;
+}
+
+function htmlLiderancaComFechado(r) {
+  const texto = exibirTexto(r.lideranca);
+  return (
+    `<span class="apoiadores-ident-nome-linha">` +
+    `${htmlIconeFechadoOrcamento(r)}` +
+    `<span class="apoiadores-ident-nome-texto">${texto || "—"}</span>` +
+    `</span>`
+  );
+}
+
 function urlConsulta(planilha) {
   const url = new URL(CONFIG.WEB_APP_URL);
   url.searchParams.set("planilha", planilha);
@@ -302,6 +358,33 @@ function resolverIndices(cabecalho) {
     }
     indices[campo.prop] = idx;
   });
+
+  const aliasesFechado = [
+    "FECHADO-ORCAMENTO",
+    "fechado-orcamento",
+    "fechado orcamento",
+    "orcamento-fechado",
+    "orcamento fechado",
+    "fechado orçamento",
+    "fechado-orçamento",
+  ];
+  let idxFechado = normalizados.findIndex((n) =>
+    aliasesFechado.some((alias) => normalizarChave(alias) === n)
+  );
+  if (idxFechado === -1 && cfgApoiadores.COLUNAS.FECHADO_ORCAMENTO != null) {
+    idxFechado = cfgApoiadores.COLUNAS.FECHADO_ORCAMENTO;
+  }
+  indices.fechadoOrcamento = idxFechado;
+
+  if (filtroFederalJuliana) {
+    const cfgFed = cfg.APOIADOR_FEDERAL;
+    const aliasesFederal = ["federal", "apoiador federal", "deputado federal"];
+    let idxFederal = normalizados.findIndex((n) =>
+      aliasesFederal.some((alias) => normalizarChave(alias) === n)
+    );
+    if (idxFederal === -1) idxFederal = cfgFed.COLUNAS.FEDERAL;
+    indices.federal = idxFederal;
+  }
 
   return indices;
 }
@@ -502,6 +585,11 @@ function extrairLinhas(valores) {
     const lideranca = String(valorCampo(linha, indices.lideranca) ?? "").trim();
     if (!municipio || !lideranca) continue;
 
+    if (filtroFederalJuliana) {
+      const federal = String(valorCampo(linha, indices.federal) ?? "").trim();
+      if (normalizarChave(federal) !== normalizarChave(filtroFederalJuliana)) continue;
+    }
+
     const info = mapaMunicipioRegiao.get(normalizarChave(municipio));
     if (!info?.regiaoNorm) continue;
 
@@ -513,6 +601,7 @@ function extrairLinhas(valores) {
       combustivel: valorCampo(linha, indices.combustivel),
       diversos: valorCampo(linha, indices.diversos),
       diaD: valorCampo(linha, indices.diaD),
+      fechadoOrcamento: valorCampo(linha, indices.fechadoOrcamento),
       regiao: info.regiao,
       regiaoNorm: info.regiaoNorm,
     };
@@ -663,6 +752,25 @@ function tituloPopoverApoiador(r) {
   return exibirTexto(r.lideranca) || "—";
 }
 
+function tituloImpressaoPopoverApoiador(r) {
+  const partes = [
+    String(r.lideranca ?? "").trim(),
+    String(r.municipio ?? "").trim(),
+  ].filter(Boolean);
+  return partes.join(" · ") || "orçamento apoiador";
+}
+
+function htmlMunicipioLinhaPopoverApoiador(r) {
+  const municipio = exibirTexto(r.municipio);
+  return `<div class="apoiadores-popover-municipio-linha">
+    ${municipio ? `<span class="apoiadores-popover-municipio-muted">${municipio}</span>` : "<span></span>"}
+    ${PopoverTabela.htmlBotaoImprimir(
+      tituloImpressaoPopoverApoiador(r),
+      r._popoverPrintKey || `orca-${r._linha}`
+    )}
+  </div>`;
+}
+
 function badgeFinTotalPopover(r) {
   return badgeFinTotalHtml(r);
 }
@@ -682,16 +790,15 @@ function itemPopoverOrcamento(r, linha) {
 
 function htmlPopoverApoiador(r) {
   const itens = LINHAS_ORCAMENTO_POPOVER.map((linha) => itemPopoverOrcamento(r, linha)).join("");
-  const municipio = escapeHtml(String(r.municipio ?? "").trim());
   const badge = badgeFinTotalPopover(r);
 
   return `<div class="orcamento-geral-popover-corpo apoiadores-popover-corpo">
     <div class="apoiadores-popover-cabecalho">
       <div class="apoiadores-popover-topo">
-        <span class="apoiadores-popover-lideranca">${tituloPopoverApoiador(r)}</span>
+        <span class="apoiadores-popover-lideranca apoiadores-ident-nome-linha">${htmlIconeFechadoOrcamento(r)}<span class="apoiadores-ident-nome-texto">${escapeHtml(String(r.lideranca ?? "").trim() || "—")}</span></span>
         ${badge}
       </div>
-      ${municipio ? `<div class="apoiadores-popover-municipio-muted">${municipio}</div>` : ""}
+      ${htmlMunicipioLinhaPopoverApoiador(r)}
       <hr class="apoiadores-popover-divisor" aria-hidden="true">
     </div>
     <div class="apoiadores-popover-tabela">${itens}</div>
@@ -702,8 +809,8 @@ function renderizarLinha(r) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
   const municipioHtml = escapeHtml(r.municipio);
-  const liderancaHtml = exibirTexto(r.lideranca);
-  const acoesMaster = MasterCrud.acoesLinha(r._linha);
+  const liderancaHtml = htmlLiderancaComFechado(r);
+  const acoesMaster = somenteLeituraOrcamentoJuliana ? "" : MasterCrud.acoesLinha(r._linha);
   const finBadge = badgeFinTotalHtml(r);
   const municipioMobile = r.municipio
     ? `<span class="apoiadores-sub-municipio">${municipioHtml}</span>`
@@ -718,7 +825,7 @@ function renderizarLinha(r) {
       <span class="apoiadores-celula-desktop apoiadores-celula-texto">
         <span class="apoiadores-celula-texto-wrap">
           <span class="apoiadores-ident-stack">
-            <span class="apoiadores-ident-nome">${liderancaHtml}</span>
+            ${liderancaHtml}
             ${finBadge}
           </span>
           ${acoesMaster}
@@ -730,7 +837,7 @@ function renderizarLinha(r) {
           <span class="dashboard-municipio-texto">
             <span class="dashboard-municipio-nome apoiadores-celula-texto-wrap">
               <span class="apoiadores-ident-stack">
-                <span class="apoiadores-ident-nome">${liderancaHtml || "—"}</span>
+                ${liderancaHtml}
                 ${municipioMobile}
                 ${finBadge}
               </span>
@@ -801,6 +908,8 @@ function renderizarTabela() {
     seletorLinha: "tr.apoiadores-linha-popover",
     linhas: filtradas,
     htmlConteudo: htmlPopoverApoiador,
+    tituloImpressao: tituloImpressaoPopoverApoiador,
+    printKey: (r, idx) => `orca-${r._linha ?? idx}`,
   });
   aposRenderTabela();
 }
@@ -870,7 +979,11 @@ function htmlCardsRelatorioPagina(doc) {
 function htmlIdentRelatorioOrcamento(r) {
   const lider = escapeHtml(String(r?.lideranca ?? "").trim() || "—");
   const mun = escapeHtml(String(r?.municipio ?? "").trim());
-  let html = `<span class="apoiadores-rel-ident-nome">${lider}</span>`;
+  let html =
+    `<span class="apoiadores-ident-nome-linha">` +
+    `${htmlIconeFechadoOrcamento(r)}` +
+    `<span class="apoiadores-rel-ident-nome apoiadores-ident-nome-texto">${lider}</span>` +
+    `</span>`;
   if (mun) {
     html += `<span class="apoiadores-rel-ident-municipio">${mun}</span>`;
   }
@@ -1090,6 +1203,9 @@ function initOrcamentoPessoalApoiadores() {
   );
 
   MasterCrud.aplicarVisibilidadeIncluir("btnIncluirApoiador");
+  if (somenteLeituraOrcamentoJuliana && el.btnIncluir) {
+    el.btnIncluir.classList.add("d-none");
+  }
   if (el.modalEl) modalCrud = bootstrap.Modal.getOrCreateInstance(el.modalEl);
   el.btnIncluir?.addEventListener("click", abrirModalIncluirApoiador);
   el.btnSalvarApoiador?.addEventListener("click", salvarApoiadorCrud);

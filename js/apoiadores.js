@@ -38,6 +38,22 @@ const CAMPOS_FINANCEIROS = [
 ];
 
 const CAMPOS_FIN_MODAL = CAMPOS_FINANCEIROS;
+const CAMPOS_MODAL_LOGISTICA = cfgAp.COLUNAS_LOGISTICA_MODAL || [];
+const CAMPOS_MODAL_LOGISTICA_DESEMBOLSO = cfgAp.COLUNAS_LOGISTICA_DESEMBOLSO_MODAL || [];
+const CAMPOS_MODAL_PARCEIRO = cfgAp.COLUNAS_PARCEIRO_MODAL || [];
+const CAMPOS_MODAL_DESEMBOLSO = cfgAp.COLUNAS_DESEMBOLSO_MODAL || [];
+const CAMPOS_MODAL_MOEDA_EXTRA = [
+  ...CAMPOS_MODAL_LOGISTICA,
+  ...CAMPOS_MODAL_LOGISTICA_DESEMBOLSO,
+  ...CAMPOS_MODAL_PARCEIRO,
+  ...CAMPOS_MODAL_DESEMBOLSO,
+];
+const CAMPOS_ORCAMENTO_BADGE = [
+  { prop: "pessoal", chave: "DESP_PESSOAL", aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
+  { prop: "logCombustivel", chave: "LOG_COMBUSTIVEL", aliases: ["combustivel", "combustível"] },
+  { prop: "logDiversos", chave: "LOG_DIVERSOS", aliases: ["diversos"] },
+  { prop: "logDiaD", chave: "LOG_DIA_D", aliases: ["dia d", "dia-d", "diad"] },
+];
 
 const LINHAS_APOIADOR_POPOVER = [
   {
@@ -53,6 +69,37 @@ const LINHAS_APOIADOR_POPOVER = [
     qtd: "apoiadorCustomizado",
     fin: "finCustomizado",
     marcador: "popover-marcador--apoiador-custom",
+  },
+];
+
+const LINHAS_POPOVER_LOGISTICA = [
+  {
+    rotulo: "combustível",
+    prop: "logCombustivel",
+    marcador: "popover-marcador--orc-combustivel",
+  },
+  { rotulo: "diversos", prop: "logDiversos", marcador: "popover-marcador--orc-diversos" },
+  {
+    rotulo: "dia D",
+    prop: "logDiaD",
+    marcador: "popover-marcador--orc-diad",
+    preserveCase: true,
+  },
+];
+
+const LINHAS_POPOVER_PARCEIRO = [
+  { rotulo: "pessoal", prop: "parPessoal", marcador: "popover-marcador--orc-pessoal" },
+  {
+    rotulo: "combustível",
+    prop: "parCombustivel",
+    marcador: "popover-marcador--orc-combustivel",
+  },
+  { rotulo: "diversos", prop: "parDiversos", marcador: "popover-marcador--orc-diversos" },
+  {
+    rotulo: "dia D",
+    prop: "parDiaD",
+    marcador: "popover-marcador--orc-diad",
+    preserveCase: true,
   },
 ];
 
@@ -112,6 +159,18 @@ function atualizarMetadadosPlanilha(valores) {
     const nome = String(cab[idxFechado] ?? "").trim();
     nomesColunaPlanilha.fechadoOrcamento = nome || "FECHADO-ORCAMENTO";
   }
+  const idxObservacao = indices.observacao;
+  if (idxObservacao != null && idxObservacao >= 0) {
+    const nome = String(cab[idxObservacao] ?? "").trim();
+    nomesColunaPlanilha.observacao = nome || "OBSERVACAO";
+  }
+  CAMPOS_MODAL_MOEDA_EXTRA.forEach((campo) => {
+    const idx = indices[campo.prop];
+    if (idx != null && idx >= 0) {
+      const nome = String(cab[idx] ?? "").trim();
+      nomesColunaPlanilha[campo.prop] = nome || campo.aliases?.[0] || campo.chave;
+    }
+  });
 }
 
 function parsePontuacaoEstrelas(val) {
@@ -272,7 +331,22 @@ function dadosGravacaoApoiador(item, usarClassificacao) {
     dados[nomesColunaPlanilha.fechadoOrcamento] = valorCheckboxGravar(item.fechadoOrcamento);
   }
 
+  if (nomesColunaPlanilha.observacao) {
+    dados[nomesColunaPlanilha.observacao] = item.observacao ?? "";
+  }
+
+  CAMPOS_MODAL_MOEDA_EXTRA.forEach((campo) => {
+    gravarMoedaApoiadorNoDados(dados, item, campo.prop);
+  });
+
   return dados;
+}
+
+function gravarMoedaApoiadorNoDados(dados, item, prop) {
+  const chave = nomesColunaPlanilha[prop];
+  if (!chave) return;
+  const val = item[prop];
+  dados[chave] = val === "" || val == null ? 0 : val;
 }
 
 function itemPorLinha(numLinha) {
@@ -295,6 +369,23 @@ function lerFormularioApoiador() {
     finCustomizado: lerCampoMoeda(el.campoFinCustom),
     fechadoOrcamento: el.chkFechadoOrcamento?.checked ?? false,
     gravarFechadoOrcamento: modoCrud === "atualizar",
+    observacao: el.campoObservacao?.value.trim() ?? "",
+    logCombustivel: lerCampoMoeda(el.campoLogCombustivel),
+    logDiversos: lerCampoMoeda(el.campoLogDiversos),
+    logDiaD: lerCampoMoeda(el.campoLogDiaD),
+    logDesembJul30: lerCampoMoeda(el.campoLogDesembJul30),
+    logDesembAgo15: lerCampoMoeda(el.campoLogDesembAgo15),
+    logDesembAgo30: lerCampoMoeda(el.campoLogDesembAgo30),
+    logDesembSet15: lerCampoMoeda(el.campoLogDesembSet15),
+    parPessoal: lerCampoMoeda(el.campoParPessoal),
+    parCombustivel: lerCampoMoeda(el.campoParCombustivel),
+    parDiversos: lerCampoMoeda(el.campoParDiversos),
+    parDiaD: lerCampoMoeda(el.campoParDiaD),
+    desembJul30: lerCampoMoeda(el.campoDesembJul30),
+    desembAgo15: lerCampoMoeda(el.campoDesembAgo15),
+    desembAgo30: lerCampoMoeda(el.campoDesembAgo30),
+    desembSet15: lerCampoMoeda(el.campoDesembSet15),
+    desembSet30: lerCampoMoeda(el.campoDesembSet30),
   };
 }
 
@@ -424,7 +515,47 @@ function preencherFormularioApoiador(item) {
     el.chkFechadoOrcamento.checked = temItem ? valorCheckboxSim(dados.fechadoOrcamento) : false;
   }
   if (el.rowFechadoOrcamento) el.rowFechadoOrcamento.hidden = !temItem;
+  if (el.campoObservacao) {
+    el.campoObservacao.value = String(dados.observacao ?? "").trim();
+  }
+  preencherCamposMoedaModalApoiador(dados, temItem);
   aplicarModoClassificacaoApoiador();
+}
+
+function preencherCamposMoedaModalApoiador(dados, temItem) {
+  const mapa = [
+    ["campoLogCombustivel", "logCombustivel"],
+    ["campoLogDiversos", "logDiversos"],
+    ["campoLogDiaD", "logDiaD"],
+    ["campoLogDesembJul30", "logDesembJul30"],
+    ["campoLogDesembAgo15", "logDesembAgo15"],
+    ["campoLogDesembAgo30", "logDesembAgo30"],
+    ["campoLogDesembSet15", "logDesembSet15"],
+    ["campoParPessoal", "parPessoal"],
+    ["campoParCombustivel", "parCombustivel"],
+    ["campoParDiversos", "parDiversos"],
+    ["campoParDiaD", "parDiaD"],
+    ["campoDesembJul30", "desembJul30"],
+    ["campoDesembAgo15", "desembAgo15"],
+    ["campoDesembAgo30", "desembAgo30"],
+    ["campoDesembSet15", "desembSet15"],
+    ["campoDesembSet30", "desembSet30"],
+  ];
+  mapa.forEach(([elKey, prop]) => {
+    const input = el[elKey];
+    if (!input) return;
+    const val = temItem ? dados[prop] : 0;
+    input.value = valorParaCampoMoedaPadrao(val);
+  });
+}
+
+function resetarTabModalApoiador() {
+  const btn = document.getElementById("tabApPessoal");
+  if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+  const btnOrcamento = document.getElementById("tabApPessoalOrcamento");
+  if (btnOrcamento) bootstrap.Tab.getOrCreateInstance(btnOrcamento).show();
+  const btnLogOrcamento = document.getElementById("tabApLogisticaOrcamento");
+  if (btnLogOrcamento) bootstrap.Tab.getOrCreateInstance(btnLogOrcamento).show();
 }
 
 function alternarRowFechadoOrcamentoModal(exibir) {
@@ -437,6 +568,7 @@ function abrirModalIncluirApoiador() {
   el.modalTitulo.textContent = "incluir apoiador";
   if (el.chkUsarClassificacao) el.chkUsarClassificacao.checked = true;
   alternarRowFechadoOrcamentoModal(false);
+  resetarTabModalApoiador();
   preencherFormularioApoiador({});
   modalCrud.show();
 }
@@ -448,6 +580,7 @@ function abrirModalEditarApoiador(numLinha) {
   linhaCrud = numLinha;
   el.modalTitulo.textContent = "editar apoiador";
   alternarRowFechadoOrcamentoModal(true);
+  resetarTabModalApoiador();
   preencherFormularioApoiador(item);
   modalCrud.show();
 }
@@ -658,6 +791,22 @@ function resolverIndicesFinanceirosApoiadores(indices, offset) {
   });
 }
 
+function resolverIndicesCamposFixosApoiador(indices, cabecalho, campos) {
+  const normalizados = (cabecalho || []).map((h) => normalizarChave(h));
+  campos.forEach((campo) => {
+    let idx = -1;
+    if (cfgAp.COLUNAS[campo.chave] != null) {
+      idx = cfgAp.COLUNAS[campo.chave];
+    }
+    if (idx === -1 && campo.aliases) {
+      idx = normalizados.findIndex((n) =>
+        campo.aliases.some((alias) => normalizarChave(alias) === n)
+      );
+    }
+    indices[campo.prop] = idx;
+  });
+}
+
 function resolverIndices(cabecalho) {
   const normalizados = (cabecalho || []).map((h) => normalizarChave(h));
   const offset = offsetPlanilhaComTipo(cabecalho);
@@ -716,6 +865,28 @@ function resolverIndices(cabecalho) {
     idxFechado = cfgAp.COLUNAS.FECHADO_ORCAMENTO;
   }
   indices.fechadoOrcamento = idxFechado;
+
+  const aliasesObservacao = [
+    "OBSERVACAO",
+    "observacao",
+    "observação",
+    "obs",
+    "observacoes",
+    "observações",
+  ];
+  let idxObservacao = normalizados.findIndex((n) =>
+    aliasesObservacao.some((alias) => normalizarChave(alias) === n)
+  );
+  if (idxObservacao === -1 && cfgAp.COLUNAS.OBSERVACAO != null) {
+    idxObservacao = cfgAp.COLUNAS.OBSERVACAO;
+  }
+  indices.observacao = idxObservacao;
+
+  resolverIndicesCamposFixosApoiador(indices, cabecalho, CAMPOS_MODAL_LOGISTICA);
+  resolverIndicesCamposFixosApoiador(indices, cabecalho, CAMPOS_MODAL_LOGISTICA_DESEMBOLSO);
+  resolverIndicesCamposFixosApoiador(indices, cabecalho, CAMPOS_MODAL_PARCEIRO);
+  resolverIndicesCamposFixosApoiador(indices, cabecalho, CAMPOS_MODAL_DESEMBOLSO);
+  resolverIndicesCamposFixosApoiador(indices, cabecalho, CAMPOS_ORCAMENTO_BADGE.slice(0, 1));
 
   return indices;
 }
@@ -778,24 +949,22 @@ function exibirMoeda(val) {
 }
 
 function deveExibirTotalFinanceiroApoiador(r) {
-  if (parseNumero(r.finTotal) > 0) return true;
-  return (
-    parseNumero(r.proprioApoiador) > 0 ||
-    parseNumero(r.finLider) > 0 ||
-    parseNumero(r.finIntegral) > 0 ||
-    parseNumero(r.finMeio) > 0 ||
-    parseNumero(r.finCustomizado) > 0
-  );
+  if (calcularOrcamentoBadgeTotal(r) > 0) return true;
+  return CAMPOS_ORCAMENTO_BADGE.some((c) => celulaPreenchida(r[c.prop]));
+}
+
+function calcularOrcamentoBadgeTotal(item) {
+  return CAMPOS_ORCAMENTO_BADGE.reduce((acc, c) => acc + parseNumero(item[c.prop]), 0);
 }
 
 function subFinTotalHtml(r) {
   if (!deveExibirTotalFinanceiroApoiador(r)) return "";
-  return `<span class="apoiadores-sub-fin-total">${exibirMoeda(r.finTotal)}</span>`;
+  return `<span class="apoiadores-sub-fin-total">${exibirMoeda(calcularOrcamentoBadgeTotal(r))}</span>`;
 }
 
 function badgeFinTotalHtml(r) {
   if (!deveExibirTotalFinanceiroApoiador(r)) return "";
-  return `<span class="apoiadores-fin-badge">${exibirMoeda(r.finTotal)}</span>`;
+  return `<span class="apoiadores-fin-badge">${exibirMoeda(calcularOrcamentoBadgeTotal(r))}</span>`;
 }
 
 function ordenarRegioes(a, b) {
@@ -865,6 +1034,25 @@ function termoBuscaLideranca() {
   return normalizarChave(el.buscaLideranca?.value);
 }
 
+function filtroIncluirFechadoOrcamento() {
+  return el.chkFiltroFechadoOrcamento?.checked ?? true;
+}
+
+function filtroIncluirAbertoOrcamento() {
+  return el.chkFiltroAbertoOrcamento?.checked ?? true;
+}
+
+function itemPassaFiltroOrcamento(item) {
+  const incluirFechado = filtroIncluirFechadoOrcamento();
+  const incluirAberto = filtroIncluirAbertoOrcamento();
+  if (!incluirFechado && !incluirAberto) return false;
+
+  const fechado = itemFechadoOrcamento(item);
+  if (fechado && !incluirFechado) return false;
+  if (!fechado && !incluirAberto) return false;
+  return true;
+}
+
 function linhasFiltradas() {
   const selecionadas = regioesSelecionadas();
   if (!selecionadas.length) return [];
@@ -878,6 +1066,8 @@ function linhasFiltradas() {
     } else if (!todasMarcadas) {
       return false;
     }
+
+    if (!itemPassaFiltroOrcamento(item)) return false;
 
     if (
       termo &&
@@ -984,6 +1174,7 @@ function extrairLinhas(valores) {
       lideranca: valorCampo(linha, indices.lideranca),
       municipio,
       proprioApoiador: valorCampo(linha, indices.proprioApoiador),
+      pessoal: valorCampo(linha, indices.pessoal),
       apoiadorLider: valorCampo(linha, indices.apoiadorLider),
       apoiadorIntegral: valorCampo(linha, indices.apoiadorIntegral),
       apoiadorMeio: valorCampo(linha, indices.apoiadorMeio),
@@ -993,10 +1184,28 @@ function extrairLinhas(valores) {
       finMeio: valorCampo(linha, indices.finMeio),
       finCustomizado: valorCampo(linha, indices.finCustomizado),
       fechadoOrcamento: valorCampo(linha, indices.fechadoOrcamento),
+      observacao: valorCampo(linha, indices.observacao),
+      logCombustivel: valorCampo(linha, indices.logCombustivel),
+      logDiversos: valorCampo(linha, indices.logDiversos),
+      logDiaD: valorCampo(linha, indices.logDiaD),
+      logDesembJul30: valorCampo(linha, indices.logDesembJul30),
+      logDesembAgo15: valorCampo(linha, indices.logDesembAgo15),
+      logDesembAgo30: valorCampo(linha, indices.logDesembAgo30),
+      logDesembSet15: valorCampo(linha, indices.logDesembSet15),
+      parPessoal: valorCampo(linha, indices.parPessoal),
+      parCombustivel: valorCampo(linha, indices.parCombustivel),
+      parDiversos: valorCampo(linha, indices.parDiversos),
+      parDiaD: valorCampo(linha, indices.parDiaD),
+      desembJul30: valorCampo(linha, indices.desembJul30),
+      desembAgo15: valorCampo(linha, indices.desembAgo15),
+      desembAgo30: valorCampo(linha, indices.desembAgo30),
+      desembSet15: valorCampo(linha, indices.desembSet15),
+      desembSet30: valorCampo(linha, indices.desembSet30),
       regiao: info?.regiao || "",
       regiaoNorm: info?.regiaoNorm || "",
     };
     item.finTotal = calcularFinTotal(item);
+    item.orcamentoTotal = calcularOrcamentoBadgeTotal(item);
 
     if (!linhaTemConteudo(item)) continue;
     itens.push(item);
@@ -1144,14 +1353,32 @@ function valorPopoverMoeda(val) {
 }
 
 function htmlIdentMetaApoiador(r, finHtml) {
-  const estrelas = htmlEstrelasClassificacao(r.tipo);
   const fin = finHtml || "";
-  if (!estrelas && !fin) return "";
-  return `<span class="apoiadores-ident-meta">${estrelas}${fin}</span>`;
+  if (!fin) return "";
+  return `<span class="apoiadores-ident-meta">${fin}</span>`;
 }
 
 function tituloPopoverApoiador(r) {
   return exibirLideranca(r.lideranca) || exibirTexto(r.lideranca) || "—";
+}
+
+function tituloImpressaoPopoverApoiador(r) {
+  const partes = [
+    String(exibirLideranca(r.lideranca) || r.lideranca || "").trim(),
+    String(r.municipio ?? "").trim(),
+  ].filter(Boolean);
+  return partes.join(" · ") || "apoiador";
+}
+
+function htmlMunicipioLinhaPopoverApoiador(r) {
+  const municipio = exibirTexto(r.municipio);
+  return `<div class="apoiadores-popover-municipio-linha">
+    ${municipio ? `<span class="apoiadores-popover-municipio-muted">${municipio}</span>` : "<span></span>"}
+    ${PopoverTabela.htmlBotaoImprimir(
+      tituloImpressaoPopoverApoiador(r),
+      r._popoverPrintKey || `ap-${r._linha}`
+    )}
+  </div>`;
 }
 
 function badgeFinTotalPopover(r) {
@@ -1178,9 +1405,52 @@ function itemPopoverApoiador(r, linha) {
   </div>`;
 }
 
+function htmlPopoverDivisor() {
+  return `<hr class="apoiadores-popover-divisor" aria-hidden="true">`;
+}
+
+function itemPopoverMoedaApoiador(r, linha, sempreExibir) {
+  const val = r[linha.prop];
+  const fin = sempreExibir
+    ? fmtMoeda.format(parseNumero(val))
+    : valorPopoverMoeda(val);
+  if (!fin) return "";
+  const rotuloClass = linha.preserveCase
+    ? "apoiadores-popover-rotulo apoiadores-popover-rotulo--case"
+    : "apoiadores-popover-rotulo";
+  const marcador = linha.marcador
+    ? `<span class="orcamento-geral-popover-marcador ${linha.marcador}" aria-hidden="true"></span>`
+    : "";
+  return `<div class="apoiadores-popover-linha apoiadores-popover-linha--fin">
+    <span class="${rotuloClass}">${marcador}${linha.rotulo}</span>
+    <span class="apoiadores-popover-fin">${fin}</span>
+  </div>`;
+}
+
+function htmlPopoverSecaoApoiador(r, titulo, linhas) {
+  const itens = linhas.map((linha) => itemPopoverApoiador(r, linha)).join("");
+  return `<div class="apoiadores-popover-secao">
+    <div class="apoiadores-popover-secao-titulo">${escapeHtml(titulo)}</div>
+    <div class="apoiadores-popover-tabela">${itens}</div>
+  </div>`;
+}
+
+function htmlPopoverSecaoMoeda(r, titulo, linhas, sempreExibir) {
+  const itens = linhas
+    .map((linha) => itemPopoverMoedaApoiador(r, linha, sempreExibir))
+    .join("");
+  if (!itens.trim()) return "";
+  return `<div class="apoiadores-popover-secao">
+    <div class="apoiadores-popover-secao-titulo">${escapeHtml(titulo)}</div>
+    <div class="apoiadores-popover-tabela">${itens}</div>
+  </div>`;
+}
+
 function htmlPopoverApoiador(r) {
-  const itens = LINHAS_APOIADOR_POPOVER.map((linha) => itemPopoverApoiador(r, linha)).join("");
-  const municipio = escapeHtml(String(r.municipio ?? "").trim());
+  const secaoPessoal = htmlPopoverSecaoApoiador(r, "pessoal", LINHAS_APOIADOR_POPOVER);
+  const secaoLogistica = htmlPopoverSecaoMoeda(r, "logística", LINHAS_POPOVER_LOGISTICA, true);
+  const secaoParceiro = htmlPopoverSecaoMoeda(r, "parceiro", LINHAS_POPOVER_PARCEIRO, true);
+  const observacao = escapeHtml(String(r.observacao ?? "").trim());
   const badge = badgeFinTotalPopover(r);
 
   return `<div class="orcamento-geral-popover-corpo apoiadores-popover-corpo">
@@ -1189,10 +1459,13 @@ function htmlPopoverApoiador(r) {
         <span class="apoiadores-popover-lideranca apoiadores-ident-nome-linha">${htmlIconeFechadoOrcamento(r)}<span class="apoiadores-ident-nome-texto">${escapeHtml(tituloPopoverApoiador(r))}</span></span>
         ${badge}
       </div>
-      ${municipio ? `<div class="apoiadores-popover-municipio-muted">${municipio}</div>` : ""}
+      ${htmlMunicipioLinhaPopoverApoiador(r)}
       <hr class="apoiadores-popover-divisor" aria-hidden="true">
     </div>
-    <div class="apoiadores-popover-tabela">${itens}</div>
+    ${secaoPessoal}
+    ${secaoLogistica || ""}
+    ${secaoParceiro ? `${htmlPopoverDivisor()}${secaoParceiro}` : ""}
+    ${observacao ? `${htmlPopoverDivisor()}<div class="apoiadores-popover-observacao">${observacao}</div>` : ""}
   </div>`;
 }
 
@@ -1318,6 +1591,8 @@ function renderizarTabela() {
     seletorLinha: "tr.apoiadores-linha-popover",
     linhas: filtradas,
     htmlConteudo: htmlPopoverApoiador,
+    tituloImpressao: tituloImpressaoPopoverApoiador,
+    printKey: (r, idx) => `ap-${r._linha ?? idx}`,
   });
   aposRenderTabela();
 }
@@ -1373,6 +1648,8 @@ function initApoiadores() {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
     buscaLideranca: document.getElementById("buscaLideranca"),
+    chkFiltroFechadoOrcamento: document.getElementById("chkFiltroFechadoOrcamento"),
+    chkFiltroAbertoOrcamento: document.getElementById("chkFiltroAbertoOrcamento"),
     corpo: document.getElementById("corpoApoiadores"),
     vazio: document.getElementById("vazio"),
     kpiTotal: document.getElementById("kpiTotal"),
@@ -1401,6 +1678,23 @@ function initApoiadores() {
     campoFinIntegral: document.getElementById("campoApFinIntegral"),
     campoFinMeio: document.getElementById("campoApFinMeio"),
     campoFinCustom: document.getElementById("campoApFinCustom"),
+    campoObservacao: document.getElementById("campoApObservacao"),
+    campoLogCombustivel: document.getElementById("campoApLogCombustivel"),
+    campoLogDiversos: document.getElementById("campoApLogDiversos"),
+    campoLogDiaD: document.getElementById("campoApLogDiaD"),
+    campoLogDesembJul30: document.getElementById("campoApLogDesembJul30"),
+    campoLogDesembAgo15: document.getElementById("campoApLogDesembAgo15"),
+    campoLogDesembAgo30: document.getElementById("campoApLogDesembAgo30"),
+    campoLogDesembSet15: document.getElementById("campoApLogDesembSet15"),
+    campoParPessoal: document.getElementById("campoApParPessoal"),
+    campoParCombustivel: document.getElementById("campoApParCombustivel"),
+    campoParDiversos: document.getElementById("campoApParDiversos"),
+    campoParDiaD: document.getElementById("campoApParDiaD"),
+    campoDesembJul30: document.getElementById("campoApDesembJul30"),
+    campoDesembAgo15: document.getElementById("campoApDesembAgo15"),
+    campoDesembAgo30: document.getElementById("campoApDesembAgo30"),
+    campoDesembSet15: document.getElementById("campoApDesembSet15"),
+    campoDesembSet30: document.getElementById("campoApDesembSet30"),
   };
   if (!el.corpo || !el.filtroRegioes) return;
 
@@ -1427,6 +1721,8 @@ function initApoiadores() {
   el.corpo.addEventListener("click", aoClicarTabelaApoiador);
 
   el.buscaLideranca?.addEventListener("input", renderizarTabela);
+  el.chkFiltroFechadoOrcamento?.addEventListener("change", renderizarTabela);
+  el.chkFiltroAbertoOrcamento?.addEventListener("change", renderizarTabela);
   initPageSmTabs(alinharColunasTabela);
   window.addEventListener("resize", alinharColunasTabela);
   alinharColunasTabela();
@@ -1504,7 +1800,7 @@ function ajustarTabelaRelatorioPagina(table) {
     const td = document.createElement("td");
     td.className = "text-end apoiadores-col-valor apoiadores-celula-num";
     const valor =
-      r && deveExibirTotalFinanceiroApoiador(r) ? exibirMoeda(r.finTotal) : "";
+      r && deveExibirTotalFinanceiroApoiador(r) ? exibirMoeda(r.orcamentoTotal) : "";
     td.textContent = valor;
     tr.appendChild(td);
   });

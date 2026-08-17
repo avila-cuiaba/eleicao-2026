@@ -7,9 +7,9 @@
  *   - login: valida a chave de acesso
  *
  * SEGURANÇA — Propriedades do script (Configurações > Propriedades do script):
- *   SENHA_ACESSO_SORAYA, SENHA_ACESSO_ELLEN, SENHA_ACESSO_DANI  → perfil contratos (só página contratos)
+ *   SENHA_ACESSO_SORAYA, SENHA_ACESSO_ELLEN, SENHA_ACESSO_DANI, SENHA_ACESSO_SARA  → perfil contratos (só página contratos)
  *   SENHA_ACESSO_REGINALDO  → perfil reginaldo (contratos + pagamentos)
- *   SENHA_ACESSO_EUGENIO  → campanha (tudo exceto contratos/pagamentos)
+ *   SENHA_ACESSO_EUGENIO  → campanha (leitura nas planilhas; agenda editável)
  *   SENHA_ACESSO_MATERIAL  → perfil material (só material gráfico)
  *   SENHA_ACESSO_COMBUSTIVEL  → perfil combustivel (só abastecimentos / diário de bordo)
  *   SENHA_ACESSO_FAUSTINHO  → perfil faustinho (agenda + entregas, com relatório)
@@ -214,9 +214,10 @@ var CADASTRO_ACESSO = [
   { prop: "SENHA_ACESSO_SORAYA", perfil: "contratos", usuario: "Soraya" },
   { prop: "SENHA_ACESSO_ELLEN", perfil: "contratos", usuario: "Ellen" },
   { prop: "SENHA_ACESSO_DANI", perfil: "contratos", usuario: "Dani" },
+  { prop: "SENHA_ACESSO_SARA", perfil: "contratos", usuario: "Sara" },
   { prop: "SENHA_ACESSO_REGINALDO", perfil: "reginaldo", usuario: "Reginaldo" },
-  { prop: "SENHA_ACESSO_EUGENIO", perfil: "campanha", usuario: "Eugênio" },
-  { prop: "SENHA_ACESSO_MATERIAL", perfil: "material", usuario: "Material" },
+  { prop: "SENHA_ACESSO_EUGENIO", perfil: "campanha", usuario: "Eugenio" },
+  { prop: "SENHA_ACESSO_MATERIAL", perfil: "material", usuario: "Lizonete" },
   { prop: "SENHA_ACESSO_COMBUSTIVEL", perfil: "combustivel", usuario: "Combustível" },
   { prop: "SENHA_ACESSO_FAUSTINHO", perfil: "faustinho", usuario: "Faustinho" },
   { prop: "SENHA_ACESSO_AVILA", perfil: "master", usuario: "Avila" },
@@ -286,6 +287,19 @@ function planilhaPermitida(perfil, planilha) {
     return !PLANILHAS_SOMENTE_CONTRATOS[chave];
   }
   return false;
+}
+
+/** Perfil campanha: consulta planilhas (GET), sem gravar (POST). Agenda segue em doPostAgenda. */
+function gravacaoPlanilhaPermitida(perfil, corpo) {
+  if (!perfil || perfil === "master") return true;
+  if (perfil !== "campanha") return true;
+  const acao = String(corpo.acao || "").trim().toLowerCase();
+  if (!acao) return false;
+  const somenteLeitura = [
+    "status-documentos-contratos",
+    "listar-arquivos-contrato",
+  ];
+  return somenteLeitura.indexOf(acao) >= 0;
 }
 
 function recursoPermitido(perfil, recurso, planilha) {
@@ -367,6 +381,9 @@ function doPost(e) {
     }
 
     if (recurso === "agenda") return doPostAgenda(corpo);
+    if (recurso === "planilha" && !gravacaoPlanilhaPermitida(auth.perfil, corpo)) {
+      return respostaNaoAutorizado();
+    }
     return doPostPlanilha(corpo);
   } catch (erro) {
     return responder({ ok: false, erro: mensagemErroParaCliente(erro) });
@@ -770,11 +787,12 @@ function formatarDataContratoExtenso(data) {
   return dia + " de " + nomeMes + " de " + ano;
 }
 
-// Carga horária no contrato conforme coluna M (tipo-contrato).
+// Carga horária no contrato conforme tipo-contrato (coluna AF na planilha).
 const CARGA_HORARIA_POR_TIPO_CONTRATO = {
-  "apoiador meio periodo": "04",
-  "apoiador periodo integral": "08",
-  "apoiador lider": "08",
+  "apoiador meio periodo": "04 horas",
+  "apoiador periodo integral": "08 horas",
+  "apoiador lider": "08 horas",
+  "apoiador customizado": "08 horas",
 };
 
 function cargaHorariaPorTipoContrato(tipoContrato) {
@@ -784,7 +802,7 @@ function cargaHorariaPorTipoContrato(tipoContrato) {
   for (let i = 0; i < chaves.length; i++) {
     if (normalizarChavePlanilha(chaves[i]) === chave) return mapa[chaves[i]];
   }
-  return "____";
+  return "";
 }
 
 function parseValorMonetarioContrato(valor) {
@@ -1028,7 +1046,7 @@ function camposMarcadoresContrato() {
     },
     { id: "data-contrato", aliases: ["data-contrato", "data contrato"] },
     { id: "contratado-bloco", aliases: [] },
-    { id: "carga-horaria", aliases: [] },
+    { id: "carga-horaria", aliases: ["carga-horaria", "carga horaria", "carga horária"] },
     { id: "valor-salario", aliases: [] },
     { id: "valor-salario-extenso", aliases: [] },
     { id: "data-contrato-extenso", aliases: [] },
@@ -1056,7 +1074,13 @@ function montarMapaSubstituicoesContrato(registro, valoresLinha) {
   const dataContrato = parseDataContratoPlanilha(dataContratoRaw);
 
   mapa["contratado-bloco"] = montarBlocoContratado(registro);
-  mapa["carga-horaria"] = cargaHorariaPorTipoContrato(tipoContrato);
+  const cargaPlanilha = valorRegistroContrato(registro, [
+    "carga-horaria",
+    "carga horaria",
+    "carga horária",
+  ]);
+  mapa["carga-horaria"] =
+    String(cargaPlanilha || "").trim() || cargaHorariaPorTipoContrato(tipoContrato);
   mapa["valor-salario"] = formatarValorSalarioContrato(valorContrato);
   mapa["valor-salario-extenso"] = valorMonetarioPorExtenso(valorContrato);
   mapa["local-assinatura"] = valorLocalAssinaturaContrato(registro, valoresLinha);
@@ -1362,14 +1386,14 @@ function filtrarDadosAtualizacaoPagamentosContratos(corpo, dados) {
   return out;
 }
 
-/** Apoiadores (pessoal-apoiadores): não regravar F,H,J,N,T,Y; E,G,I com fórmula; D = valor direto (padrão 0). */
-var APOIADORES_COLS_FORMULA_FIXAS = [5, 7, 9, 13, 19, 24];
+/** Apoiadores (pessoal-apoiadores): não regravar F,H,J,N,T,Y,AJ,AK; E,G,I com fórmula; D = valor direto (padrão 0). */
+var APOIADORES_COLS_FORMULA_FIXAS = [5, 7, 9, 13, 19, 24, 35, 36];
 var APOIADORES_COLS_PADRAO_FORMULA = [4, 6, 8];
 var APOIADORES_COL_PROPRIO_VALOR = 3;
 /** Colunas E, G, I (1-based) — quantidades por classificação (fórmula). */
 var APOIADORES_COLS_FORMULA_CLASSIFICACAO = [5, 7, 9];
-/** F,H,J,N,T,Y (0-based) — copiar fórmula de linha modelo ao inserir. */
-var APOIADORES_COLS_FORMULA_EXTENDER = [5, 7, 9, 13, 19, 24];
+/** F,H,J,N,T,Y,AJ,AK (0-based) — copiar fórmula de linha modelo ao inserir. */
+var APOIADORES_COLS_FORMULA_EXTENDER = [5, 7, 9, 13, 19, 24, 35, 36];
 var GID_ABA_PARAMETROS_CLASSIFICACAO = 1225905245;
 
 function ehPlanilhaApoiadoresPessoal(planilhaKey, origem) {
@@ -1643,9 +1667,12 @@ function indicePrimeiroMunicipioMaterialGrafico(cabecalhos) {
   return MATERIAL_GRAFICO_COL_PRIMEIRO_MUNICIPIO;
 }
 
-function atualizarLinhaMaterialGrafico(sheet, numLinha, existente, cabecalhos, dados) {
+function atualizarLinhaMaterialGrafico(sheet, numLinha, existente, cabecalhos, dados, perfil) {
   const novaLinha = existente.slice();
   const inicioMun = indicePrimeiroMunicipioMaterialGrafico(cabecalhos);
+  if (perfil && perfil !== "master") {
+    return novaLinha;
+  }
   for (let i = inicioMun; i < cabecalhos.length; i++) {
     const col = cabecalhos[i];
     const val = valorDadosColuna(dados, col);
@@ -1749,12 +1776,47 @@ function garantirColunaDataContratoContratos(sheet) {
   }
 }
 
+// Colaboradores (contratos): AB = id-registro, AC = pasta-drive-id (gid 1492182435).
+var CONTRATOS_COL_ID_REGISTRO_AB = 27;
+var CONTRATOS_COL_PASTA_DRIVE_AC = 28;
+
+function indiceColunaIdRegistroContratos(cabecalhos) {
+  let idx = indiceColunaCabecalho(cabecalhos, ["id-registro", "id registro"]);
+  if (idx === -1 && cabecalhos.length > CONTRATOS_COL_ID_REGISTRO_AB) {
+    idx = CONTRATOS_COL_ID_REGISTRO_AB;
+  }
+  return idx;
+}
+
+function indiceColunaPastaDriveContratos(cabecalhos) {
+  let idx = indiceColunaCabecalho(cabecalhos, ["pasta-drive-id", "pasta drive id"]);
+  if (idx === -1 && cabecalhos.length > CONTRATOS_COL_PASTA_DRIVE_AC) {
+    idx = CONTRATOS_COL_PASTA_DRIVE_AC;
+  }
+  return idx;
+}
+
+function excluirPastaDriveContratoRegistro(existente, cabecalhos) {
+  const idxPasta = indiceColunaPastaDriveContratos(cabecalhos);
+  if (idxPasta < 0) return;
+  const pastaId = String(existente[idxPasta] || "").trim();
+  if (!pastaId) return;
+  try {
+    const pasta = DriveApp.getFolderById(pastaId);
+    if (!pasta.isTrashed()) {
+      pasta.setTrashed(true);
+    }
+  } catch (e) {
+    Logger.log("excluir pasta contrato (" + pastaId + "): " + e.message);
+  }
+}
+
 function garantirColunasArquivosContratos(sheet) {
   const ultimaCol = sheet.getLastColumn();
   let cabecalhos =
     ultimaCol > 0 ? sheet.getRange(1, 1, 1, ultimaCol).getValues()[0] : [];
-  let idxId = indiceColunaCabecalho(cabecalhos, ["id-registro", "id registro"]);
-  let idxPasta = indiceColunaCabecalho(cabecalhos, ["pasta-drive-id", "pasta drive id"]);
+  let idxId = indiceColunaIdRegistroContratos(cabecalhos);
+  let idxPasta = indiceColunaPastaDriveContratos(cabecalhos);
   let colAtual = cabecalhos.length;
   if (idxId === -1) {
     colAtual++;
@@ -1771,8 +1833,8 @@ function garantirColunasArquivosContratos(sheet) {
   cabecalhos = sheet.getRange(1, 1, 1, novaUltima).getValues()[0];
   return {
     cabecalhos: cabecalhos,
-    idxId: indiceColunaCabecalho(cabecalhos, ["id-registro", "id registro"]),
-    idxPasta: indiceColunaCabecalho(cabecalhos, ["pasta-drive-id", "pasta drive id"]),
+    idxId: indiceColunaIdRegistroContratos(cabecalhos),
+    idxPasta: indiceColunaPastaDriveContratos(cabecalhos),
   };
 }
 
@@ -2657,6 +2719,8 @@ function atualizarLinhaDashboard(sheet, numLinha, existente, dados) {
 function doPostPlanilha(corpo) {
   const planilha = corpo.planilha || PLANILHA_PADRAO;
   const nomeAba = corpo.aba || ABA_PADRAO;
+  const authGrav = validarChave(corpo.chave);
+  const perfilGravacao = authGrav.ok ? authGrav.perfil : "";
   const sheet = obterSheet(planilha, nomeAba);
   const acao = String(corpo.acao || "inserir").toLowerCase();
 
@@ -2734,6 +2798,9 @@ function doPostPlanilha(corpo) {
     }
     const existente = sheet.getRange(numLinha, 1, 1, cabecalhos.length).getValues()[0];
     const antes = linhaParaObjeto(cabecalhos, existente);
+    if (deveAuditarContratos(planilha)) {
+      excluirPastaDriveContratoRegistro(existente, cabecalhos);
+    }
     sheet.deleteRow(numLinha);
     if (auditar) {
       registrarAuditoriaContratos(
@@ -2770,7 +2837,14 @@ function doPostPlanilha(corpo) {
     } else if (origemAuditoria === "pagamentos-lideranca" || planilha === "pagamentos-lideranca") {
       novaLinha = atualizarLinhaPagamentosLideranca(sheet, numLinha, existente, cabecalhos, dados);
     } else if (origemAuditoria === "material-grafico" || planilha === "material-grafico") {
-      novaLinha = atualizarLinhaMaterialGrafico(sheet, numLinha, existente, cabecalhos, dados);
+      novaLinha = atualizarLinhaMaterialGrafico(
+        sheet,
+        numLinha,
+        existente,
+        cabecalhos,
+        dados,
+        perfilGravacao
+      );
     } else if (ehPlanilhaApoiadoresPessoal(planilha, origemAuditoria)) {
       novaLinha = atualizarLinhaApoiadores(sheet, numLinha, existente, cabecalhos, dados, corpo);
     } else if (deveAuditarContratos(planilha)) {

@@ -32,7 +32,7 @@ const AUTH = {
     },
     campanha: {
       paginaInicial: "inicio",
-      paginasExcluidas: ["pessoal-contratos", "pessoal-pagamentos"],
+      paginasExcluidas: ["pessoal-contratos", "pessoal-pagamentos", "pessoal-contratos-juliana"],
     },
     master: {
       paginaInicial: "inicio",
@@ -155,7 +155,11 @@ const AUTH = {
   },
 
   ehAvilaMaster() {
-    return this.getChave() === "avila-master";
+    return this.getPerfil() === "master";
+  },
+
+  ehSomenteLeitura() {
+    return this.getPerfil() === "campanha";
   },
 
   paginaInicial() {
@@ -164,9 +168,6 @@ const AUTH = {
   },
 
   podeAcessarPagina(paginaId) {
-    if (paginaId === "planilhas" && !this.ehAvilaMaster()) {
-      return false;
-    }
     const cfg = this.PERFIS[this.perfilAtivo()];
     if (!cfg) return true;
     if (cfg.paginas) return cfg.paginas.includes(paginaId);
@@ -177,6 +178,7 @@ const AUTH = {
   filtrarMenu(menu) {
     return (menu || [])
       .map((item) => {
+        if (item.separador) return item;
         if (item.filhos?.length) {
           const filhos = item.filhos.filter((f) => this.podeAcessarPagina(f.id));
           if (!filhos.length) return null;

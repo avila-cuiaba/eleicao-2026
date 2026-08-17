@@ -99,6 +99,51 @@ html {
   margin-top: 4px;
 }
 
+.app-sidebar-usuario {
+  display: block;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 2px;
+}
+
+.app-sidebar-separador {
+  height: 1px;
+  margin: 8px 14px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.contratos-icone-contrato-quem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 0.95rem;
+  height: 0.95rem;
+  line-height: 1;
+  color: #d97706;
+  vertical-align: middle;
+}
+
+.contratos-icone-contrato-quem .fa-solid {
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.contratos-nome-celula {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.contratos-nome-celula-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  word-break: break-word;
+}
+
 .app-sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -852,13 +897,337 @@ body.page-parcerias .parcerias-tabela col.apoiadores-col-parcerias-stack {
   }
 }
 
-.apoiadores-tabela.afederal-tabela col.apoiadores-col-ident,
+.apoiadores-tabela.afederal-tabela col.apoiadores-col-ident {
+  width: 26%;
+}
+
 .apoiadores-tabela.afederal-tabela col.apoiadores-col-municipio {
-  width: 34%;
+  width: 20%;
+}
+
+.apoiadores-tabela.afederal-tabela col.apoiadores-col-orc-total {
+  width: 14%;
 }
 
 .apoiadores-tabela.afederal-tabela col.apoiadores-col-lider {
-  width: 32%;
+  width: 16%;
+}
+
+.apoiadores-tabela.afederal-tabela col.apoiadores-col-par-total {
+  width: 14%;
+}
+
+.apoiadores-tabela.afederal-tabela th.afederal-col-desktop,
+.apoiadores-tabela.afederal-tabela td.afederal-col-desktop {
+  white-space: nowrap;
+}
+
+.afederal-mobile-federal .apoiadores-ident-meta {
+  margin-top: 0.1rem;
+}
+
+body.page-apoiador-federal .afederal-badge-orcamento {
+  color: #b91c1c;
+  background: linear-gradient(155deg, #fef2f2 0%, #fee2e2 50%, #fecaca 100%);
+  border: 1px solid rgba(185, 28, 28, 0.2);
+  box-shadow: 0 1px 4px rgba(185, 28, 28, 0.08);
+}
+
+body.page-apoiador-federal .afederal-mobile-col {
+  width: 100%;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-mobile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 0.35rem;
+  row-gap: 0.1rem;
+  width: 100%;
+  min-width: 0;
+  align-items: start;
+}
+
+body.page-apoiador-federal .afederal-mobile-grid-ident {
+  grid-template-rows: auto auto;
+}
+
+body.page-apoiador-federal .afederal-mobile-grid-federal {
+  grid-template-rows: auto;
+}
+
+body.page-apoiador-federal .afederal-mobile-grid .afederal-mobile-nome {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+body.page-apoiador-federal .afederal-mobile-grid .afederal-mobile-linha-fim {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: start;
+}
+
+body.page-apoiador-federal .afederal-mobile-grid .afederal-mobile-grid-mun {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+body.page-apoiador-federal .afederal-mobile-linha-principal {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-mobile-nome {
+  min-width: 0;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+body.page-apoiador-federal .afederal-mobile-linha-fim {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  max-width: 52%;
+}
+
+body.page-apoiador-federal .afederal-mobile-linha-sub {
+  margin-top: 0;
+  font-size: 0.62rem;
+  line-height: 1.2;
+  color: #64748b;
+}
+
+body.page-apoiador-federal .afederal-mobile-linha-sub .dashboard-municipio-celula {
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-th-mobile {
+  display: none;
+  width: 100%;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-ident {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto;
+  column-gap: 0.35rem;
+  align-items: start;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-linha1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.35rem;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-ident .afederal-th-mobile-linha1 {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-ident .afederal-th-orc {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: start;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-federal {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto;
+  column-gap: 0.35rem;
+  align-items: start;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-federal .dashboard-th-principal {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-federal .afederal-th-par {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+
+body.page-apoiador-federal .afederal-th-mobile .dashboard-th-principal,
+body.page-apoiador-federal .afederal-th-mobile .dashboard-th-sub {
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+body.page-apoiador-federal .afederal-th-mobile .dashboard-th-principal {
+  font-size: 0.58rem;
+  text-transform: lowercase;
+}
+
+body.page-apoiador-federal .afederal-th-mobile .afederal-th-orc,
+body.page-apoiador-federal .afederal-th-mobile .afederal-th-par {
+  font-size: 0.58rem;
+  text-transform: lowercase;
+}
+
+body.page-apoiador-federal .afederal-th-mobile .afederal-th-mun {
+  font-size: 0.55rem;
+  text-transform: lowercase;
+  color: #475569;
+}
+
+@media (max-width: 1199.98px) {
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela thead th {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    vertical-align: top;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela th.apoiadores-col-lider {
+    vertical-align: top;
+    white-space: normal;
+    line-height: 1.15;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela td.apoiadores-col-lider {
+    vertical-align: top;
+    min-width: 0;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-ident {
+    vertical-align: top;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela th.apoiadores-col-ident,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela th.apoiadores-col-lider {
+    vertical-align: top;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela td.apoiadores-col-lider .apoiadores-celula-mobile {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body.page-apoiador-federal .afederal-mobile-federal {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela .apoiadores-col-lider .apoiadores-ident-meta {
+    flex-wrap: wrap;
+  }
+
+  body.page-apoiador-federal .apoiadores-th-ident-inner.apoiadores-th-ident-inner--master {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem 0.4rem;
+  }
+
+  body.page-apoiador-federal .afederal-tabela-card .apoiadores-tabela-toolbar {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  body.page-apoiador-federal .apoiadores-th-ident-inner .apoiadores-th-mobile:not(.afederal-th-mobile),
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela th.apoiadores-col-lider .apoiadores-th-mobile:not(.afederal-th-mobile) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.15rem 0.35rem;
+    width: auto;
+    line-height: 1.15;
+  }
+
+  body.page-apoiador-federal .apoiadores-th-ident-inner .apoiadores-th-sub-municipio,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela th.apoiadores-col-lider .dashboard-th-sub:not(.afederal-th-mobile .dashboard-th-sub) {
+    display: inline;
+    font-size: 0.55rem;
+    line-height: 1.1;
+  }
+
+  body.page-apoiador-federal .apoiadores-th-ident-inner .apoiadores-th-sub-municipio::before {
+    content: none;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela th.apoiadores-col-lider .dashboard-th-sub::before {
+    content: none;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela:not(.orcamento-tabela) th {
+    padding-top: 0.28rem;
+    padding-bottom: 0.28rem;
+  }
+
+  body.page-apoiador-federal .dashboard-tabela-head.table-light {
+    background-color: #f8f9fa !important;
+  }
+
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela.table-light {
+    --bs-table-bg: #f8f9fa;
+    --bs-table-striped-bg: #f8f9fa;
+    background-color: #f8f9fa !important;
+  }
+
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela thead th,
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela thead th.apoiadores-col-lider,
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela thead th.dashboard-th-base {
+    background-color: #f8f9fa !important;
+    --bs-table-bg: #f8f9fa;
+    box-shadow: inset 0 0 0 9999px #f8f9fa;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-lider {
+    overflow: visible !important;
+    min-width: 0;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-lider .apoiadores-fin-badge {
+    max-width: 100%;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile .afederal-mobile-linha-fim .apoiadores-fin-badge {
+    flex-shrink: 0;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-lider[hidden],
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-orc-total,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-par-total,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-municipio {
+    display: none !important;
+  }
+
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela .apoiadores-th-desktop {
+    display: none !important;
+  }
+
+  body.page-apoiador-federal .afederal-th-mobile {
+    display: grid !important;
+    flex-direction: unset;
+    align-items: start;
+    gap: 0;
+  }
+
+  body.page-apoiador-federal .apoiadores-th-ident-inner .apoiadores-th-mobile.afederal-th-mobile,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela th.apoiadores-col-lider .apoiadores-th-mobile.afederal-th-mobile {
+    display: grid !important;
+  }
 }
 
 .orcamento-estratificado-tabela {
@@ -2254,10 +2623,12 @@ body.page-orcamento-geral .orcamento-geral-kpi-row-principal > .col-4 {
 }
 
 .orcamento-geral-popover-marcador {
+  display: inline-block;
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
   flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .orcamento-geral-popover-marcador--orcamento {
@@ -3607,7 +3978,20 @@ body.page-orcamento-desembolso .orcamento-desembolso-tabela-card .dashboard-tabe
   color: #94a3b8;
 }
 
-.apoiadores-modal-linha-tres-apoiadores > [class*="col-"] {
+.apoiadores-modal-linha-tres-apoiadores > [class*="col-"],
+.apoiadores-modal-linha-proprio-custom > [class*="col-"] {
+  min-width: 0;
+}
+
+.apoiadores-modal-linha-proprio-custom .form-label {
+  margin-bottom: 0.25rem;
+}
+
+.apoiadores-modal-linha-proprio-custom .apoiadores-modal-par-custom {
+  margin-top: 0;
+}
+
+.apoiadores-modal-linha-proprio-custom .apoiadores-modal-par-custom > [class*="col-"] {
   min-width: 0;
 }
 
@@ -3683,6 +4067,86 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
   min-height: 0;
 }
 
+body.page-apoiador-federal .afederal-tabela-card > .card-header {
+  flex-shrink: 0;
+}
+
+body.page-apoiador-federal .afederal-tabela-card > .card-body {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.page-apoiador-federal .afederal-tabela-card .tab-content {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-tabela-card .tab-pane.active {
+  flex: 1 1 0%;
+  display: flex !important;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-tabela-card .afederal-resumo-panel {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+body.page-apoiador-federal .afederal-tabela-card .apoiadores-tabela-toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  background-color: var(--bs-table-bg, #f8f9fa);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+  flex-shrink: 0;
+}
+
+body.page-apoiador-federal .afederal-tabela-card .apoiadores-tabela-toolbar .apoiadores-busca-campo {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+}
+
+@media (min-width: 1200px) {
+  body.page-apoiador-federal .afederal-th-mobile {
+    display: none !important;
+  }
+
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela .apoiadores-th-desktop {
+    display: inline !important;
+  }
+
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela thead th {
+    vertical-align: bottom;
+    white-space: nowrap;
+  }
+
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela thead th.apoiadores-col-ident {
+    white-space: normal;
+  }
+
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela thead th.apoiadores-th-municipio,
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela thead th.apoiadores-col-lider {
+    text-align: left;
+  }
+
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela thead th.apoiadores-col-orc-total,
+  body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela thead th.apoiadores-col-par-total {
+    text-align: right;
+  }
+}
+
 .apoiadores-tabela-card .card-body {
   padding: 0;
 }
@@ -3724,6 +4188,30 @@ body.page-orcamento .orcamento-tabela-card .dashboard-tabela-panel {
   width: auto;
 }
 
+.apoiadores-tabela-toolbar .apoiadores-filtro-fechado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #334155;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.apoiadores-tabela-toolbar .apoiadores-filtro-fechado .form-check-input {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.apoiadores-tabela-toolbar .apoiadores-filtro-fechado-texto {
+  text-transform: lowercase;
+}
+
 body.page-parcerias .apoiadores-tabela-toolbar .apoiadores-busca-campo,
 body.page-orcamento-pessoal-apoiadores .apoiadores-tabela-toolbar .apoiadores-busca-campo,
 body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-campo {
@@ -3752,6 +4240,11 @@ body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-camp
   body.page-apoiadores .apoiadores-tabela-toolbar {
     padding: 0.2rem 0.45rem 0.25rem;
     gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+
+  body.page-apoiadores .apoiadores-tabela-toolbar .apoiadores-filtro-fechado {
+    font-size: 0.65rem;
   }
 
   body.page-parcerias .apoiadores-tabela-toolbar,
@@ -4102,6 +4595,53 @@ body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-camp
   gap: 0.5rem;
 }
 
+.apoiadores-popover-topo-acoes {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.apoiadores-popover-municipio-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin-top: 0.12rem;
+}
+
+.apoiadores-popover-municipio-linha .apoiadores-popover-municipio-muted {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.popover-tabela-btn-imprimir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #1f4e8c;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.popover-tabela-btn-imprimir:hover {
+  color: #0f766e;
+  background: transparent;
+}
+
+.popover-tabela-btn-imprimir svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
 .apoiadores-popover-lideranca {
   flex: 1;
   min-width: 0;
@@ -4118,6 +4658,15 @@ body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-camp
   line-height: 1.3;
   color: #64748b;
   word-break: break-word;
+}
+
+.apoiadores-popover-observacao {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #475569;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .apoiadores-popover-divisor {
@@ -4139,6 +4688,29 @@ body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-camp
   gap: 0.28rem;
 }
 
+.apoiadores-popover-secao {
+  margin-top: 0.45rem;
+}
+
+.apoiadores-popover-secao + .apoiadores-popover-divisor,
+.apoiadores-popover-tabela + .apoiadores-popover-secao {
+  margin-top: 0;
+}
+
+.apoiadores-popover-divisor + .apoiadores-popover-secao,
+.apoiadores-popover-divisor + .apoiadores-popover-observacao {
+  margin-top: 0.35rem;
+}
+
+.apoiadores-popover-secao-titulo {
+  margin-bottom: 0.28rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #475569;
+  text-transform: lowercase;
+}
+
 .apoiadores-popover-linha {
   display: grid;
   grid-template-columns: minmax(4.5rem, 1.1fr) minmax(2.5rem, 0.7fr) minmax(4.5rem, 1.2fr);
@@ -4151,6 +4723,19 @@ body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-camp
   grid-template-columns: minmax(4.5rem, 1fr) minmax(4.5rem, 1fr);
 }
 
+.apoiadores-popover-linha--parceria-nome .apoiadores-popover-parceria-nome {
+  font-weight: 600;
+  color: #334155;
+  text-align: right;
+  word-break: break-word;
+}
+
+.apoiadores-popover-linha--repasse-parceria .apoiadores-popover-fin--badge {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
 .apoiadores-popover-rotulo {
   color: #64748b;
   text-transform: lowercase;
@@ -4158,6 +4743,12 @@ body.page-pagamentos-lideranca .apoiadores-tabela-toolbar .apoiadores-busca-camp
 
 .apoiadores-popover-rotulo--case {
   text-transform: none;
+}
+
+.apoiadores-popover-rotulo--com-marcador {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .apoiadores-popover-rotulo .orcamento-geral-popover-marcador {
@@ -4365,6 +4956,11 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela col.apoiadore
     width: 11% !important;
   }
 
+  .apoiadores-tabela.afederal-tabela col.apoiadores-col-lider {
+    width: 42% !important;
+    max-width: none !important;
+  }
+
   .apoiadores-tabela td.apoiadores-col-apoiador-desk,
   .apoiadores-tabela th.apoiadores-th-apoiador-desk {
     display: table-cell;
@@ -4426,6 +5022,15 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela col.apoiadore
 
   .apoiadores-tabela.afederal-tabela col.apoiadores-col-lider {
     width: 42% !important;
+    max-width: none !important;
+  }
+
+  .apoiadores-tabela.afederal-tabela .afederal-col-desktop {
+    display: none !important;
+  }
+
+  .apoiadores-tabela.afederal-tabela th.afederal-col-desktop {
+    display: none !important;
   }
 }
 
@@ -4434,11 +5039,27 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela col.apoiadore
     width: 58% !important;
   }
 
-  body.page-apoiadores:not(.page-parcerias) .apoiadores-tabela col.apoiadores-col-lider,
-  body.page-apoiadores:not(.page-parcerias) .apoiadores-tabela col.apoiadores-col-integral,
-  body.page-apoiadores:not(.page-parcerias) .apoiadores-tabela col.apoiadores-col-meio,
-  body.page-apoiadores:not(.page-parcerias) .apoiadores-tabela col.apoiadores-col-custom {
+  body.page-apoiadores:not(.page-parcerias):not(.page-apoiador-federal) .apoiadores-tabela col.apoiadores-col-lider,
+  body.page-apoiadores:not(.page-parcerias):not(.page-apoiador-federal) .apoiadores-tabela col.apoiadores-col-integral,
+  body.page-apoiadores:not(.page-parcerias):not(.page-apoiador-federal) .apoiadores-tabela col.apoiadores-col-meio,
+  body.page-apoiadores:not(.page-parcerias):not(.page-apoiador-federal) .apoiadores-tabela col.apoiadores-col-custom {
     width: 10.5% !important;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela col.apoiadores-col-ident {
+    width: 58% !important;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela col.apoiadores-col-lider {
+    width: 42% !important;
+    max-width: none !important;
+  }
+
+  body.page-apoiador-federal .apoiadores-th-ident-inner.apoiadores-th-ident-inner--master {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem 0.4rem;
   }
 
   body.page-parcerias .apoiadores-tabela.parcerias-tabela col.apoiadores-col-ident {
@@ -4578,6 +5199,27 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela col.apoiadore
 .master-crud-modal-fin {
   text-align: end;
   font-variant-numeric: tabular-nums;
+}
+
+.apoiadores-modal-tabs {
+  margin-bottom: 0;
+}
+
+.apoiadores-modal-tab-content {
+  padding-top: 0.75rem;
+}
+
+.apoiadores-modal-subtabs {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.apoiadores-modal-subtab-content {
+  padding-top: 0.65rem;
+}
+
+.apoiadores-modal-tab-pane-row {
+  margin-top: 0;
 }
 
 .master-crud-modal-content {
@@ -9933,6 +10575,7 @@ body.page-pessoal-pagamentos .crud-busca-campo {
 }
 
 .contratos-stack-nome--com-assinado > span {
+  flex: 1 1 auto;
   min-width: 0;
 }
 

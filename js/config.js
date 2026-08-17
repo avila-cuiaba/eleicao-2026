@@ -258,7 +258,8 @@ const CONFIG = {
     COLUNA_DATA_CONTRATO: ["data-contrato", "data contrato"],
     COLUNA_ID_REGISTRO: ["id-registro", "id registro"],
     COLUNA_PASTA_DRIVE: ["pasta-drive-id", "pasta drive id"],
-    // Pasta raiz no Drive para arquivos anexados (subpastas por registro).
+    COLUNA_CONTRATO_QUEM: ["contrato-quem", "contrato quem"],
+    // Pasta raiz no Drive para arquivos anexados (subpastas por registro; id em AC).
     DRIVE_CONTRATOS_RAIZ_ID: "1ALWi9HuDJqAO7HW1iIqhNL0UNaiWCcFU",
     DOCUMENTOS_OBRIGATORIOS: [
       { chave: "copia-rg", rotulo: "cópia RG", rotuloSelect: "RG" },
@@ -300,6 +301,21 @@ const CONFIG = {
       DATA_CONTRATO: 29,
       PGTO_PARCEIRO: 25,
       DATA_PGTO_PARCEIRO: 26,
+      ID_REGISTRO: 27, // AB — id-registro
+      PASTA_DRIVE: 28, // AC — pasta-drive-id
+      CONTRATO_QUEM: 30, // AE — contrato-quem
+      CARGA_HORARIA: 31, // AF — carga horária
+    },
+    OPCOES_CONTRATO_QUEM: ["Eugenio", "Juliana"],
+    COLUNA_CARGA_HORARIA: ["carga-horaria", "carga horaria", "carga horária"],
+    CARGA_HORARIA_POR_TIPO: {
+      "apoiador líder": "08 horas",
+      "apoiador lider": "08 horas",
+      "apoiador customizado": "08 horas",
+      "apoiador período integral": "08 horas",
+      "apoiador periodo integral": "08 horas",
+      "apoiador meio período": "04 horas",
+      "apoiador meio periodo": "04 horas",
     },
     COLUNA_SALDO_CONTRATO: [
       "saldo-contrato",
@@ -507,6 +523,14 @@ const CONFIG = {
         grupo: "tipo-valor",
       },
       {
+        id: "carga-horaria",
+        aliases: ["carga-horaria", "carga horaria", "carga horária"],
+        rotulo: "carga horária",
+        indice: 31,
+        largura: 6,
+        grupo: "carga-horaria",
+      },
+      {
         id: "local-assinatura",
         aliases: ["local-assinatura", "local assinatura", "local de assinatura"],
         rotulo: "local assinatura",
@@ -528,7 +552,18 @@ const CONFIG = {
         aliases: ["chave-pix", "chave pix", "pix"],
         rotulo: "chave pix",
         indice: 16,
-        largura: 12,
+        largura: 6,
+        grupo: "pix-contrato-quem",
+      },
+      {
+        id: "contrato-quem",
+        aliases: ["contrato-quem", "contrato quem"],
+        rotulo: "contrato quem",
+        tipo: "select",
+        origem: "contrato-quem",
+        indice: 30,
+        largura: 6,
+        grupo: "pix-contrato-quem",
       },
     ],
     COLUNA_BUSCA: [
@@ -716,8 +751,110 @@ const CONFIG = {
         FIN_MEIO: 9,
         APOIADOR_CUSTOMIZADO: 10,
         FIN_CUSTOMIZADO: 11,
+        DESP_PESSOAL: 13, // N — pessoal (contratos-distribuidos-apoiadores)
         FECHADO_ORCAMENTO: 29, // AD — FECHADO-ORCAMENTO (S/N)
+        OBSERVACAO: 30, // AE — OBSERVACAO (texto da liderança)
+        LOG_COMBUSTIVEL: 20, // U
+        LOG_DIVERSOS: 21, // V
+        LOG_DIA_D: 22, // W
+        JUL_30: 14, // O — desembolso 30 Jul
+        AGO_15: 15, // P — desembolso 15 Ago
+        AGO_30: 16, // Q — desembolso 30 Ago
+        SET_15: 17, // R — desembolso 15 Set
+        SET_30: 18, // S — desembolso 30 Set
+        PAR_PESSOAL: 25, // Z
+        PAR_COMBUSTIVEL: 26, // AA
+        PAR_DIVERSOS: 27, // AB
+        PAR_DIA_D: 28, // AC
+        LOG_DESEMB_JUL_30: 31, // AF
+        LOG_DESEMB_AGO_15: 32, // AG
+        LOG_DESEMB_AGO_30: 33, // AH
+        LOG_DESEMB_SET_15: 34, // AI
       },
+      COLUNAS_LOGISTICA_MODAL: [
+        {
+          prop: "logCombustivel",
+          chave: "LOG_COMBUSTIVEL",
+          aliases: ["combustivel", "combustível", "orcamento-combustivel", "orcamento combustivel"],
+        },
+        { prop: "logDiversos", chave: "LOG_DIVERSOS", aliases: ["diversos", "orcamento-diversos"] },
+        {
+          prop: "logDiaD",
+          chave: "LOG_DIA_D",
+          aliases: ["dia d", "dia-d", "diad", "orcamento-diad", "orcamento dia d"],
+        },
+      ],
+      COLUNAS_LOGISTICA_DESEMBOLSO_MODAL: [
+        {
+          prop: "logDesembJul30",
+          chave: "LOG_DESEMB_JUL_30",
+          aliases: [
+            "desembolso-log-30-jul",
+            "desembolso log 30 jul",
+            "desembolso-logistica-30-jul",
+            "desembolso logistica 30 jul",
+            "logistica-desembolso-30-jul",
+          ],
+        },
+        {
+          prop: "logDesembAgo15",
+          chave: "LOG_DESEMB_AGO_15",
+          aliases: [
+            "desembolso-log-15-ago",
+            "desembolso log 15 ago",
+            "desembolso-logistica-15-ago",
+            "desembolso logistica 15 ago",
+            "logistica-desembolso-15-ago",
+          ],
+        },
+        {
+          prop: "logDesembAgo30",
+          chave: "LOG_DESEMB_AGO_30",
+          aliases: [
+            "desembolso-log-30-ago",
+            "desembolso log 30 ago",
+            "desembolso-logistica-30-ago",
+            "desembolso logistica 30 ago",
+            "logistica-desembolso-30-ago",
+          ],
+        },
+        {
+          prop: "logDesembSet15",
+          chave: "LOG_DESEMB_SET_15",
+          aliases: [
+            "desembolso-log-15-set",
+            "desembolso log 15 set",
+            "desembolso-logistica-15-set",
+            "desembolso logistica 15 set",
+            "logistica-desembolso-15-set",
+          ],
+        },
+      ],
+      COLUNAS_PARCEIRO_MODAL: [
+        { prop: "parPessoal", chave: "PAR_PESSOAL", aliases: ["pessoal", "parceiro-pessoal", "orcamento-parceiro-pessoal"] },
+        {
+          prop: "parCombustivel",
+          chave: "PAR_COMBUSTIVEL",
+          aliases: ["parceiro-combustivel", "parceiro combustivel", "combustivel-parceiro"],
+        },
+        {
+          prop: "parDiversos",
+          chave: "PAR_DIVERSOS",
+          aliases: ["parceiro-diversos", "parceiro diversos", "diversos-parceiro"],
+        },
+        {
+          prop: "parDiaD",
+          chave: "PAR_DIA_D",
+          aliases: ["parceiro-diad", "parceiro dia d", "dia-d-parceiro", "diad-parceiro"],
+        },
+      ],
+      COLUNAS_DESEMBOLSO_MODAL: [
+        { prop: "desembJul30", chave: "JUL_30", aliases: ["desembolso-30-jul", "30 jul", "30/jul", "jul 30"] },
+        { prop: "desembAgo15", chave: "AGO_15", aliases: ["desembolso-15-ago", "15 ago", "15/ago", "ago 15"] },
+        { prop: "desembAgo30", chave: "AGO_30", aliases: ["desembolso-30-ago", "30 ago", "30/ago", "ago 30"] },
+        { prop: "desembSet15", chave: "SET_15", aliases: ["desembolso-15-set", "15 set", "15/set", "set 15"] },
+        { prop: "desembSet30", chave: "SET_30", aliases: ["desembolso-30-set", "30 set", "30/set", "set 30"] },
+      ],
       COLUNAS_DESPACHO: [
         { prop: "pessoal", chave: "DESP_PESSOAL", aliases: ["pessoal", "contratos-distribuidos-apoiadores"] },
         {
@@ -740,7 +877,7 @@ const CONFIG = {
         COL_PROPRIO_VALOR: 11,
       },
       // Colunas com fórmula na aba apoiadores (0-based) — nunca regravar pelo app.
-      COLUNAS_SOMENTE_FORMULA: [5, 7, 9, 13, 19, 24],
+      COLUNAS_SOMENTE_FORMULA: [5, 7, 9, 13, 19, 24, 35, 36],
       // E, G, I — fórmula quando não “editar padrão”; D = valor direto (padrão 0,00).
       COLUNAS_PADRAO_FORMULA: [4, 6, 8],
     },
@@ -762,8 +899,11 @@ const CONFIG = {
         MUNICIPIO: 2,            // C
         PARCERIA: 23,            // X
         ORCAMENTO: 24,           // Y
-        REPASSE_PARCERIA: 25,    // Z
-        REPASSE_FEDERAL: 25,     // Z — filtro (somente linhas com valor)
+        PAR_PESSOAL: 25,         // Z — repasse parceria (pessoal)
+        PAR_COMBUSTIVEL: 26,     // AA
+        PAR_DIVERSOS: 27,        // AB
+        PAR_DIA_D: 28,           // AC
+        REPASSE_FEDERAL: 25,     // Z — filtro legado (pessoal parceiro)
       },
     },
     APOIADOR_FEDERAL: {

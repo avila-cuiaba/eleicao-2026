@@ -54,7 +54,7 @@ let modoConsultaItem = false;
 let modoEntrega = null; // null | { tipo: 'lote' } | { tipo: 'editar', linha }
 
 function podeEditarQtd() {
-  // somente SENHA_ACESSO_AVILA (chave avila-master)
+  // somente perfil master (SENHA_ACESSO_AVILA)
   return typeof AUTH !== "undefined" && AUTH.ehAvilaMaster();
 }
 

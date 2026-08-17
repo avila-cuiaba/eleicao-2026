@@ -1,4 +1,4 @@
-// Ações de edição/inclusão/exclusão — somente chave avila-master.
+// Ações de edição/inclusão/exclusão — somente perfil master (SENHA_ACESSO_AVILA).
 
 const MasterCrud = {
   ativo() {
