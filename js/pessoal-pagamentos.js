@@ -77,6 +77,7 @@ let colunaLoteLancado = null;
 let linhasSelecionadasLancarModal = new Set();
 let statusDocumentosPorLinha = new Map();
 let paginaAtualTabela = 1;
+const popoverTabela = PopoverTabela.criar();
 
 function tamanhoPaginaTabela() {
   const n = cfg.TAMANHO_PAGINA_TABELA;
@@ -163,10 +164,6 @@ function campoIncluirNoSalvar(campo) {
   return true;
 }
 
-function mensagemConfirmarEdicaoCampo(campo) {
-  return `Tem certeza de que deseja editar o campo "${campo.rotulo}"?`;
-}
-
 function controleCampoFormulario(campoId) {
   return document.getElementById("campo-" + campoId);
 }
@@ -193,7 +190,6 @@ async function alternarBloqueioCampoFormulario(campo) {
   const input = controleCampoFormulario(campo.id);
 
   if (!desbloqueado) {
-    if (!(await AppConfirm.confirm(mensagemConfirmarEdicaoCampo(campo)))) return;
     camposDesbloqueadosFormulario.add(campo.id);
     if (input) input.disabled = false;
     wrap?.classList.add("contratos-campo-form--desbloqueado");
@@ -205,6 +201,33 @@ async function alternarBloqueioCampoFormulario(campo) {
   }
 
   atualizarBotaoCadeadoCampo(btn, camposDesbloqueadosFormulario.has(campo.id), campo.rotulo);
+}
+
+function rotulosCamposDesbloqueadosComLock() {
+  return resolverCamposFormulario()
+    .filter((campo) => campo.edicaoComConfirmacao && camposDesbloqueadosFormulario.has(campo.id))
+    .map((campo) => campo.rotulo);
+}
+
+async function confirmarSalvarCamposComLock() {
+  const rotulos = rotulosCamposDesbloqueadosComLock();
+  if (!rotulos.length) return true;
+  const msg =
+    rotulos.length === 1
+      ? `Confirmar alteração no campo "${rotulos[0]}"?`
+      : `Confirmar alteração nos campos: ${rotulos.join(", ")}?`;
+  return AppConfirm.confirm(msg);
+}
+
+function aplicarDadosNaLinhaLocal(numLinha, dadosGravados) {
+  const item = linhas.find((r) => r._linha === numLinha);
+  if (!item || !dadosGravados) return;
+  resolverCamposFormulario().forEach((campo) => {
+    if (!campo.coluna) return;
+    const chaveGrav = chaveGravacao(campo.coluna);
+    if (dadosGravados[chaveGrav] === undefined) return;
+    item[campo.coluna.chave] = dadosGravados[chaveGrav];
+  });
 }
 
 function formatarMoedaInputDigitando(input) {
@@ -966,6 +989,98 @@ function classeColunaFormulario(campo, camposNoGrupo, chaveGrupo) {
   return `col-12 col-md-${largura}`;
 }
 
+const IDS_TAB_PAGAMENTOS = new Set([
+  "pgto-1",
+  "data-pgto-1",
+  "pgto-2",
+  "data-pgto-2",
+  "pgto-3",
+  "data-pgto-3",
+  "pgto-4",
+  "data-pgto-4",
+  "pgto-parceiro",
+  "data-pgto-parceiro",
+]);
+
+const GRUPO_NOME_ASSINADO = "nome-assinado";
+
+function tabDestinoCampo(campo) {
+  if (IDS_TAB_PAGAMENTOS.has(campo.id)) return "pagamentos";
+  return "contrato";
+}
+
+function criarTabPaneFormulario(id, ativo) {
+  const pane = document.createElement("div");
+  pane.className = `tab-pane fade pagamentos-modal-tab-pane${ativo ? " show active" : ""}`;
+  pane.id = id;
+  pane.setAttribute("role", "tabpanel");
+  pane.setAttribute("tabindex", "0");
+  return pane;
+}
+
+function montarShellTabsFormulario() {
+  const wrap = document.createElement("div");
+  wrap.className = "pagamentos-modal-form-wrap";
+
+  const tabs = document.createElement("ul");
+  tabs.className =
+    "nav nav-tabs entregas-dados-tabs apoiadores-modal-tabs pagamentos-modal-tabs";
+  tabs.id = "pagamentosModalTabs";
+  tabs.setAttribute("role", "tablist");
+
+  const tabContrato = document.createElement("li");
+  tabContrato.className = "nav-item";
+  tabContrato.setAttribute("role", "presentation");
+  tabContrato.innerHTML =
+    '<button class="nav-link active" id="tabPagModalContrato" data-bs-toggle="tab" data-bs-target="#pagTabContrato" type="button" role="tab" aria-controls="pagTabContrato" aria-selected="true">contrato</button>';
+
+  const tabPagamentos = document.createElement("li");
+  tabPagamentos.className = "nav-item";
+  tabPagamentos.setAttribute("role", "presentation");
+  tabPagamentos.innerHTML =
+    '<button class="nav-link" id="tabPagModalPagamentos" data-bs-toggle="tab" data-bs-target="#pagTabPagamentos" type="button" role="tab" aria-controls="pagTabPagamentos" aria-selected="false">pagamentos</button>';
+
+  tabs.appendChild(tabContrato);
+  tabs.appendChild(tabPagamentos);
+
+  if (modoEdicao) {
+    const tabDocumentos = document.createElement("li");
+    tabDocumentos.className = "nav-item";
+    tabDocumentos.setAttribute("role", "presentation");
+    tabDocumentos.innerHTML =
+      '<button class="nav-link" id="tabPagModalDocumentos" data-bs-toggle="tab" data-bs-target="#pagTabDocumentos" type="button" role="tab" aria-controls="pagTabDocumentos" aria-selected="false">documentos</button>';
+    tabs.appendChild(tabDocumentos);
+  }
+
+  const tabContent = document.createElement("div");
+  tabContent.className = "tab-content pagamentos-modal-tabs-content";
+  tabContent.id = "pagamentosModalTabContent";
+
+  const paneContrato = criarTabPaneFormulario("pagTabContrato", true);
+  paneContrato.setAttribute("aria-labelledby", "tabPagModalContrato");
+  const panePagamentos = criarTabPaneFormulario("pagTabPagamentos", false);
+  panePagamentos.setAttribute("aria-labelledby", "tabPagModalPagamentos");
+  tabContent.appendChild(paneContrato);
+  tabContent.appendChild(panePagamentos);
+
+  let paneDocumentos = null;
+  if (modoEdicao) {
+    paneDocumentos = criarTabPaneFormulario("pagTabDocumentos", false);
+    paneDocumentos.setAttribute("aria-labelledby", "tabPagModalDocumentos");
+    tabContent.appendChild(paneDocumentos);
+  }
+
+  wrap.appendChild(tabs);
+  wrap.appendChild(tabContent);
+  el.formCampos.appendChild(wrap);
+
+  return {
+    contrato: paneContrato,
+    pagamentos: panePagamentos,
+    documentos: paneDocumentos,
+  };
+}
+
 function montarFormulario(dados) {
   el.formCampos.innerHTML = "";
   camposDesbloqueadosFormulario = new Set();
@@ -979,6 +1094,8 @@ function montarFormulario(dados) {
       "</p>";
     return;
   }
+
+  const panes = montarShellTabsFormulario();
   const ordem = [];
   const grupos = new Map();
 
@@ -992,21 +1109,26 @@ function montarFormulario(dados) {
   });
 
   ordem.forEach((chaveGrupo) => {
+    const camposNoGrupo = grupos.get(chaveGrupo);
     const row = document.createElement("div");
     row.className =
-      chaveGrupo === "nome-assinado"
+      chaveGrupo === GRUPO_NOME_ASSINADO
         ? "row g-2 mb-2 contratos-row-nome-assinado"
         : "row g-2 mb-2";
-    grupos.get(chaveGrupo).forEach((campo) => {
+    camposNoGrupo.forEach((campo) => {
       const col = document.createElement("div");
-      const camposNoGrupo = grupos.get(chaveGrupo);
       col.className = classeColunaFormulario(campo, camposNoGrupo, chaveGrupo);
-
       col.appendChild(montarNoCampo(campo, dados));
-
       row.appendChild(col);
     });
-    el.formCampos.appendChild(row);
+
+    if (chaveGrupo === GRUPO_NOME_ASSINADO) {
+      el.formCampos.insertBefore(row, el.formCampos.firstChild);
+      return;
+    }
+
+    const destinoTab = tabDestinoCampo(camposNoGrupo[0]);
+    panes[destinoTab].appendChild(row);
   });
 
   const temCoordenador = campos.some((c) => c.id === "coordenador");
@@ -1016,7 +1138,9 @@ function montarFormulario(dados) {
     vincularSugestaoValorContrato();
     obterValoresReferenciaContrato();
   }
-  inserirPainelDocumentosFormulario(dados);
+  if (modoEdicao && dados && panes.documentos) {
+    inserirPainelDocumentosFormulario(dados, panes.documentos);
+  }
 }
 
 function documentosObrigatoriosLista() {
@@ -1061,8 +1185,8 @@ function htmlIconeDocumentos(item) {
   return htmlIconeCirculoStatus(ok, titulo);
 }
 
-function inserirPainelDocumentosFormulario(dados) {
-  if (!modoEdicao || !dados) return;
+function inserirPainelDocumentosFormulario(dados, container) {
+  if (!modoEdicao || !dados || !container) return;
   const st = statusDocumentosLinha(dados);
   const docs = documentosObrigatoriosLista();
   const panel = document.createElement("div");
@@ -1104,7 +1228,7 @@ function inserirPainelDocumentosFormulario(dados) {
     "</ul>" +
     '<p class="text-secondary small mt-2 mb-0">para enviar arquivos, use a página <strong>pessoal-contratos</strong>.</p>';
 
-  el.formCampos.appendChild(panel);
+  container.appendChild(panel);
 }
 
 async function carregarStatusDocumentosContratos() {
@@ -1230,6 +1354,8 @@ async function salvarFormulario(evento) {
     return;
   }
 
+  if (!(await confirmarSalvarCamposComLock())) return;
+
   setSalvandoModal(true);
 
   try {
@@ -1242,14 +1368,19 @@ async function salvarFormulario(evento) {
     });
     if (!json) return;
 
+    const linhaSalva =
+      json.linha != null ? Number(json.linha) : modoEdicao ? Number(modoEdicao) : null;
+    if (linhaSalva) {
+      aplicarDadosNaLinhaLocal(linhaSalva, dados);
+      linhaParaDestaqueSalvo = linhaSalva;
+      renderizarTabela({ preservarPagina: true });
+    }
+
     modal.hide();
     AppToast.show(
       modoEdicao ? "registro atualizado com sucesso" : "registro inserido com sucesso",
       "sucesso"
     );
-    const linhaSalva =
-      json.linha != null ? Number(json.linha) : modoEdicao ? Number(modoEdicao) : null;
-    if (linhaSalva) linhaParaDestaqueSalvo = linhaSalva;
     await carregarContratos(true);
   } catch (e) {
     AppToast.show(PlanilhaApi.mensagemErro(e), "erro");
@@ -1309,6 +1440,64 @@ function htmlIconeAssinado(item) {
   const ok = itemAssinado(item);
   const titulo = ok ? "assinado" : "não assinado";
   return htmlIconeCirculoStatus(ok, titulo);
+}
+
+function textoSnAssinado(item) {
+  return itemAssinado(item) ? "S" : "N";
+}
+
+function textoSnDocumentosObrigatorios(item) {
+  return itemDocumentosCompletos(item) ? "S" : "N";
+}
+
+function htmlPopoverLinhaFin(rotulo, valor) {
+  const exibicao = valor != null && String(valor).trim() !== "" ? String(valor).trim() : "—";
+  return (
+    '<div class="apoiadores-popover-linha apoiadores-popover-linha--fin">' +
+    `<span class="apoiadores-popover-rotulo">${escapeHtml(rotulo)}</span>` +
+    `<span class="apoiadores-popover-fin">${escapeHtml(exibicao)}</span>` +
+    "</div>"
+  );
+}
+
+function htmlPopoverPagamento(item) {
+  const nome = String(valorItem(item, colunaNome) ?? "").trim() || "—";
+  const municipio = String(valorItem(item, colunaMunicipio) ?? "").trim();
+  const valorContrato = textoMoedaExibir(valorItem(item, colunaValorContrato));
+  const saldoContrato = textoMoedaExibir(valorItem(item, colunaSaldoContrato));
+
+  return (
+    '<div class="orcamento-geral-popover-corpo apoiadores-popover-corpo pagamentos-popover-corpo">' +
+    '<div class="apoiadores-popover-cabecalho">' +
+    '<div class="apoiadores-popover-topo">' +
+    `<span class="apoiadores-popover-lideranca">${escapeHtml(nome)}</span>` +
+    "</div>" +
+    (municipio
+      ? `<div class="apoiadores-popover-municipio-muted">${escapeHtml(municipio)}</div>`
+      : "") +
+    '<hr class="apoiadores-popover-divisor" aria-hidden="true">' +
+    "</div>" +
+    '<div class="apoiadores-popover-tabela">' +
+    htmlPopoverLinhaFin("contrato assinado", textoSnAssinado(item)) +
+    htmlPopoverLinhaFin("documentos obrigatórios", textoSnDocumentosObrigatorios(item)) +
+    htmlPopoverLinhaFin("valor do contrato", valorContrato) +
+    htmlPopoverLinhaFin("saldo do contrato", saldoContrato) +
+    "</div>" +
+    "</div>"
+  );
+}
+
+function inicializarPopoversTabela(paginaItens) {
+  if (!paginaItens?.length) {
+    popoverTabela.destruir();
+    return;
+  }
+  popoverTabela.inicializar({
+    corpo: el.corpo,
+    seletorLinha: "tr.pagamentos-linha-popover",
+    linhas: paginaItens,
+    htmlConteudo: htmlPopoverPagamento,
+  });
 }
 
 function resolverColunasOVRelatorio() {
@@ -2525,11 +2714,35 @@ function htmlCelulaValorContrato(item) {
 function htmlMobileStackCabecalho() {
   const T = TabelaOrdenacao;
   return (
-    '<div class="contratos-th-stack-head contratos-th-stack-head--ordenacao">' +
+    '<div class="contratos-th-stack-head contratos-th-stack-head--ordenacao contratos-th-stack-head--unico">' +
     `<div class="contratos-th-stack-ordenavel-linha">${T.htmlCabecalhoOrdenavel(rotuloTabela("NOME"), "nome")}</div>` +
-    `<div class="contratos-th-stack-ordenavel-linha">${T.htmlCabecalhoOrdenavel(rotuloTabela("MUNICIPIO"), "municipio")}</div>` +
     "</div>"
   );
+}
+
+function htmlMobileStackIdentLinha(item) {
+  return (
+    '<span class="contratos-stack-nome contratos-stack-nome--com-assinado pagamentos-stack-ident">' +
+    '<span class="pagamentos-stack-ident-icone pagamentos-stack-ident-icone--assinado">' +
+    htmlIconeAssinado(item) +
+    "</span>" +
+    '<span class="pagamentos-stack-ident-icone pagamentos-stack-ident-icone--docs">' +
+    htmlIconeDocumentos(item) +
+    "</span>" +
+    `<span class="pagamentos-stack-ident-nome">${exibirValor(valorItem(item, colunaNome))}</span>` +
+    "</span>"
+  );
+}
+
+function htmlMobileStackCorpo(item) {
+  let html =
+    '<div class="contratos-celula-stack">' +
+    htmlMobileStackIdentLinha(item) +
+    `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
+    `<span class="contratos-stack-cpf">${htmlCelulaCpfChavePix(item)}</span>` +
+    htmlValoresContratoSaldoMobileStack(item);
+  html += "</div>";
+  return html;
 }
 
 function htmlValoresContratoSaldoMobileStack(item) {
@@ -2557,17 +2770,6 @@ function htmlValoresContratoSaldoMobileStack(item) {
     `<span class="contratos-stack-valor-saldo-texto">${valoresHtml}</span>` +
     "</span>"
   );
-}
-
-function htmlMobileStackCorpo(item) {
-  let html =
-    '<div class="contratos-celula-stack">' +
-    `<span class="contratos-stack-nome contratos-stack-nome--com-assinado">${htmlIconeAssinado(item)}${htmlIconeDocumentos(item)}<span>${exibirValor(valorItem(item, colunaNome))}</span></span>` +
-    `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
-    `<span class="contratos-stack-cpf">${htmlCelulaCpfChavePix(item)}</span>` +
-    htmlValoresContratoSaldoMobileStack(item);
-  html += "</div>";
-  return html;
 }
 
 function criarTh(texto, classes) {
@@ -2869,6 +3071,9 @@ function montarHtmlRelatorioPagina(opcoes) {
 }
 
 function vincularAcoes(container, item) {
+  container.querySelectorAll(".crud-acao-icone").forEach((btn) => {
+    btn.addEventListener("click", (e) => e.stopPropagation());
+  });
   container.querySelector('[data-acao="relatorio"]')?.addEventListener("click", () => abrirRelatorioIndividual(item));
   container.querySelector('[data-acao="editar"]')?.addEventListener("click", () => abrirEditar(item));
   container.querySelector('[data-acao="excluir"]')?.addEventListener("click", () => confirmarExcluir(item));
@@ -2947,6 +3152,10 @@ function montarCabecalhoTabela() {
 
 function criarLinhaTabela(item) {
   const tr = document.createElement("tr");
+  tr.classList.add("pagamentos-linha-popover");
+  tr.tabIndex = 0;
+  const nomeExibir = String(valorItem(item, colunaNome) ?? "").trim();
+  tr.setAttribute("aria-label", nomeExibir ? `detalhes de ${nomeExibir}` : "detalhes do contrato");
   tr.dataset.linha = String(item._linha);
 
   tr.appendChild(
@@ -3034,6 +3243,7 @@ function renderizarTabela(opcoes) {
 
   if (!total) {
     paginaAtualTabela = 1;
+    popoverTabela.destruir();
     atualizarBarraPaginacao(0);
     atualizarResumoContratosToolbar();
     el.vazio.hidden = false;
@@ -3052,6 +3262,8 @@ function renderizarTabela(opcoes) {
   paginaItens.forEach((item) => {
     el.corpo.appendChild(criarLinhaTabela(item));
   });
+
+  inicializarPopoversTabela(paginaItens);
 
   atualizarBarraPaginacao(total);
   atualizarResumoContratosToolbar();
@@ -3085,38 +3297,60 @@ async function carregarContratos(silencioso) {
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   try {
-    const [dados, jsonMun, jsonAp] = await Promise.all([
-      PlanilhaApi.ler(cfg.PLANILHA, cfg.ABA, cfg.LINHA_INICIO_DADOS),
-      fetch(PlanilhaApi.urlGet(cfgMun.PLANILHA, cfgMun.ABA))
-        .then((r) => r.json())
-        .catch(() => null),
-      fetch(PlanilhaApi.urlGet(cfgPessoal.PLANILHA_APOIADORES, cfgPessoal.ABA))
-        .then((r) => r.json())
-        .catch(() => null),
-    ]);
-    if (!dados) return;
+    const precisaMunicipios = !silencioso || !listaMunicipiosForm.length;
+    const precisaApoiadores = !silencioso || coordenadoresPorMunicipio.size === 0;
 
-    if (AUTH.tratarResposta(jsonMun) && jsonMun?.ok && jsonMun.valores) {
-      listaMunicipiosForm = extrairListaMunicipios(jsonMun.valores);
-    } else {
-      listaMunicipiosForm = [];
+    const tarefas = [PlanilhaApi.ler(cfg.PLANILHA, cfg.ABA, cfg.LINHA_INICIO_DADOS)];
+    if (precisaMunicipios) {
+      tarefas.push(
+        fetch(PlanilhaApi.urlGet(cfgMun.PLANILHA, cfgMun.ABA))
+          .then((r) => r.json())
+          .catch(() => null)
+      );
+    }
+    if (precisaApoiadores) {
+      tarefas.push(
+        fetch(PlanilhaApi.urlGet(cfgPessoal.PLANILHA_APOIADORES, cfgPessoal.ABA))
+          .then((r) => r.json())
+          .catch(() => null)
+      );
     }
 
-    if (AUTH.tratarResposta(jsonAp) && jsonAp?.ok && jsonAp.valores) {
-      montarMapaLiderancasPorMunicipio(jsonAp.valores);
-    } else {
-      coordenadoresPorMunicipio = new Map();
+    const resultados = await Promise.all(tarefas);
+    const dados = resultados[0];
+    if (!dados) return;
+
+    let idxRes = 1;
+    if (precisaMunicipios) {
+      const jsonMun = resultados[idxRes++];
+      if (AUTH.tratarResposta(jsonMun) && jsonMun?.ok && jsonMun.valores) {
+        listaMunicipiosForm = extrairListaMunicipios(jsonMun.valores);
+      } else {
+        listaMunicipiosForm = [];
+      }
+    }
+
+    if (precisaApoiadores) {
+      const jsonAp = resultados[idxRes++];
+      if (AUTH.tratarResposta(jsonAp) && jsonAp?.ok && jsonAp.valores) {
+        montarMapaLiderancasPorMunicipio(jsonAp.valores);
+      } else {
+        coordenadoresPorMunicipio = new Map();
+      }
     }
 
     colunas = dados.colunas;
     linhas = dados.linhas;
     resolverColunas();
-    await carregarStatusDocumentosContratos();
-    paginaAtualTabela = 1;
+    if (!silencioso) paginaAtualTabela = 1;
 
     montarCabecalhoTabela();
-    renderizarTabela();
+    renderizarTabela({ preservarPagina: silencioso });
     if (!silencioso) limparStatus();
+
+    carregarStatusDocumentosContratos().then(() => {
+      renderizarTabela({ preservarPagina: true });
+    });
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
   }

@@ -766,10 +766,10 @@ const CONFIG = {
         PAR_COMBUSTIVEL: 26, // AA
         PAR_DIVERSOS: 27, // AB
         PAR_DIA_D: 28, // AC
-        LOG_DESEMB_JUL_30: 31, // AF
-        LOG_DESEMB_AGO_15: 32, // AG
-        LOG_DESEMB_AGO_30: 33, // AH
-        LOG_DESEMB_SET_15: 34, // AI
+        LOG_DESEMB_AGO_15: 31, // AF — desembolso logística 15 Ago
+        LOG_DESEMB_AGO_30: 32, // AG — desembolso logística 30 Ago
+        LOG_DESEMB_SET_15: 33, // AH — desembolso logística 15 Set
+        LOG_DESEMB_SET_30: 34, // AI — desembolso logística 30 Set
       },
       COLUNAS_LOGISTICA_MODAL: [
         {
@@ -785,17 +785,6 @@ const CONFIG = {
         },
       ],
       COLUNAS_LOGISTICA_DESEMBOLSO_MODAL: [
-        {
-          prop: "logDesembJul30",
-          chave: "LOG_DESEMB_JUL_30",
-          aliases: [
-            "desembolso-log-30-jul",
-            "desembolso log 30 jul",
-            "desembolso-logistica-30-jul",
-            "desembolso logistica 30 jul",
-            "logistica-desembolso-30-jul",
-          ],
-        },
         {
           prop: "logDesembAgo15",
           chave: "LOG_DESEMB_AGO_15",
@@ -827,6 +816,17 @@ const CONFIG = {
             "desembolso-logistica-15-set",
             "desembolso logistica 15 set",
             "logistica-desembolso-15-set",
+          ],
+        },
+        {
+          prop: "logDesembSet30",
+          chave: "LOG_DESEMB_SET_30",
+          aliases: [
+            "desembolso-log-30-set",
+            "desembolso log 30 set",
+            "desembolso-logistica-30-set",
+            "desembolso logistica 30 set",
+            "logistica-desembolso-30-set",
           ],
         },
       ],
@@ -1145,6 +1145,7 @@ CONFIG.PESSOAL_PAGAMENTOS = Object.assign({}, CONFIG.CONTRATOS, {
   EXIBIR_COLUNA_SALDO_CONTRATO: true,
   SOMENTE_EDICAO: true,
   ROTULOS: Object.assign({}, CONFIG.CONTRATOS.ROTULOS, {
+    NOME: "contratado",
     CPF: "CPF / chave pix",
     VALOR_PAGO: "pago",
     DOCUMENTOS: "docs",

@@ -10,7 +10,7 @@
 </head>
 <body class="bg-light page-frame-body page-contratos page-pessoal-pagamentos">
   <div class="page-frame-content">
-    <div id="tabelaCard" class="card shadow-sm border-0 crud-tabela-card">
+    <div id="tabelaCard" class="card shadow-sm border-0 crud-tabela-card pagamentos-tabela-card">
       <div class="card-header bg-white border-bottom py-2 px-3">
         <div class="crud-toolbar">
           <button type="button" id="btnNovo" class="btn btn-sm btn-primary">novo</button>
@@ -121,14 +121,16 @@
         </div>
       </div>
       <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover table-sm mb-0 crud-tabela contratos-tabela">
-            <thead class="table-light">
-              <tr id="cabecalhoDesktop" class="contratos-thead-desktop"></tr>
-              <tr id="cabecalhoMobile" class="contratos-thead-mobile"></tr>
-            </thead>
-            <tbody id="corpoTabela"></tbody>
-          </table>
+        <div class="pagamentos-tabela-scroll">
+          <div class="table-responsive pagamentos-tabela-responsive">
+            <table class="table table-hover table-sm mb-0 crud-tabela contratos-tabela">
+              <thead class="table-light">
+                <tr id="cabecalhoDesktop" class="contratos-thead-desktop"></tr>
+                <tr id="cabecalhoMobile" class="contratos-thead-mobile"></tr>
+              </thead>
+              <tbody id="corpoTabela"></tbody>
+            </table>
+          </div>
         </div>
         <p id="vazio" class="text-secondary small text-center py-4 mb-0" hidden>Nenhum registro encontrado.</p>
         <nav
@@ -418,6 +420,7 @@
   <script src="../js/planilha-api.js"></script>
   <script src="../js/icons.js"></script>
   <script src="../js/tabela-ordenacao.js"></script>
+  <script src="../js/popover-tabela.js"></script>
   <script src="../js/pessoal-pagamentos.js"></script>
 </body>
 </html>

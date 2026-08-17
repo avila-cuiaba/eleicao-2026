@@ -27,7 +27,7 @@ const ICONE_BANCO =
 const ICONE_NAO_LANCAR_SISTEMA =
   '<i class="fa-solid fa-hand-holding-circle-dollar" aria-hidden="true"></i>';
 const ICONE_ASSINADO_SIM =
-  '<i class="fa-solid fa-file-signature" aria-hidden="true"></i>';
+  '<i class="fa-solid fa-signature" aria-hidden="true"></i>';
 const ICONE_ASSINADO_NAO =
   '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
 const ICONE_ARQUIVOS =

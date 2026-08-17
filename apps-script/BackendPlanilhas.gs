@@ -13,6 +13,7 @@
  *   SENHA_ACESSO_MATERIAL  → perfil material (só material gráfico)
  *   SENHA_ACESSO_COMBUSTIVEL  → perfil combustivel (só abastecimentos / diário de bordo)
  *   SENHA_ACESSO_FAUSTINHO  → perfil faustinho (agenda + entregas, com relatório)
+ *   SENHA_ACESSO_JULIANA  → perfil juliana (só menu Juliana: orçamento + contratos)
  *   SENHA_ACESSO_AVILA    → acesso total (master)
  *   Se NENHUMA propriedade existir, o acesso fica ABERTO (sem proteção).
  *   O frontend envia a chave em ?chave=... (GET) ou { "chave": "..." } (POST).
@@ -220,6 +221,7 @@ var CADASTRO_ACESSO = [
   { prop: "SENHA_ACESSO_MATERIAL", perfil: "material", usuario: "Lizonete" },
   { prop: "SENHA_ACESSO_COMBUSTIVEL", perfil: "combustivel", usuario: "Combustível" },
   { prop: "SENHA_ACESSO_FAUSTINHO", perfil: "faustinho", usuario: "Faustinho" },
+  { prop: "SENHA_ACESSO_JULIANA", perfil: "juliana", usuario: "Juliana" },
   { prop: "SENHA_ACESSO_AVILA", perfil: "master", usuario: "Avila" },
 ];
 
@@ -258,7 +260,7 @@ function autorizado(chave) {
 function planilhaPermitida(perfil, planilha) {
   const chave = String(planilha || "");
   if (!perfil || perfil === "master") return true;
-  if (perfil === "contratos" || perfil === "reginaldo") {
+  if (perfil === "contratos" || perfil === "reginaldo" || perfil === "juliana") {
     if (PLANILHAS_SOMENTE_CONTRATOS[chave]) return true;
     if (chave === "municipios" || chave === "micro-municipios") return true;
     if (chave === "apoiadores" || chave === "apoiador-federal") return true;
@@ -307,6 +309,7 @@ function recursoPermitido(perfil, recurso, planilha) {
   if (
     perfil === "contratos" ||
     perfil === "reginaldo" ||
+    perfil === "juliana" ||
     perfil === "material" ||
     perfil === "combustivel" ||
     perfil === "faustinho"

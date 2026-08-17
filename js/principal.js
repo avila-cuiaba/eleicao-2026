@@ -117,14 +117,14 @@ const PAGINAS = {
   },
   "orcamento-juliana": {
     titulo: "Juliana",
-    subtitulo: "orçamento por liderança (federal Juliana)",
+    subtitulo: "orçamento por liderança",
     arquivo: "pages/orcamento-juliana.html",
     atualizar: true,
     menuGrupo: "juliana",
   },
   "pessoal-contratos-juliana": {
     titulo: "Juliana",
-    subtitulo: "contratos (contrato-quem Juliana)",
+    subtitulo: "contratos",
     arquivo: "pages/contratos-juliana.html",
     atualizar: true,
     menuGrupo: "juliana",
@@ -481,6 +481,7 @@ function ajustarAlturaFrame() {
       doc.body?.classList.contains("page-orcamento-desembolso") ||
       doc.body?.classList.contains("page-pagamentos-geral") ||
       doc.body?.classList.contains("page-pagamentos-lideranca") ||
+      doc.body?.classList.contains("page-pessoal-pagamentos") ||
       doc.body?.classList.contains("page-mobilizacao-estrutura-resumo") ||
       doc.body?.classList.contains("page-mobilizacao-estrutura") ||
       doc.body?.classList.contains("page-mobilizacao") ||

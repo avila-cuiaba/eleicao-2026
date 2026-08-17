@@ -30,9 +30,18 @@ const AUTH = {
       paginas: ["agenda", "entregas"],
       relatorio: true,
     },
+    juliana: {
+      paginaInicial: "orcamento-juliana",
+      paginas: ["orcamento-juliana", "pessoal-contratos-juliana"],
+    },
     campanha: {
       paginaInicial: "inicio",
-      paginasExcluidas: ["pessoal-contratos", "pessoal-pagamentos", "pessoal-contratos-juliana"],
+      paginasExcluidas: [
+        "pessoal-contratos",
+        "pessoal-pagamentos",
+        "pessoal-contratos-juliana",
+        "orcamento-juliana",
+      ],
     },
     master: {
       paginaInicial: "inicio",
