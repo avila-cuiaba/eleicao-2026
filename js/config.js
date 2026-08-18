@@ -297,12 +297,11 @@ const CONFIG = {
       SALDO_CONTRATO: 15,
       CHAVE_PIX: 16,
       ASSINADO: 24,
-      LOCAL_ASSINATURA: 7,
-      DATA_CONTRATO: 29,
       PGTO_PARCEIRO: 25,
       DATA_PGTO_PARCEIRO: 26,
       ID_REGISTRO: 27, // AB — id-registro
       PASTA_DRIVE: 28, // AC — pasta-drive-id
+      DATA_CONTRATO: 29,
       CONTRATO_QUEM: 30, // AE — contrato-quem
       CARGA_HORARIA: 31, // AF — carga horária
     },
@@ -351,6 +350,7 @@ const CONFIG = {
     },
     ROTULOS: {
       NOME: "nome completo",
+      CONTRATADO: "contratado",
       ASSINADO: "assinado",
       NOME_MAE: "nome mãe",
       CPF: "CPF",
@@ -360,7 +360,6 @@ const CONFIG = {
       VINCULO: "liderança",
       VALOR_CONTRATO: "valor contrato",
       SALDO_CONTRATO: "saldo contrato",
-      LOCAL_ASSINATURA: "local assinatura",
       DATA_CONTRATO: "data contrato",
     },
     CAMPOS_FORMULARIO: [
@@ -531,21 +530,13 @@ const CONFIG = {
         grupo: "carga-horaria",
       },
       {
-        id: "local-assinatura",
-        aliases: ["local-assinatura", "local assinatura", "local de assinatura"],
-        rotulo: "local assinatura",
-        indice: 7,
-        largura: 6,
-        grupo: "assinatura-contrato",
-      },
-      {
         id: "data-contrato",
         aliases: ["data-contrato", "data contrato"],
         rotulo: "data contrato",
         tipo: "data",
         indice: 29,
         largura: 6,
-        grupo: "assinatura-contrato",
+        grupo: "carga-horaria",
       },
       {
         id: "chave-pix",
@@ -588,8 +579,6 @@ const CONFIG = {
       "valor contrato",
       "saldo-contrato",
       "saldo contrato",
-      "local-assinatura",
-      "local assinatura",
       "data-contrato",
       "data contrato",
     ],

@@ -128,6 +128,7 @@ const PAGINAS = {
     arquivo: "pages/contratos-juliana.html",
     atualizar: true,
     menuGrupo: "juliana",
+    exportarXls: true,
     relatorioOpcoes: [
       { id: "geral", rotulo: "relatório geral" },
       { id: "clicksign", rotulo: "contatos para clicksign" },
@@ -256,6 +257,13 @@ function atualizarMenuRelatorioShell(cfg, id) {
   if (btnSimples) btnSimples.hidden = false;
 }
 
+function atualizarExportarXlsShell(cfg, id) {
+  const btn = document.getElementById("btnExportarXlsShell");
+  if (!btn) return;
+  const mostrar = cfg?.exportarXls && paginaTemRelatorio(cfg, id);
+  btn.hidden = !mostrar;
+}
+
 function initRelatorioShellMenu() {
   const menuLista = document.getElementById("relatorioShellDropdownLista");
   if (!menuLista || menuLista.dataset.relatorioVinculado === "1") return;
@@ -281,6 +289,7 @@ function atualizarCabecalho(id) {
   if (sub) sub.textContent = cfg.subtitulo;
   if (btnAtualizar) btnAtualizar.hidden = !cfg.atualizar;
   atualizarMenuRelatorioShell(cfg, id);
+  atualizarExportarXlsShell(cfg, id);
   document.title = textoTitulo + " | Eleição 2026";
   if (window.LAYOUT) LAYOUT.atualizarMenu(id);
 }
@@ -400,6 +409,28 @@ function solicitarRelatorioPorMensagem(frame, opcao) {
   win.postMessage({ tipo: "eleicao-relatorio", opcao: opcao || "geral" }, "*");
 }
 
+async function executarExportacaoXlsShell() {
+  const frame = document.getElementById("appFrame");
+  if (!frame) return;
+
+  if (!deveUsarMensagemRelatorio(frame)) {
+    try {
+      const win = frame.contentWindow;
+      if (win && typeof win.executarExportacaoXlsPagina === "function") {
+        const resultado = await win.executarExportacaoXlsPagina();
+        if (resultado?.tipo === "erro") {
+          window.alert(resultado.mensagem || "não foi possível exportar o XLS.");
+        }
+        return;
+      }
+    } catch (e) {
+      /* file:// ou origem cruzada — usar postMessage */
+    }
+  }
+
+  frame.contentWindow?.postMessage({ tipo: "eleicao-exportar-xls" }, "*");
+}
+
 async function executarRelatorioShell(opcao) {
   const frame = document.getElementById("appFrame");
   if (!frame) return;
@@ -486,7 +517,8 @@ function ajustarAlturaFrame() {
       doc.body?.classList.contains("page-mobilizacao-estrutura") ||
       doc.body?.classList.contains("page-mobilizacao") ||
       doc.body?.classList.contains("page-agenda") ||
-      doc.body?.classList.contains("page-producao-midia");
+      doc.body?.classList.contains("page-producao-midia") ||
+      doc.body?.classList.contains("page-material-grafico");
 
     frame.style.flex = "1 1 auto";
     frame.style.minHeight = "0";
@@ -581,6 +613,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnAtualizarShell")?.addEventListener("click", executarAtualizarShell);
   initRelatorioShellMenu();
   document.getElementById("btnRelatorioShell")?.addEventListener("click", () => executarRelatorioShell());
+  document.getElementById("btnExportarXlsShell")?.addEventListener("click", () => executarExportacaoXlsShell());
 
   frame?.addEventListener("load", () => {
     agendarAjusteFrame();
@@ -612,6 +645,12 @@ window.addEventListener("message", (event) => {
   }
   if (event.data && event.data.tipo === "eleicao-resize") {
     agendarAjusteFrame();
+    return;
+  }
+  if (event.data?.tipo === "eleicao-exportar-xls-result") {
+    if (event.data.erro) {
+      window.alert(event.data.erro);
+    }
     return;
   }
   if (event.data?.tipo === "eleicao-relatorio-html") {

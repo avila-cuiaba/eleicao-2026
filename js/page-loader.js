@@ -92,6 +92,9 @@ function notificarAlturaFrame() {
     if (document.body?.classList.contains("page-agenda")) {
       return;
     }
+    if (document.body?.classList.contains("page-material-grafico")) {
+      return;
+    }
   } catch (e) {
     /* ignorar */
   }
@@ -193,6 +196,31 @@ window.addEventListener("message", (event) => {
           },
           "*"
         );
+      } catch (e) {
+        /* ignorar */
+      }
+    })();
+    return;
+  }
+
+  if (event.data?.tipo === "eleicao-exportar-xls") {
+    (async () => {
+      let erro = null;
+      try {
+        if (typeof window.executarExportacaoXlsPagina === "function") {
+          const resultado = await window.executarExportacaoXlsPagina();
+          if (resultado?.tipo === "erro") {
+            erro = resultado.mensagem || "não foi possível exportar o XLS.";
+          }
+        } else {
+          erro = "exportação XLS não disponível nesta página.";
+        }
+      } catch (e) {
+        erro = e?.message || "não foi possível exportar o XLS.";
+      }
+
+      try {
+        window.parent.postMessage({ tipo: "eleicao-exportar-xls-result", erro }, "*");
       } catch (e) {
         /* ignorar */
       }

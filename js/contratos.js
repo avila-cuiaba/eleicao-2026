@@ -1267,7 +1267,11 @@ function criarCampoCpf(campo, dados) {
 }
 
 function criarCampoCelular(campo, dados) {
-  const wrap = criarCampoTexto(campo, dados, ' inputmode="tel" maxlength="15"');
+  const wrap = criarCampoTexto(
+    campo,
+    dados,
+    ' inputmode="tel" maxlength="15" placeholder="(00) 00000-0000"'
+  );
   const input = wrap.querySelector("input");
   if (input) {
     input.value = formatarCelular(input.value);
@@ -1278,6 +1282,9 @@ function criarCampoCelular(campo, dados) {
       const depois = input.value.length;
       const novaPos = Math.max(0, (pos || 0) + (depois - antes));
       input.setSelectionRange(novaPos, novaPos);
+    });
+    input.addEventListener("blur", () => {
+      input.value = formatarCelular(input.value);
     });
   }
   return wrap;
@@ -1363,6 +1370,9 @@ function classeRowFormularioContratos(chaveGrupo) {
   }
   if (chaveGrupo === "pix-contrato-quem") {
     return "row g-2 mb-2 contratos-row-pix-contrato-quem";
+  }
+  if (chaveGrupo === "carga-horaria") {
+    return "row g-2 mb-2 contratos-row-carga-data";
   }
   return "row g-2 mb-2";
 }
@@ -2076,13 +2086,36 @@ function htmlCelulaValorContrato(item) {
 
 function htmlMobileStackCabecalho() {
   const T = TabelaOrdenacao;
+  const rotulo =
+    (cfg.ROTULOS && cfg.ROTULOS.CONTRATADO) || rotuloTabela("NOME");
   return (
-    '<div class="contratos-th-stack-head">' +
-    `<span>${T.htmlCabecalhoOrdenavel(rotuloTabela("NOME"), "nome")}</span>` +
-    `<span>${T.htmlCabecalhoOrdenavel(rotuloTabela("MUNICIPIO"), "municipio")}</span>` +
-    `<span>${T.htmlCabecalhoOrdenavel(rotuloTabela("VINCULO"), "lideranca")}</span>` +
-    `<span>${escapeHtml(rotuloTabela("CPF"))}</span>` +
-    `<span>${escapeHtml(rotuloTabela("VALOR_CONTRATO"))}</span>` +
+    '<div class="contratos-th-stack-head contratos-th-stack-head--ordenacao contratos-th-stack-head--unico">' +
+    `<div class="contratos-th-stack-ordenavel-linha">${T.htmlCabecalhoOrdenavel(rotulo, "nome")}</div>` +
+    "</div>"
+  );
+}
+
+function htmlMobileStackIdentLinhaContratos(item) {
+  const nome = exibirValor(valorItem(item, colunaNome));
+  const badge = htmlBadgeContratoQuem(item);
+  return (
+    '<span class="contratos-stack-nome contratos-stack-nome--com-assinado contratos-stack-ident">' +
+    '<span class="contratos-stack-ident-icone contratos-stack-ident-icone--assinado">' +
+    htmlIconeAssinado(item) +
+    "</span>" +
+    `<span class="contratos-stack-ident-nome">${escapeHtml(nome)}</span>` +
+    (badge ? `<span class="contratos-stack-ident-extra">${badge}</span>` : "") +
+    "</span>"
+  );
+}
+
+function htmlMobileStackCorpo(item) {
+  return (
+    '<div class="contratos-celula-stack">' +
+    htmlMobileStackIdentLinhaContratos(item) +
+    `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
+    `<span class="contratos-stack-cpf">${exibirValor(valorItem(item, colunaCpf))}</span>` +
+    htmlValorContratoMobileStack(item) +
     "</div>"
   );
 }
@@ -2788,6 +2821,148 @@ function baixarArquivoTexto(conteudo, nomeArquivo) {
   URL.revokeObjectURL(url);
 }
 
+function escapeXmlXls(valor) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function valorColunaXls(item, col, tipo) {
+  if (!col) return "";
+  const raw = valorItem(item, col);
+  if (tipo === "cpf") return formatarCpf(raw);
+  if (tipo === "celular") return formatarCelular(raw);
+  if (tipo === "data") return formatarDataTxtRelatorio(raw);
+  if (tipo === "moeda") return valorMoedaGravar(raw) || textoCampoTxtRelatorio(raw);
+  if (tipo === "checkbox") return valorCheckboxSim(raw) ? "S" : "N";
+  return textoCampoTxtRelatorio(raw);
+}
+
+function definicoesColunasExportacaoXls() {
+  const idx = cfg.INDICES || {};
+  return [
+    { header: "nome-completo", col: colunaNome },
+    { header: "nome-mae", col: colunaNomeMae },
+    {
+      header: "nome-pai",
+      col: PlanilhaApi.acharColuna(colunas, cfg.COLUNA_NOME_PAI, idx.NOME_PAI),
+    },
+    { header: "municipio", col: colunaMunicipio },
+    { header: "data-nascimento", col: colunaDataNascimento, tipo: "data" },
+    { header: "CPF", col: colunaCpf, tipo: "cpf" },
+    { header: "celular", col: colunaCelular, tipo: "celular" },
+    {
+      header: "titulo-eleitor",
+      col: PlanilhaApi.acharColuna(
+        colunas,
+        ["titulo-eleitor", "titulo eleitor", "título de eleitor", "titulo de eleitor"],
+        idx.TITULO_ELEITOR
+      ),
+    },
+    {
+      header: "recebe-bolsa-familia",
+      col: PlanilhaApi.acharColuna(
+        colunas,
+        [
+          "recebe-bolsa-familia",
+          "recebe-bolsa-família",
+          "recebe bolsa familia",
+          "recebe bolsa família",
+          "bolsa familia",
+          "bolsa família",
+          "bolsa-familia",
+        ],
+        idx.BOLSA_FAMILIA
+      ),
+      tipo: "checkbox",
+    },
+    { header: "vinculado-coordenador", col: colunaVinculo },
+    { header: "lancamento-sistema", col: colunaLancarSistema, tipo: "checkbox" },
+    {
+      header: "chave-pix",
+      col: PlanilhaApi.acharColuna(colunas, ["chave-pix", "chave pix", "pix"], idx.CHAVE_PIX),
+    },
+    { header: "tipo-contrato", col: colunaTipoContrato },
+    { header: "valor-contrato", col: colunaValorContrato, tipo: "moeda" },
+    {
+      header: "data-contrato",
+      col: PlanilhaApi.acharColuna(colunas, cfg.COLUNA_DATA_CONTRATO, idx.DATA_CONTRATO),
+      tipo: "data",
+    },
+    {
+      header: "carga-horaria",
+      col: PlanilhaApi.acharColuna(colunas, cfg.COLUNA_CARGA_HORARIA, idx.CARGA_HORARIA),
+    },
+  ];
+}
+
+function montarLinhasXlsDadosCadastro() {
+  const items = linhasFiltradas();
+  if (!items.length) return null;
+
+  const cols = definicoesColunasExportacaoXls();
+  const header = cols.map((c) => c.header);
+  const linhasXls = items.map((item) =>
+    cols.map((c) => valorColunaXls(item, c.col, c.tipo))
+  );
+
+  return { header, linhas: linhasXls };
+}
+
+function montarXmlXlsContratos(dados) {
+  const cell = (valor) =>
+    `<Cell><Data ss:Type="String">${escapeXmlXls(valor)}</Data></Cell>`;
+  const row = (valores) => `<Row>${valores.map(cell).join("")}</Row>`;
+
+  return (
+    "<?xml version=\"1.0\"?>" +
+    "<?mso-application progid=\"Excel.Sheet\"?>" +
+    "<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" " +
+    "xmlns:o=\"urn:schemas-microsoft-com:office:office\" " +
+    "xmlns:x=\"urn:schemas-microsoft-com:office:excel\" " +
+    "xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">" +
+    "<Worksheet ss:Name=\"contratos\">" +
+    "<Table>" +
+    row(dados.header) +
+    dados.linhas.map(row).join("") +
+    "</Table>" +
+    "</Worksheet>" +
+    "</Workbook>"
+  );
+}
+
+function nomeArquivoXlsRelatorioContratos() {
+  const hoje = new Date();
+  const y = hoje.getFullYear();
+  const m = String(hoje.getMonth() + 1).padStart(2, "0");
+  const d = String(hoje.getDate()).padStart(2, "0");
+  const prefix = paginaContratosJuliana() ? "contratos-juliana" : "contratos";
+  return `${prefix}-${y}${m}${d}.xls`;
+}
+
+function baixarArquivoXls(xml, nomeArquivo) {
+  const blob = new Blob([xml], { type: "application/vnd.ms-excel;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nomeArquivo;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function executarExportacaoXlsPagina() {
+  const dados = montarLinhasXlsDadosCadastro();
+  if (!dados) {
+    return { tipo: "erro", mensagem: "nenhum dado para exportar." };
+  }
+  baixarArquivoXls(montarXmlXlsContratos(dados), nomeArquivoXlsRelatorioContratos());
+  AppToast.show("arquivo XLS gerado.", "sucesso");
+  return { tipo: "xls" };
+}
+
 async function executarRelatorioPagina(opcoes) {
   const opcao = opcoes?.opcao;
 
@@ -2810,6 +2985,7 @@ async function executarRelatorioPagina(opcoes) {
 
 window.montarHtmlRelatorioPagina = montarHtmlRelatorioGeral;
 window.executarRelatorioPagina = executarRelatorioPagina;
+window.executarExportacaoXlsPagina = executarExportacaoXlsPagina;
 
 window.gerarRelatorioPagina = async function gerarRelatorioPagina(opcoes) {
   if (opcoes && opcoes.apenasHtml) {
