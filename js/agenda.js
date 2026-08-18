@@ -42,6 +42,10 @@ let calendarioCarregando = false;
 let filtroOrigens = new Set(Object.keys(ORIGENS));
 let periodoLista = "diario";
 
+function agendaPodeEditar() {
+  return typeof AUTH !== "undefined" && AUTH.podeEditarAgenda && AUTH.podeEditarAgenda();
+}
+
 const PERIODOS_LISTA = {
   diario: "diário",
   "4dias": "4 dias",
@@ -615,9 +619,10 @@ function htmlHorarioCompromisso(ev) {
 function htmlItemCompromissoNoGrupo(ev, dataIso) {
   const origem = normalizarOrigem(ev.origem);
   const rotuloOrigem = ev.origemTitulo || ORIGENS[origem]?.rotulo || origem;
+  const podeEditar = agendaPodeEditar();
 
   return (
-    `<button type="button" class="lista-evento-item lista-evento-grupo-item lista-evento-${origem} lista-evento-acao" data-id="${escapar(ev.id)}" data-data="${escapar(dataIso)}">` +
+    `<button type="button" class="lista-evento-item lista-evento-grupo-item lista-evento-${origem} lista-evento-acao" data-id="${escapar(ev.id)}" data-data="${escapar(dataIso)}" ${podeEditar ? "" : "disabled"}>` +
     `<div class="lista-evento-corpo text-start">` +
   `<div class="lista-evento-meta-linha">` +
   `<span class="lista-evento-meta-esquerda">` +
@@ -657,12 +662,13 @@ function htmlItemTarefa(ev) {
   const origem = normalizarOrigem(ev.origem);
   const rotuloOrigem = ev.origemTitulo || ORIGENS[origem]?.rotulo || origem;
   const concluida = !!ev.concluida;
+  const podeEditar = agendaPodeEditar();
   return `
     <div class="lista-evento-item lista-evento-${origem} lista-evento-tarefa${concluida ? " lista-evento-tarefa--concluida" : ""}">
       <label class="agenda-tarefa-check-wrap mb-0">
-        <input type="checkbox" class="form-check-input agenda-tarefa-check" data-id="${escapar(ev.id)}" data-origem="${escapar(origem)}" ${concluida ? "checked" : ""} aria-label="marcar tarefa como concluída" />
+        <input type="checkbox" class="form-check-input agenda-tarefa-check" data-id="${escapar(ev.id)}" data-origem="${escapar(origem)}" ${concluida ? "checked" : ""} ${podeEditar ? "" : "disabled"} aria-label="marcar tarefa como concluída" />
       </label>
-      <button type="button" class="lista-evento-corpo lista-evento-acao text-start flex-grow-1 border-0 bg-transparent p-0" data-id="${escapar(ev.id)}">
+      <button type="button" class="lista-evento-corpo lista-evento-acao text-start flex-grow-1 border-0 bg-transparent p-0" data-id="${escapar(ev.id)}" ${podeEditar ? "" : "disabled"}>
         <div class="d-flex align-items-center gap-2 flex-wrap">
           <strong class="${concluida ? "text-decoration-line-through text-secondary" : ""}">${escapar(ev.titulo)}</strong>
           <span class="badge-origem badge-origem-${origem}">${escapar(rotuloOrigem)}</span>
@@ -674,7 +680,7 @@ function htmlItemTarefa(ev) {
 }
 
 function vincularAcoesLista(container) {
-  if (!container) return;
+  if (!container || !agendaPodeEditar()) return;
   container.querySelectorAll(".lista-evento-acao").forEach((btn) => {
     btn.addEventListener("click", () => {
       const ev = todosEventos.find((e) => e.id === btn.dataset.id);
@@ -684,6 +690,7 @@ function vincularAcoesLista(container) {
 }
 
 function vincularChecksTarefas() {
+  if (!agendaPodeEditar()) return;
   ui.listaTarefas.querySelectorAll(".agenda-tarefa-check").forEach((chk) => {
     chk.addEventListener("change", async () => {
       const id = chk.dataset.id;
@@ -940,12 +947,14 @@ function abrirModalItem(tipo, data, ev) {
   modalEvento.show();
 }
 
-function abrirNovoEvento(data) {
-  abrirModalItem("evento", data, null);
+function abrirEditarItem(ev) {
+  if (!agendaPodeEditar()) return;
+  abrirModalItem(ehTarefa(ev) ? "tarefa" : "evento", null, ev);
 }
 
-function abrirEditarItem(ev) {
-  abrirModalItem(ehTarefa(ev) ? "tarefa" : "evento", null, ev);
+function abrirNovoEvento(data) {
+  if (!agendaPodeEditar()) return;
+  abrirModalItem("evento", data, null);
 }
 
 async function carregarEventos() {
@@ -1253,6 +1262,11 @@ function initAgenda() {
   ui.btnNova.addEventListener("click", () => abrirNovoEvento());
   ui.btnNovaDesktop?.addEventListener("click", () => abrirNovoEvento());
   ui.btnRelatorioTarefas?.addEventListener("click", abrirRelatorioTarefas);
+
+  if (!agendaPodeEditar()) {
+    ui.btnNova?.classList.add("d-none");
+    ui.btnNovaDesktop?.classList.add("d-none");
+  }
 
   ui.btnToggleCalendario?.addEventListener("click", () => toggleCalendarioMobile());
   ui.btnFecharCalendario?.addEventListener("click", () => fecharCalendarioMobile());

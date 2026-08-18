@@ -59,8 +59,9 @@ function podeEditarQtd() {
 }
 
 function podeEditarEntregas() {
-  // qualquer usuário autenticado com acesso à página
-  return typeof AUTH !== "undefined" && !!AUTH.getChave();
+  if (typeof AUTH === "undefined" || !AUTH.getChave()) return false;
+  if (AUTH.ehCoordenador && AUTH.ehCoordenador()) return false;
+  return true;
 }
 
 const ICONE_LUPA =

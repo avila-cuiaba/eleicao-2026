@@ -34,6 +34,16 @@ const AUTH = {
       paginaInicial: "orcamento-juliana",
       paginas: ["orcamento-juliana", "pessoal-contratos-juliana"],
     },
+    coordenador: {
+      paginaInicial: "dashboard",
+      paginas: [
+        "micro-regiao",
+        "dashboard",
+        "logistica-material-grafico",
+        "agenda",
+        "entregas",
+      ],
+    },
     campanha: {
       paginaInicial: "inicio",
       paginasExcluidas: [
@@ -167,8 +177,23 @@ const AUTH = {
     return this.getPerfil() === "master";
   },
 
+  ehCoordenador() {
+    return this.getPerfil() === "coordenador";
+  },
+
+  ehSomenteLeituraPlanilhas() {
+    const p = this.getPerfil();
+    return p === "campanha" || p === "coordenador";
+  },
+
+  podeEditarAgenda() {
+    const p = this.getPerfil();
+    if (p === "coordenador") return false;
+    return p === "master" || p === "campanha" || p === "faustinho";
+  },
+
   ehSomenteLeitura() {
-    return this.getPerfil() === "campanha";
+    return this.ehSomenteLeituraPlanilhas();
   },
 
   paginaInicial() {

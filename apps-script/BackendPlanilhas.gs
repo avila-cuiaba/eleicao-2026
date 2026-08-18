@@ -10,6 +10,7 @@
  *   SENHA_ACESSO_SORAYA, SENHA_ACESSO_ELLEN, SENHA_ACESSO_DANI, SENHA_ACESSO_SARA  → perfil contratos (só página contratos)
  *   SENHA_ACESSO_REGINALDO  → perfil reginaldo (contratos + pagamentos)
  *   SENHA_ACESSO_EUGENIO  → campanha (leitura nas planilhas; agenda editável)
+ *   SENHA_ACESSO_COORDENADOR  → coordenador (somente leitura: micro-região, dashboard, material gráfico, agenda, entregas)
  *   SENHA_ACESSO_MATERIAL  → perfil material (só material gráfico)
  *   SENHA_ACESSO_COMBUSTIVEL  → perfil combustivel (só abastecimentos / diário de bordo)
  *   SENHA_ACESSO_FAUSTINHO  → perfil faustinho (agenda + entregas, com relatório)
@@ -218,6 +219,7 @@ var CADASTRO_ACESSO = [
   { prop: "SENHA_ACESSO_SARA", perfil: "contratos", usuario: "Sara" },
   { prop: "SENHA_ACESSO_REGINALDO", perfil: "reginaldo", usuario: "Reginaldo" },
   { prop: "SENHA_ACESSO_EUGENIO", perfil: "campanha", usuario: "Eugenio" },
+  { prop: "SENHA_ACESSO_COORDENADOR", perfil: "coordenador", usuario: "Coordenador" },
   { prop: "SENHA_ACESSO_MATERIAL", perfil: "material", usuario: "Lizonete" },
   { prop: "SENHA_ACESSO_COMBUSTIVEL", perfil: "combustivel", usuario: "Combustível" },
   { prop: "SENHA_ACESSO_FAUSTINHO", perfil: "faustinho", usuario: "Faustinho" },
@@ -285,16 +287,31 @@ function planilhaPermitida(perfil, planilha) {
   if (perfil === "faustinho") {
     return chave === "entregas" || chave === "municipios" || chave === "micro-municipios";
   }
+  if (perfil === "coordenador") {
+    return (
+      chave === "mapa-voto" ||
+      chave === "municipios" ||
+      chave === "micro-municipios" ||
+      chave === "votacao" ||
+      chave === "material-grafico" ||
+      chave === "material-grafico-entregas" ||
+      chave === "entregas"
+    );
+  }
   if (perfil === "campanha") {
     return !PLANILHAS_SOMENTE_CONTRATOS[chave];
   }
   return false;
 }
 
-/** Perfil campanha: consulta planilhas (GET), sem gravar (POST). Agenda segue em doPostAgenda. */
+function perfilSomenteLeituraPlanilhas(perfil) {
+  return perfil === "campanha" || perfil === "coordenador";
+}
+
+/** Perfis campanha/coordenador: consulta planilhas (GET), sem gravar (POST). */
 function gravacaoPlanilhaPermitida(perfil, corpo) {
   if (!perfil || perfil === "master") return true;
-  if (perfil !== "campanha") return true;
+  if (!perfilSomenteLeituraPlanilhas(perfil)) return true;
   const acao = String(corpo.acao || "").trim().toLowerCase();
   if (!acao) return false;
   const somenteLeitura = [
@@ -302,6 +319,13 @@ function gravacaoPlanilhaPermitida(perfil, corpo) {
     "listar-arquivos-contrato",
   ];
   return somenteLeitura.indexOf(acao) >= 0;
+}
+
+/** Coordenador: agenda somente leitura; campanha e faustinho podem gravar. */
+function gravacaoAgendaPermitida(perfil) {
+  if (!perfil || perfil === "master") return true;
+  if (perfil === "coordenador") return false;
+  return perfil === "campanha" || perfil === "faustinho";
 }
 
 function recursoPermitido(perfil, recurso, planilha) {
@@ -317,6 +341,13 @@ function recursoPermitido(perfil, recurso, planilha) {
     if (recurso === "agenda" || recurso === "planilhas-cadastro") {
       return perfil === "faustinho" && recurso === "agenda";
     }
+    if (recurso === "planilha" || !recurso) {
+      return planilhaPermitida(perfil, planilha || PLANILHA_PADRAO);
+    }
+    return false;
+  }
+  if (perfil === "coordenador") {
+    if (recurso === "agenda") return true;
     if (recurso === "planilha" || !recurso) {
       return planilhaPermitida(perfil, planilha || PLANILHA_PADRAO);
     }
@@ -383,7 +414,10 @@ function doPost(e) {
       return respostaNaoAutorizado();
     }
 
-    if (recurso === "agenda") return doPostAgenda(corpo);
+    if (recurso === "agenda") {
+      if (!gravacaoAgendaPermitida(auth.perfil)) return respostaNaoAutorizado();
+      return doPostAgenda(corpo);
+    }
     if (recurso === "planilha" && !gravacaoPlanilhaPermitida(auth.perfil, corpo)) {
       return respostaNaoAutorizado();
     }

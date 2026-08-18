@@ -351,9 +351,11 @@ function htmlPopoverDashboard(r) {
 }
 
 function celulaValorComEdicao(linha, valor) {
+  const editar =
+    typeof AUTH !== "undefined" && AUTH.ehSomenteLeituraPlanilhas && !AUTH.ehSomenteLeituraPlanilhas();
   return (
     '<span class="dashboard-valor-celula-wrap">' +
-    MasterCrud.acoesLinha(linha, { somenteEditar: true }) +
+    (editar ? MasterCrud.acoesLinha(linha, { somenteEditar: true }) : "") +
     '<span class="dashboard-valor-celula-num">' +
     fmt.format(valor) +
     "</span></span>"
