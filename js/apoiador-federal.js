@@ -33,9 +33,13 @@ const COLGROUP_AFEDERAL_DESKTOP =
   "<col class=\"apoiadores-col-orc-total\" />" +
   "<col class=\"apoiadores-col-par-total\" />";
 
+const COLS_TABELA_MOBILE = 4;
+
 const COLGROUP_AFEDERAL_MOBILE =
   "<col class=\"apoiadores-col-ident\" />" +
-  "<col class=\"apoiadores-col-lider\" />";
+  "<col class=\"apoiadores-col-lider\" />" +
+  "<col class=\"apoiadores-col-orc-total\" />" +
+  "<col class=\"apoiadores-col-par-total\" />";
 
 let afederalLayoutMobile = false;
 let afederalResizeTimer = null;
@@ -484,18 +488,6 @@ function enriquecerLinhasFinanceiras(itens) {
   });
 }
 
-function badgeOrcamentoHtml(valor) {
-  const n = parseNumero(valor);
-  if (n <= 0) return "";
-  return `<span class="apoiadores-fin-badge afederal-badge-orcamento">${fmtMoeda.format(n)}</span>`;
-}
-
-function badgeParceiroHtml(valor) {
-  const n = parseNumero(valor);
-  if (n <= 0) return "";
-  return `<span class="apoiadores-fin-badge">${fmtMoeda.format(n)}</span>`;
-}
-
 function htmlIdentMetaAfederal(html) {
   if (!html) return "";
   return `<span class="apoiadores-ident-meta">${html}</span>`;
@@ -704,11 +696,11 @@ function largurasColunasAfederal() {
   const mobile = window.matchMedia("(max-width: 1199.98px)").matches;
   if (mobile) {
     return {
-      "apoiadores-col-ident": "58%",
+      "apoiadores-col-ident": "40%",
       "apoiadores-col-municipio": "0",
-      "apoiadores-col-lider": "42%",
-      "apoiadores-col-orc-total": "0",
-      "apoiadores-col-par-total": "0",
+      "apoiadores-col-lider": "22%",
+      "apoiadores-col-orc-total": "20%",
+      "apoiadores-col-par-total": "18%",
     };
   }
   return {
@@ -722,6 +714,10 @@ function largurasColunasAfederal() {
 
 function mobileAfederalAtivo() {
   return window.matchMedia("(max-width: 1199.98px)").matches;
+}
+
+function colspanTabelaAfederal() {
+  return mobileAfederalAtivo() ? COLS_TABELA_MOBILE : COLS_TABELA;
 }
 
 function aplicarEstruturaColunasAfederal(headTable, bodyTable) {
@@ -739,11 +735,7 @@ function aplicarEstruturaColunasAfederal(headTable, bodyTable) {
 
   if (headTable) {
     headTable.querySelectorAll("thead th").forEach((th) => {
-      const ocultar =
-        mobile &&
-        (th.classList.contains("apoiadores-col-municipio") ||
-          th.classList.contains("apoiadores-col-orc-total") ||
-          th.classList.contains("apoiadores-col-par-total"));
+      const ocultar = mobile && th.classList.contains("apoiadores-col-municipio");
       th.hidden = ocultar;
     });
   }
@@ -753,20 +745,16 @@ function aplicarLargurasColunasAfederalMobile(table, larguraTabela) {
   const largura = Math.max(larguraTabela || 0, 0);
   if (!largura || !table) return;
 
-  const cols = table.querySelectorAll("colgroup col");
-  const liderPx = Math.max(Math.round(largura * 0.46), 132);
-  const identPx = Math.max(largura - liderPx, 0);
+  const parPx = Math.max(Math.round(largura * 0.18), 60);
+  const orcPx = Math.max(Math.round(largura * 0.2), 68);
+  const identPx = Math.max(Math.round(largura * 0.4), 108);
+  const federalPx = Math.max(largura - identPx - orcPx - parPx, 0);
 
-  if (cols.length === 2) {
-    cols[0].style.width = identPx + "px";
-    cols[1].style.width = liderPx + "px";
-    return;
-  }
-
-  cols.forEach((col) => {
-    const cls = Array.from(col.classList).find((c) => c.startsWith("apoiadores-col-"));
-    if (cls === "apoiadores-col-ident") col.style.width = identPx + "px";
-    else if (cls === "apoiadores-col-lider") col.style.width = liderPx + "px";
+  table.querySelectorAll("colgroup col").forEach((col) => {
+    if (col.classList.contains("apoiadores-col-ident")) col.style.width = identPx + "px";
+    else if (col.classList.contains("apoiadores-col-lider")) col.style.width = federalPx + "px";
+    else if (col.classList.contains("apoiadores-col-orc-total")) col.style.width = orcPx + "px";
+    else if (col.classList.contains("apoiadores-col-par-total")) col.style.width = parPx + "px";
     else col.style.width = "0px";
   });
 }
@@ -830,19 +818,19 @@ function renderizarLinha(r) {
   const municipioHtml = escapeHtml(r.municipio);
   const liderancaHtml = exibirTexto(r.lideranca);
   const federalHtml = exibirTexto(r.federal);
-  const acoesMaster = MasterCrud.acoesLinha(r._linha);
+  const acoesEditar = MasterCrud.acoesLinha(r._linha, { somenteEditar: true });
   const municipioSub = r.municipio
     ? `<span class="apoiadores-sub-municipio">${municipioHtml}</span>`
     : "";
-  const badgeOrc = badgeOrcamentoHtml(r.orcamentoTotal);
-  const badgePar = badgeParceiroHtml(r.parceiroTotal);
-  const metaOrcMobile = htmlIdentMetaAfederal(badgeOrc);
-  const metaParMobile = htmlIdentMetaAfederal(badgePar);
+  const orcHtml = exibirMoeda(r.orcamentoTotal);
+  const parHtml = exibirMoeda(r.parceiroTotal);
+  const metaOrcMobile = htmlIdentMetaAfederal(orcHtml);
+  const metaParMobile = htmlIdentMetaAfederal(parHtml);
   const nomeLiderancaMobile = liderancaHtml || "—";
 
   if (mobileAfederalAtivo()) {
-    const municipioLinha = r.municipio
-      ? `<div class="afederal-mobile-linha-sub afederal-mobile-grid-mun">
+    const municipioBloco = r.municipio
+      ? `<div class="afederal-mobile-mun">
           <span class="dashboard-municipio-celula">
             <span class="dashboard-regiao-marcador dashboard-regiao-cor--${corIdx}"${tituloRegiao} aria-hidden="true"></span>
             <span class="dashboard-municipio-texto">
@@ -853,18 +841,20 @@ function renderizarLinha(r) {
       : "";
 
     return `<tr>
-      <td class="apoiadores-col-ident">
-        <div class="afederal-mobile-col afederal-mobile-grid afederal-mobile-grid-ident">
+      <td class="apoiadores-col-ident afederal-mobile-celula">
+        <div class="afederal-mobile-ident-stack">
           <span class="afederal-mobile-nome">${nomeLiderancaMobile}</span>
-          <span class="afederal-mobile-linha-fim">${badgeOrc}${acoesMaster}</span>
-          ${municipioLinha}
+          ${municipioBloco}
         </div>
       </td>
-      <td class="apoiadores-col-lider afederal-mobile-stack">
-        <div class="afederal-mobile-col afederal-mobile-grid afederal-mobile-grid-federal">
-          <span class="afederal-mobile-nome">${federalHtml || "—"}</span>
-          <span class="afederal-mobile-linha-fim">${badgePar}</span>
-        </div>
+      <td class="apoiadores-col-lider afederal-mobile-celula-federal apoiadores-celula-texto">
+        <span class="afederal-mobile-federal-celula"><span class="afederal-mobile-nome afederal-mobile-nome--federal">${federalHtml || "—"}</span>${acoesEditar}</span>
+      </td>
+      <td class="text-end apoiadores-col-orc-total afederal-mobile-celula-orc apoiadores-celula-num">
+        ${orcHtml || '<span class="afederal-mobile-vazio">—</span>'}
+      </td>
+      <td class="text-end apoiadores-col-par-total afederal-mobile-celula-par apoiadores-celula-num">
+        ${parHtml || '<span class="afederal-mobile-vazio">—</span>'}
       </td>
     </tr>`;
   }
@@ -872,7 +862,7 @@ function renderizarLinha(r) {
   return `<tr>
     <td class="apoiadores-col-ident">
       <span class="apoiadores-celula-desktop apoiadores-celula-texto">
-        <span class="apoiadores-celula-texto-wrap">${liderancaHtml}${acoesMaster}</span>
+        <span class="apoiadores-celula-texto-wrap">${liderancaHtml}</span>
       </span>
       <span class="apoiadores-celula-mobile">
         <span class="dashboard-municipio-celula">
@@ -884,7 +874,6 @@ function renderizarLinha(r) {
                 ${municipioSub}
                 ${metaOrcMobile}
               </span>
-              ${acoesMaster}
             </span>
           </span>
         </span>
@@ -899,7 +888,7 @@ function renderizarLinha(r) {
       </span>
     </td>
     <td class="apoiadores-col-lider apoiadores-celula-texto">
-      <span class="apoiadores-celula-desktop">${federalHtml}</span>
+      <span class="apoiadores-celula-desktop">${federalHtml}${acoesEditar}</span>
       <span class="apoiadores-celula-mobile">
         <span class="apoiadores-ident-stack apoiadores-ident-stack--mobile afederal-mobile-federal">
           <span class="apoiadores-ident-nome">${federalHtml || "—"}</span>
@@ -965,21 +954,21 @@ function renderizarTabela() {
   if (!linhas.length) {
     limparKpis();
     el.corpo.innerHTML =
-      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">nenhum registro na planilha.</td></tr>`;
+      `<tr><td colspan="${colspanTabelaAfederal()}" class="text-center text-secondary py-4">nenhum registro na planilha.</td></tr>`;
     return;
   }
 
   if (!selecionadas.length) {
     zerarKpis();
     el.corpo.innerHTML =
-      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">selecione ao menos uma micro-região</td></tr>`;
+      `<tr><td colspan="${colspanTabelaAfederal()}" class="text-center text-secondary py-4">selecione ao menos uma micro-região</td></tr>`;
     return;
   }
 
   if (!filtradas.length) {
     zerarKpis();
     el.corpo.innerHTML =
-      `<tr><td colspan="${COLS_TABELA}" class="text-center text-secondary py-4">nenhum registro para os filtros selecionados.</td></tr>`;
+      `<tr><td colspan="${colspanTabelaAfederal()}" class="text-center text-secondary py-4">nenhum registro para os filtros selecionados.</td></tr>`;
     return;
   }
 
@@ -1154,6 +1143,7 @@ function init() {
     });
   });
   afederalWasMobile = mobileAfederalAtivo();
+  initPageSmTabs(alinharColunasTabela);
   window.addEventListener("resize", aoResizeAfederal);
   PageLoader.init("pageLoader");
   alinharColunasTabela();

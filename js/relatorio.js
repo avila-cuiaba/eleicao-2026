@@ -460,6 +460,15 @@
       adicionarTabela(card.querySelector("table"), titulo);
     });
 
+    doc.querySelectorAll(".crud-tabela-card").forEach((card) => {
+      if (!this.elementoParaRelatorio(card)) return;
+      if (card.closest(".dashboard-tabela-card")) return;
+      const mesclada = this.mesclarTabelaDashboard(card);
+      if (!mesclada) return;
+      marcarTabelas(card);
+      blocos.push({ titulo: tituloCard(card), html: this.htmlTabelaClonada(mesclada) });
+    });
+
     [
       ".registros-tabela-card table",
       "#tabelaMicroRegiao",

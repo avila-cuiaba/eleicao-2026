@@ -934,6 +934,138 @@ body.page-apoiador-federal .afederal-badge-orcamento {
   box-shadow: 0 1px 4px rgba(185, 28, 28, 0.08);
 }
 
+body.page-apoiador-federal .afederal-mobile-ident-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  width: 100%;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-mobile-orc-linha {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-mobile-linha-ident,
+body.page-apoiador-federal .afederal-mobile-th-linha-ident {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-mobile-ident-texto {
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-mobile-mun {
+  margin-top: 0.08rem;
+  font-size: 0.62rem;
+  line-height: 1.2;
+  color: #64748b;
+}
+
+body.page-apoiador-federal .afederal-mobile-mun .dashboard-municipio-celula {
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-mobile-valor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  max-width: 46%;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-mobile-valor--par {
+  justify-content: flex-start;
+  max-width: 100%;
+}
+
+body.page-apoiador-federal .afederal-mobile-valor .apoiadores-fin-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.page-apoiador-federal .afederal-mobile-nome {
+  min-width: 0;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+body.page-apoiador-federal .afederal-mobile-federal-celula {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.page-apoiador-federal .afederal-mobile-federal-celula .afederal-mobile-nome {
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-mobile-nome--federal {
+  font-size: 0.8rem;
+}
+
+body.page-apoiador-federal .afederal-mobile-vazio {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-ident {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.35rem;
+  width: 100%;
+  min-width: 0;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-ident .dashboard-th-principal,
+body.page-apoiador-federal .afederal-th-mobile-ident .dashboard-th-sub {
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-ident .dashboard-th-principal {
+  font-size: 0.58rem;
+  text-transform: lowercase;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-ident .afederal-th-orc,
+body.page-apoiador-federal .afederal-th-mobile-ident .afederal-th-mun {
+  font-size: 0.55rem;
+  text-transform: lowercase;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-ident .afederal-th-mun {
+  color: #475569;
+}
+
+body.page-apoiador-federal .afederal-th-mobile-par {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: lowercase;
+  line-height: 1.15;
+}
+
 body.page-apoiador-federal .afederal-mobile-col {
   width: 100%;
   min-width: 0;
@@ -981,15 +1113,6 @@ body.page-apoiador-federal .afederal-mobile-linha-principal {
   gap: 0.35rem;
   width: 100%;
   min-width: 0;
-}
-
-body.page-apoiador-federal .afederal-mobile-nome {
-  min-width: 0;
-  text-align: left;
-  font-weight: 600;
-  font-size: 0.82rem;
-  line-height: 1.25;
-  word-break: break-word;
 }
 
 body.page-apoiador-federal .afederal-mobile-linha-fim {
@@ -1107,10 +1230,39 @@ body.page-apoiador-federal .afederal-th-mobile .afederal-th-mun {
     padding-bottom: 0.35rem;
   }
 
-  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-ident {
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-ident,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.afederal-mobile-celula {
     vertical-align: top;
     padding-top: 0.35rem;
     padding-bottom: 0.35rem;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-lider,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.afederal-mobile-celula-federal,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-orc-total,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.afederal-mobile-celula-orc,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-par-total,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.afederal-mobile-celula-par {
+    vertical-align: middle;
+    min-width: 0;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    overflow: hidden;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-lider,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.afederal-mobile-celula-federal {
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-orc-total,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.afederal-mobile-celula-orc,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-par-total,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.afederal-mobile-celula-par {
+    white-space: nowrap;
   }
 
   body.page-apoiador-federal .apoiadores-tabela.afederal-tabela th.apoiadores-col-ident,
@@ -1192,42 +1344,61 @@ body.page-apoiador-federal .afederal-th-mobile .afederal-th-mun {
     box-shadow: inset 0 0 0 9999px #f8f9fa;
   }
 
-  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-lider {
-    overflow: visible !important;
-    min-width: 0;
-    padding-left: 0.35rem;
-    padding-right: 0.35rem;
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-lider,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-orc-total,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-par-total {
+    vertical-align: middle;
   }
 
-  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-lider .apoiadores-fin-badge {
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile .afederal-mobile-orc-linha .apoiadores-fin-badge,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-orc-total .apoiadores-fin-badge,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile td.apoiadores-col-par-total .apoiadores-fin-badge {
+    flex-shrink: 1;
+    min-width: 0;
     max-width: 100%;
   }
 
-  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile .afederal-mobile-linha-fim .apoiadores-fin-badge {
-    flex-shrink: 0;
-  }
-
-  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-lider[hidden],
-  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-orc-total,
-  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-par-total,
   body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-municipio {
     display: none !important;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-orc-total,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-par-total {
+    display: table-cell !important;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-orc-total .apoiadores-th-desktop,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-par-total .apoiadores-th-desktop {
+    display: none !important;
+  }
+
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-orc-total .afederal-th-mobile-orc,
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela.afederal-layout-mobile th.apoiadores-col-par-total .afederal-th-mobile-par {
+    display: inline !important;
   }
 
   body.page-apoiador-federal .dashboard-tabela-head .afederal-tabela .apoiadores-th-desktop {
     display: none !important;
   }
 
-  body.page-apoiador-federal .afederal-th-mobile {
-    display: grid !important;
-    flex-direction: unset;
-    align-items: start;
-    gap: 0;
+  body.page-apoiador-federal .apoiadores-th-ident-inner .apoiadores-th-mobile.afederal-th-mobile-ident {
+    display: flex !important;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.15rem 0.35rem;
   }
 
-  body.page-apoiador-federal .apoiadores-th-ident-inner .apoiadores-th-mobile.afederal-th-mobile,
-  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela th.apoiadores-col-lider .apoiadores-th-mobile.afederal-th-mobile {
-    display: grid !important;
+  body.page-apoiador-federal .apoiadores-tabela.afederal-tabela th.apoiadores-col-lider .apoiadores-th-mobile.afederal-th-mobile-federal {
+    display: flex !important;
+  }
+
+  body.page-apoiador-federal .afederal-th-mobile-orc {
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: #0f172a;
+    text-transform: lowercase;
+    line-height: 1.15;
   }
 }
 
@@ -5033,6 +5204,10 @@ body.page-orcamento-pessoal-apoiadores .orcamento-lideranca-tabela col.apoiadore
   .apoiadores-tabela.afederal-tabela th.afederal-col-desktop {
     display: none !important;
   }
+
+  .apoiadores-tabela.afederal-tabela th.apoiadores-col-par-total {
+    display: table-cell !important;
+  }
 }
 
 @media (max-width: 575.98px) {
@@ -6879,6 +7054,27 @@ button.lista-evento-acao:focus-visible {
 
   .agenda-modal-dialog .modal-body {
     max-height: calc(100vh - 6.5rem);
+  }
+}
+
+body.page-agenda #modalEvento {
+  z-index: 1070;
+}
+
+body.page-agenda.modal-open .modal-backdrop {
+  z-index: 1065;
+}
+
+@media (max-width: 576px) {
+  body.page-agenda.modal-open .agenda-cal-backdrop,
+  body.page-agenda.modal-open .agenda-cal-backdrop.is-visible {
+    display: none !important;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  body.page-agenda.modal-open .agenda-cal-drawer.is-open {
+    z-index: 1040;
   }
 }
 
@@ -9815,7 +10011,8 @@ body.page-pagamentos-lideranca .dashboard-sm-layout {
   #pagePainelRegistros .apoiadores-tabela-card,
   #pagePainelRegistros .orcamento-geral-tabela-card,
   #pagePainelRegistros .parcerias-tabela-card,
-  #pagePainelRegistros .orcamento-tabela-card {
+  #pagePainelRegistros .orcamento-tabela-card,
+  #pagePainelRegistros .crud-tabela-card {
     flex: 1 1 0%;
     min-height: 0;
     margin-bottom: 0;
@@ -10359,6 +10556,206 @@ body.page-pessoal-pagamentos .crud-busca-campo {
 
 .crud-tabela-card .table {
   font-size: 0.875rem;
+}
+
+html.contratos-page {
+  height: 100%;
+  overflow: hidden;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .page-frame-content {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+@media (min-width: 992px) {
+  body.page-contratos:not(.page-pessoal-pagamentos) .page-frame-content {
+    padding: 24px 32px 0;
+  }
+}
+
+@media (max-width: 991.98px) {
+  body.page-contratos:not(.page-pessoal-pagamentos) .page-frame-content {
+    padding: 16px 16px 0;
+  }
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .crud-tabela-card {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .crud-tabela-card > .card-header {
+  flex-shrink: 0;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .crud-tabela-card > .card-body {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-tabela-panel {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-tabela-panel .dashboard-tabela-head {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-tabela-panel .dashboard-tabela-body-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-tabela-panel .dashboard-tabela-head .contratos-tabela,
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-tabela-panel .dashboard-tabela-body-scroll .contratos-tabela {
+  table-layout: fixed;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-tabela-panel .crud-paginacao,
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-tabela-panel #vazio {
+  flex-shrink: 0;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-paginacao--top {
+  flex-shrink: 0;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-paginacao--top .crud-paginacao-inner {
+  gap: 0.5rem 1rem;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-paginacao--top .crud-paginacao-info {
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-paginacao--top .crud-paginacao-acoes .btn {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  min-width: 2rem;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-paginacao--top .crud-paginacao-indicador {
+  min-width: 7rem;
+  font-size: 0.875rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .contratos-tabela tbody td.contratos-celula-popover {
+  cursor: pointer;
+}
+
+@media (max-width: 1199.98px) {
+  body.page-contratos:not(.page-pessoal-pagamentos) .dashboard-sm-layout > .tab-pane {
+    height: 100%;
+    min-height: 0;
+  }
+
+  body.page-contratos:not(.page-pessoal-pagamentos) #pagePainelRegistros.active {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+@media (min-width: 1200px) {
+  body.page-contratos:not(.page-pessoal-pagamentos) #pagePainelRegistros {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+
+  body.page-contratos:not(.page-pessoal-pagamentos) #pagePainelMarcadores .dashboard-kpis-wrap {
+    margin-bottom: 0.75rem;
+  }
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .dashboard-sm-tabs {
+  flex-shrink: 0;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) .dashboard-sm-layout {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) #pagePainelMarcadores {
+  flex-shrink: 0;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) #pagePainelRegistros {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.page-contratos:not(.page-pessoal-pagamentos) #pagePainelRegistros > .crud-tabela-card {
+  flex: 1 1 0%;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 576px) {
+  body.page-contratos.page-frame-body {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  body.page-contratos.page-frame-body .page-frame-content {
+    flex: 1 1 0%;
+    min-height: 0;
+    height: 100%;
+    padding-bottom: 0;
+  }
+}
+
+@media (min-width: 577px) {
+  body.page-contratos.page-frame-body {
+    height: 100%;
+    overflow: hidden;
+  }
 }
 
 .crud-tabela th,
@@ -12086,6 +12483,73 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
   word-break: break-word;
 }
 
+.contratos-stack-vinculo {
+  display: block;
+  font-size: 0.72rem;
+  color: #64748b;
+  word-break: break-word;
+}
+
+@media (min-width: 992px) {
+  .contratos-th-stack-head--notebook {
+    gap: 0.12rem;
+    align-items: flex-start;
+  }
+
+  .contratos-th-stack-head--notebook .contratos-th-stack-secundario {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: lowercase;
+  }
+
+  .contratos-th-stack-head--notebook .contratos-th-stack-secundario .apoiadores-th-ordenavel {
+    font-size: inherit;
+  }
+
+  .contratos-celula-stack--notebook .contratos-stack-nome {
+    font-weight: 600;
+    color: #1e293b;
+    word-break: break-word;
+  }
+
+  .contratos-celula-stack--notebook .contratos-stack-vinculo {
+    font-size: 0.78rem;
+  }
+
+  .contratos-tabela th.contratos-col-nome,
+  .contratos-tabela td.contratos-col-nome {
+    width: 40%;
+    max-width: 40%;
+    white-space: normal;
+  }
+
+  .contratos-tabela th.contratos-col-assinado,
+  .contratos-tabela td.contratos-col-assinado {
+    width: 7%;
+  }
+
+  .contratos-tabela th.contratos-col-cpf,
+  .contratos-tabela td.contratos-col-cpf {
+    width: 12%;
+  }
+
+  .contratos-tabela th.contratos-col-municipio,
+  .contratos-tabela td.contratos-col-municipio {
+    width: 16%;
+  }
+
+  .contratos-tabela th.contratos-col-valor,
+  .contratos-tabela td.contratos-col-valor {
+    width: 14%;
+  }
+
+  .contratos-tabela th.contratos-col-acoes,
+  .contratos-tabela td.contratos-col-acoes {
+    width: 11%;
+  }
+}
+
 .crud-acoes-icones {
   display: inline-flex;
   align-items: center;
@@ -12131,6 +12595,11 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
   background: rgba(220, 38, 38, 0.08);
 }
 
+.crud-acao-icone--gerar:hover {
+  color: #0f766e;
+  background: rgba(15, 118, 110, 0.08);
+}
+
 .crud-acao-icone--imprimir:hover {
   color: #0f766e;
   background: rgba(15, 118, 110, 0.08);
@@ -12154,6 +12623,24 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
 
   .contratos-tabela .crud-acao-icone--arquivos:hover {
     background: rgba(124, 58, 237, 0.18);
+  }
+
+  .contratos-tabela .crud-acao-icone--gerar {
+    color: #0f766e;
+    background: rgba(15, 118, 110, 0.1);
+  }
+
+  .contratos-tabela .crud-acao-icone--gerar:hover {
+    background: rgba(15, 118, 110, 0.18);
+  }
+
+  .contratos-tabela .crud-acao-icone--lupa {
+    color: #0e7490;
+    background: rgba(8, 145, 178, 0.1);
+  }
+
+  .contratos-tabela .crud-acao-icone--lupa:hover {
+    background: rgba(8, 145, 178, 0.18);
   }
 
   .contratos-tabela .crud-acao-icone--imprimir {
@@ -12226,11 +12713,14 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
 
   .contratos-tabela .contratos-col-stack.contratos-tabela-mobile-col {
     width: auto;
+    min-width: 0;
+    max-width: calc(100% - 7.25rem);
   }
 
   .contratos-tabela .contratos-col-acoes.contratos-tabela-mobile-col {
-    width: 5.85rem;
-    min-width: 5.85rem;
+    width: 7.25rem;
+    min-width: 7.25rem;
+    max-width: 7.25rem;
     padding-left: 0.1rem;
     padding-right: 0.45rem;
   }
@@ -12262,6 +12752,7 @@ body.page-pessoal-pagamentos .pagamentos-saldo-barra-mobile .orcamento-geral-pro
   body.page-contratos .contratos-tabela .contratos-col-stack.contratos-tabela-mobile-col {
     width: auto;
     min-width: 0;
+    max-width: calc(100% - 7.25rem);
   }
 
   body.page-contratos .contratos-th-stack-ordenavel-linha {

@@ -222,7 +222,13 @@
       </div>
     </div>
 
-    <div class="modal fade" id="modalEvento" tabindex="-1" aria-hidden="true">
+    <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
+      <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
+      <span class="visually-hidden">Carregando</span>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalEvento" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-scrollable agenda-modal-dialog">
         <div class="modal-content contratos-modal-content">
           <form id="formEvento">
@@ -336,12 +342,6 @@
         </div>
       </div>
     </div>
-
-    <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
-      <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
-      <span class="visually-hidden">Carregando</span>
-    </div>
-  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../js/config.js"></script>

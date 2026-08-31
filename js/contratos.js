@@ -7,6 +7,11 @@ const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
 const cfgPessoal = CONFIG.PESSOAL;
 const cfgAp = cfgPessoal.APOIADORES;
 
+const fmt = new Intl.NumberFormat("pt-BR");
+const fmtMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+const popoverTabela = typeof PopoverTabela !== "undefined" ? PopoverTabela.criar() : null;
+
 const ICONE_EDITAR =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
   '<path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>' +
@@ -15,10 +20,14 @@ const ICONE_EXCLUIR =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
   '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>' +
   "</svg>";
-const ICONE_IMPRIMIR =
+const ICONE_GERAR_CONTRATO =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
-  '<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>' +
-  '<path d="M6 14h12v8H6z"/>' +
+  '<path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" stroke-linejoin="round"/>' +
+  "</svg>";
+const ICONE_LUPA =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+  '<circle cx="11" cy="11" r="7"/>' +
+  '<path d="M20 20l-3.5-3.5"/>' +
   "</svg>";
 const ICONE_BANCO =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
@@ -63,6 +72,8 @@ let promessaValoresReferenciaContrato = null;
 let linhaParaDestaqueSalvo = null;
 let paginaAtualTabela = 1;
 let arquivosContratoCarregando = false;
+let mapaMunicipioRegiao = new Map();
+let regioes = [];
 
 function tamanhoPaginaTabela() {
   const n = cfg.TAMANHO_PAGINA_TABELA;
@@ -104,10 +115,10 @@ function atualizarBarraPaginacao(totalItens) {
   const fim = Math.min(paginaAtualTabela * tam, totalItens);
 
   if (el.paginacaoInfo) {
-    el.paginacaoInfo.textContent = `exibindo ${inicio}–${fim} de ${totalItens} registros`;
+    el.paginacaoInfo.textContent = `${inicio}–${fim} de ${totalItens}`;
   }
   if (el.paginacaoPaginaAtual) {
-    el.paginacaoPaginaAtual.textContent = `página ${paginaAtualTabela} / ${maxPag}`;
+    el.paginacaoPaginaAtual.textContent = `${paginaAtualTabela} / ${maxPag}`;
   }
 
   const desabilitarAnterior = paginaAtualTabela <= 1;
@@ -263,8 +274,180 @@ function aplicarFiltroContratoQuem(lista) {
   );
 }
 
+function montarMapaMunicipioRegiao(valoresMunicipios) {
+  const mapa = new Map();
+  if (!valoresMunicipios?.length) return mapa;
+
+  const cols = cfgMun.COLUNAS;
+  for (let linha = cfgMun.LINHA_INICIO_DADOS; linha <= valoresMunicipios.length; linha++) {
+    const municipio = String(celula(valoresMunicipios, linha, cols.MUNICIPIO) ?? "").trim();
+    if (!municipio) continue;
+
+    const regiao = String(celula(valoresMunicipios, linha, cols.REGIAO) ?? "").trim();
+    mapa.set(PlanilhaApi.normalizarChave(municipio), {
+      regiao,
+      regiaoNorm: PlanilhaApi.normalizarChave(regiao),
+    });
+  }
+
+  return mapa;
+}
+
+function enriquecerLinhasRegiao() {
+  linhas.forEach((item) => {
+    const municipio = String(valorItem(item, colunaMunicipio) ?? "").trim();
+    const info = municipio
+      ? mapaMunicipioRegiao.get(PlanilhaApi.normalizarChave(municipio))
+      : null;
+    item.regiao = info?.regiao || "";
+    item.regiaoNorm = info?.regiaoNorm || "";
+  });
+}
+
+function ordenarRegioes(a, b) {
+  const ordem = cfgPessoal.ORDEM_REGIOES || [];
+  const indice = (norm) => {
+    const i = ordem.indexOf(norm);
+    return i === -1 ? ordem.length + 1 : i;
+  };
+  const diff = indice(a.norm) - indice(b.norm);
+  if (diff !== 0) return diff;
+  return a.rotulo.localeCompare(b.rotulo, "pt-BR");
+}
+
+function indiceCorRegiao(regiaoNorm) {
+  const ordem = cfgPessoal.ORDEM_REGIOES || [];
+  const i = ordem.indexOf(regiaoNorm);
+  return i === -1 ? 0 : i % 5;
+}
+
+function extrairRegioes(itens) {
+  const mapa = new Map();
+
+  itens.forEach((item) => {
+    if (!item.regiaoNorm) return;
+    if (!mapa.has(item.regiaoNorm)) {
+      mapa.set(item.regiaoNorm, item.regiao);
+    }
+  });
+
+  return Array.from(mapa.entries())
+    .map(([norm, rotulo]) => ({ norm, rotulo }))
+    .sort(ordenarRegioes);
+}
+
+function regioesSelecionadas() {
+  if (!el.filtroRegioes) return [];
+  return Array.from(el.filtroRegioes.querySelectorAll('input[type="checkbox"]:checked')).map(
+    (cb) => cb.value
+  );
+}
+
+function montarFiltros(listaRegioes) {
+  if (!el.filtroRegioes) return;
+
+  regioes = listaRegioes;
+  el.filtroRegioes.innerHTML = "";
+
+  if (!listaRegioes.length) {
+    el.filtroRegioes.innerHTML =
+      '<span class="text-secondary small">Nenhuma micro-região encontrada.</span>';
+    return;
+  }
+
+  listaRegioes.forEach((reg) => {
+    const id = "ctr-regiao-" + reg.norm.replace(/[^a-z0-9]+/g, "-");
+    const label = document.createElement("label");
+    label.className = "dashboard-filtro-item dashboard-filtro-cor--" + indiceCorRegiao(reg.norm);
+    label.innerHTML =
+      `<input type="checkbox" class="visually-hidden" id="${id}" value="${escapeHtml(reg.norm)}" checked>` +
+      `<span class="dashboard-filtro-badge">${escapeHtml(reg.rotulo)}</span>`;
+    el.filtroRegioes.appendChild(label);
+  });
+
+  el.filtroRegioes.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    cb.addEventListener("change", () => {
+      paginaAtualTabela = 1;
+      renderizarTabela();
+    });
+  });
+}
+
+function aplicarFiltroRegiao(lista) {
+  if (!el.filtroRegioes) return lista;
+
+  const selecionadas = regioesSelecionadas();
+  if (!selecionadas.length) return [];
+
+  const todasMarcadas = selecionadas.length === regioes.length;
+  return lista.filter((item) => {
+    if (item.regiaoNorm) {
+      if (!selecionadas.includes(item.regiaoNorm)) return false;
+    } else if (!todasMarcadas) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function somarValorContratos(filtradas) {
+  return filtradas.reduce(
+    (acc, item) => acc + (numeroMoeda(valorItem(item, colunaValorContrato)) || 0),
+    0
+  );
+}
+
+function atualizarKpis(filtradas) {
+  if (!el.kpiContratos) return;
+  el.kpiContratos.textContent = fmt.format(filtradas.length);
+  el.kpiValorTotal.textContent = fmtMoeda.format(somarValorContratos(filtradas));
+  el.kpiAssinados.textContent = fmt.format(filtradas.filter(itemAssinado).length);
+  el.kpiPendentes.textContent = fmt.format(filtradas.filter((item) => !itemAssinado(item)).length);
+}
+
+function limparKpis() {
+  if (!el.kpiContratos) return;
+  const vazio = "—";
+  el.kpiContratos.textContent = vazio;
+  el.kpiValorTotal.textContent = vazio;
+  el.kpiAssinados.textContent = vazio;
+  el.kpiPendentes.textContent = vazio;
+}
+
+function zerarKpis() {
+  if (!el.kpiContratos) return;
+  el.kpiContratos.textContent = fmt.format(0);
+  el.kpiValorTotal.textContent = fmtMoeda.format(0);
+  el.kpiAssinados.textContent = fmt.format(0);
+  el.kpiPendentes.textContent = fmt.format(0);
+}
+
+function atualizarKpisPainel() {
+  if (!el.kpiContratos) return;
+
+  if (!linhas.length) {
+    limparKpis();
+    return;
+  }
+
+  if (el.filtroRegioes && !regioesSelecionadas().length) {
+    zerarKpis();
+    return;
+  }
+
+  const filtradas = linhasFiltradas();
+  if (!filtradas.length) {
+    zerarKpis();
+    return;
+  }
+
+  atualizarKpis(filtradas);
+}
+
 function linhasFiltradas() {
-  return aplicarOrdenacaoContratos(aplicarFiltroContratoQuem(aplicarBusca(linhas.slice())));
+  return aplicarOrdenacaoContratos(
+    aplicarFiltroContratoQuem(aplicarBusca(aplicarFiltroRegiao(linhas.slice())))
+  );
 }
 
 function cpfSomenteDigitos(valor) {
@@ -2025,8 +2208,12 @@ function itemAssinado(item) {
   return valorCheckboxSim(valorItem(item, colunaAssinado));
 }
 
-function itemImprimirContratoDesabilitado(item) {
+function itemGerarContratoDesabilitado(item) {
   return itemAssinado(item);
+}
+
+function itemVisualizarContratoDesabilitado(item) {
+  return !item || item._temContratoPdf !== true;
 }
 
 function arquivoEContratoPdfColaborador(arquivo) {
@@ -2035,8 +2222,8 @@ function arquivoEContratoPdfColaborador(arquivo) {
   return nome.indexOf("contrato-") === 0;
 }
 
-async function pastaColaboradorTemContratoPdf(linha) {
-  if (!linha) return false;
+async function listarArquivosContratoLinha(linha) {
+  if (!linha) return [];
   try {
     const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
       acao: "listar-arquivos-contrato",
@@ -2044,12 +2231,52 @@ async function pastaColaboradorTemContratoPdf(linha) {
       aba: cfg.ABA,
       origem: origemGravacaoContratos(),
     });
-    if (!json?.arquivos?.length) return false;
-    return json.arquivos.some((arq) => arquivoEContratoPdfColaborador(arq));
+    if (!json?.arquivos?.length) return [];
+    return json.arquivos;
   } catch (e) {
-    console.warn("verificar contrato pdf:", e);
-    return false;
+    console.warn("listar arquivos contrato:", e);
+    return [];
   }
+}
+
+async function obterArquivoContratoPdfLinha(linha) {
+  const arquivos = await listarArquivosContratoLinha(linha);
+  return arquivos.find((arq) => arquivoEContratoPdfColaborador(arq)) || null;
+}
+
+async function pastaColaboradorTemContratoPdf(linha) {
+  const arq = await obterArquivoContratoPdfLinha(linha);
+  return !!arq;
+}
+
+function marcarContratoPdfGerado(item, url) {
+  if (!item) return;
+  item._temContratoPdf = true;
+  item._contratoPdfUrl = String(url || "").trim();
+}
+
+async function verificarContratosPdfPagina(paginaItens) {
+  if (!paginaItens?.length) return;
+  await Promise.all(
+    paginaItens.map(async (item) => {
+      if (!item?._linha || item._temContratoPdf != null) return;
+      const arq = await obterArquivoContratoPdfLinha(item._linha);
+      item._temContratoPdf = !!arq;
+      item._contratoPdfUrl = arq?.url ? String(arq.url) : "";
+    })
+  );
+  paginaItens.forEach((item) => {
+    if (item?._linha) atualizarBotoesAcoesLinha(item._linha);
+  });
+}
+
+function atualizarBotoesAcoesLinha(linha) {
+  const item = linhas.find((r) => r._linha === linha);
+  if (!item || !el.corpo) return;
+  el.corpo.querySelectorAll(`tr[data-linha="${linha}"] .contratos-col-acoes`).forEach((td) => {
+    td.innerHTML = htmlBotoesAcoes(item);
+    vincularAcoes(td, item);
+  });
 }
 
 function htmlIconeAssinado(item) {
@@ -2114,10 +2341,120 @@ function htmlMobileStackCorpo(item) {
     '<div class="contratos-celula-stack">' +
     htmlMobileStackIdentLinhaContratos(item) +
     `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
+    `<span class="contratos-stack-vinculo">${exibirValor(valorItem(item, colunaVinculo))}</span>` +
     `<span class="contratos-stack-cpf">${exibirValor(valorItem(item, colunaCpf))}</span>` +
     htmlValorContratoMobileStack(item) +
     "</div>"
   );
+}
+
+function htmlNotebookStackCabecalhoNome() {
+  const rotulo = (cfg.ROTULOS && cfg.ROTULOS.CONTRATADO) || "contratado";
+  return TabelaOrdenacao.htmlCabecalhoOrdenavel(rotulo, "nome");
+}
+
+function htmlNotebookStackNomeLideranca(item) {
+  return (
+    '<div class="contratos-celula-stack contratos-celula-stack--notebook">' +
+    `<span class="contratos-stack-nome">${htmlNomeTabelaContrato(item)}</span>` +
+    `<span class="contratos-stack-vinculo">${exibirValor(valorItem(item, colunaVinculo))}</span>` +
+    "</div>"
+  );
+}
+
+function textoMoedaPopover(val) {
+  const n = numeroMoeda(val);
+  if (n == null) {
+    const s = String(val ?? "").trim();
+    return s || "—";
+  }
+  return fmtMoeda.format(n);
+}
+
+function textoDataPopover(val) {
+  const iso = planilhaDataParaInputDate(val);
+  if (iso) return inputDateParaPlanilha(iso);
+  const s = String(val ?? "").trim();
+  return s || "";
+}
+
+function textoPopoverAssinado(item) {
+  return itemAssinado(item) ? "sim" : "não";
+}
+
+function textoPopoverTipoContrato(tipo) {
+  const s = String(tipo ?? "").trim();
+  if (!s) return "";
+  const catId = categoriaTipoContrato(s);
+  if (catId) {
+    const cat = CATEGORIAS_TIPO_CONTRATO.find((c) => c.id === catId);
+    if (cat?.rotulo) return cat.rotulo;
+  }
+  return s.replace(/^apoiador\s+/i, "").trim() || s;
+}
+
+function htmlPopoverLinhaFin(rotulo, valor, rotuloExtraClass) {
+  const exibicao = valor != null && String(valor).trim() !== "" ? String(valor).trim() : "—";
+  const rotuloCls = "apoiadores-popover-rotulo" + (rotuloExtraClass ? ` ${rotuloExtraClass}` : "");
+  return (
+    '<div class="apoiadores-popover-linha apoiadores-popover-linha--fin">' +
+    `<span class="${rotuloCls}">${escapeHtml(rotulo)}</span>` +
+    `<span class="apoiadores-popover-fin">${escapeHtml(exibicao)}</span>` +
+    "</div>"
+  );
+}
+
+function htmlPopoverContrato(item) {
+  const nome = String(valorItem(item, colunaNome) ?? "").trim() || "—";
+  const municipio = String(valorItem(item, colunaMunicipio) ?? "").trim();
+  const lideranca = String(valorItem(item, colunaVinculo) ?? "").trim();
+  const cpf = String(valorItem(item, colunaCpf) ?? "").trim();
+  const celular = String(valorItem(item, colunaCelular) ?? "").trim();
+  const nascimento = textoDataPopover(valorItem(item, colunaDataNascimento));
+  const tipo = textoPopoverTipoContrato(valorItem(item, colunaTipoContrato));
+  const regiao = String(item.regiao ?? "").trim();
+
+  let detalhes =
+    htmlPopoverLinhaFin(rotuloTabela("VINCULO"), lideranca) +
+    htmlPopoverLinhaFin(rotuloTabela("ASSINADO"), textoPopoverAssinado(item)) +
+    htmlPopoverLinhaFin("CPF", cpf, "apoiadores-popover-rotulo--case") +
+    htmlPopoverLinhaFin(rotuloTabela("VALOR_CONTRATO"), textoMoedaPopover(valorItem(item, colunaValorContrato)));
+
+  if (celular) detalhes += htmlPopoverLinhaFin(rotuloTabela("CELULAR"), celular);
+  if (nascimento) detalhes += htmlPopoverLinhaFin(rotuloTabela("DATA_NASCIMENTO"), nascimento);
+  if (tipo) detalhes += htmlPopoverLinhaFin("tipo contrato", tipo);
+  if (regiao) detalhes += htmlPopoverLinhaFin("região", regiao);
+
+  return (
+    '<div class="orcamento-geral-popover-corpo apoiadores-popover-corpo contratos-popover-corpo">' +
+    '<div class="apoiadores-popover-cabecalho">' +
+    '<div class="apoiadores-popover-topo">' +
+    `<span class="apoiadores-popover-lideranca">${escapeHtml(nome)}</span>` +
+    "</div>" +
+    (municipio
+      ? '<div class="apoiadores-popover-municipio-linha">' +
+        `<span class="apoiadores-popover-municipio-muted">${escapeHtml(municipio)}</span>` +
+        "</div>"
+      : "") +
+    '<hr class="apoiadores-popover-divisor" aria-hidden="true">' +
+    "</div>" +
+    `<div class="apoiadores-popover-tabela">${detalhes}</div>` +
+    "</div>"
+  );
+}
+
+function inicializarPopoversTabela(paginaItens) {
+  if (!popoverTabela || !paginaItens?.length || !el.corpo) {
+    popoverTabela?.destruir();
+    return;
+  }
+  popoverTabela.inicializar({
+    corpo: el.corpo,
+    seletorLinha: "tr.contratos-linha-popover",
+    seletorAlvo: ".contratos-celula-popover",
+    linhas: paginaItens,
+    htmlConteudo: htmlPopoverContrato,
+  });
 }
 
 function htmlValorContratoMobileStack(item) {
@@ -2159,17 +2496,6 @@ function htmlNomeTabelaContrato(item) {
   );
 }
 
-function htmlMobileStackCorpo(item) {
-  return (
-    '<div class="contratos-celula-stack">' +
-    `<span class="contratos-stack-nome contratos-stack-nome--com-assinado">${htmlIconeAssinado(item)}<span>${htmlNomeTabelaContrato(item)}</span></span>` +
-    `<span class="contratos-stack-mun">${exibirValor(valorItem(item, colunaMunicipio))}</span>` +
-    `<span class="contratos-stack-cpf">${exibirValor(valorItem(item, colunaCpf))}</span>` +
-    htmlValorContratoMobileStack(item) +
-    "</div>"
-  );
-}
-
 function criarTh(texto, classes) {
   const th = document.createElement("th");
   th.scope = "col";
@@ -2186,14 +2512,20 @@ function criarTdHtml(html, classes) {
 }
 
 function htmlBotoesAcoes(item) {
-  const imprimirOff = item && itemImprimirContratoDesabilitado(item);
-  const imprimirCls =
-    "crud-acao-icone crud-acao-icone--imprimir" +
-    (imprimirOff ? " crud-acao-icone--desabilitado" : "");
-  const imprimirTitulo = imprimirOff
-    ? "contrato assinado — impressão desabilitada"
-    : "imprimir contrato";
-  const imprimirAttrs = imprimirOff ? " disabled aria-disabled=\"true\"" : "";
+  const gerarOff = item && itemGerarContratoDesabilitado(item);
+  const gerarCls =
+    "crud-acao-icone crud-acao-icone--gerar" + (gerarOff ? " crud-acao-icone--desabilitado" : "");
+  const gerarTitulo = gerarOff
+    ? "contrato assinado — geração desabilitada"
+    : "gerar contrato";
+  const gerarAttrs = gerarOff ? " disabled aria-disabled=\"true\"" : "";
+
+  const visualizarOff = itemVisualizarContratoDesabilitado(item);
+  const visualizarCls =
+    "crud-acao-icone crud-acao-icone--lupa" +
+    (visualizarOff ? " crud-acao-icone--desabilitado" : "");
+  const visualizarTitulo = visualizarOff ? "nenhum contrato gerado" : "visualizar contrato gerado";
+  const visualizarAttrs = visualizarOff ? " disabled aria-disabled=\"true\"" : "";
 
   return (
     '<div class="crud-acoes-icones">' +
@@ -2201,13 +2533,22 @@ function htmlBotoesAcoes(item) {
     ICONE_ARQUIVOS +
     "</button>" +
     '<button type="button" class="' +
-    imprimirCls +
-    '" data-acao="imprimir" aria-label="imprimir contrato" title="' +
-    escapeHtml(imprimirTitulo) +
+    gerarCls +
+    '" data-acao="gerar" aria-label="gerar contrato" title="' +
+    escapeHtml(gerarTitulo) +
     '"' +
-    imprimirAttrs +
+    gerarAttrs +
     ">" +
-    ICONE_IMPRIMIR +
+    ICONE_GERAR_CONTRATO +
+    "</button>" +
+    '<button type="button" class="' +
+    visualizarCls +
+    '" data-acao="visualizar" aria-label="visualizar contrato gerado" title="' +
+    escapeHtml(visualizarTitulo) +
+    '"' +
+    visualizarAttrs +
+    ">" +
+    ICONE_LUPA +
     "</button>" +
     (paginaContratosJuliana()
       ? ""
@@ -2240,8 +2581,8 @@ function montarDadosImpressao(item) {
   return dados;
 }
 
-async function imprimirContrato(item) {
-  if (itemImprimirContratoDesabilitado(item)) return;
+async function gerarContrato(item) {
+  if (itemGerarContratoDesabilitado(item)) return;
 
   mostrarStatus("", "carregando");
 
@@ -2276,11 +2617,10 @@ async function imprimirContrato(item) {
     if (!json) return;
     const url = json.url;
     if (!url) throw new Error("PDF não gerado.");
+    marcarContratoPdfGerado(item, url);
+    atualizarBotoesAcoesLinha(item._linha);
     if (json.salvoNoDrive) {
-      AppToast.show(
-        "contrato salvo na pasta do colaborador no Drive (" + (json.nome || "PDF") + ")",
-        "sucesso"
-      );
+      AppToast.show("contrato salvo na pasta do colaborador", "sucesso");
       window.open(url, "_blank", "noopener,noreferrer");
     } else {
       window.open(json.downloadUrl || url, "_blank", "noopener,noreferrer");
@@ -2293,14 +2633,137 @@ async function imprimirContrato(item) {
   }
 }
 
+async function visualizarContrato(item) {
+  if (itemVisualizarContratoDesabilitado(item)) return;
+
+  let url = String(item?._contratoPdfUrl || "").trim();
+  if (!url && item?._linha) {
+    mostrarStatus("", "carregando");
+    try {
+      const arq = await obterArquivoContratoPdfLinha(item._linha);
+      if (!arq?.url) {
+        item._temContratoPdf = false;
+        item._contratoPdfUrl = "";
+        atualizarBotoesAcoesLinha(item._linha);
+        AppToast.show("nenhum contrato gerado para este colaborador.", "erro");
+        return;
+      }
+      marcarContratoPdfGerado(item, arq.url);
+      url = arq.url;
+      atualizarBotoesAcoesLinha(item._linha);
+    } catch (e) {
+      AppToast.show("erro ao abrir contrato: " + e.message, "erro");
+      return;
+    } finally {
+      limparStatus();
+    }
+  }
+
+  if (!url) {
+    AppToast.show("nenhum contrato gerado para este colaborador.", "erro");
+    return;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 function vincularAcoes(container, item) {
+  container.querySelectorAll(".crud-acao-icone").forEach((btn) => {
+    btn.addEventListener("click", (e) => e.stopPropagation());
+  });
   container.querySelector('[data-acao="arquivos"]')?.addEventListener("click", () => abrirModalArquivos(item));
-  const btnImprimir = container.querySelector('[data-acao="imprimir"]');
-  if (btnImprimir && !btnImprimir.disabled) {
-    btnImprimir.addEventListener("click", () => imprimirContrato(item));
+  const btnGerar = container.querySelector('[data-acao="gerar"]');
+  if (btnGerar && !btnGerar.disabled) {
+    btnGerar.addEventListener("click", () => gerarContrato(item));
+  }
+  const btnVisualizar = container.querySelector('[data-acao="visualizar"]');
+  if (btnVisualizar && !btnVisualizar.disabled) {
+    btnVisualizar.addEventListener("click", () => visualizarContrato(item));
   }
   container.querySelector('[data-acao="editar"]')?.addEventListener("click", () => abrirEditar(item));
   container.querySelector('[data-acao="excluir"]')?.addEventListener("click", () => confirmarExcluir(item));
+}
+
+function painelTabelaContratos() {
+  return el.tabelaCard?.querySelector(".contratos-tabela-panel") || null;
+}
+
+function alinharColunasTabelaContratos() {
+  const panel = painelTabelaContratos();
+  if (!panel) return;
+
+  const headWrap = panel.querySelector(".dashboard-tabela-head");
+  const bodyScroll = panel.querySelector(".dashboard-tabela-body-scroll");
+  const headTable = headWrap?.querySelector("table");
+  const bodyTable = bodyScroll?.querySelector("table");
+  if (!headWrap || !bodyScroll || !headTable || !bodyTable) return;
+
+  headTable.style.transform = "";
+  headTable.style.width = "";
+  bodyTable.style.width = "";
+
+  const largura = bodyScroll.clientWidth;
+  headTable.style.width = largura + "px";
+  bodyTable.style.width = largura + "px";
+
+  const barra = bodyScroll.offsetWidth - bodyScroll.clientWidth;
+  headWrap.style.paddingRight = barra > 0 ? barra + "px" : "0px";
+
+  const mobile = window.matchMedia("(max-width: 991.98px)").matches;
+  const headRow = headTable.querySelector(
+    mobile ? ".contratos-thead-mobile" : ".contratos-thead-desktop"
+  );
+  const bodyRow = bodyTable.querySelector("tbody tr");
+  if (!headRow || !bodyRow) return;
+
+  if (mobile) {
+    const acoesPx = 116;
+    const stackPx = Math.max(largura - acoesPx, 0);
+    const thStack = headRow.querySelector("th.contratos-col-stack");
+    const thAcoes = headRow.querySelector("th.contratos-col-acoes");
+    if (thStack) thStack.style.width = stackPx + "px";
+    if (thAcoes) thAcoes.style.width = acoesPx + "px";
+    bodyTable.querySelectorAll("td.contratos-col-stack").forEach((td) => {
+      td.style.width = stackPx + "px";
+    });
+    bodyTable.querySelectorAll("td.contratos-col-acoes").forEach((td) => {
+      td.style.width = acoesPx + "px";
+    });
+  } else {
+    headTable.querySelectorAll("thead th").forEach((th) => {
+      th.style.width = "";
+    });
+    bodyTable.querySelectorAll("tbody td").forEach((td) => {
+      td.style.width = "";
+    });
+  }
+
+  if (bodyScroll.scrollLeft) {
+    headTable.style.transform = `translate3d(${-bodyScroll.scrollLeft}px, 0, 0)`;
+  }
+}
+
+function aposRenderTabelaContratos() {
+  if (!painelTabelaContratos()) {
+    notificarAlturaFrame();
+    return;
+  }
+  requestAnimationFrame(() => {
+    alinharColunasTabelaContratos();
+    notificarAlturaFrame();
+    requestAnimationFrame(alinharColunasTabelaContratos);
+  });
+}
+
+function vincularScrollHorizontalContratos() {
+  const panel = painelTabelaContratos();
+  if (!panel) return;
+  const headTable = panel.querySelector(".dashboard-tabela-head table");
+  const bodyScroll = panel.querySelector(".dashboard-tabela-body-scroll");
+  if (!headTable || !bodyScroll || bodyScroll.dataset.scrollContratos) return;
+  bodyScroll.dataset.scrollContratos = "1";
+  bodyScroll.addEventListener("scroll", () => {
+    headTable.style.transform = `translate3d(${-bodyScroll.scrollLeft}px, 0, 0)`;
+  });
 }
 
 function montarCabecalhoTabela() {
@@ -2311,13 +2774,9 @@ function montarCabecalhoTabela() {
   trDesktop.innerHTML = "";
   trMobile.innerHTML = "";
 
-  trDesktop.appendChild(
-    TabelaOrdenacao.criarThOrdenavel(
-      rotuloTabela("NOME"),
-      "nome",
-      "contratos-col-nome contratos-tabela-desktop-col"
-    )
-  );
+  const thNome = criarTh("", "contratos-col-nome contratos-tabela-desktop-col");
+  thNome.innerHTML = htmlNotebookStackCabecalhoNome();
+  trDesktop.appendChild(thNome);
   const thAssinado = criarTh(
     rotuloTabela("ASSINADO"),
     "contratos-col-assinado contratos-tabela-desktop-col text-center"
@@ -2330,13 +2789,6 @@ function montarCabecalhoTabela() {
       rotuloTabela("MUNICIPIO"),
       "municipio",
       "contratos-col-municipio contratos-tabela-desktop-col"
-    )
-  );
-  trDesktop.appendChild(
-    TabelaOrdenacao.criarThOrdenavel(
-      rotuloTabela("VINCULO"),
-      "lideranca",
-      "contratos-col-vinculo contratos-tabela-desktop-col"
     )
   );
   trDesktop.appendChild(
@@ -2360,18 +2812,21 @@ function montarCabecalhoTabela() {
   if (el.tabelaCard) {
     TabelaOrdenacao.atualizarUi(el.tabelaCard, ordenacaoContratos);
   }
+  aposRenderTabelaContratos();
 }
 
 function criarLinhaTabela(item) {
   const tr = document.createElement("tr");
   tr.dataset.linha = String(item._linha);
+  tr.classList.add("contratos-linha-popover");
 
-  tr.appendChild(
-    criarTdHtml(
-      htmlNomeTabelaContrato(item),
-      "contratos-col-nome contratos-tabela-desktop-col"
-    )
+  const tdNome = criarTdHtml(
+    htmlNotebookStackNomeLideranca(item),
+    "contratos-col-nome contratos-tabela-desktop-col contratos-celula-popover"
   );
+  tdNome.tabIndex = 0;
+  tdNome.setAttribute("aria-label", "detalhes do contrato");
+  tr.appendChild(tdNome);
   tr.appendChild(
     criarTdHtml(
       htmlIconeAssinado(item),
@@ -2389,12 +2844,6 @@ function criarLinhaTabela(item) {
   );
   tr.appendChild(
     criarTdHtml(
-      exibirValor(valorItem(item, colunaVinculo)),
-      "contratos-col-vinculo contratos-tabela-desktop-col"
-    )
-  );
-  tr.appendChild(
-    criarTdHtml(
       htmlCelulaValorContrato(item),
       "contratos-col-valor contratos-tabela-desktop-col"
     )
@@ -2407,7 +2856,9 @@ function criarLinhaTabela(item) {
   vincularAcoes(tdAcoesDesktop, item);
   tr.appendChild(tdAcoesDesktop);
 
-  const tdStack = criarTdHtml("", "contratos-col-stack contratos-tabela-mobile-col");
+  const tdStack = criarTdHtml("", "contratos-col-stack contratos-tabela-mobile-col contratos-celula-popover");
+  tdStack.tabIndex = 0;
+  tdStack.setAttribute("aria-label", "detalhes do contrato");
   tdStack.innerHTML = htmlMobileStackCorpo(item);
   tr.appendChild(tdStack);
 
@@ -2423,6 +2874,7 @@ function criarLinhaTabela(item) {
 
 function renderizarTabela(opcoes) {
   const opts = opcoes || {};
+  atualizarKpisPainel();
   const filtradas = linhasFiltradas();
   const total = filtradas.length;
 
@@ -2437,11 +2889,18 @@ function renderizarTabela(opcoes) {
     paginaAtualTabela = 1;
     atualizarBarraPaginacao(0);
     el.vazio.hidden = false;
-    el.vazio.textContent = termoBusca()
-      ? "nenhum contrato encontrado para a busca."
-      : "nenhum contrato encontrado.";
+    if (el.filtroRegioes && linhas.length && !regioesSelecionadas().length) {
+      el.vazio.textContent = "selecione ao menos uma região.";
+    } else if (termoBusca()) {
+      el.vazio.textContent = "nenhum contrato encontrado para a busca.";
+    } else if (el.filtroRegioes && linhas.length) {
+      el.vazio.textContent = "nenhum contrato para os filtros selecionados.";
+    } else {
+      el.vazio.textContent = "nenhum contrato encontrado.";
+    }
     linhaParaDestaqueSalvo = null;
-    notificarAlturaFrame();
+    popoverTabela?.destruir();
+    aposRenderTabelaContratos();
     return;
   }
 
@@ -2454,7 +2913,9 @@ function renderizarTabela(opcoes) {
   });
 
   atualizarBarraPaginacao(total);
-  notificarAlturaFrame();
+  inicializarPopoversTabela(paginaItens);
+  verificarContratosPdfPagina(paginaItens);
+  aposRenderTabelaContratos();
   aplicarDestaqueLinhaSalva();
 }
 
@@ -2497,8 +2958,10 @@ async function carregarContratos(silencioso) {
 
     if (AUTH.tratarResposta(jsonMun) && jsonMun?.ok && jsonMun.valores) {
       listaMunicipiosForm = extrairListaMunicipios(jsonMun.valores);
+      mapaMunicipioRegiao = montarMapaMunicipioRegiao(jsonMun.valores);
     } else {
       listaMunicipiosForm = [];
+      mapaMunicipioRegiao = new Map();
     }
 
     if (AUTH.tratarResposta(jsonAp) && jsonAp?.ok && jsonAp.valores) {
@@ -2510,6 +2973,8 @@ async function carregarContratos(silencioso) {
     colunas = dados.colunas;
     linhas = dados.linhas;
     resolverColunas();
+    enriquecerLinhasRegiao();
+    montarFiltros(extrairRegioes(linhas));
     paginaAtualTabela = 1;
 
     montarCabecalhoTabela();
@@ -2522,6 +2987,11 @@ async function carregarContratos(silencioso) {
 
 function init() {
   el = {
+    filtroRegioes: document.getElementById("filtroRegioes"),
+    kpiContratos: document.getElementById("kpiContratos"),
+    kpiValorTotal: document.getElementById("kpiValorTotal"),
+    kpiAssinados: document.getElementById("kpiAssinados"),
+    kpiPendentes: document.getElementById("kpiPendentes"),
     tabelaCard: document.getElementById("tabelaCard"),
     busca: document.getElementById("buscaContrato"),
     cabecalhoDesktop: document.getElementById("cabecalhoDesktop"),
@@ -2601,6 +3071,11 @@ function init() {
   );
 
   window.atualizarPagina = () => carregarContratos(false);
+  vincularScrollHorizontalContratos();
+  window.addEventListener("resize", alinharColunasTabelaContratos);
+  if (document.getElementById("pageSmTabs")) {
+    initPageSmTabs(alinharColunasTabelaContratos);
+  }
   carregarContratos(false);
 }
 
@@ -2660,10 +3135,7 @@ function ajustarTabelaRelatorioPagina(table) {
     }
     if (thMun) {
       thMun.classList.add("contratos-rel-col-mun-lider");
-      thMun.innerHTML = htmlStackRelatorioCabecalho(
-        rotuloTabela("MUNICIPIO"),
-        rotuloTabela("VINCULO")
-      );
+      thMun.textContent = rotuloTabela("MUNICIPIO");
     }
     if (thAss) {
       thAss.classList.add("contratos-rel-col-assinado", "text-center");
@@ -2679,19 +3151,24 @@ function ajustarTabelaRelatorioPagina(table) {
     const tdVin = tr.querySelector(".contratos-col-vinculo");
     if (!tdNome) return;
 
-    const nome = textoCelulaTabelaRelatorio(tdNome);
+    const nomeEl = tdNome.querySelector(".contratos-stack-nome");
+    const nome = textoCelulaTabelaRelatorio(nomeEl || tdNome);
     const cpf = textoCelulaTabelaRelatorio(tdCpf);
     const mun = textoCelulaTabelaRelatorio(tdMun);
-    const lid = textoCelulaTabelaRelatorio(tdVin);
+    const lidEl = tdVin || tdNome.querySelector(".contratos-stack-vinculo");
+    const lid = lidEl ? textoCelulaTabelaRelatorio(lidEl) : "";
 
     tdCpf?.remove();
     tdVin?.remove();
+    tdNome.querySelector(".contratos-stack-vinculo")?.remove();
 
     tdNome.classList.add("contratos-rel-col-ident");
     tdNome.innerHTML = htmlStackRelatorioCorpo(nome, cpf);
     if (tdMun) {
       tdMun.classList.add("contratos-rel-col-mun-lider");
-      tdMun.innerHTML = htmlStackRelatorioCorpo(mun, lid);
+      tdMun.innerHTML = lid
+        ? htmlStackRelatorioCorpo(mun, lid)
+        : htmlStackRelatorioCorpo(mun, "");
     }
     if (tdAss) {
       tdAss.classList.add("contratos-rel-col-assinado", "text-center");

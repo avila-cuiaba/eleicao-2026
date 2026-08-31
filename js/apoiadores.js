@@ -1500,7 +1500,7 @@ function renderizarLinha(r) {
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
   const municipioHtml = escapeHtml(r.municipio);
   const liderancaHtml = htmlNomeLiderancaComFechado(r);
-  const acoesMaster = MasterCrud.acoesLinha(r._linha);
+  const acoesMaster = MasterCrud.acoesLinha(r._linha, { somenteEditar: true });
   const finBadge = badgeFinTotalHtml(r);
   const metaDesktop = htmlIdentMetaApoiador(r, finBadge);
   const metaMobile = htmlIdentMetaApoiador(r, finBadge);

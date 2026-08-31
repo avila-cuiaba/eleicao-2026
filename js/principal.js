@@ -498,52 +498,12 @@ function ajustarAlturaFrame() {
   if (!frame || !main) return;
 
   try {
-    const doc = frame.contentDocument || frame.contentWindow.document;
-    const preencheViewport =
-      doc.body?.classList.contains("page-dashboard") ||
-      doc.body?.classList.contains("page-pessoal") ||
-      doc.body?.classList.contains("page-apoiadores") ||
-      doc.body?.classList.contains("page-orcamento-pessoal-apoiadores") ||
-      doc.body?.classList.contains("page-orcamento-juliana") ||
-      doc.body?.classList.contains("page-apoiador-federal") ||
-      doc.body?.classList.contains("page-parcerias") ||
-      doc.body?.classList.contains("page-orcamento") ||
-      doc.body?.classList.contains("page-orcamento-geral") ||
-      doc.body?.classList.contains("page-orcamento-desembolso") ||
-      doc.body?.classList.contains("page-pagamentos-geral") ||
-      doc.body?.classList.contains("page-pagamentos-lideranca") ||
-      doc.body?.classList.contains("page-pessoal-pagamentos") ||
-      doc.body?.classList.contains("page-mobilizacao-estrutura-resumo") ||
-      doc.body?.classList.contains("page-mobilizacao-estrutura") ||
-      doc.body?.classList.contains("page-mobilizacao") ||
-      doc.body?.classList.contains("page-agenda") ||
-      doc.body?.classList.contains("page-producao-midia") ||
-      doc.body?.classList.contains("page-material-grafico");
-
     frame.style.flex = "1 1 auto";
     frame.style.minHeight = "0";
 
     const areaMain = main.clientHeight;
-
-    if (preencheViewport || ehMobileShell()) {
-      if (areaMain > 0) {
-        frame.style.height = areaMain + "px";
-      } else {
-        frame.style.height = "";
-      }
-      return;
-    }
-
-    const docAltura = Math.max(
-      doc.body?.scrollHeight || 0,
-      doc.documentElement?.scrollHeight || 0,
-      doc.body?.offsetHeight || 0,
-      doc.documentElement?.offsetHeight || 0
-    );
-
-    if (docAltura > areaMain) {
-      frame.style.flex = "0 0 auto";
-      frame.style.height = docAltura + "px";
+    if (areaMain > 0) {
+      frame.style.height = areaMain + "px";
     } else {
       frame.style.height = "";
     }

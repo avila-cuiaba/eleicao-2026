@@ -238,6 +238,7 @@ const PopoverTabela = (function () {
       const {
         corpo,
         seletorLinha,
+        seletorAlvo,
         linhas,
         htmlConteudo,
         trigger: triggerOpt,
@@ -265,25 +266,33 @@ const PopoverTabela = (function () {
         const contentHtml = htmlConteudo(r);
         registrarPayloadImpressao(key, contentHtml, tituloPrint);
 
-        const pop = new bootstrap.Popover(tr, {
-          trigger: trigg,
-          html: true,
-          sanitize: false,
-          placement: "auto",
-          container: "body",
-          customClass: POPOVER_CLASS,
-          content: contentHtml,
-        });
+        const alvos = seletorAlvo
+          ? Array.from(tr.querySelectorAll(seletorAlvo))
+          : [tr];
+        if (!alvos.length) return;
 
-        tr.addEventListener("show.bs.popover", () => fecharOutros(tr));
-        popovers.push(pop);
+        alvos.forEach((alvo) => {
+          const pop = new bootstrap.Popover(alvo, {
+            trigger: trigg,
+            html: true,
+            sanitize: false,
+            placement: "auto",
+            container: "body",
+            customClass: POPOVER_CLASS,
+            content: contentHtml,
+          });
+
+          alvo.addEventListener("show.bs.popover", () => fecharOutros(alvo));
+          popovers.push(pop);
+        });
       });
 
       if (fecharAoClicarFora && String(trigg).includes("click")) {
         handler = (e) => {
           const emLinha = e.target.closest(seletorLinha);
+          const emAlvo = seletorAlvo ? e.target.closest(seletorAlvo) : null;
           const emPopover = e.target.closest(`.popover.${POPOVER_CLASS}`);
-          if (!emLinha && !emPopover) {
+          if (!emLinha && !emAlvo && !emPopover) {
             popovers.forEach((p) => p.hide());
           }
         };

@@ -11,6 +11,17 @@
   <div class="page-frame-content">
     <div id="status" class="alert d-none" role="status" aria-live="polite"></div>
 
+    <ul class="nav nav-tabs dashboard-sm-tabs d-xl-none" id="pageSmTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pageTabMarcadores" data-bs-toggle="tab" data-bs-target="#pagePainelMarcadores" type="button" role="tab" aria-controls="pagePainelMarcadores" aria-selected="true">marcadores</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pageTabRegistros" data-bs-toggle="tab" data-bs-target="#pagePainelRegistros" type="button" role="tab" aria-controls="pagePainelRegistros" aria-selected="false">registros</button>
+      </li>
+    </ul>
+
+    <div class="tab-content dashboard-sm-layout" id="pageSmTabContent">
+      <div class="tab-pane fade show active dashboard-sm-pane" id="pagePainelMarcadores" role="tabpanel" aria-labelledby="pageTabMarcadores" tabindex="0">
     <div class="card shadow-sm border-0 mb-3 dashboard-kpis-wrap apoiadores-kpi-wrap">
       <div class="card-body py-3">
         <div class="row g-2 g-sm-3 align-items-start apoiadores-micro-row">
@@ -40,7 +51,9 @@
         </div>
       </div>
     </div>
+      </div>
 
+      <div class="tab-pane fade dashboard-sm-pane" id="pagePainelRegistros" role="tabpanel" aria-labelledby="pageTabRegistros" tabindex="0">
     <div class="card shadow-sm border-0 dashboard-tabela-card apoiadores-tabela-card afederal-tabela-card">
       <div class="card-header bg-white border-bottom-0 pt-3 px-3 pb-0">
         <ul class="nav nav-tabs entregas-dados-tabs afederal-dados-tabs" id="afederalTabs" role="tablist">
@@ -122,11 +135,8 @@
                         <div class="apoiadores-th-ident-inner">
                           <span class="apoiadores-th-titulo apoiadores-th-desktop">liderança</span>
                           <span class="apoiadores-th-mobile afederal-th-mobile afederal-th-mobile-ident">
-                            <span class="afederal-th-mobile-linha1">
-                              <span class="dashboard-th-principal">liderança</span>
-                              <span class="dashboard-th-sub afederal-th-mun">município</span>
-                            </span>
-                            <span class="dashboard-th-sub afederal-th-orc">orçamento</span>
+                            <span class="dashboard-th-principal">liderança</span>
+                            <span class="dashboard-th-sub afederal-th-mun">município</span>
                           </span>
                         </div>
                       </th>
@@ -137,11 +147,16 @@
                         <span class="apoiadores-th-desktop">federal</span>
                         <span class="apoiadores-th-mobile afederal-th-mobile afederal-th-mobile-federal">
                           <span class="dashboard-th-principal">federal</span>
-                          <span class="dashboard-th-sub afederal-th-par">contrapartida</span>
                         </span>
                       </th>
-                      <th scope="col" class="text-end apoiadores-col-orc-total afederal-col-desktop">orçamento</th>
-                      <th scope="col" class="text-end apoiadores-col-par-total afederal-col-desktop">contrapartida</th>
+                      <th scope="col" class="text-end apoiadores-col-orc-total">
+                        <span class="apoiadores-th-desktop">orçamento</span>
+                        <span class="apoiadores-th-mobile afederal-th-mobile afederal-th-mobile-orc">orçamento</span>
+                      </th>
+                      <th scope="col" class="text-end apoiadores-col-par-total">
+                        <span class="apoiadores-th-desktop">contrapartida</span>
+                        <span class="apoiadores-th-mobile afederal-th-mobile afederal-th-mobile-par">contrapartida</span>
+                      </th>
                     </tr>
                   </thead>
                 </table>
@@ -194,6 +209,8 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
       </div>
     </div>
 

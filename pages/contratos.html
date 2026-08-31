@@ -8,8 +8,67 @@
   <link rel="stylesheet" href="../css/style.css" />
   <script src="https://kit.fontawesome.com/905f5bcd47.js" crossorigin="anonymous"></script>
 </head>
-<body class="bg-light page-frame-body page-contratos">
+<body class="bg-light page-frame-body page-contratos page-apoiadores">
   <div class="page-frame-content">
+    <ul class="nav nav-tabs dashboard-sm-tabs d-xl-none" id="pageSmTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pageTabMarcadores" data-bs-toggle="tab" data-bs-target="#pagePainelMarcadores" type="button" role="tab" aria-controls="pagePainelMarcadores" aria-selected="true">marcadores</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pageTabContratos" data-bs-toggle="tab" data-bs-target="#pagePainelRegistros" type="button" role="tab" aria-controls="pagePainelRegistros" aria-selected="false">contratos</button>
+      </li>
+    </ul>
+
+    <div class="tab-content dashboard-sm-layout" id="pageSmTabContent">
+      <div class="tab-pane fade show active dashboard-sm-pane" id="pagePainelMarcadores" role="tabpanel" aria-labelledby="pageTabMarcadores" tabindex="0">
+        <div class="card shadow-sm border-0 mb-3 dashboard-kpis-wrap apoiadores-kpi-wrap">
+          <div class="card-body py-3">
+            <div class="row g-2 g-sm-3 align-items-start apoiadores-micro-row">
+              <div class="col-5 col-lg-4">
+                <div id="filtroRegioes" class="dashboard-filtro-regioes" role="group" aria-label="Filtrar por região"></div>
+              </div>
+              <div class="col-7 col-lg-8">
+                <div class="apoiadores-kpi-grid apoiadores-kpi-grid--contratos">
+                  <div class="apoiadores-kpi-slot">
+                    <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-total">
+                      <div class="card-body py-2 px-2 px-sm-3">
+                        <div class="dashboard-kpi-rotulo">contratos</div>
+                        <strong id="kpiContratos" class="dashboard-kpi-valor">—</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="apoiadores-kpi-slot">
+                    <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-destaque">
+                      <div class="card-body py-2 px-2 px-sm-3">
+                        <div class="dashboard-kpi-rotulo">valor total</div>
+                        <strong id="kpiValorTotal" class="dashboard-kpi-valor">—</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="apoiadores-kpi-slot">
+                    <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-apoiador">
+                      <div class="card-body py-2 px-2 px-sm-3">
+                        <div class="dashboard-kpi-rotulo">assinados</div>
+                        <strong id="kpiAssinados" class="dashboard-kpi-valor">—</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="apoiadores-kpi-slot">
+                    <div class="card h-100 shadow-sm border-0 dashboard-kpi-card apoiadores-kpi-apoiador">
+                      <div class="card-body py-2 px-2 px-sm-3">
+                        <div class="dashboard-kpi-rotulo">pendentes</div>
+                        <strong id="kpiPendentes" class="dashboard-kpi-valor">—</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade dashboard-sm-pane" id="pagePainelRegistros" role="tabpanel" aria-labelledby="pageTabContratos" tabindex="0">
     <div id="tabelaCard" class="card shadow-sm border-0 crud-tabela-card">
       <div class="card-header bg-white border-bottom py-2 px-3">
         <div class="crud-toolbar">
@@ -34,35 +93,25 @@
           </label>
         </div>
       </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover table-sm mb-0 crud-tabela contratos-tabela">
-            <thead class="table-light">
-              <tr id="cabecalhoDesktop" class="contratos-thead-desktop"></tr>
-              <tr id="cabecalhoMobile" class="contratos-thead-mobile"></tr>
-            </thead>
-            <tbody id="corpoTabela"></tbody>
-          </table>
-        </div>
-        <p id="vazio" class="text-secondary small text-center py-4 mb-0" hidden>Nenhum registro encontrado.</p>
+      <div class="card-body p-0 contratos-tabela-panel dashboard-tabela-panel">
         <nav
           id="paginacaoTabela"
-          class="crud-paginacao border-top px-3 py-2 bg-white"
+          class="crud-paginacao crud-paginacao--top contratos-paginacao--top border-bottom px-3 py-2 bg-white"
           aria-label="Navegação da tabela"
           hidden
         >
           <div class="crud-paginacao-inner">
-            <p id="paginacaoInfo" class="crud-paginacao-info small text-secondary mb-0"></p>
+            <p id="paginacaoInfo" class="crud-paginacao-info text-secondary mb-0"></p>
             <div class="crud-paginacao-acoes btn-group btn-group-sm" role="group" aria-label="Páginas">
               <button type="button" id="paginacaoPrimeira" class="btn btn-outline-secondary" title="primeira página">
                 «
               </button>
-              <button type="button" id="paginacaoAnterior" class="btn btn-outline-secondary">
-                anterior
+              <button type="button" id="paginacaoAnterior" class="btn btn-outline-secondary" title="página anterior">
+                ‹
               </button>
               <span id="paginacaoPaginaAtual" class="btn btn-outline-secondary disabled crud-paginacao-indicador" aria-live="polite"></span>
-              <button type="button" id="paginacaoProxima" class="btn btn-outline-secondary">
-                próxima
+              <button type="button" id="paginacaoProxima" class="btn btn-outline-secondary" title="próxima página">
+                ›
               </button>
               <button type="button" id="paginacaoUltima" class="btn btn-outline-secondary" title="última página">
                 »
@@ -70,6 +119,22 @@
             </div>
           </div>
         </nav>
+        <div class="dashboard-tabela-head table-light">
+          <table class="table table-sm mb-0 crud-tabela contratos-tabela">
+            <thead class="table-light">
+              <tr id="cabecalhoDesktop" class="contratos-thead-desktop"></tr>
+              <tr id="cabecalhoMobile" class="contratos-thead-mobile"></tr>
+            </thead>
+          </table>
+        </div>
+        <div class="dashboard-tabela-body-scroll">
+          <table class="table table-hover table-sm mb-0 crud-tabela contratos-tabela">
+            <tbody id="corpoTabela"></tbody>
+          </table>
+        </div>
+        <p id="vazio" class="text-secondary small text-center py-4 mb-0" hidden>Nenhum registro encontrado.</p>
+      </div>
+    </div>
       </div>
     </div>
 
@@ -250,6 +315,7 @@
   <script src="../js/planilha-api.js"></script>
   <script src="../js/icons.js"></script>
   <script src="../js/tabela-ordenacao.js"></script>
+  <script src="../js/popover-tabela.js"></script>
   <script src="../js/contratos.js"></script>
 </body>
 </html>

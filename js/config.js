@@ -206,7 +206,7 @@ const CONFIG = {
     // A aba auditoria-contratos é só para log; não usar aqui.
     ABA: "",
     LINHA_INICIO_DADOS: 2,
-    TAMANHO_PAGINA_TABELA: 20,
+    TAMANHO_PAGINA_TABELA: 10,
     // Cabeçalhos atuais da planilha cadastro-colaboradores (kebab-case).
     COLUNA_NOME: [
       "nome-completo",

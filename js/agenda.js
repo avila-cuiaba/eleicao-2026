@@ -890,6 +890,7 @@ function mensagemErroAgenda(err) {
 }
 
 function abrirModalItem(tipo, data, ev) {
+  fecharCalendarioMobile();
   modoEdicao = !!ev;
   ui.form.reset();
   ui.evId.value = ev ? ev.id : "";
@@ -1246,7 +1247,9 @@ function initAgenda() {
   if (!ui.miniCal) return;
 
   const modalEl = document.getElementById("modalEvento");
-  modalEvento = modalEl ? new bootstrap.Modal(modalEl) : null;
+  modalEvento = modalEl
+    ? new bootstrap.Modal(modalEl, { container: "body" })
+    : null;
 
   ui.form.addEventListener("submit", salvarFormulario);
   ui.btnExcluir.addEventListener("click", excluirItem);
