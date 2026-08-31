@@ -43,6 +43,7 @@
             <option value="semanal">semanal</option>
             <option value="quinzenal">quinzenal</option>
             <option value="mensal">mensal</option>
+            <option value="intervalo">selecionar intervalo</option>
           </select>
         </label>
         <button type="button" id="btnNovaDesktop" class="agenda-btn-nova agenda-btn-nova--filtros" aria-label="nova atividade" title="nova atividade">
@@ -176,6 +177,7 @@
                       <option value="semanal">semanal</option>
                       <option value="quinzenal">quinzenal</option>
                       <option value="mensal">mensal</option>
+                      <option value="intervalo">selecionar intervalo</option>
                     </select>
                   </label>
                 </div>
@@ -225,6 +227,31 @@
     <div id="pageLoader" class="page-frame-loader" role="status" aria-live="polite">
       <div class="spinner-border page-frame-loader-spinner" aria-hidden="true"></div>
       <span class="visually-hidden">Carregando</span>
+    </div>
+
+    <div id="pickerIntervaloLista" class="cal-picker agenda-picker-intervalo d-none" aria-hidden="true">
+      <div class="cal-picker-backdrop" id="pickerIntervaloBackdrop"></div>
+      <div class="cal-picker-box" role="dialog" aria-modal="true" aria-labelledby="pickerIntervaloTitulo">
+        <div class="cal-picker-header">
+          <strong id="pickerIntervaloTitulo" class="cal-picker-titulo">selecionar intervalo</strong>
+          <button type="button" id="pickerIntervaloFechar" class="cal-picker-fechar" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="agenda-intervalo-corpo">
+          <div class="mb-2">
+            <label for="intervaloListaInicio" class="form-label mb-1">data inicial</label>
+            <input type="date" id="intervaloListaInicio" class="form-control form-control-sm" required />
+          </div>
+          <div class="mb-2">
+            <label for="intervaloListaFim" class="form-label mb-1">data final</label>
+            <input type="date" id="intervaloListaFim" class="form-control form-control-sm" required />
+          </div>
+          <p id="intervaloListaErro" class="text-danger small mb-2 d-none" role="alert"></p>
+          <div class="d-flex gap-2 justify-content-end">
+            <button type="button" id="btnIntervaloCancelar" class="btn btn-sm btn-outline-secondary">cancelar</button>
+            <button type="button" id="btnIntervaloAplicar" class="btn btn-sm btn-primary">aplicar</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

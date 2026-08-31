@@ -7057,12 +7057,27 @@ button.lista-evento-acao:focus-visible {
   }
 }
 
-body.page-agenda #modalEvento {
-  z-index: 1070;
+body.page-agenda > #modalEvento {
+  flex: none;
 }
 
-body.page-agenda.modal-open .modal-backdrop {
-  z-index: 1065;
+body.page-agenda.modal-open .page-frame-content {
+  overflow: hidden;
+}
+
+html.agenda-page #modalEvento {
+  position: fixed !important;
+  z-index: 1070 !important;
+  font-family: var(--bs-body-font-family);
+  font-size: var(--bs-body-font-size);
+  font-weight: var(--bs-body-font-weight);
+  line-height: var(--bs-body-line-height);
+  color: var(--bs-body-color);
+}
+
+html.agenda-page .modal-backdrop {
+  position: fixed !important;
+  z-index: 1065 !important;
 }
 
 @media (max-width: 576px) {
@@ -7074,7 +7089,18 @@ body.page-agenda.modal-open .modal-backdrop {
   }
 
   body.page-agenda.modal-open .agenda-cal-drawer.is-open {
-    z-index: 1040;
+    z-index: 1030;
+  }
+}
+
+/* iOS Safari: flex + overflow no body quebra empilhamento de modais no iframe */
+@supports (-webkit-touch-callout: none) {
+  html.agenda-page #modalEvento.modal.show {
+    z-index: 2000 !important;
+  }
+
+  html.agenda-page .modal-backdrop.show {
+    z-index: 1990 !important;
   }
 }
 
@@ -7168,7 +7194,7 @@ body.page-agenda.modal-open .modal-backdrop {
 
 .agenda-sel-periodo {
   min-width: 6.75rem;
-  max-width: 9.5rem;
+  max-width: 11.5rem;
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: lowercase;
@@ -7184,6 +7210,31 @@ body.page-agenda.modal-open .modal-backdrop {
 .agenda-sel-periodo:focus {
   border-color: var(--brand);
   box-shadow: 0 0 0 0.15rem rgba(31, 78, 140, 0.15);
+}
+
+.agenda-picker-intervalo {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+}
+
+.agenda-picker-intervalo .cal-picker-box {
+  width: min(100vw - 1.5rem, 22rem);
+}
+
+.agenda-intervalo-corpo {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.agenda-intervalo-corpo .form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #5c6b7a;
+  text-transform: lowercase;
+}
+
+.agenda-intervalo-corpo input[type="date"].form-control-sm {
+  min-height: 2.35rem;
 }
 
 .agenda-cal-rodape {
@@ -7505,7 +7556,7 @@ body.page-agenda.modal-open .modal-backdrop {
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 1055;
+    z-index: 1040;
     background: rgba(15, 23, 42, 0.42);
   }
 

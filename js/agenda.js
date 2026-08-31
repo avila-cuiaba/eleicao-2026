@@ -41,6 +41,8 @@ let calendarioMobileAberto = false;
 let calendarioCarregando = false;
 let filtroOrigens = new Set(Object.keys(ORIGENS));
 let periodoLista = "diario";
+let intervaloLista = null;
+let periodoListaAntesIntervalo = "diario";
 
 function agendaPodeEditar() {
   return typeof AUTH !== "undefined" && AUTH.podeEditarAgenda && AUTH.podeEditarAgenda();
@@ -52,6 +54,7 @@ const PERIODOS_LISTA = {
   semanal: "semanal",
   quinzenal: "quinzenal",
   mensal: "mensal",
+  intervalo: "selecionar intervalo",
 };
 
 function inicioDiaLocal(d) {
@@ -98,6 +101,12 @@ function intervaloPeriodoLista(anchor) {
       start.setTime(new Date(anchor.getFullYear(), anchor.getMonth(), 1).getTime());
       end = fimDiaLocal(new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0));
       break;
+    case "intervalo":
+      if (intervaloLista) {
+        return { start: intervaloLista.start, end: intervaloLista.end };
+      }
+      end = fimDiaLocal(anchor);
+      break;
     default:
       end = fimDiaLocal(anchor);
   }
@@ -112,7 +121,29 @@ function ancoraPeriodoLista() {
 
 function filtroDataAtivo() {
   if (diaFiltro) return true;
+  if (periodoLista === "intervalo") return !!intervaloLista;
   return periodoLista === "mensal";
+}
+
+function dataDeInputDate(valor) {
+  const v = String(valor || "").trim();
+  if (!v) return null;
+  const partes = v.split("-").map(Number);
+  if (partes.length < 3 || !partes[0] || !partes[1] || !partes[2]) return null;
+  const data = new Date(partes[0], partes[1] - 1, partes[2]);
+  return Number.isNaN(data.getTime()) ? null : data;
+}
+
+function limitesBuscaAgenda() {
+  const inicioPadrao = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
+  const fimPadrao = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 2, 0);
+  if (periodoLista === "intervalo" && intervaloLista) {
+    const inicio =
+      intervaloLista.start < inicioPadrao ? intervaloLista.start : inicioPadrao;
+    const fim = intervaloLista.end > fimPadrao ? intervaloLista.end : fimPadrao;
+    return { inicio, fim };
+  }
+  return { inicio: inicioPadrao, fim: fimPadrao };
 }
 
 function compromissoNoPeriodo(ev, start, end) {
@@ -399,9 +430,85 @@ function filtrarItens() {
 
 function definirPeriodoLista(valor) {
   if (!PERIODOS_LISTA[valor]) return;
+
+  if (valor === "intervalo") {
+    abrirPickerIntervaloLista();
+    return;
+  }
+
   periodoLista = valor;
   atualizarSelectsPeriodo();
   renderListas();
+}
+
+function mostrarErroIntervaloLista(msg) {
+  if (!ui.intervaloErro) return;
+  ui.intervaloErro.textContent = msg || "";
+  ui.intervaloErro.classList.toggle("d-none", !msg);
+}
+
+function abrirPickerIntervaloLista() {
+  if (periodoLista !== "intervalo") {
+    periodoListaAntesIntervalo = periodoLista;
+  }
+
+  const hoje = inicioDiaLocal(new Date());
+  const inicioPadrao = intervaloLista?.start || hoje;
+  const fimPadrao =
+    intervaloLista?.end ||
+    (() => {
+      const fim = new Date(hoje);
+      fim.setDate(fim.getDate() + 6);
+      return fim;
+    })();
+
+  ui.intervaloInicio.value = AgendaAPI.paraInputData(inicioPadrao);
+  ui.intervaloFim.value = AgendaAPI.paraInputData(fimPadrao);
+  mostrarErroIntervaloLista("");
+
+  document.querySelectorAll("[data-periodo-lista]").forEach((sel) => {
+    sel.value = "intervalo";
+  });
+
+  ui.pickerIntervalo.classList.remove("d-none");
+  ui.pickerIntervalo.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => ui.intervaloInicio?.focus());
+}
+
+function fecharPickerIntervaloLista() {
+  ui.pickerIntervalo?.classList.add("d-none");
+  ui.pickerIntervalo?.setAttribute("aria-hidden", "true");
+  mostrarErroIntervaloLista("");
+}
+
+function cancelarPickerIntervaloLista() {
+  fecharPickerIntervaloLista();
+  if (!intervaloLista) {
+    periodoLista = periodoListaAntesIntervalo;
+  }
+  atualizarSelectsPeriodo();
+}
+
+async function aplicarPickerIntervaloLista() {
+  const inicio = dataDeInputDate(ui.intervaloInicio.value);
+  const fim = dataDeInputDate(ui.intervaloFim.value);
+
+  if (!inicio || !fim) {
+    mostrarErroIntervaloLista("informe a data inicial e a data final.");
+    return;
+  }
+  if (inicio.getTime() > fim.getTime()) {
+    mostrarErroIntervaloLista("a data inicial não pode ser posterior à data final.");
+    return;
+  }
+
+  intervaloLista = { start: inicioDiaLocal(inicio), end: fimDiaLocal(fim) };
+  periodoLista = "intervalo";
+  diaFiltro = null;
+  fecharPickerIntervaloLista();
+  atualizarSelectsPeriodo();
+  renderMiniCalendario();
+  await carregarEventos();
 }
 
 function atualizarSelectsPeriodo() {
@@ -435,6 +542,16 @@ function textoPeriodoLista() {
       const mes = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(anchor);
       return "atividades em " + mes + " de " + anchor.getFullYear();
     }
+    case "intervalo":
+      if (intervaloLista) {
+        return (
+          "atividades de " +
+          fmtIntervalo.format(intervaloLista.start) +
+          " a " +
+          fmtIntervalo.format(intervaloLista.end)
+        );
+      }
+      return "atividades no intervalo";
     default:
       return "atividades";
   }
@@ -889,6 +1006,33 @@ function mensagemErroAgenda(err) {
   return msg.replace(/^Error:\s*/i, "");
 }
 
+const AGENDA_Z_MODAL = 1070;
+const AGENDA_Z_BACKDROP = 1065;
+
+function ancorarModalAgendaNoDocumento() {
+  const modalEl = document.getElementById("modalEvento");
+  if (!modalEl) return null;
+  if (modalEl.parentElement !== document.body) {
+    document.body.appendChild(modalEl);
+  }
+  return modalEl;
+}
+
+function corrigirEmpilhamentoModalAgenda() {
+  const modalEl = ancorarModalAgendaNoDocumento();
+  if (!modalEl) return;
+
+  const backdrops = document.querySelectorAll(".modal-backdrop");
+  backdrops.forEach((bd, indice) => {
+    bd.style.zIndex = String(AGENDA_Z_BACKDROP + indice);
+    if (bd.parentElement !== document.body) {
+      document.body.insertBefore(bd, modalEl);
+    }
+  });
+
+  modalEl.style.zIndex = String(AGENDA_Z_MODAL + backdrops.length);
+}
+
 function abrirModalItem(tipo, data, ev) {
   fecharCalendarioMobile();
   modoEdicao = !!ev;
@@ -967,8 +1111,7 @@ async function carregarEventos() {
   statusPainel(ui.status, "", "carregando");
 
   try {
-    const inicio = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
-    const fim = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 2, 0);
+    const { inicio, fim } = limitesBuscaAgenda();
     const resultado = await AgendaAPI.buscar(inicio, fim);
     if (resultado === null) return;
 
@@ -1184,6 +1327,14 @@ function montarUi() {
     btnToggleCalendario: document.getElementById("btnToggleCalendario"),
     btnFecharCalendario: document.getElementById("btnFecharCalendario"),
     btnRelatorioTarefas: document.getElementById("btnRelatorioTarefas"),
+    pickerIntervalo: document.getElementById("pickerIntervaloLista"),
+    pickerIntervaloFechar: document.getElementById("pickerIntervaloFechar"),
+    pickerIntervaloBackdrop: document.getElementById("pickerIntervaloBackdrop"),
+    intervaloInicio: document.getElementById("intervaloListaInicio"),
+    intervaloFim: document.getElementById("intervaloListaFim"),
+    intervaloErro: document.getElementById("intervaloListaErro"),
+    btnIntervaloCancelar: document.getElementById("btnIntervaloCancelar"),
+    btnIntervaloAplicar: document.getElementById("btnIntervaloAplicar"),
   };
 }
 
@@ -1246,10 +1397,19 @@ function initAgenda() {
   montarUi();
   if (!ui.miniCal) return;
 
-  const modalEl = document.getElementById("modalEvento");
-  modalEvento = modalEl
-    ? new bootstrap.Modal(modalEl, { container: "body" })
-    : null;
+  const modalEl = ancorarModalAgendaNoDocumento();
+  modalEvento = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+  if (modalEl) {
+    modalEl.addEventListener("show.bs.modal", () => {
+      fecharCalendarioMobile();
+      ancorarModalAgendaNoDocumento();
+    });
+    modalEl.addEventListener("shown.bs.modal", () => {
+      corrigirEmpilhamentoModalAgenda();
+      requestAnimationFrame(corrigirEmpilhamentoModalAgenda);
+    });
+  }
 
   ui.form.addEventListener("submit", salvarFormulario);
   ui.btnExcluir.addEventListener("click", excluirItem);
@@ -1310,6 +1470,13 @@ function initAgenda() {
   ui.pickerFechar.addEventListener("click", fecharPicker);
   ui.pickerBackdrop.addEventListener("click", fecharPicker);
 
+  ui.pickerIntervaloFechar?.addEventListener("click", cancelarPickerIntervaloLista);
+  ui.pickerIntervaloBackdrop?.addEventListener("click", cancelarPickerIntervaloLista);
+  ui.btnIntervaloCancelar?.addEventListener("click", cancelarPickerIntervaloLista);
+  ui.btnIntervaloAplicar?.addEventListener("click", () => {
+    aplicarPickerIntervaloLista();
+  });
+
   atualizarTituloHeader();
   atualizarBotaoCalendarioMobile();
   agendarSincronizacaoViewportAgenda();
@@ -1368,6 +1535,10 @@ AUTH.exigir();
 document.addEventListener("DOMContentLoaded", initAgenda);
 
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && ui.pickerIntervalo && !ui.pickerIntervalo.classList.contains("d-none")) {
+    cancelarPickerIntervaloLista();
+    return;
+  }
   if (e.key === "Escape" && ui.picker && !ui.picker.classList.contains("d-none")) {
     fecharPicker();
     return;
