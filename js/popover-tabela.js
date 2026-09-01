@@ -118,6 +118,18 @@ const PopoverTabela = (function () {
     return true;
   }
 
+  function documentosPopoverEventos() {
+    const docs = [document];
+    try {
+      if (window.parent?.document && window.parent.document !== document) {
+        docs.push(window.parent.document);
+      }
+    } catch (e) {
+      /* ignorar */
+    }
+    return docs;
+  }
+
   function vincularImprimirPopover() {
     if (imprimirPopoverVinculado) return;
     imprimirPopoverVinculado = true;
@@ -170,6 +182,18 @@ const PopoverTabela = (function () {
       e.stopPropagation();
       executarImpressao(btn);
     });
+
+    documentosPopoverEventos()
+      .filter((doc) => doc !== document)
+      .forEach((doc) => {
+        doc.addEventListener("pointerdown", (e) => {
+          const btn = e.target.closest(".popover-tabela-btn-imprimir");
+          if (!btn) return;
+          e.preventDefault();
+          e.stopPropagation();
+          executarImpressao(btn);
+        });
+      });
   }
 
   function htmlBotaoImprimir(titulo, printKey) {
@@ -214,24 +238,155 @@ const PopoverTabela = (function () {
     </div>`;
   }
 
-  function criar() {
-    let popovers = [];
-    let handler = null;
+  const HOVER_HIDE_MS = 220;
+  const HOVER_SHOW_MS = 120;
 
-    function fecharOutros(trAtivo) {
-      popovers.forEach((p) => {
-        if (p._element !== trAtivo) p.hide();
+  function popperConfigPopoverTabela() {
+    return {
+      strategy: "fixed",
+      modifiers: [
+        { name: "offset", options: { offset: [0, 8] } },
+        {
+          name: "preventOverflow",
+          options: { padding: 8, altAxis: true },
+        },
+        {
+          name: "flip",
+          options: { fallbackPlacements: ["bottom", "right", "left", "top"] },
+        },
+      ],
+    };
+  }
+
+  function aplicarClasseShellPopover(aberto) {
+    try {
+      if (window.parent && window.parent !== window && window.parent.document?.body) {
+        window.parent.document.body.classList.toggle("app-shell-popover-tabela-aberto", !!aberto);
+        return true;
+      }
+    } catch (e) {
+      /* origem cruzada — ignorar */
+    }
+    return false;
+  }
+
+  function resetarShellPopoverTabela() {
+    aplicarClasseShellPopover(false);
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ tipo: "eleicao-popover-tabela", aberto: false }, "*");
+      }
+    } catch (e) {
+      /* ignorar */
+    }
+  }
+
+  function vincularGatilhoPopoverLinha({ tr, alvos, pop, trigg, seletorAlvo, fecharOutros }) {
+    const usaHover = String(trigg).includes("hover");
+    const usaClick = String(trigg).includes("click");
+    let hideTimer = null;
+    let showTimer = null;
+    const seletorPopover = `.popover.${POPOVER_CLASS}`;
+
+    function cancelarHide() {
+      if (!hideTimer) return;
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+
+    function cancelarShow() {
+      if (!showTimer) return;
+      clearTimeout(showTimer);
+      showTimer = null;
+    }
+
+    function alvoAindaAtivo() {
+      return !!tr.querySelector(`${seletorAlvo}:hover`);
+    }
+
+    function destinoPermaneceAberto(destino) {
+      if (!destino) return false;
+      if (destino.closest?.(seletorPopover)) return true;
+      if (!tr.contains(destino)) return false;
+      return !!destino.closest?.(seletorAlvo);
+    }
+
+    function agendarHide() {
+      cancelarHide();
+      hideTimer = setTimeout(() => {
+        hideTimer = null;
+        pop.hide();
+      }, HOVER_HIDE_MS);
+    }
+
+    function vincularPopoverAberto() {
+      const id = pop._element?.getAttribute("aria-describedby");
+      const popoverEl = id ? document.getElementById(id) : null;
+      if (!popoverEl || popoverEl.dataset.gatilhoVinculado === "1") return;
+      popoverEl.dataset.gatilhoVinculado = "1";
+      popoverEl.addEventListener("mouseenter", cancelarHide);
+      popoverEl.addEventListener("mouseleave", (e) => {
+        if (destinoPermaneceAberto(e.relatedTarget)) return;
+        agendarHide();
       });
     }
 
-    function destruir() {
-      if (handler) {
-        document.removeEventListener("click", handler, true);
-        handler = null;
+    pop._element?.addEventListener("shown.bs.popover", vincularPopoverAberto);
+
+    alvos.forEach((alvo) => {
+      if (usaHover) {
+        alvo.addEventListener("mouseenter", () => {
+          cancelarHide();
+          cancelarShow();
+          fecharOutros(tr);
+          showTimer = setTimeout(() => {
+            showTimer = null;
+            if (!alvoAindaAtivo()) return;
+            pop.show();
+          }, HOVER_SHOW_MS);
+        });
+        alvo.addEventListener("mouseleave", (e) => {
+          cancelarShow();
+          if (destinoPermaneceAberto(e.relatedTarget)) return;
+          agendarHide();
+        });
       }
-      popovers.forEach((p) => p.dispose());
+      if (usaClick) {
+        alvo.addEventListener("click", (e) => {
+          e.preventDefault();
+          fecharOutros(tr);
+          pop.toggle();
+        });
+      }
+    });
+  }
+
+  function criar() {
+    let popovers = [];
+    const clickHandlers = [];
+    let seletorLinhaAtual = "tr";
+
+    function fecharOutros(trAtivo) {
+      popovers.forEach((p) => {
+        const linhaPop = p._element?.closest?.(seletorLinhaAtual);
+        if (linhaPop && linhaPop !== trAtivo) p.hide();
+      });
+    }
+
+    function removerClickHandlers() {
+      clickHandlers.forEach(({ doc, handler }) => {
+        doc.removeEventListener("click", handler, true);
+      });
+      clickHandlers.length = 0;
+    }
+
+    function destruir() {
+      removerClickHandlers();
+      const lista = popovers;
       popovers = [];
       limparPayloadsImpressao();
+      lista.forEach((p) => p.dispose());
+      resetarShellPopoverTabela();
     }
 
     function inicializar(opts) {
@@ -250,6 +405,7 @@ const PopoverTabela = (function () {
       destruir();
       if (!corpo || typeof bootstrap === "undefined") return;
 
+      seletorLinhaAtual = seletorLinha;
       const trigg = triggerOpt || trigger();
       const linhasEl = corpo.querySelectorAll(seletorLinha);
 
@@ -271,32 +427,48 @@ const PopoverTabela = (function () {
           : [tr];
         if (!alvos.length) return;
 
-        alvos.forEach((alvo) => {
-          const pop = new bootstrap.Popover(alvo, {
-            trigger: trigg,
-            html: true,
-            sanitize: false,
-            placement: "auto",
-            container: "body",
-            customClass: POPOVER_CLASS,
-            content: contentHtml,
-          });
-
-          alvo.addEventListener("show.bs.popover", () => fecharOutros(alvo));
-          popovers.push(pop);
+        const ancora = alvos[0];
+        const pop = new bootstrap.Popover(ancora, {
+          trigger: seletorAlvo ? "manual" : trigg,
+          html: true,
+          sanitize: false,
+          placement: "bottom",
+          container: document.body,
+          customClass: POPOVER_CLASS,
+          popperConfig: popperConfigPopoverTabela(),
+          content: contentHtml,
         });
+
+        if (seletorAlvo) {
+          vincularGatilhoPopoverLinha({
+            tr,
+            alvos,
+            pop,
+            trigg,
+            seletorAlvo,
+            fecharOutros,
+          });
+        } else {
+          ancora.addEventListener("show.bs.popover", () => fecharOutros(tr));
+        }
+
+        popovers.push(pop);
       });
 
       if (fecharAoClicarFora && String(trigg).includes("click")) {
-        handler = (e) => {
+        const handler = (e) => {
+          const emPopover = e.target.closest(`.popover.${POPOVER_CLASS}`);
+          if (emPopover) return;
+
           const emLinha = e.target.closest(seletorLinha);
           const emAlvo = seletorAlvo ? e.target.closest(seletorAlvo) : null;
-          const emPopover = e.target.closest(`.popover.${POPOVER_CLASS}`);
-          if (!emLinha && !emAlvo && !emPopover) {
-            popovers.forEach((p) => p.hide());
-          }
+          if (emLinha || emAlvo) return;
+
+          popovers.forEach((p) => p.hide());
         };
+
         document.addEventListener("click", handler, true);
+        clickHandlers.push({ doc: document, handler });
       }
     }
 

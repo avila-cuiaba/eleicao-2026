@@ -284,7 +284,7 @@ html {
   border-bottom: 1px solid #e9ecef;
   position: sticky;
   top: 0;
-  z-index: 1020;
+  z-index: 100;
 }
 
 .app-header-start {
@@ -2585,6 +2585,14 @@ body.page-orcamento-geral .orcamento-geral-kpi-row-principal > .col-4 {
   cursor: help;
 }
 
+body.page-apoiadores .apoiadores-tabela tbody tr.apoiadores-linha-popover {
+  cursor: default;
+}
+
+body.page-apoiadores .apoiadores-tabela .apoiadores-celula-popover {
+  cursor: help;
+}
+
 .orcamento-estratificado-tabela tbody tr.orcamento-estratificado-linha-master {
   cursor: pointer;
 }
@@ -2835,11 +2843,35 @@ body.page-orcamento-geral .orcamento-geral-kpi-row-principal > .col-4 {
 .popover.orcamento-geral-popover-bs {
   border-color: rgba(148, 163, 184, 0.45);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  z-index: 9999 !important;
+}
+
+body.app-shell > .popover.orcamento-geral-popover-bs {
+  z-index: 9999 !important;
+}
+
+body.app-shell.app-shell-popover-tabela-aberto .app-header {
+  z-index: 0 !important;
+}
+
+body.app-shell.app-shell-popover-tabela-aberto .app-main-frame {
+  position: relative;
+  z-index: 1;
+}
+
+body.page-apoiadores .apoiadores-tabela-toolbar,
+body.page-apoiadores .dashboard-tabela-head {
+  position: relative;
+  z-index: 2;
 }
 
 .popover.orcamento-geral-popover-bs .popover-body {
   padding: 0.55rem 0.7rem;
   color: #334155;
+}
+
+.popover.orcamento-geral-popover-bs .popover-arrow ~ .popover-arrow {
+  display: none !important;
 }
 
 .orcamento-geral-badge {
@@ -3452,7 +3484,9 @@ body.page-orcamento-geral .orcamento-geral-kpi-row-principal > .col-4 {
   body.page-orcamento-geral:not(.page-pagamentos-geral) .orcamento-geral-kpi-layout .orcamento-geral-kpi-row-detalhe .dashboard-kpi-valor {
     font-size: 0.92rem;
   }
+}
 
+@media (min-width: 1200px) {
   body.page-orcamento-geral:not(.page-pagamentos-geral) .orcamento-geral-tabela col.orcamento-geral-col-item {
     width: calc(100% - 19rem) !important;
   }

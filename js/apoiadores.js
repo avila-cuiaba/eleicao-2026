@@ -1490,7 +1490,7 @@ function htmlGrupoApoiadorMobile(r) {
     })
     .filter(Boolean);
 
-  return `<td class="apoiadores-col-grupo-mobile apoiadores-col-separador" colspan="4">
+  return `<td class="apoiadores-col-grupo-mobile apoiadores-col-separador apoiadores-celula-popover" colspan="4">
     <div class="apoiadores-grupo-inline" aria-label="apoiador">${linhas.length ? linhas.join("") : ""}</div>
   </td>`;
 }
@@ -1544,10 +1544,10 @@ function renderizarLinha(r) {
       </span>
     </td>
     ${htmlGrupoApoiadorMobile(r)}
-    <td class="text-end apoiadores-col-lider apoiadores-col-apoiador-desk apoiadores-col-separador apoiadores-celula-num">${exibirCelula(r.apoiadorLider)}</td>
-    <td class="text-end apoiadores-col-integral apoiadores-col-apoiador-desk apoiadores-celula-num">${exibirCelula(r.apoiadorIntegral)}</td>
-    <td class="text-end apoiadores-col-meio apoiadores-col-apoiador-desk apoiadores-celula-num">${exibirCelula(r.apoiadorMeio)}</td>
-    <td class="text-end apoiadores-col-custom apoiadores-col-apoiador-desk apoiadores-celula-num">${exibirCelula(r.apoiadorCustomizado)}</td>
+    <td class="text-end apoiadores-col-lider apoiadores-col-apoiador-desk apoiadores-col-separador apoiadores-celula-num apoiadores-celula-popover">${exibirCelula(r.apoiadorLider)}</td>
+    <td class="text-end apoiadores-col-integral apoiadores-col-apoiador-desk apoiadores-celula-num apoiadores-celula-popover">${exibirCelula(r.apoiadorIntegral)}</td>
+    <td class="text-end apoiadores-col-meio apoiadores-col-apoiador-desk apoiadores-celula-num apoiadores-celula-popover">${exibirCelula(r.apoiadorMeio)}</td>
+    <td class="text-end apoiadores-col-custom apoiadores-col-apoiador-desk apoiadores-celula-num apoiadores-celula-popover">${exibirCelula(r.apoiadorCustomizado)}</td>
   </tr>`;
 }
 
@@ -1589,6 +1589,7 @@ function renderizarTabela() {
   popoverTabela.inicializar({
     corpo: el.corpo,
     seletorLinha: "tr.apoiadores-linha-popover",
+    seletorAlvo: ".apoiadores-celula-popover",
     linhas: filtradas,
     htmlConteudo: htmlPopoverApoiador,
     tituloImpressao: tituloImpressaoPopoverApoiador,
