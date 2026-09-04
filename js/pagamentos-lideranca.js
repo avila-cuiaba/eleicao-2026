@@ -965,7 +965,7 @@ function htmlCelulaPar(r, par, { destaque = false } = {}) {
 
 function classeCelulaParDesktop(idx) {
   const base =
-    "text-end pag-lideranca-col-par pag-lideranca-col-desk apoiadores-celula-num orcamento-tabela-desktop-col";
+    "text-end pag-lideranca-col-par pag-lideranca-col-desk apoiadores-celula-num orcamento-tabela-desktop-col pag-lideranca-celula-popover";
   return idx === 0 ? base + " apoiadores-col-separador" : base;
 }
 
@@ -1120,8 +1120,8 @@ function itemPopoverPar(r, par) {
     : "";
   return `<div class="apoiadores-popover-linha apoiadores-popover-linha--fin pag-lideranca-popover-linha">
     <span class="${rotuloClass}">${marcador}${par.rotulo}</span>
-    <span class="pag-lideranca-popover-orc">${exibirMoeda(r[par.propOrc]) || "—"}</span>
-    <span class="pag-lideranca-popover-pgto">${exibirMoeda(r[par.propPgto]) || "—"}</span>
+    <span class="pag-lideranca-popover-orc">${exibirMoeda(r[par.propOrc])}</span>
+    <span class="pag-lideranca-popover-pgto">${exibirMoeda(r[par.propPgto])}</span>
   </div>`;
 }
 
@@ -1130,6 +1130,15 @@ function htmlPopoverSecao(titulo, pares, r) {
   return `<div class="pag-lideranca-popover-secao">
     <div class="pag-lideranca-popover-secao-titulo">${titulo}</div>
     ${itens}
+  </div>`;
+}
+
+function htmlPopoverObservacao(r) {
+  const obs = exibirTexto(r.observacao);
+  if (!obs) return "";
+  return `<div class="pag-lideranca-popover-obs">
+    <span class="pag-lideranca-popover-obs-rotulo">observação</span>
+    <div class="apoiadores-popover-observacao">${obs}</div>
   </div>`;
 }
 
@@ -1153,6 +1162,7 @@ function htmlPopover(r) {
       ${htmlPopoverSecao("pessoal", CAMPOS_PESSOAL, r)}
       ${htmlPopoverSecao("geral", CAMPOS_GERAL, r)}
     </div>
+    ${htmlPopoverObservacao(r)}
   </div>`;
 }
 
@@ -1256,10 +1266,10 @@ function renderizarLinha(r) {
       </span>
     </td>
     ${colsPares}
-    <td class="text-end apoiadores-col-orc-stack-pessoal orcamento-tabela-stack-col apoiadores-col-separador">
+    <td class="text-end apoiadores-col-orc-stack-pessoal orcamento-tabela-stack-col apoiadores-col-separador pag-lideranca-celula-popover">
       <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackPessoal}</div>
     </td>
-    <td class="text-end apoiadores-col-orc-stack-diversos orcamento-tabela-stack-col">
+    <td class="text-end apoiadores-col-orc-stack-diversos orcamento-tabela-stack-col pag-lideranca-celula-popover">
       <div class="orcamento-tabela-stack orcamento-tabela-stack-valores">${stackDiversos}</div>
     </td>
   </tr>`;
@@ -1307,6 +1317,7 @@ function renderizarTabela() {
   popoverTabela.inicializar({
     corpo: el.corpo,
     seletorLinha: "tr.apoiadores-linha-popover",
+    seletorAlvo: ".pag-lideranca-celula-popover",
     linhas: filtradas,
     htmlConteudo: htmlPopover,
   });

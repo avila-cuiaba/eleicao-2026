@@ -74,6 +74,7 @@ let paginaAtualTabela = 1;
 let arquivosContratoCarregando = false;
 let mapaMunicipioRegiao = new Map();
 let regioes = [];
+let regioesPendencias = [];
 
 function tamanhoPaginaTabela() {
   const n = cfg.TAMANHO_PAGINA_TABELA;
@@ -1042,6 +1043,261 @@ function htmlPainelLimiteLideranca(municipio, lideranca) {
     linhaTotal +
     "</tfoot></table></div></div>"
   );
+}
+
+function calcularPendenciasContratosFirmados(municipio, lideranca) {
+  const ap = apoiadorPlanilhaPara(municipio, lideranca);
+  if (!ap) return null;
+
+  const uso = agregarContratosLideranca(municipio, lideranca);
+  const pendencias = [];
+
+  CATEGORIAS_TIPO_CONTRATO.forEach((cat) => {
+    const orc = orcamentoFinApoiador(ap, cat.fin);
+    const metaQtd = Math.floor(parseNumeroPlanilha(ap[cat.qtd]));
+    const usado = uso[cat.id].valor;
+    const qtd = uso[cat.id].qtd;
+    const faltaQtd = metaQtd > 0 ? Math.max(0, metaQtd - qtd) : 0;
+    const faltaValor = orc > 0 ? Math.max(0, orc - usado) : 0;
+    const temPrevisao = metaQtd > 0 || orc > 0;
+    const incompleto = temPrevisao && (faltaQtd > 0 || faltaValor > 0.009);
+
+    if (!incompleto) return;
+
+    pendencias.push({
+      cat,
+      metaQtd,
+      orc,
+      qtd,
+      usado,
+      faltaQtd,
+      faltaValor,
+    });
+  });
+
+  if (!pendencias.length) return null;
+
+  return { municipio, lideranca, pendencias };
+}
+
+function listarLiderancasComContratosPendentes(aplicarFiltroRegiao) {
+  const lista = [];
+
+  apoiadorPorMunLider.forEach((ap) => {
+    const item = calcularPendenciasContratosFirmados(ap.municipio, ap.lideranca);
+    if (item) lista.push(item);
+  });
+
+  lista.sort((a, b) => {
+    const mun = a.municipio.localeCompare(b.municipio, "pt-BR", { sensitivity: "base" });
+    if (mun) return mun;
+    return a.lideranca.localeCompare(b.lideranca, "pt-BR", { sensitivity: "base" });
+  });
+
+  if (!aplicarFiltroRegiao) return lista;
+  return aplicarFiltroRegiaoPendencias(lista);
+}
+
+function regiaoPendenciaItem(municipio) {
+  const info = mapaMunicipioRegiao.get(PlanilhaApi.normalizarChave(municipio));
+  return info || { regiao: "", regiaoNorm: "" };
+}
+
+function extrairRegioesPendencias(itens) {
+  const mapa = new Map();
+
+  itens.forEach((item) => {
+    const info = regiaoPendenciaItem(item.municipio);
+    if (!info.regiaoNorm) return;
+    if (!mapa.has(info.regiaoNorm)) mapa.set(info.regiaoNorm, info.regiao);
+  });
+
+  return Array.from(mapa.entries())
+    .map(([norm, rotulo]) => ({ norm, rotulo }))
+    .sort(ordenarRegioes);
+}
+
+function regioesPendenciasSelecionadas() {
+  if (!el.filtroRegioesPendencias) return [];
+  return Array.from(
+    el.filtroRegioesPendencias.querySelectorAll('input[type="checkbox"]:checked')
+  ).map((cb) => cb.value);
+}
+
+function aplicarFiltroRegiaoPendencias(lista) {
+  if (!el.filtroRegioesPendencias) return lista;
+
+  const selecionadas = regioesPendenciasSelecionadas();
+  if (!selecionadas.length) return [];
+
+  const todasMarcadas = selecionadas.length === regioesPendencias.length;
+  return lista.filter((item) => {
+    const info = regiaoPendenciaItem(item.municipio);
+    if (info.regiaoNorm) {
+      if (!selecionadas.includes(info.regiaoNorm)) return false;
+    } else if (!todasMarcadas) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function montarFiltroRegioesPendencias(itens) {
+  if (!el.filtroRegioesPendencias) return;
+
+  const listaRegioes = extrairRegioesPendencias(itens);
+  regioesPendencias = listaRegioes;
+  const selecionadasAntes = new Set(regioesPendenciasSelecionadas());
+  const tinhaFiltro = el.filtroRegioesPendencias.childElementCount > 0;
+
+  el.filtroRegioesPendencias.innerHTML = "";
+
+  if (!listaRegioes.length) {
+    el.filtroRegioesPendencias.innerHTML =
+      '<span class="text-secondary small">nenhuma micro-região encontrada.</span>';
+    return;
+  }
+
+  listaRegioes.forEach((reg) => {
+    const id = "ctr-pend-regiao-" + reg.norm.replace(/[^a-z0-9]+/g, "-");
+    const marcado = !tinhaFiltro || selecionadasAntes.has(reg.norm);
+    const label = document.createElement("label");
+    label.className =
+      "dashboard-filtro-item dashboard-filtro-cor--" + indiceCorRegiao(reg.norm);
+    label.innerHTML =
+      `<input type="checkbox" class="visually-hidden" id="${id}" value="${escapeHtml(reg.norm)}"${
+        marcado ? " checked" : ""
+      }>` + `<span class="dashboard-filtro-badge">${escapeHtml(reg.rotulo)}</span>`;
+    el.filtroRegioesPendencias.appendChild(label);
+  });
+
+  el.filtroRegioesPendencias.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    cb.addEventListener("change", () => renderizarListaPendenciasContratosModal());
+  });
+}
+
+function exibirCelulaPendenciaQtd(qtd, metaQtd) {
+  if (metaQtd > 0 || qtd > 0) return String(qtd);
+  return "";
+}
+
+function exibirCelulaPendenciaValor(valor, orc) {
+  if (orc > 0 || valor > 0.009) return escapeHtml(valorMoedaGravar(valor) || "0,00");
+  return "";
+}
+
+function htmlLinhaPendenciaContrato(p) {
+  const partes = [];
+  if (p.faltaQtd > 0) {
+    partes.push(`faltam ${p.faltaQtd} contrato(s)`);
+  }
+  if (p.faltaValor > 0.009) {
+    partes.push(`saldo ${escapeHtml(valorMoedaGravar(p.faltaValor))}`);
+  }
+
+  return (
+    "<tr>" +
+    `<td class="contratos-pendencias-col-tipo">${escapeHtml(p.cat.rotulo)}</td>` +
+    `<td class="text-center">${p.metaQtd > 0 ? p.metaQtd : ""}</td>` +
+    `<td class="text-center">${exibirCelulaPendenciaQtd(p.qtd, p.metaQtd)}</td>` +
+    `<td class="text-end">${p.orc > 0 ? escapeHtml(valorMoedaGravar(p.orc)) : ""}</td>` +
+    `<td class="text-end">${exibirCelulaPendenciaValor(p.usado, p.orc)}</td>` +
+    `<td class="contratos-pendencias-col-falta">${partes.join(" · ")}</td>` +
+    "</tr>"
+  );
+}
+
+function htmlListaPendenciasContratos(itens) {
+  if (!itens.length) {
+    const temPendencias = listarLiderancasComContratosPendentes(false).length > 0;
+    return (
+      '<p class="small text-muted mb-0">' +
+      (temPendencias
+        ? "nenhuma pendência para as micro-regiões selecionadas."
+        : "todos os orçamentos fechados já possuem a totalidade de contratos firmados.") +
+      "</p>"
+    );
+  }
+
+  let html = '<div class="contratos-pendencias-lista">';
+
+  itens.forEach((item, idx) => {
+    const linhas = item.pendencias.map(htmlLinhaPendenciaContrato).join("");
+    html +=
+      '<article class="contratos-pendencias-item">' +
+      '<div class="contratos-pendencias-cab">' +
+      '<div class="contratos-pendencias-ident">' +
+      `<div class="contratos-pendencias-nome">${escapeHtml(item.lideranca)}</div>` +
+      `<div class="contratos-pendencias-municipio text-muted">${escapeHtml(item.municipio)}</div>` +
+      "</div>" +
+      '<button type="button" class="btn btn-sm btn-outline-primary contratos-pendencias-usar" ' +
+      `data-pendencia-idx="${idx}">` +
+      "usar" +
+      "</button>" +
+      "</div>" +
+      '<div class="table-responsive">' +
+      '<table class="table table-sm table-bordered mb-0 contratos-pendencias-tabela">' +
+      "<thead><tr>" +
+      '<th class="contratos-pendencias-col-tipo">tipo</th>' +
+      '<th class="text-center">meta qtde</th>' +
+      '<th class="text-center">contratos</th>' +
+      '<th class="text-end">orçamento</th>' +
+      '<th class="text-end">valor contratos</th>' +
+      '<th class="contratos-pendencias-col-falta">pendência</th>' +
+      "</tr></thead><tbody>" +
+      linhas +
+      "</tbody></table></div></article>";
+  });
+
+  html += "</div>";
+  return html;
+}
+
+function renderizarListaPendenciasContratosModal() {
+  if (!el.contratosPendenciasLista) return;
+  const itens = listarLiderancasComContratosPendentes(true);
+  el.contratosPendenciasLista.innerHTML = htmlListaPendenciasContratos(itens);
+}
+
+function renderizarPendenciasContratosModal() {
+  const todos = listarLiderancasComContratosPendentes(false);
+  if (el.filtroRegioesPendencias) el.filtroRegioesPendencias.innerHTML = "";
+  montarFiltroRegioesPendencias(todos);
+  renderizarListaPendenciasContratosModal();
+}
+
+function ativarTabModalContratos() {
+  const tab = document.getElementById("tabModalContratos");
+  if (tab) bootstrap.Tab.getOrCreateInstance(tab).show();
+}
+
+function aplicarPendenciaNoFormulario(municipio, lideranca) {
+  const selMun = document.getElementById("campo-municipio");
+  const selCoord = document.getElementById("campo-coordenador");
+  if (!selMun || !selCoord) return;
+
+  selMun.value = municipio;
+  repopularSelectCoordenador(lideranca, false);
+  if (!selCoord.value && lideranca) {
+    const op = Array.from(selCoord.options).find(
+      (o) => PlanilhaApi.normalizarChave(o.value) === PlanilhaApi.normalizarChave(lideranca)
+    );
+    if (op) selCoord.value = op.value;
+  }
+  atualizarPainelLimiteLideranca();
+  ativarTabModalContratos();
+}
+
+function configurarTabsModalContrato(modo) {
+  const isNovo = modo === "novo";
+  el.modalContratoTabs?.classList.toggle("d-none", !isNovo);
+  el.painelModalPendencias?.classList.toggle("d-none", !isNovo);
+  if (isNovo) {
+    ativarTabModalContratos();
+    renderizarPendenciasContratosModal();
+  } else {
+    ativarTabModalContratos();
+  }
 }
 
 function garantirPainelLimiteLideranca() {
@@ -2046,6 +2302,7 @@ function abrirNovo() {
     : "novo contrato";
   montarFormulario(null);
   aplicarDefaultsFormularioJuliana();
+  configurarTabsModalContrato("novo");
   modal.show();
 }
 
@@ -2056,6 +2313,7 @@ function abrirEditar(item) {
     ? "editar contrato — " + cfg.FILTRO_CONTRATO_QUEM
     : "editar contrato";
   montarFormulario(item);
+  configurarTabsModalContrato("editar");
   modal.show();
 }
 
@@ -3008,6 +3266,10 @@ function init() {
     btnNovo: document.getElementById("btnNovo"),
     form: document.getElementById("formContrato"),
     formCampos: document.getElementById("formCampos"),
+    modalContratoTabs: document.getElementById("modalContratoTabs"),
+    painelModalPendencias: document.getElementById("painelModalPendencias"),
+    contratosPendenciasLista: document.getElementById("contratosPendenciasLista"),
+    filtroRegioesPendencias: document.getElementById("filtroRegioesPendencias"),
     btnSalvar: document.getElementById("btnSalvar"),
     btnCancelar: document.getElementById("btnCancelar"),
     modalSalvando: document.getElementById("modalSalvando"),
@@ -3062,6 +3324,14 @@ function init() {
     el.btnNovo.classList.add("d-none");
   }
   el.form?.addEventListener("submit", salvarFormulario);
+  el.contratosPendenciasLista?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".contratos-pendencias-usar");
+    if (!btn) return;
+    const idx = Number(btn.dataset.pendenciaIdx);
+    const item = listarLiderancasComContratosPendentes(true)[idx];
+    if (!item) return;
+    aplicarPendenciaNoFormulario(item.municipio, item.lideranca);
+  });
 
   TabelaOrdenacao.vincular(
     el.tabelaCard,

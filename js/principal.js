@@ -607,10 +607,6 @@ window.addEventListener("message", (event) => {
     agendarAjusteFrame();
     return;
   }
-  if (event.data?.tipo === "eleicao-popover-tabela") {
-    document.body.classList.toggle("app-shell-popover-tabela-aberto", !!event.data.aberto);
-    return;
-  }
   if (event.data?.tipo === "eleicao-exportar-xls-result") {
     if (event.data.erro) {
       window.alert(event.data.erro);

@@ -40,7 +40,8 @@ https://docs.google.com/document/d/1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s/
 ## 2. Atualizar o código no Apps Script
 
 1. Cole o `BackendPlanilhas.gs` atualizado no editor.
-2. **Implantar → Gerenciar implantações → Editar → Nova versão → Implantar**.
+2. Em **Serviços** (+), adicione **Google Sheets API** (v4), se ainda não estiver listado — necessário para gravar fórmulas em português nas células de apoiadores.
+3. **Implantar → Gerenciar implantações → Editar → Nova versão → Implantar**.
 
 ---
 

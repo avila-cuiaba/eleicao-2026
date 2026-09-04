@@ -1472,15 +1472,117 @@ function nomeAbaParametrosClassificacaoApoiadores_(sheet) {
 
 function buscarFormulaClassificacaoApoiadoresModelo(sheet, col, antesDeLinha) {
   const limite = Math.min(antesDeLinha - 1, sheet.getLastRow());
+  let fallback = null;
   for (let r = limite; r >= 2; r--) {
     const f = sheet.getRange(r, col).getFormula();
     if (!f) continue;
     const u = String(f).toUpperCase();
-    if (u.indexOf("CORRESP(") >= 0 || u.indexOf("MATCH(") >= 0) {
+    if (u.indexOf("CORRESP(") < 0 && u.indexOf("MATCH(") < 0) continue;
+    if (formulaClassificacaoApoiadorEhPortugues_(f)) {
       return { formula: f, linha: r };
     }
+    if (!fallback) fallback = { formula: f, linha: r };
   }
-  return null;
+  return fallback;
+}
+
+function formulaClassificacaoApoiadorEhPortugues_(formula) {
+  const u = String(formula || "").toUpperCase();
+  if (u.indexOf("SEERRO(") >= 0) return true;
+  return (
+    u.indexOf("CORRESP(") >= 0 &&
+    (u.indexOf("ÍNDICE(") >= 0 || u.indexOf("INDICE(") >= 0)
+  );
+}
+
+/** Apps Script setFormula() exige inglês; USER_ENTERED aceita PT como digitação manual. */
+function sheetsApiDisponivel_() {
+  return !!(typeof Sheets !== "undefined" && Sheets.Spreadsheets && Sheets.Spreadsheets.Values);
+}
+
+function refA1Planilha_(sheet, range) {
+  const nome = String(sheet.getName() || "").replace(/'/g, "''");
+  const precisaAspas = !/^[A-Za-z0-9_]+$/.test(nome);
+  const prefixo = precisaAspas ? "'" + nome + "'" : nome;
+  return prefixo + "!" + range.getA1Notation();
+}
+
+function definirFormulaComoDigitada_(range, formula) {
+  if (!range || !formula) return;
+  const sheet = range.getSheet();
+  const ss = sheet.getParent();
+  if (sheetsApiDisponivel_()) {
+    Sheets.Spreadsheets.Values.update(
+      { values: [[formula]] },
+      ss.getId(),
+      refA1Planilha_(sheet, range),
+      { valueInputOption: "USER_ENTERED" }
+    );
+    return;
+  }
+  range.setFormula(converterFormulaClassificacaoPtParaSetFormula_(formula));
+}
+
+function converterFormulaClassificacaoPtParaSetFormula_(formula) {
+  const fx = sintaxeFormulaClassificacaoApoiadoresSetFormula_();
+  const m = String(formula).match(/CORRESP\s*\(\s*A(\d+)/i);
+  const linha = m ? m[1] : "2";
+  const colParam =
+    formula.indexOf("$I$2:$I$6") >= 0
+      ? "I"
+      : formula.indexOf("$J$2:$J$6") >= 0
+        ? "J"
+        : formula.indexOf("$K$2:$K$6") >= 0
+          ? "K"
+          : "I";
+  const abaMatch = String(formula).match(/([']?[^'!]+'?)\!\$H\$2:\$H\$6/i);
+  const aba = abaMatch ? abaMatch[1].replace(/^'|'$/g, "") : "parametros";
+  const abaRef = escaparNomeAbaPlanilha(aba);
+  const sep = fx.sep;
+  return (
+    "=" +
+    fx.iferror +
+    "(" +
+    fx.index +
+    "(" +
+    abaRef +
+    "!$" +
+    colParam +
+    "$2:$" +
+    colParam +
+    "$6" +
+    sep +
+    fx.match +
+    "(A" +
+    linha +
+    sep +
+    abaRef +
+    "!$H$2:$H$6" +
+    sep +
+    "0)" +
+    ")" +
+    sep +
+    "\"\"" +
+    ")"
+  );
+}
+
+function sintaxeFormulaClassificacaoApoiadoresSetFormula_() {
+  return {
+    iferror: "IFERROR",
+    index: "INDEX",
+    match: "MATCH",
+    sep: ",",
+  };
+}
+
+function sintaxeFormulaClassificacaoApoiadoresPt_() {
+  return {
+    iferror: "SEERRO",
+    index: "ÍNDICE",
+    match: "CORRESP",
+    sep: ";",
+  };
 }
 
 function letraParamClassificacaoPorColApoiador(col1Based) {
@@ -1491,23 +1593,14 @@ function letraParamClassificacaoPorColApoiador(col1Based) {
 }
 
 function sintaxeFormulaDeTextoExistente_(formula, sheet) {
-  const base = sintaxeFormulaPlanilha(sheet);
-  const u = String(formula).toUpperCase();
-  if (u.indexOf("IFERROR(") >= 0) {
-    base.iferror = "IFERROR";
-    base.index = "INDEX";
-    base.match = "MATCH";
-    base.sep = ",";
-    return base;
+  if (formulaClassificacaoApoiadorEhPortugues_(formula)) {
+    const fx = sintaxeFormulaClassificacaoApoiadoresPt_();
+    if (String(formula).indexOf("INDICE(") >= 0 && String(formula).indexOf("ÍNDICE(") < 0) {
+      fx.index = "INDICE";
+    }
+    return fx;
   }
-  if (u.indexOf("SEERRO(") >= 0) {
-    base.iferror = "SEERRO";
-    base.index = String(formula).indexOf("ÍNDICE(") >= 0 ? "ÍNDICE" : "INDICE";
-    base.match = "CORRESP";
-    base.sep = ";";
-    return base;
-  }
-  return base;
+  return sintaxeFormulaPlanilha(sheet);
 }
 
 function sintaxeFormulaPlanilhaFromModeloApoiadores_(sheet) {
@@ -1518,15 +1611,15 @@ function sintaxeFormulaPlanilhaFromModeloApoiadores_(sheet) {
       col,
       sheet.getLastRow() + 1
     );
-    if (modelo && modelo.formula) {
+    if (modelo && modelo.formula && formulaClassificacaoApoiadorEhPortugues_(modelo.formula)) {
       return sintaxeFormulaDeTextoExistente_(modelo.formula, sheet);
     }
   }
-  return sintaxeFormulaPlanilha(sheet);
+  return sintaxeFormulaClassificacaoApoiadoresPt_();
 }
 
 function formulaApoiadorClassificacaoParametros(sheet, numLinha, colParamLetra, abaRef) {
-  const fx = sintaxeFormulaPlanilhaFromModeloApoiadores_(sheet);
+  const fx = sintaxeFormulaClassificacaoApoiadoresPt_();
   const aba = abaRef || nomeAbaParametrosClassificacaoApoiadores_(sheet);
   const linha = String(numLinha);
   const sep = fx.sep;
@@ -1563,7 +1656,7 @@ function aplicarFormulaClassificacaoColunaApoiador(sheet, numLinha, col) {
   celula.clearContent();
   const modelo = buscarFormulaClassificacaoApoiadoresModelo(sheet, col, numLinha);
   let formula = null;
-  if (modelo && modelo.formula) {
+  if (modelo && modelo.formula && formulaClassificacaoApoiadorEhPortugues_(modelo.formula)) {
     formula = ajustarFormulaSaldoParaLinha(modelo.formula, modelo.linha, numLinha);
   } else {
     formula = formulaApoiadorClassificacaoParametros(
@@ -1573,7 +1666,7 @@ function aplicarFormulaClassificacaoColunaApoiador(sheet, numLinha, col) {
       nomeAbaParametrosClassificacaoApoiadores_(sheet)
     );
   }
-  if (formula) celula.setFormula(formula);
+  if (formula) definirFormulaComoDigitada_(celula, formula);
 }
 
 function buscarFormulaApoiadorModelo(sheet, col1Based, antesDeLinha) {
@@ -1593,7 +1686,7 @@ function aplicarFormulaModeloColunaApoiador(sheet, numLinha, col1Based) {
   const modelo = buscarFormulaApoiadorModelo(sheet, col1Based, numLinha);
   if (!modelo || !modelo.formula) return;
   const formula = ajustarFormulaSaldoParaLinha(modelo.formula, modelo.linha, numLinha);
-  if (formula) celula.setFormula(formula);
+  if (formula) definirFormulaComoDigitada_(celula, formula);
 }
 
 function aplicarFormulasExtensaoApoiadorLinha(sheet, numLinha) {
@@ -2279,7 +2372,7 @@ function sintaxeFormulaPlanilha(sheet) {
     soma: "SOMA",
     sep: ";",
     iferror: "SEERRO",
-    index: "INDICE",
+    index: "ÍNDICE",
     match: "CORRESP",
   };
 }

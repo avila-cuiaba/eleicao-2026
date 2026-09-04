@@ -3,6 +3,11 @@
   "dependencies": {
     "enabledAdvancedServices": [
       {
+        "userSymbol": "Sheets",
+        "version": "v4",
+        "serviceId": "sheets"
+      },
+      {
         "userSymbol": "Tasks",
         "version": "v1",
         "serviceId": "tasks"

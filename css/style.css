@@ -284,7 +284,7 @@ html {
   border-bottom: 1px solid #e9ecef;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1020;
 }
 
 .app-header-start {
@@ -2593,6 +2593,14 @@ body.page-apoiadores .apoiadores-tabela .apoiadores-celula-popover {
   cursor: help;
 }
 
+body.page-pagamentos-lideranca .apoiadores-tabela tbody tr.apoiadores-linha-popover {
+  cursor: default;
+}
+
+body.page-pagamentos-lideranca .apoiadores-tabela .pag-lideranca-celula-popover {
+  cursor: help;
+}
+
 .orcamento-estratificado-tabela tbody tr.orcamento-estratificado-linha-master {
   cursor: pointer;
 }
@@ -2843,20 +2851,6 @@ body.page-apoiadores .apoiadores-tabela .apoiadores-celula-popover {
 .popover.orcamento-geral-popover-bs {
   border-color: rgba(148, 163, 184, 0.45);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  z-index: 9999 !important;
-}
-
-body.app-shell > .popover.orcamento-geral-popover-bs {
-  z-index: 9999 !important;
-}
-
-body.app-shell.app-shell-popover-tabela-aberto .app-header {
-  z-index: 0 !important;
-}
-
-body.app-shell.app-shell-popover-tabela-aberto .app-main-frame {
-  position: relative;
-  z-index: 1;
 }
 
 body.page-apoiadores .apoiadores-tabela-toolbar,
@@ -10884,6 +10878,104 @@ body.page-contratos:not(.page-pessoal-pagamentos) #pagePainelRegistros > .crud-t
 .contratos-modal-body {
   max-height: min(68vh, 28rem);
   overflow-y: auto;
+}
+
+.contratos-modal-tabs {
+  margin-bottom: 0.75rem;
+  border-bottom-color: rgba(148, 163, 184, 0.35);
+}
+
+.contratos-modal-tabs .nav-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  color: #64748b;
+  padding: 0.35rem 0.75rem;
+}
+
+.contratos-modal-tabs .nav-link.active {
+  color: #1f4e8c;
+}
+
+.contratos-modal-tab-content > .tab-pane {
+  padding-top: 0.15rem;
+}
+
+.contratos-pendencias-topo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.contratos-pendencias-filtro-regioes {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.contratos-pendencias-descricao {
+  line-height: 1.35;
+}
+
+.contratos-pendencias-lista-wrap {
+  min-height: 0;
+}
+
+.contratos-pendencias-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.contratos-pendencias-item {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  background: #f8fafc;
+}
+
+.contratos-pendencias-cab {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.45rem;
+}
+
+.contratos-pendencias-nome {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.contratos-pendencias-municipio {
+  font-size: 0.76rem;
+  line-height: 1.2;
+}
+
+.contratos-pendencias-tabela {
+  font-size: 0.76rem;
+  background: #fff;
+}
+
+.contratos-pendencias-tabela th,
+.contratos-pendencias-tabela td {
+  padding: 0.28rem 0.4rem;
+  vertical-align: middle;
+}
+
+.contratos-pendencias-col-tipo {
+  min-width: 5.5rem;
+}
+
+.contratos-pendencias-col-falta {
+  font-size: 0.74rem;
+  color: #b45309;
+  min-width: 8rem;
 }
 
 .contratos-form-campos .form-label {
