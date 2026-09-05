@@ -35,10 +35,23 @@ const PageLoader = {
     const el = this.ensure();
     if (!el || !el.classList.contains("is-active")) return;
 
+    if (this._hideTimer) {
+      clearTimeout(this._hideTimer);
+      this._hideTimer = null;
+    }
+
     const wait = Math.max(0, this._minMs - (Date.now() - this._shownAt));
     if (wait > 0) {
       this._hideTimer = setTimeout(() => this._hideNow(), wait);
       return;
+    }
+    this._hideNow();
+  },
+
+  forceHide() {
+    if (this._hideTimer) {
+      clearTimeout(this._hideTimer);
+      this._hideTimer = null;
     }
     this._hideNow();
   },
@@ -62,6 +75,7 @@ function statusPainel(el, msg, tipo) {
   }
 
   PageLoader.hide();
+  if (typeof PageLoader.forceHide === "function") PageLoader.forceHide();
   if (!el) return;
 
   el.textContent = msg || "";

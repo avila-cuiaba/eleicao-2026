@@ -110,6 +110,7 @@ let mapaMunicipioRegiao = new Map();
 let nomesColunaPlanilha = {};
 let opcoesMunicipio = [];
 let modalCrud = null;
+let salvandoApoiadorCrud = false;
 let modoCrud = "inserir";
 let linhaCrud = null;
 let parametrosClassificacaoApoiador = [];
@@ -585,14 +586,103 @@ function abrirModalEditarApoiador(numLinha) {
   modalCrud.show();
 }
 
+function recarregarApoiadoresAposCrud() {
+  void carregarApoiadores({ silencioso: true }).catch((e) => {
+    MasterCrud.toast("erro ao atualizar lista: " + PlanilhaApi.mensagemErro(e), "erro");
+  });
+}
+
+function encerrarSalvamentoApoiadorCrud() {
+  salvandoApoiadorCrud = false;
+  MasterCrud.encerrarSalvamento(el.modalEl, { btnSalvar: el.btnSalvarApoiador });
+  if (typeof PageLoader.forceHide === "function") PageLoader.forceHide();
+  else PageLoader.hide();
+}
+
+function iniciarSalvamentoApoiadorCrud() {
+  salvandoApoiadorCrud = true;
+  MasterCrud.salvando(el.modalEl, true, { btnSalvar: el.btnSalvarApoiador });
+}
+
+function construirItemApoiadorDoFormulario(form, numLinha) {
+  const municipio = String(form.municipio ?? "").trim();
+  const info = mapaMunicipioRegiao.get(normalizarChave(municipio));
+  const base = itemPorLinha(numLinha) || {};
+  const item = {
+    ...base,
+    _linha: numLinha,
+    tipo: form.tipo,
+    lideranca: form.lideranca,
+    municipio,
+    proprioApoiador: form.proprioApoiador,
+    apoiadorLider: form.apoiadorLider,
+    apoiadorIntegral: form.apoiadorIntegral,
+    apoiadorMeio: form.apoiadorMeio,
+    apoiadorCustomizado: form.apoiadorCustomizado,
+    finLider: form.finLider,
+    finIntegral: form.finIntegral,
+    finMeio: form.finMeio,
+    finCustomizado: form.finCustomizado,
+    fechadoOrcamento: form.fechadoOrcamento,
+    observacao: form.observacao,
+    logCombustivel: form.logCombustivel,
+    logDiversos: form.logDiversos,
+    logDiaD: form.logDiaD,
+    logDesembAgo15: form.logDesembAgo15,
+    logDesembAgo30: form.logDesembAgo30,
+    logDesembSet15: form.logDesembSet15,
+    logDesembSet30: form.logDesembSet30,
+    parPessoal: form.parPessoal,
+    parCombustivel: form.parCombustivel,
+    parDiversos: form.parDiversos,
+    parDiaD: form.parDiaD,
+    desembJul30: form.desembJul30,
+    desembAgo15: form.desembAgo15,
+    desembAgo30: form.desembAgo30,
+    desembSet15: form.desembSet15,
+    desembSet30: form.desembSet30,
+    regiao: info?.regiao || base.regiao || "",
+    regiaoNorm: info?.regiaoNorm || base.regiaoNorm || "",
+  };
+  item.finTotal = calcularFinTotal(item);
+  item.orcamentoTotal = calcularOrcamentoBadgeTotal(item);
+  return item;
+}
+
+function sincronizarApoiadorLocalAposSalvar(form, numLinha, modo) {
+  const item = construirItemApoiadorDoFormulario(form, numLinha);
+  if (!linhaTemConteudo(item)) return;
+
+  if (modo === "atualizar") {
+    const idx = linhas.findIndex((r) => r._linha === numLinha);
+    if (idx >= 0) linhas[idx] = item;
+    else linhas.push(item);
+  } else {
+    linhas = linhas.filter((r) => r._linha !== numLinha);
+    linhas.push(item);
+  }
+  linhas.sort(compararLinhasApoiador);
+  renderizarTabela();
+}
+
+function removerApoiadorLocal(numLinha) {
+  linhas = linhas.filter((r) => r._linha !== numLinha);
+  renderizarTabela();
+}
+
 async function salvarApoiadorCrud() {
+  if (salvandoApoiadorCrud) return;
+
   const form = lerFormularioApoiador();
   if (!form.lideranca || !form.municipio) {
     MasterCrud.toast("preencha liderança e município.", "erro");
     return;
   }
 
-  MasterCrud.salvando(el.modalEl, true, { btnSalvar: el.btnSalvarApoiador });
+  iniciarSalvamentoApoiadorCrud();
+  const modoSalvo = modoCrud;
+  let numLinhaSalva = linhaCrud;
+  let gravou = false;
   try {
     const usarClassificacao = usarClassificacaoLiderancaAtiva();
     const payload = {
@@ -604,15 +694,23 @@ async function salvarApoiadorCrud() {
     };
     if (modoCrud === "atualizar") payload.linha = linhaCrud;
 
-    await PlanilhaApi.gravar(cfg.PLANILHA_APOIADORES, payload);
-    modalCrud.hide();
-    MasterCrud.toast(modoCrud === "atualizar" ? "registro atualizado." : "registro incluído.", "sucesso");
-    await carregarApoiadores();
+    const json = await PlanilhaApi.gravar(cfg.PLANILHA_APOIADORES, payload);
+    if (json?.linha) numLinhaSalva = Number(json.linha) || numLinhaSalva;
+    gravou = true;
   } catch (e) {
-    MasterCrud.toast("erro ao salvar: " + e.message, "erro");
+    MasterCrud.toast("erro ao salvar: " + PlanilhaApi.mensagemErro(e), "erro");
   } finally {
-    MasterCrud.salvando(el.modalEl, false, { btnSalvar: el.btnSalvarApoiador });
+    encerrarSalvamentoApoiadorCrud();
   }
+
+  if (!gravou) return;
+
+  modalCrud.hide();
+  MasterCrud.toast(
+    modoSalvo === "atualizar" ? "registro atualizado." : "registro incluído.",
+    "sucesso"
+  );
+  sincronizarApoiadorLocalAposSalvar(form, numLinhaSalva, modoSalvo);
 }
 
 async function excluirApoiadorCrud(numLinha) {
@@ -625,10 +723,10 @@ async function excluirApoiadorCrud(numLinha) {
       linha: numLinha,
       origem: "pessoal-apoiadores",
     });
+    removerApoiadorLocal(numLinha);
     MasterCrud.toast("registro excluído.", "sucesso");
-    await carregarApoiadores();
   } catch (e) {
-    MasterCrud.toast("erro ao excluir: " + e.message, "erro");
+    MasterCrud.toast("erro ao excluir: " + PlanilhaApi.mensagemErro(e), "erro");
   }
 }
 
@@ -1605,14 +1703,20 @@ function montar(valoresApoiadores) {
   renderizarTabela();
 }
 
-async function carregarApoiadores() {
+async function carregarApoiadores(opcoes = {}) {
+  const silencioso = opcoes.silencioso === true;
+
   if (!configValida()) {
-    mostrarStatus("Configure a URL do Web App em js/config.js.", "erro");
+    if (!silencioso) mostrarStatus("Configure a URL do Web App em js/config.js.", "erro");
     return;
   }
 
-  mostrarStatus("Carregando apoiadores...", "carregando");
-  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  if (silencioso) {
+    PageLoader.hide();
+  } else {
+    mostrarStatus("Carregando apoiadores...", "carregando");
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
 
   try {
     const planilhaParam = cfgAp.PARAMETROS_CLASSIFICACAO?.PLANILHA;
@@ -1623,7 +1727,7 @@ async function carregarApoiadores() {
     ]);
 
     if (valoresApoiadores === null) {
-      limparStatus();
+      if (!silencioso) limparStatus();
       return;
     }
 
@@ -1631,13 +1735,18 @@ async function carregarApoiadores() {
     opcoesMunicipio = extrairOpcoesMunicipio(valoresMunicipios || []);
     mapaMunicipioRegiao = montarMapaMunicipios(valoresMunicipios || []);
     montar(valoresApoiadores);
-    limparStatus();
+    if (!silencioso) limparStatus();
   } catch (e) {
+    if (silencioso) {
+      throw e;
+    }
     mostrarStatus("Erro ao carregar: " + e.message, "erro");
     popoverTabela.destruir();
     el.corpo.innerHTML = "";
     el.vazio.hidden = true;
   } finally {
+    if (silencioso && typeof PageLoader.forceHide === "function") PageLoader.forceHide();
+    else if (silencioso) PageLoader.hide();
     notificarAlturaFrame();
   }
 }
@@ -1700,7 +1809,10 @@ function initApoiadores() {
   if (!el.corpo || !el.filtroRegioes) return;
 
   MasterCrud.aplicarVisibilidadeIncluir("btnIncluirApoiador");
-  if (el.modalEl) modalCrud = bootstrap.Modal.getOrCreateInstance(el.modalEl);
+  if (el.modalEl) {
+    modalCrud = bootstrap.Modal.getOrCreateInstance(el.modalEl);
+    el.modalEl.addEventListener("hidden.bs.modal", encerrarSalvamentoApoiadorCrud);
+  }
   el.btnIncluir?.addEventListener("click", abrirModalIncluirApoiador);
   el.btnSalvarApoiador?.addEventListener("click", salvarApoiadorCrud);
   vincularMascarasMoedaApoiador();

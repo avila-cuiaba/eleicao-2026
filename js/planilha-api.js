@@ -103,8 +103,48 @@ const PlanilhaApi = {
     return json.valores || [];
   },
 
+  async fetchPostJson(corpo, timeoutMs) {
+    if (window.CONFIG?.EXIGIR_LOGIN && !AUTH.verificarSessao()) {
+      throw new Error("sessão expirada.");
+    }
+
+    const limite = Number(timeoutMs) > 0 ? Number(timeoutMs) : 120000;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), limite);
+
+    try {
+      const resp = await fetch(CONFIG.WEB_APP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(corpo),
+        signal: controller.signal,
+      });
+
+      let json;
+      try {
+        json = await resp.json();
+      } catch (e) {
+        throw new Error("resposta inválida do servidor. recarregue a página.");
+      }
+
+      if (!AUTH.tratarResposta(json)) {
+        throw new Error("sessão expirada ou não autorizado.");
+      }
+      if (!json.ok) throw new Error(json.erro || "Falha ao gravar.");
+      return json;
+    } catch (e) {
+      if (e && e.name === "AbortError") {
+        throw new Error(
+          "tempo esgotado ao aguardar o servidor. a gravação pode ter sido concluída — recarregue a página."
+        );
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+
   async gravar(planilha, opts) {
-    if (window.CONFIG?.EXIGIR_LOGIN && !AUTH.verificarSessao()) return null;
     const { acao, linha, dados, aba, origem, ...extras } = opts || {};
     const corpo = {
       chave: AUTH.getChave(),
@@ -118,15 +158,7 @@ const PlanilhaApi = {
     if (origem) corpo.origem = origem;
     if (AUTH.getUsuario()) corpo.usuario = AUTH.getUsuario();
 
-    const resp = await fetch(CONFIG.WEB_APP_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(corpo),
-    });
-    const json = await resp.json();
-    if (!AUTH.tratarResposta(json)) return null;
-    if (!json.ok) throw new Error(json.erro || "Falha ao gravar.");
-    return json;
+    return this.fetchPostJson(corpo);
   },
 
   acharColuna(colunas, aliases, indiceFallback) {

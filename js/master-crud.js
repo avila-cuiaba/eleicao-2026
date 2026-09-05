@@ -100,6 +100,7 @@ const MasterCrud = {
     overlay.classList.toggle("d-none", !ativo);
     overlay.setAttribute("aria-hidden", ativo ? "false" : "true");
     overlay.setAttribute("aria-busy", ativo ? "true" : "false");
+    if (ativo) overlay.style.removeProperty("display");
 
     const btnSalvar = opts.btnSalvar;
     const btnCancelar =
@@ -112,6 +113,27 @@ const MasterCrud = {
       btnFechar.disabled = ativo;
       btnFechar.setAttribute("aria-disabled", ativo ? "true" : "false");
     }
+  },
+
+  encerrarSalvamento(modalEl, opcoes) {
+    this.salvando(modalEl, false, opcoes);
+    if (!modalEl) return;
+    const content = modalEl.querySelector(".modal-content");
+    const overlay = content?.querySelector(".master-crud-modal-salvando");
+    if (overlay) {
+      overlay.classList.add("d-none");
+      overlay.style.removeProperty("display");
+      overlay.setAttribute("aria-hidden", "true");
+      overlay.setAttribute("aria-busy", "false");
+    }
+    modalEl.removeAttribute("aria-busy");
+  },
+
+  limparModalPreso() {
+    document.body.classList.remove("modal-open");
+    document.body.style.removeProperty("padding-right");
+    document.body.style.removeProperty("overflow");
+    document.querySelectorAll(".modal-backdrop").forEach((el) => el.remove());
   },
 };
 
