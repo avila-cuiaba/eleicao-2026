@@ -47,6 +47,7 @@ const PAGINAS = {
     arquivo: "pages/contratos.html",
     atualizar: true,
     menuGrupo: "pessoal",
+    gerarContratosLote: true,
     relatorioOpcoes: [
       { id: "geral", rotulo: "relatório geral" },
       { id: "clicksign", rotulo: "contatos para clicksign" },
@@ -264,6 +265,30 @@ function atualizarExportarXlsShell(cfg, id) {
   btn.hidden = !mostrar;
 }
 
+function atualizarGerarContratosShell(cfg, id) {
+  const btn = document.getElementById("btnGerarContratosShell");
+  if (!btn) return;
+  const mostrar = !!cfg?.gerarContratosLote && paginaTemRelatorio(cfg, id);
+  btn.hidden = !mostrar;
+}
+
+function executarGerarContratosLoteShell() {
+  const frame = document.getElementById("appFrame");
+  if (!frame) return;
+
+  try {
+    const win = frame.contentWindow;
+    if (win && typeof win.gerarContratosSelecionadosLote === "function") {
+      win.gerarContratosSelecionadosLote();
+      return;
+    }
+  } catch (e) {
+    /* file:// ou origem cruzada — usar postMessage */
+  }
+
+  frame.contentWindow?.postMessage({ tipo: "eleicao-gerar-contratos-lote" }, "*");
+}
+
 function initRelatorioShellMenu() {
   const menuLista = document.getElementById("relatorioShellDropdownLista");
   if (!menuLista || menuLista.dataset.relatorioVinculado === "1") return;
@@ -290,6 +315,7 @@ function atualizarCabecalho(id) {
   if (btnAtualizar) btnAtualizar.hidden = !cfg.atualizar;
   atualizarMenuRelatorioShell(cfg, id);
   atualizarExportarXlsShell(cfg, id);
+  atualizarGerarContratosShell(cfg, id);
   document.title = textoTitulo + " | Eleição 2026";
   if (window.LAYOUT) LAYOUT.atualizarMenu(id);
 }
@@ -574,6 +600,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initRelatorioShellMenu();
   document.getElementById("btnRelatorioShell")?.addEventListener("click", () => executarRelatorioShell());
   document.getElementById("btnExportarXlsShell")?.addEventListener("click", () => executarExportacaoXlsShell());
+  document.getElementById("btnGerarContratosShell")?.addEventListener("click", () => executarGerarContratosLoteShell());
 
   frame?.addEventListener("load", () => {
     agendarAjusteFrame();

@@ -169,6 +169,8 @@ const CONTRATO_TEMPLATE_DOC_ID = "1WTHAVXrJ4z-IbJmP-pKqmO56WRRm9oUQTSIWcuYOL2s";
 const CONTRATO_TEMPLATE_NOME = "modelo-contrato";
 // Pasta raiz no Drive para arquivos anexados aos registros de contratos.
 const CONTRATOS_DRIVE_RAIZ_ID = "1ALWi9HuDJqAO7HW1iIqhNL0UNaiWCcFU";
+// Pasta organizacional: município → liderança (cópias dos contratos gerados).
+const CONTRATOS_DRIVE_ORGANIZACAO_RAIZ_ID = "1cZI07t05csh_Y1gSO-6mSWx72nEjfp5N";
 const CONTRATO_DOC_DESCRICAO_PREFIX = "contrato-doc:";
 const CONTRATO_TIPOS_DOCUMENTO_OBRIGATORIOS = [
   "copia-rg",
@@ -1325,6 +1327,7 @@ function gerarPdfContratoDeRegistro(registro, pastaId, valoresLinha) {
 
   const pdfBlob = copia.getAs(MimeType.PDF).setName(nomePdf);
   let pdfFile;
+  let organizacao = null;
   const pastaDestino = String(pastaId || "").trim();
   if (pastaDestino) {
     const pasta = DriveApp.getFolderById(pastaDestino);
@@ -1334,6 +1337,11 @@ function gerarPdfContratoDeRegistro(registro, pastaId, valoresLinha) {
     pdfFile = DriveApp.createFile(pdfBlob);
   }
   aplicarCompartilhamentoArquivoDrive(pdfFile);
+  try {
+    organizacao = salvarCopiaContratoOrganizacao(pdfBlob, registro);
+  } catch (e) {
+    Logger.log("cópia organização contrato: " + e.message);
+  }
   copia.setTrashed(true);
 
   return {
@@ -1341,6 +1349,8 @@ function gerarPdfContratoDeRegistro(registro, pastaId, valoresLinha) {
     downloadUrl: "https://drive.google.com/uc?export=download&id=" + pdfFile.getId(),
     nome: pdfFile.getName(),
     pastaId: pastaDestino || "",
+    organizacaoPastaId: organizacao ? organizacao.pastaId : "",
+    organizacaoUrl: organizacao ? organizacao.url : "",
     modeloId: modelo.getId(),
     modeloNome: modelo.getName(),
   };
@@ -1373,8 +1383,10 @@ function imprimirContratoPdf(corpo) {
     downloadUrl: pdf.downloadUrl,
     nome: pdf.nome,
     pastaId: pdf.pastaId,
+    organizacaoPastaId: pdf.organizacaoPastaId || "",
     modelo: pdf.modeloNome,
     salvoNoDrive: !!pastaId,
+    salvoOrganizacao: !!pdf.organizacaoPastaId,
   });
 }
 
@@ -1988,6 +2000,75 @@ function nomePastaArquivosContrato(registro, idRegistro) {
 
 function obterPastaRaizArquivosContratos() {
   return DriveApp.getFolderById(CONTRATOS_DRIVE_RAIZ_ID);
+}
+
+function obterPastaRaizOrganizacaoContratos() {
+  return DriveApp.getFolderById(CONTRATOS_DRIVE_ORGANIZACAO_RAIZ_ID);
+}
+
+function obterSubpastaPorNome(pastaPai, nomeDesejado) {
+  const nomeNorm = normalizarChavePlanilha(nomeDesejado);
+  if (!nomeNorm) return null;
+  const iter = pastaPai.getFolders();
+  while (iter.hasNext()) {
+    const pasta = iter.next();
+    if (pasta.isTrashed()) continue;
+    if (normalizarChavePlanilha(pasta.getName()) === nomeNorm) return pasta;
+  }
+  return null;
+}
+
+function obterOuCriarSubpasta(pastaPai, nome) {
+  const nomeSanitizado = sanitizarNomePastaDrive(nome);
+  const existente = obterSubpastaPorNome(pastaPai, nomeSanitizado);
+  if (existente) return existente;
+  return pastaPai.createFolder(nomeSanitizado);
+}
+
+function municipioELiderancaContrato(registro) {
+  const municipio = valorRegistroContrato(registro, [
+    "municipio",
+    "município",
+    "local-assinatura",
+    "local assinatura",
+  ]);
+  const lideranca = valorRegistroContrato(registro, [
+    "vinculado-coordenador",
+    "vinculado coordenador",
+    "vinculo",
+    "vínculo",
+    "lideranca",
+    "liderança",
+    "coordenador",
+  ]);
+  return {
+    municipio: String(municipio || "").trim(),
+    lideranca: String(lideranca || "").trim(),
+  };
+}
+
+function obterPastaOrganizacaoContrato(registro) {
+  const info = municipioELiderancaContrato(registro);
+  if (!info.municipio || !info.lideranca) return null;
+  const raiz = obterPastaRaizOrganizacaoContratos();
+  const pastaMun = obterOuCriarSubpasta(raiz, info.municipio);
+  return obterOuCriarSubpasta(pastaMun, info.lideranca);
+}
+
+function salvarCopiaContratoOrganizacao(pdfBlob, registro) {
+  const pasta = obterPastaOrganizacaoContrato(registro);
+  if (!pasta) {
+    Logger.log("organização contratos: município ou liderança ausente — cópia não salva.");
+    return null;
+  }
+  removerContratosPdfColaboradorNaPasta(pasta, registro);
+  const copia = pasta.createFile(pdfBlob);
+  aplicarCompartilhamentoArquivoDrive(copia);
+  return {
+    pastaId: pasta.getId(),
+    url: copia.getUrl(),
+    nome: copia.getName(),
+  };
 }
 
 function aplicarCompartilhamentoArquivoDrive(file) {

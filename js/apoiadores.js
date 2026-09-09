@@ -351,7 +351,20 @@ function gravarMoedaApoiadorNoDados(dados, item, prop) {
 }
 
 function itemPorLinha(numLinha) {
-  return linhas.find((r) => r._linha === numLinha) || null;
+  const n = normalizarNumLinha(numLinha);
+  if (!n) return null;
+  return linhas.find((r) => normalizarNumLinha(r._linha) === n) || null;
+}
+
+function normalizarNumLinha(numLinha) {
+  const n = Number(numLinha);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function encontrarIndiceLinhaApoiador(numLinha) {
+  const n = normalizarNumLinha(numLinha);
+  if (!n) return -1;
+  return linhas.findIndex((r) => normalizarNumLinha(r._linha) === n);
 }
 
 function lerFormularioApoiador() {
@@ -575,10 +588,11 @@ function abrirModalIncluirApoiador() {
 }
 
 function abrirModalEditarApoiador(numLinha) {
-  const item = itemPorLinha(numLinha);
+  const linhaNorm = normalizarNumLinha(numLinha);
+  const item = linhaNorm ? itemPorLinha(linhaNorm) : null;
   if (!item) return;
   modoCrud = "atualizar";
-  linhaCrud = numLinha;
+  linhaCrud = linhaNorm;
   el.modalTitulo.textContent = "editar apoiador";
   alternarRowFechadoOrcamentoModal(true);
   resetarTabModalApoiador();
@@ -587,8 +601,9 @@ function abrirModalEditarApoiador(numLinha) {
 }
 
 function recarregarApoiadoresAposCrud() {
-  void carregarApoiadores({ silencioso: true }).catch((e) => {
+  return carregarApoiadores({ silencioso: true }).catch((e) => {
     MasterCrud.toast("erro ao atualizar lista: " + PlanilhaApi.mensagemErro(e), "erro");
+    throw e;
   });
 }
 
@@ -604,13 +619,14 @@ function iniciarSalvamentoApoiadorCrud() {
   MasterCrud.salvando(el.modalEl, true, { btnSalvar: el.btnSalvarApoiador });
 }
 
-function construirItemApoiadorDoFormulario(form, numLinha) {
+function construirItemApoiadorDoFormulario(form, numLinha, baseItem) {
+  const linhaNorm = normalizarNumLinha(numLinha);
   const municipio = String(form.municipio ?? "").trim();
   const info = mapaMunicipioRegiao.get(normalizarChave(municipio));
-  const base = itemPorLinha(numLinha) || {};
+  const base = baseItem || (linhaNorm ? itemPorLinha(linhaNorm) : null) || {};
   const item = {
     ...base,
-    _linha: numLinha,
+    _linha: linhaNorm || base._linha,
     tipo: form.tipo,
     lideranca: form.lideranca,
     municipio,
@@ -650,23 +666,33 @@ function construirItemApoiadorDoFormulario(form, numLinha) {
 }
 
 function sincronizarApoiadorLocalAposSalvar(form, numLinha, modo) {
-  const item = construirItemApoiadorDoFormulario(form, numLinha);
+  const linhaNorm = normalizarNumLinha(numLinha);
+  if (!linhaNorm) return;
+
+  const linhaAnterior =
+    modo === "atualizar" ? normalizarNumLinha(linhaCrud) || linhaNorm : linhaNorm;
+  const baseAnterior = itemPorLinha(linhaAnterior);
+  const item = construirItemApoiadorDoFormulario(form, linhaNorm, baseAnterior);
   if (!linhaTemConteudo(item)) return;
 
   if (modo === "atualizar") {
-    const idx = linhas.findIndex((r) => r._linha === numLinha);
+    const idx = encontrarIndiceLinhaApoiador(linhaAnterior);
     if (idx >= 0) linhas[idx] = item;
     else linhas.push(item);
   } else {
-    linhas = linhas.filter((r) => r._linha !== numLinha);
-    linhas.push(item);
+    const idx = encontrarIndiceLinhaApoiador(linhaNorm);
+    if (idx >= 0) linhas[idx] = item;
+    else linhas.push(item);
   }
+
   linhas.sort(compararLinhasApoiador);
   renderizarTabela();
 }
 
 function removerApoiadorLocal(numLinha) {
-  linhas = linhas.filter((r) => r._linha !== numLinha);
+  const n = normalizarNumLinha(numLinha);
+  if (!n) return;
+  linhas = linhas.filter((r) => normalizarNumLinha(r._linha) !== n);
   renderizarTabela();
 }
 
@@ -695,7 +721,8 @@ async function salvarApoiadorCrud() {
     if (modoCrud === "atualizar") payload.linha = linhaCrud;
 
     const json = await PlanilhaApi.gravar(cfg.PLANILHA_APOIADORES, payload);
-    if (json?.linha) numLinhaSalva = Number(json.linha) || numLinhaSalva;
+    const linhaRetorno = normalizarNumLinha(json?.linha);
+    if (linhaRetorno) numLinhaSalva = linhaRetorno;
     gravou = true;
   } catch (e) {
     MasterCrud.toast("erro ao salvar: " + PlanilhaApi.mensagemErro(e), "erro");
@@ -711,19 +738,25 @@ async function salvarApoiadorCrud() {
     "sucesso"
   );
   sincronizarApoiadorLocalAposSalvar(form, numLinhaSalva, modoSalvo);
+  try {
+    await recarregarApoiadoresAposCrud();
+  } catch (_) {
+    /* toast de erro já exibido; mantém atualização local */
+  }
 }
 
 async function excluirApoiadorCrud(numLinha) {
-  const item = itemPorLinha(numLinha);
+  const linhaNorm = normalizarNumLinha(numLinha);
+  const item = linhaNorm ? itemPorLinha(linhaNorm) : null;
   if (!item || !(await MasterCrud.confirmarExclusao())) return;
 
   try {
     await PlanilhaApi.gravar(cfg.PLANILHA_APOIADORES, {
       acao: "excluir",
-      linha: numLinha,
+      linha: linhaNorm,
       origem: "pessoal-apoiadores",
     });
-    removerApoiadorLocal(numLinha);
+    removerApoiadorLocal(linhaNorm);
     MasterCrud.toast("registro excluído.", "sucesso");
   } catch (e) {
     MasterCrud.toast("erro ao excluir: " + PlanilhaApi.mensagemErro(e), "erro");
@@ -734,7 +767,7 @@ function aoClicarTabelaApoiador(e) {
   const btn = e.target.closest(MasterCrud.seletorAcao);
   if (!btn) return;
   e.stopPropagation();
-  const numLinha = Number(btn.dataset.linha);
+  const numLinha = normalizarNumLinha(btn.dataset.linha);
   if (!numLinha) return;
   if (btn.dataset.acao === "editar") abrirModalEditarApoiador(numLinha);
   if (btn.dataset.acao === "excluir") excluirApoiadorCrud(numLinha);

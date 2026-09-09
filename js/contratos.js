@@ -75,6 +75,66 @@ let arquivosContratoCarregando = false;
 let mapaMunicipioRegiao = new Map();
 let regioes = [];
 let regioesPendencias = [];
+const linhasSelecionadasGeracao = new Set();
+
+function gerarContratosLoteHabilitado() {
+  return !paginaContratosJuliana();
+}
+
+function itemElegivelGeracaoLote(item) {
+  return item && !itemGerarContratoDesabilitado(item);
+}
+
+function toggleSelecaoLinhaGeracao(linha, marcado) {
+  const n = Number(linha);
+  if (!Number.isFinite(n) || n <= 0) return;
+  if (marcado) linhasSelecionadasGeracao.add(n);
+  else linhasSelecionadasGeracao.delete(n);
+}
+
+function selecionarTodosContratosFiltrados(marcado) {
+  linhasFiltradas().forEach((item) => {
+    if (!itemElegivelGeracaoLote(item)) return;
+    toggleSelecaoLinhaGeracao(item._linha, marcado);
+  });
+}
+
+function atualizarCheckboxSelecionarTodos() {
+  const cbAll = document.getElementById("contratosSelecaoTodos");
+  if (!cbAll || !gerarContratosLoteHabilitado()) return;
+
+  const elegiveis = linhasFiltradas().filter(itemElegivelGeracaoLote);
+  const selecionados = elegiveis.filter((item) => linhasSelecionadasGeracao.has(item._linha)).length;
+
+  cbAll.checked = elegiveis.length > 0 && selecionados === elegiveis.length;
+  cbAll.indeterminate = selecionados > 0 && selecionados < elegiveis.length;
+  cbAll.disabled = elegiveis.length === 0;
+}
+
+function htmlCheckboxSelecaoContrato(item) {
+  if (!gerarContratosLoteHabilitado()) return "";
+  const desabilitado = itemGerarContratoDesabilitado(item);
+  const marcado = linhasSelecionadasGeracao.has(item._linha);
+  return (
+    '<label class="contratos-selecao-check-wrap' +
+    (desabilitado ? " contratos-selecao-check-wrap--off" : "") +
+    '">' +
+    `<input type="checkbox" class="contratos-selecao-check form-check-input m-0" data-linha="${item._linha}"` +
+    (marcado ? " checked" : "") +
+    (desabilitado ? " disabled" : "") +
+    ' aria-label="selecionar para gerar contrato" />' +
+    "</label>"
+  );
+}
+
+function htmlCabecalhoSelecaoContratos() {
+  if (!gerarContratosLoteHabilitado()) return "";
+  return (
+    '<label class="contratos-selecao-check-wrap contratos-selecao-check-wrap--cab">' +
+    '<input type="checkbox" id="contratosSelecaoTodos" class="contratos-selecao-check-all form-check-input m-0" aria-label="selecionar todos os contratos" />' +
+    "</label>"
+  );
+}
 
 function tamanhoPaginaTabela() {
   const n = cfg.TAMANHO_PAGINA_TABELA;
@@ -2574,6 +2634,7 @@ function htmlMobileStackCabecalho() {
   const rotulo =
     (cfg.ROTULOS && cfg.ROTULOS.CONTRATADO) || rotuloTabela("NOME");
   return (
+    htmlCabecalhoSelecaoContratos() +
     '<div class="contratos-th-stack-head contratos-th-stack-head--ordenacao contratos-th-stack-head--unico">' +
     `<div class="contratos-th-stack-ordenavel-linha">${T.htmlCabecalhoOrdenavel(rotulo, "nome")}</div>` +
     "</div>"
@@ -2584,7 +2645,8 @@ function htmlMobileStackIdentLinhaContratos(item) {
   const nome = exibirValor(valorItem(item, colunaNome));
   const badge = htmlBadgeContratoQuem(item);
   return (
-    '<span class="contratos-stack-nome contratos-stack-nome--com-assinado contratos-stack-ident">' +
+    '<span class="contratos-stack-nome contratos-stack-nome--com-assinado contratos-stack-ident contratos-celula-nome-com-selecao">' +
+    htmlCheckboxSelecaoContrato(item) +
     '<span class="contratos-stack-ident-icone contratos-stack-ident-icone--assinado">' +
     htmlIconeAssinado(item) +
     "</span>" +
@@ -2613,10 +2675,12 @@ function htmlNotebookStackCabecalhoNome() {
 
 function htmlNotebookStackNomeLideranca(item) {
   return (
+    '<div class="contratos-celula-nome-com-selecao">' +
+    htmlCheckboxSelecaoContrato(item) +
     '<div class="contratos-celula-stack contratos-celula-stack--notebook">' +
     `<span class="contratos-stack-nome">${htmlNomeTabelaContrato(item)}</span>` +
     `<span class="contratos-stack-vinculo">${exibirValor(valorItem(item, colunaVinculo))}</span>` +
-    "</div>"
+    "</div></div>"
   );
 }
 
@@ -2839,17 +2903,24 @@ function montarDadosImpressao(item) {
   return dados;
 }
 
-async function gerarContrato(item) {
-  if (itemGerarContratoDesabilitado(item)) return;
+async function gerarContratoPdf(item, opcoes) {
+  const opts = opcoes || {};
+  const abrir = opts.abrir !== false;
+  const confirmarSubstituicao = opts.confirmarSubstituicao !== false;
+  const mostrarLoader = opts.mostrarLoader !== false;
 
-  mostrarStatus("", "carregando");
+  if (itemGerarContratoDesabilitado(item)) {
+    return { ok: false, ignorado: true };
+  }
+
+  if (mostrarLoader) mostrarStatus("", "carregando");
 
   try {
     const linha = item?._linha;
-    if (linha) {
+    if (confirmarSubstituicao && linha) {
       const jaExiste = await pastaColaboradorTemContratoPdf(linha);
       if (jaExiste) {
-        limparStatus();
+        if (mostrarLoader) limparStatus();
         const confirmar = await AppConfirm.confirm(
           "já existe um contrato deste colaborador.\ndeseja gerar um novo?\no arquivo anterior será substituído.",
           {
@@ -2859,11 +2930,10 @@ async function gerarContrato(item) {
             cancelar: "cancelar",
           }
         );
-        if (!confirmar) return;
+        if (!confirmar) return { ok: false, cancelado: true };
+        if (mostrarLoader) mostrarStatus("", "carregando");
       }
     }
-
-    mostrarStatus("", "carregando");
 
     const json = await PlanilhaApi.gravar(cfg.PLANILHA, {
       acao: "imprimir-contrato",
@@ -2872,24 +2942,98 @@ async function gerarContrato(item) {
       aba: cfg.ABA,
       origem: origemGravacaoContratos(),
     });
-    if (!json) return;
+    if (!json) return { ok: false };
     const url = json.url;
     if (!url) throw new Error("PDF não gerado.");
     marcarContratoPdfGerado(item, url);
     atualizarBotoesAcoesLinha(item._linha);
-    if (json.salvoNoDrive) {
+    if (abrir) {
+      if (json.salvoNoDrive) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        window.open(json.downloadUrl || url, "_blank", "noopener,noreferrer");
+      }
+    }
+    return { ok: true, salvoNoDrive: !!json.salvoNoDrive, url };
+  } finally {
+    if (mostrarLoader) limparStatus();
+  }
+}
+
+async function gerarContrato(item) {
+  try {
+    const resultado = await gerarContratoPdf(item, {
+      abrir: true,
+      confirmarSubstituicao: true,
+      mostrarLoader: true,
+    });
+    if (!resultado?.ok) return;
+    if (resultado.salvoNoDrive) {
       AppToast.show("contrato salvo na pasta do colaborador", "sucesso");
-      window.open(url, "_blank", "noopener,noreferrer");
     } else {
-      window.open(json.downloadUrl || url, "_blank", "noopener,noreferrer");
       AppToast.show("contrato gerado", "sucesso");
     }
   } catch (e) {
     AppToast.show("Erro ao gerar contrato: " + e.message, "erro");
-  } finally {
-    limparStatus();
   }
 }
+
+async function gerarContratosSelecionados() {
+  if (!gerarContratosLoteHabilitado()) return;
+
+  const itens = linhasFiltradas().filter((item) => linhasSelecionadasGeracao.has(item._linha));
+  const elegiveis = itens.filter(itemElegivelGeracaoLote);
+
+  if (!elegiveis.length) {
+    AppToast.show("selecione ao menos um contrato elegível (não assinado).", "erro");
+    return;
+  }
+
+  const confirmar = await AppConfirm.confirm(
+    `gerar ${elegiveis.length} contrato(s) e salvar na pasta de cada colaborador?\n` +
+      "os arquivos existentes serão substituídos.",
+    {
+      titulo: "gerar contratos",
+      icon: "warning",
+      confirmar: "gerar",
+      cancelar: "cancelar",
+    }
+  );
+  if (!confirmar) return;
+
+  PageLoader.show();
+  let gerados = 0;
+  let falhas = 0;
+
+  for (const item of elegiveis) {
+    try {
+      const resultado = await gerarContratoPdf(item, {
+        abrir: false,
+        confirmarSubstituicao: false,
+        mostrarLoader: false,
+      });
+      if (resultado?.ok) gerados++;
+      else if (!resultado?.ignorado && !resultado?.cancelado) falhas++;
+    } catch (e) {
+      falhas++;
+      console.warn("gerar contrato em lote:", e);
+    }
+  }
+
+  PageLoader.hide();
+
+  if (falhas === 0) {
+    AppToast.show(`${gerados} contrato(s) gerado(s) e salvo(s) no drive.`, "sucesso");
+  } else if (gerados > 0) {
+    AppToast.show(`${gerados} contrato(s) gerado(s); ${falhas} falha(s).`, "erro");
+  } else {
+    AppToast.show("não foi possível gerar os contratos selecionados.", "erro");
+  }
+
+  renderizarTabela({ preservarPagina: true });
+}
+
+window.gerarContratosSelecionadosLote = gerarContratosSelecionados;
 
 async function visualizarContrato(item) {
   if (itemVisualizarContratoDesabilitado(item)) return;
@@ -3033,7 +3177,12 @@ function montarCabecalhoTabela() {
   trMobile.innerHTML = "";
 
   const thNome = criarTh("", "contratos-col-nome contratos-tabela-desktop-col");
-  thNome.innerHTML = htmlNotebookStackCabecalhoNome();
+  thNome.innerHTML =
+    '<div class="contratos-th-nome-com-selecao">' +
+    htmlCabecalhoSelecaoContratos() +
+    '<div class="contratos-th-nome-ordenavel">' +
+    htmlNotebookStackCabecalhoNome() +
+    "</div></div>";
   trDesktop.appendChild(thNome);
   const thAssinado = criarTh(
     rotuloTabela("ASSINADO"),
@@ -3173,6 +3322,7 @@ function renderizarTabela(opcoes) {
   atualizarBarraPaginacao(total);
   inicializarPopoversTabela(paginaItens);
   verificarContratosPdfPagina(paginaItens);
+  atualizarCheckboxSelecionarTodos();
   aposRenderTabelaContratos();
   aplicarDestaqueLinhaSalva();
 }
@@ -3312,6 +3462,24 @@ function init() {
   el.busca?.addEventListener("input", () => {
     paginaAtualTabela = 1;
     renderizarTabela();
+  });
+  el.tabelaCard?.addEventListener("change", (e) => {
+    const alvo = e.target;
+    if (!alvo) return;
+    if (alvo.id === "contratosSelecaoTodos" || alvo.classList.contains("contratos-selecao-check-all")) {
+      selecionarTodosContratosFiltrados(alvo.checked);
+      renderizarTabela({ preservarPagina: true });
+      return;
+    }
+    const cb = alvo.closest(".contratos-selecao-check");
+    if (!cb || cb.disabled) return;
+    toggleSelecaoLinhaGeracao(cb.dataset.linha, cb.checked);
+    atualizarCheckboxSelecionarTodos();
+  });
+  window.addEventListener("message", (event) => {
+    if (event.data?.tipo === "eleicao-gerar-contratos-lote") {
+      void gerarContratosSelecionados();
+    }
   });
   el.paginacaoPrimeira?.addEventListener("click", () => irParaPaginaTabela(1));
   el.paginacaoAnterior?.addEventListener("click", () => irParaPaginaTabela(paginaAtualTabela - 1));
@@ -3465,6 +3633,74 @@ function ajustarTabelaRelatorioPagina(table) {
 
 window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
 
+function rotuloVinculoRelatorio() {
+  return rotuloTabela("VINCULO");
+}
+
+function textoValorContratoRelatorio(item) {
+  const val = valorItem(item, colunaValorContrato);
+  const bruto = String(val ?? "").trim();
+  if (!bruto) return "—";
+  const n = numeroMoeda(val);
+  if (n == null) return bruto;
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function htmlCabecalhoTabelaRelatorioContratos() {
+  return (
+    "<thead><tr>" +
+    `<th class="contratos-col-nome contratos-rel-col-ident">${htmlStackRelatorioCabecalho(
+      rotuloTabela("NOME"),
+      rotuloTabela("CPF")
+    )}</th>` +
+    `<th class="contratos-col-municipio contratos-rel-col-mun-lider">${htmlStackRelatorioCabecalho(
+      rotuloTabela("MUNICIPIO"),
+      rotuloVinculoRelatorio()
+    )}</th>` +
+    `<th class="contratos-col-assinado contratos-rel-col-assinado text-center">${escapeHtml(
+      rotuloTabela("ASSINADO")
+    )}</th>` +
+    `<th class="contratos-col-valor contratos-tabela-desktop-col">${escapeHtml(
+      rotuloTabela("VALOR_CONTRATO")
+    )}</th>` +
+    "</tr></thead>"
+  );
+}
+
+function textoPlanoCelula(val) {
+  return String(val ?? "").trim();
+}
+
+function htmlLinhaRelatorioContrato(item) {
+  const nome = textoPlanoCelula(valorItem(item, colunaNome));
+  const cpf = textoPlanoCelula(valorItem(item, colunaCpf));
+  const mun = textoPlanoCelula(valorItem(item, colunaMunicipio));
+  const lid = textoPlanoCelula(valorItem(item, colunaVinculo));
+  const assinado = itemAssinado(item) ? "S" : "N";
+
+  return (
+    `<tr data-linha="${item._linha}">` +
+    `<td class="contratos-col-nome contratos-rel-col-ident">${htmlStackRelatorioCorpo(nome, cpf)}</td>` +
+    `<td class="contratos-col-municipio contratos-rel-col-mun-lider">${htmlStackRelatorioCorpo(mun, lid)}</td>` +
+    `<td class="contratos-col-assinado contratos-rel-col-assinado text-center">${assinado}</td>` +
+    `<td class="contratos-col-valor contratos-tabela-desktop-col"><span class="contratos-rel-num">${escapeHtml(
+      textoValorContratoRelatorio(item)
+    )}</span></td>` +
+    "</tr>"
+  );
+}
+
+function htmlTabelaRelatorioContratos(items) {
+  if (!items?.length) return "";
+  return (
+    '<table class="table table-sm table-bordered align-middle rel-tabela contratos-tabela">' +
+    htmlCabecalhoTabelaRelatorioContratos() +
+    "<tbody>" +
+    items.map(htmlLinhaRelatorioContrato).join("") +
+    "</tbody></table>"
+  );
+}
+
 function estilosRelatorioPagina() {
   const tbl = "table.rel-tabela.contratos-tabela";
   return (
@@ -3489,9 +3725,26 @@ function estilosRelatorioPagina() {
 
 window.estilosRelatorioPagina = estilosRelatorioPagina;
 
-function montarHtmlRelatorioGeral() {
-  if (!window.Relatorio?.montarHtml) return null;
-  return window.Relatorio.montarHtml({ documento: document });
+function montarHtmlRelatorioGeral(opcoes) {
+  const Rel = window.Relatorio;
+  if (!Rel?.montarHtml) return null;
+
+  const meta = opcoes || {};
+  const doc = meta.documento || document;
+  const items = linhasFiltradas();
+
+  if (!items.length) {
+    return Rel.htmlDocumento(
+      { ...meta, ...Rel.resolverMetaRelatorio(meta), documento: doc },
+      '<p class="rel-vazio">nenhum dado disponível para impressão nesta página.</p>'
+    );
+  }
+
+  return Rel.montarHtml({
+    ...meta,
+    documento: doc,
+    tabelas: [{ titulo: "", html: htmlTabelaRelatorioContratos(items) }],
+  });
 }
 
 function textoCampoTxtRelatorio(valor) {

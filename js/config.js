@@ -261,6 +261,8 @@ const CONFIG = {
     COLUNA_CONTRATO_QUEM: ["contrato-quem", "contrato quem"],
     // Pasta raiz no Drive para arquivos anexados (subpastas por registro; id em AC).
     DRIVE_CONTRATOS_RAIZ_ID: "1ALWi9HuDJqAO7HW1iIqhNL0UNaiWCcFU",
+    // Pasta organizacional: município → liderança (cópias dos contratos gerados).
+    DRIVE_CONTRATOS_ORGANIZACAO_RAIZ_ID: "1cZI07t05csh_Y1gSO-6mSWx72nEjfp5N",
     DOCUMENTOS_OBRIGATORIOS: [
       { chave: "copia-rg", rotulo: "cópia RG", rotuloSelect: "RG" },
       { chave: "copia-cpf", rotulo: "cópia CPF", rotuloSelect: "CPF" },
