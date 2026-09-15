@@ -29,10 +29,6 @@
           <div class="col-5 col-lg-4">
             <div class="pessoal-filtros-regiao-wrap">
               <div id="filtroRegioes" class="dashboard-filtro-regioes" role="group" aria-label="Filtrar por região"></div>
-              <label class="pessoal-filtro-visualizar-nulos form-check form-check-sm mb-0" for="visualizarRegistrosNulos">
-                <input type="checkbox" class="form-check-input" id="visualizarRegistrosNulos" />
-                <span class="form-check-label">visualizar registros nulos</span>
-              </label>
             </div>
           </div>
           <div class="col-7 col-lg-8">
@@ -144,6 +140,14 @@
                   <div class="orcamento-estratificado-th-municipio">
                     <div class="orcamento-estratificado-th-linha-topo">
                       <span class="orcamento-estratificado-th-titulo">município</span>
+                      <label
+                        class="orcamento-estratificado-filtro-sem-orcamento form-check form-check-sm mb-0"
+                        for="exibirLiderancasSemOrcamento"
+                        title="exibir lideranças sem valores em pessoal, combustível, diversos e dia D"
+                      >
+                        <input type="checkbox" class="form-check-input" id="exibirLiderancasSemOrcamento" />
+                        <span class="form-check-label">exibir lideranças sem orçamento</span>
+                      </label>
                       <label class="orcamento-estratificado-busca" for="buscaMunicipio">
                         <span class="visually-hidden">buscar município</span>
                         <span class="apoiadores-busca-inner">

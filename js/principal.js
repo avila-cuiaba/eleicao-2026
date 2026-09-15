@@ -66,6 +66,10 @@ const PAGINAS = {
     arquivo: "pages/parcerias.html",
     atualizar: true,
     menuGrupo: "orcamento",
+    relatorioOpcoes: [
+      { id: "separado", rotulo: "valores separados" },
+      { id: "total", rotulo: "orçamento próprio" },
+    ],
   },
   "logistica-material-grafico": {
     titulo: "logística",

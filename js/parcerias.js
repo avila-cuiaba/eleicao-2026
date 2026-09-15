@@ -57,6 +57,7 @@ let el = {};
 let linhas = [];
 let regioes = [];
 let mapaMunicipioRegiao = new Map();
+let relatorioParceriasModo = "separado";
 const popoverTabela = PopoverTabela.criar();
 
 function configValida() {
@@ -320,6 +321,14 @@ const COMPARADORES_ORDENACAO_PARCERIAS = {
 
 function aplicarOrdenacaoParcerias(lista) {
   return TabelaOrdenacao.aplicar(lista, ordenacaoParcerias, COMPARADORES_ORDENACAO_PARCERIAS);
+}
+
+function linhasRelatorioParcerias() {
+  return TabelaOrdenacao.aplicar(
+    linhasFiltradas(),
+    { col: "municipio", dir: "asc" },
+    COMPARADORES_ORDENACAO_PARCERIAS
+  );
 }
 
 function linhaTemConteudo(item) {
@@ -825,10 +834,23 @@ function htmlCardsRelatorioPagina(doc) {
     const clone = mainGrid.cloneNode(true);
     clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
     clone.querySelectorAll(".apoiadores-th-sort").forEach((el) => el.remove());
+    if (relatorioParceriasModo === "total") {
+      const slotRepasse = clone.querySelector(".apoiadores-kpi-custom");
+      if (slotRepasse) {
+        const rotulo = slotRepasse.querySelector(".dashboard-kpi-rotulo");
+        const valor = slotRepasse.querySelector(".dashboard-kpi-valor");
+        if (rotulo) rotulo.textContent = "orçamento próprio";
+        if (valor) {
+          const filtradas = linhasRelatorioParcerias();
+          const total = filtradas.reduce((acc, r) => acc + parseNumero(r.orcamento), 0);
+          valor.textContent = fmtMoeda.format(total);
+        }
+      }
+    }
     html += '<div class="rel-parcerias-kpis-principais">' + clone.outerHTML + "</div>";
   }
 
-  if (parceiros) {
+  if (parceiros && relatorioParceriasModo !== "total") {
     const clone = parceiros.cloneNode(true);
     clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
     html += clone.outerHTML;
@@ -836,6 +858,68 @@ function htmlCardsRelatorioPagina(doc) {
 
   html += "</div></section>";
   return html;
+}
+
+function ajustarCabecalhoFinanceiroRelatorioParcerias(table) {
+  const thOrcamento = table.querySelector("thead th.apoiadores-col-integral");
+  const thRepasse = table.querySelector("thead th.apoiadores-col-30");
+
+  if (relatorioParceriasModo === "total") {
+    if (thOrcamento) {
+      thOrcamento.className = "text-end apoiadores-col-integral parcerias-col-total orcamento-tabela-desktop-col";
+      thOrcamento.textContent = "orçamento próprio";
+    }
+    thRepasse?.remove();
+    return;
+  }
+
+  if (thOrcamento) {
+    thOrcamento.className = "text-end apoiadores-col-integral parcerias-col-orcamento-desk orcamento-tabela-desktop-col";
+    thOrcamento.textContent = "orçamento próprio";
+  }
+  if (thRepasse) {
+    thRepasse.className = "text-end apoiadores-col-30 parcerias-col-repasse-desk orcamento-tabela-desktop-col";
+    thRepasse.textContent = "repasse parceiro";
+  }
+}
+
+function htmlLinhaRelatorioParcerias(r) {
+  const liderancaHtml = exibirTexto(r.lideranca);
+  const municipioHtml = escapeHtml(r.municipio);
+  const parceriaHtml = exibirTexto(r.parceria);
+  let financeCols = "";
+
+  if (relatorioParceriasModo === "total") {
+    financeCols =
+      `<td class="text-end apoiadores-col-integral apoiadores-celula-num parcerias-col-total orcamento-tabela-desktop-col">${exibirMoeda(r.orcamento)}</td>`;
+  } else {
+    financeCols =
+      `<td class="text-end apoiadores-col-integral apoiadores-celula-num parcerias-col-orcamento-desk orcamento-tabela-desktop-col">${exibirMoeda(r.orcamento)}</td>` +
+      `<td class="text-end apoiadores-col-30 apoiadores-celula-num parcerias-col-repasse-desk orcamento-tabela-desktop-col">${exibirMoeda(r.repasseParceria)}</td>`;
+  }
+
+  return (
+    "<tr>" +
+    '<td class="apoiadores-col-ident apoiadores-col-ident--rel">' +
+    `<span class="apoiadores-rel-ident-nome">${liderancaHtml || municipioHtml}</span>` +
+    (municipioHtml && liderancaHtml
+      ? `<span class="apoiadores-rel-ident-municipio">${municipioHtml}</span>`
+      : "") +
+    "</td>" +
+    `<td class="apoiadores-col-lider apoiadores-celula-texto">${parceriaHtml}</td>` +
+    financeCols +
+    "</tr>"
+  );
+}
+
+function reconstruirCorpoRelatorioParcerias(table) {
+  const tbody = table.querySelector("tbody");
+  if (!tbody) return;
+
+  const ordenadas = linhasRelatorioParcerias();
+  if (!ordenadas.length) return;
+
+  tbody.innerHTML = ordenadas.map(htmlLinhaRelatorioParcerias).join("");
 }
 
 function ajustarTabelaRelatorioPagina(table) {
@@ -866,36 +950,27 @@ function ajustarTabelaRelatorioPagina(table) {
     thParceria.textContent = "parceria";
   }
 
-  table.querySelectorAll("tbody tr").forEach((tr) => {
-    const identTd = tr.querySelector("td.apoiadores-col-ident");
-    const munTd = tr.querySelector("td.apoiadores-col-municipio");
-    const liderancaHtml =
-      identTd?.querySelector(".apoiadores-celula-desktop")?.innerHTML?.trim() || "";
-    const municipioTexto =
-      munTd?.querySelector(".dashboard-municipio-nome")?.textContent?.trim() || "";
-
-    if (identTd) {
-      identTd.className = "apoiadores-col-ident apoiadores-col-ident--rel";
-      identTd.innerHTML =
-        `<span class="apoiadores-rel-ident-nome">${liderancaHtml || escapeHtml(municipioTexto)}</span>` +
-        (municipioTexto && liderancaHtml
-          ? `<span class="apoiadores-rel-ident-municipio">${escapeHtml(municipioTexto)}</span>`
-          : "");
-    }
-
-    munTd?.remove();
-    identTd?.querySelectorAll(".apoiadores-celula-mobile").forEach((el) => el.remove());
-  });
-
   table.querySelectorAll("th.apoiadores-col-municipio, td.apoiadores-col-municipio").forEach((el) =>
     el.remove()
   );
   table.querySelectorAll("th.orcamento-tabela-stack-col, td.orcamento-tabela-stack-col").forEach((el) =>
     el.remove()
   );
+
+  ajustarCabecalhoFinanceiroRelatorioParcerias(table);
+  reconstruirCorpoRelatorioParcerias(table);
+
+  if (relatorioParceriasModo === "total") {
+    table.querySelectorAll("colgroup col.apoiadores-col-30").forEach((col) => col.remove());
+  }
 }
 
 function estilosRelatorioPagina() {
+  const estilosTotal =
+    relatorioParceriasModo === "total"
+      ? ".page-parcerias table.rel-tabela.parcerias-tabela th.parcerias-col-total," +
+        ".page-parcerias table.rel-tabela.parcerias-tabela td.parcerias-col-total{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}"
+      : "";
   const coresParceiros =
     ".page-parcerias .rel-parcerias-kpis .parcerias-kpi-parceiro-tono--0 .parcerias-kpi-parceiro-card{background:#eef2ff!important;border-left:3px solid #4f46e5!important;}" +
     ".page-parcerias .rel-parcerias-kpis .parcerias-kpi-parceiro-tono--0 .parcerias-kpi-parceiro-valor{color:#4338ca!important;}" +
@@ -938,6 +1013,7 @@ function estilosRelatorioPagina() {
     ".page-parcerias table.rel-tabela.parcerias-tabela th.apoiadores-col-lider,.page-parcerias table.rel-tabela.parcerias-tabela td.apoiadores-col-lider{text-align:left;}" +
     ".page-parcerias table.rel-tabela.parcerias-tabela th.apoiadores-col-integral,.page-parcerias table.rel-tabela.parcerias-tabela td.apoiadores-col-integral," +
     ".page-parcerias table.rel-tabela.parcerias-tabela th.apoiadores-col-30,.page-parcerias table.rel-tabela.parcerias-tabela td.apoiadores-col-30{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}" +
+    estilosTotal +
     "@media print{" +
     ".page-parcerias .rel-secao,.page-parcerias .rel-secao-indicadores,.page-parcerias .rel-secao + .rel-secao,.page-parcerias .rel-parcerias-kpis .parcerias-kpi-parceiros-section{page-break-before:auto!important;break-before:auto!important;page-break-after:auto!important;break-after:auto!important;page-break-inside:auto!important;break-inside:auto!important;}" +
     ".page-parcerias .rel-parcerias-kpis .dashboard-kpi-card,.page-parcerias .rel-parcerias-kpis .parcerias-kpi-parceiro-card{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
@@ -945,9 +1021,44 @@ function estilosRelatorioPagina() {
   );
 }
 
+function definirModoRelatorioParcerias(opcao) {
+  relatorioParceriasModo = opcao === "total" ? "total" : "separado";
+}
+
+function montarHtmlRelatorioParcerias(opcoes) {
+  definirModoRelatorioParcerias(opcoes?.opcao);
+  const html = Relatorio.montarHtml(opcoes);
+  definirModoRelatorioParcerias("separado");
+  return html;
+}
+
+async function executarRelatorioPagina(opcoes) {
+  const html = montarHtmlRelatorioParcerias(opcoes);
+  if (!html || !String(html).includes("rel-tabela")) {
+    return { tipo: "erro", mensagem: "nenhum dado para imprimir." };
+  }
+  return { tipo: "html", html };
+}
+
 window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
 window.estilosRelatorioPagina = estilosRelatorioPagina;
 window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
+window.montarHtmlRelatorioPagina = montarHtmlRelatorioParcerias;
+window.executarRelatorioPagina = executarRelatorioPagina;
+
+window.gerarRelatorioPagina = function gerarRelatorioPagina(opcoes) {
+  if (opcoes && opcoes.apenasHtml) {
+    return montarHtmlRelatorioParcerias(opcoes);
+  }
+  if (opcoes?.opcao) {
+    return executarRelatorioPagina(opcoes).then((resultado) => {
+      if (resultado?.tipo === "html") return Relatorio.abrirJanela(resultado.html);
+      if (resultado?.tipo === "erro") Relatorio.mostrarErro(resultado.mensagem);
+      return false;
+    });
+  }
+  return Relatorio.gerarPadrao(montarHtmlRelatorioParcerias());
+};
 
 function montarCabecalhoOrdenacaoParcerias(card) {
   if (!card) return;

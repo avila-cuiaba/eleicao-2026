@@ -282,17 +282,16 @@ function termoBuscaMunicipio() {
   return normalizarChave(el.buscaMunicipio?.value);
 }
 
-function registroEhNulo(item) {
-  return totalLinha(item) === 0;
-}
-
-function visualizarRegistrosNulosAtivo() {
-  return !!el.visualizarRegistrosNulos?.checked;
+function registroSemOrcamentoEstratificado(item) {
+  return CAMPOS_NUMERICOS.every((c) => parseNumero(item[c.prop]) === 0);
 }
 
 function aplicarFiltroRegistrosNulos(lista) {
-  if (visualizarRegistrosNulosAtivo()) return lista;
-  return lista.filter((item) => !registroEhNulo(item));
+  return lista.filter((item) => !registroSemOrcamentoEstratificado(item));
+}
+
+function exibirLiderancasSemOrcamentoAtivo() {
+  return !!el.exibirLiderancasSemOrcamento?.checked;
 }
 
 function linhasFiltradas() {
@@ -461,22 +460,6 @@ function resolverIndicesApoiador(cabecalho) {
   return indices;
 }
 
-function linhaApoiadorTemConteudo(item) {
-  const lideranca = String(item.lideranca ?? "").trim();
-  const municipio = String(item.municipio ?? "").trim();
-  if (!lideranca || !municipio) return false;
-  return (
-    parseNumero(item.pessoal) > 0 ||
-    parseNumero(item.combustivel) > 0 ||
-    parseNumero(item.diversos) > 0 ||
-    parseNumero(item.diaD) > 0 ||
-    celulaPreenchida(item.pessoal) ||
-    celulaPreenchida(item.combustivel) ||
-    celulaPreenchida(item.diversos) ||
-    celulaPreenchida(item.diaD)
-  );
-}
-
 function calcularTotalApoiador(item) {
   return (
     parseNumero(item.pessoal) +
@@ -516,7 +499,6 @@ function extrairLinhasApoiadores(valores) {
     };
     item.finTotal = calcularTotalApoiador(item);
 
-    if (!linhaApoiadorTemConteudo(item)) continue;
     itens.push(item);
   }
 
@@ -554,6 +536,12 @@ function montarMapaApoiadoresPorMunicipio(itens) {
 
 function apoiadoresDoMunicipio(municipio) {
   return apoiadoresPorMunicipio.get(normalizarChave(municipio)) || [];
+}
+
+function apoiadoresVisiveisDoMunicipio(municipio) {
+  const lista = apoiadoresDoMunicipio(municipio);
+  if (exibirLiderancasSemOrcamentoAtivo()) return lista;
+  return lista.filter((ap) => !registroSemOrcamentoEstratificado(ap));
 }
 
 function htmlLinhaApoiador(ap) {
@@ -663,7 +651,7 @@ function renderizarLinha(r) {
   const corIdx = indiceCorRegiao(r.regiaoNorm);
   const tituloRegiao = r.regiao ? ` title="${escapeHtml(r.regiao)}"` : "";
   const municipioHtml = escapeHtml(r.municipio);
-  const apoiadores = apoiadoresDoMunicipio(r.municipio);
+  const apoiadores = apoiadoresVisiveisDoMunicipio(r.municipio);
   const temApoiadores = apoiadores.length > 0;
   const expansor =
     temApoiadores
@@ -848,7 +836,7 @@ function htmlTabelaRelatorioMasterDetail(filtradas) {
     "<tbody>" +
     filtradas
       .map((r) => {
-        const apoiadores = apoiadoresDoMunicipio(r.municipio);
+        const apoiadores = apoiadoresVisiveisDoMunicipio(r.municipio);
         return htmlRelatorioLinhaMaster(r) + apoiadores.map(htmlRelatorioLinhaApoiador).join("");
       })
       .join("") +
@@ -952,7 +940,7 @@ function initOrcamento() {
   el = {
     status: document.getElementById("status"),
     filtroRegioes: document.getElementById("filtroRegioes"),
-    visualizarRegistrosNulos: document.getElementById("visualizarRegistrosNulos"),
+    exibirLiderancasSemOrcamento: document.getElementById("exibirLiderancasSemOrcamento"),
     buscaMunicipio: document.getElementById("buscaMunicipio"),
     corpo: document.getElementById("corpoOrcamento"),
     vazio: document.getElementById("vazio"),
@@ -965,7 +953,7 @@ function initOrcamento() {
   if (!el.corpo || !el.filtroRegioes) return;
 
   el.buscaMunicipio?.addEventListener("input", renderizarTabela);
-  el.visualizarRegistrosNulos?.addEventListener("change", renderizarTabela);
+  el.exibirLiderancasSemOrcamento?.addEventListener("change", renderizarTabela);
   el.corpo.addEventListener("click", aoClicarLinhaMaster);
   el.corpo.addEventListener("keydown", (ev) => {
     if (ev.key !== "Enter" && ev.key !== " ") return;

@@ -282,9 +282,16 @@ function aplicarBusca(lista) {
   });
 
   const alvo = colsBusca.length ? colsBusca : colunas;
-  return lista.filter((item) =>
-    alvo.some((col) => PlanilhaApi.normalizarChave(item[col.chave]).includes(termo))
-  );
+  const colsExtras = [colunaVinculo, colunaContratoQuem].filter(Boolean);
+
+  return lista.filter((item) => {
+    if (alvo.some((col) => PlanilhaApi.normalizarChave(item[col.chave]).includes(termo))) {
+      return true;
+    }
+    return colsExtras.some((col) =>
+      PlanilhaApi.normalizarChave(valorItem(item, col)).includes(termo)
+    );
+  });
 }
 
 const ordenacaoContratos = { col: "nome", dir: "asc" };
@@ -2730,6 +2737,7 @@ function htmlPopoverContrato(item) {
   const nome = String(valorItem(item, colunaNome) ?? "").trim() || "—";
   const municipio = String(valorItem(item, colunaMunicipio) ?? "").trim();
   const lideranca = String(valorItem(item, colunaVinculo) ?? "").trim();
+  const parceiro = String(valorItem(item, colunaContratoQuem) ?? "").trim();
   const cpf = String(valorItem(item, colunaCpf) ?? "").trim();
   const celular = String(valorItem(item, colunaCelular) ?? "").trim();
   const nascimento = textoDataPopover(valorItem(item, colunaDataNascimento));
@@ -2738,6 +2746,7 @@ function htmlPopoverContrato(item) {
 
   let detalhes =
     htmlPopoverLinhaFin(rotuloTabela("VINCULO"), lideranca) +
+    htmlPopoverLinhaFin("parceiro", parceiro) +
     htmlPopoverLinhaFin(rotuloTabela("ASSINADO"), textoPopoverAssinado(item)) +
     htmlPopoverLinhaFin("CPF", cpf, "apoiadores-popover-rotulo--case") +
     htmlPopoverLinhaFin(rotuloTabela("VALOR_CONTRATO"), textoMoedaPopover(valorItem(item, colunaValorContrato)));

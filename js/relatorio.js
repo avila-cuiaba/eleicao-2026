@@ -198,6 +198,15 @@
       filtros.push({ nome, ativo: !todos || nenhum, valor });
     });
 
+    const exibirLiderancasSemOrcamento = doc.getElementById("exibirLiderancasSemOrcamento");
+    if (exibirLiderancasSemOrcamento) {
+      filtros.push({
+        nome: "exibir lideranças sem orçamento",
+        ativo: exibirLiderancasSemOrcamento.checked,
+        valor: exibirLiderancasSemOrcamento.checked ? "exibindo" : "ocultando",
+      });
+    }
+
     const visualizarNulos = doc.getElementById("visualizarRegistrosNulos");
     if (visualizarNulos) {
       filtros.push({
