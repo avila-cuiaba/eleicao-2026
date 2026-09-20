@@ -2075,42 +2075,106 @@ function aplicarCompartilhamentoArquivoDrive(file) {
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 }
 
-function provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos) {
-  const info = garantirColunasArquivosContratos(sheet);
-  const cab = info.cabecalhos;
-  const idxId = info.idxId;
-  const idxPasta = info.idxPasta;
+function pastaDriveContratoValida(pastaId) {
+  const id = String(pastaId || "").trim();
+  if (!id) return false;
+  try {
+    const pasta = DriveApp.getFolderById(id);
+    return !pasta.isTrashed();
+  } catch (e) {
+    return false;
+  }
+}
+
+function buscarPastaDriveIdContratoPlanilha(sheet, idRegistro, idxId, idxPasta, numLinhaIgnorar) {
+  const alvo = String(idRegistro || "").trim();
+  if (!alvo || idxId < 0 || idxPasta < 0) return "";
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return "";
+
+  const ultimaCol = sheet.getLastColumn();
+  const vals = sheet.getRange(2, 1, lastRow, ultimaCol).getValues();
+  for (let r = 0; r < vals.length; r++) {
+    const linhaNum = r + 2;
+    if (linhaNum === numLinhaIgnorar) continue;
+    const rowId = String(vals[r][idxId] || "").trim();
+    if (rowId !== alvo) continue;
+    const pid = String(vals[r][idxPasta] || "").trim();
+    if (pastaDriveContratoValida(pid)) return pid;
+  }
+  return "";
+}
+
+function buscarPastaContratoNaRaizPorRegistro(registro, idRegistro) {
+  const raiz = obterPastaRaizArquivosContratos();
+  const nomePasta = nomePastaArquivosContrato(registro, idRegistro);
+  const existente = obterSubpastaPorNome(raiz, nomePasta);
+  if (existente && !existente.isTrashed()) return existente.getId();
+  return "";
+}
+
+function resolverPastaArquivosContratoExistente(sheet, numLinha, cab, idxId, idxPasta, registro, idRegistro) {
   const linhaVals = sheet.getRange(numLinha, 1, 1, cab.length).getValues()[0];
-  let idRegistro = String(linhaVals[idxId] || "").trim();
   let pastaId = String(linhaVals[idxPasta] || "").trim();
+  if (pastaDriveContratoValida(pastaId)) return pastaId;
 
-  if (!idRegistro) {
-    idRegistro = Utilities.getUuid();
-    sheet.getRange(numLinha, idxId + 1).setValue(idRegistro);
-    linhaVals[idxId] = idRegistro;
-  }
+  pastaId = buscarPastaDriveIdContratoPlanilha(sheet, idRegistro, idxId, idxPasta, numLinha);
+  if (pastaDriveContratoValida(pastaId)) return pastaId;
 
-  let pastaValida = false;
-  if (pastaId) {
-    try {
-      const pasta = DriveApp.getFolderById(pastaId);
-      pastaValida = !pasta.isTrashed();
-    } catch (e) {
-      pastaValida = false;
+  pastaId = buscarPastaContratoNaRaizPorRegistro(registro, idRegistro);
+  if (pastaDriveContratoValida(pastaId)) return pastaId;
+
+  return "";
+}
+
+function provisionarArquivosContratoLinha(sheet, numLinha, cabecalhos) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const info = garantirColunasArquivosContratos(sheet);
+    const cab = info.cabecalhos;
+    const idxId = info.idxId;
+    const idxPasta = info.idxPasta;
+    const linhaVals = sheet.getRange(numLinha, 1, 1, cab.length).getValues()[0];
+    let idRegistro = String(linhaVals[idxId] || "").trim();
+    let pastaId = String(linhaVals[idxPasta] || "").trim();
+
+    if (!idRegistro) {
+      idRegistro = Utilities.getUuid();
+      sheet.getRange(numLinha, idxId + 1).setValue(idRegistro);
+      linhaVals[idxId] = idRegistro;
     }
-  }
 
-  if (!pastaValida) {
     const registro = linhaParaObjeto(cab, linhaVals);
-    const raiz = obterPastaRaizArquivosContratos();
-    const nomePasta = nomePastaArquivosContrato(registro, idRegistro);
-    const pasta = raiz.createFolder(nomePasta);
-    pastaId = pasta.getId();
-    sheet.getRange(numLinha, idxPasta + 1).setValue(pastaId);
-  }
+    const pastaResolvida = resolverPastaArquivosContratoExistente(
+      sheet,
+      numLinha,
+      cab,
+      idxId,
+      idxPasta,
+      registro,
+      idRegistro
+    );
 
-  SpreadsheetApp.flush();
-  return { idRegistro: idRegistro, pastaId: pastaId, cabecalhos: cab };
+    if (pastaDriveContratoValida(pastaResolvida)) {
+      pastaId = pastaResolvida;
+      if (String(linhaVals[idxPasta] || "").trim() !== pastaId) {
+        sheet.getRange(numLinha, idxPasta + 1).setValue(pastaId);
+      }
+    } else {
+      const raiz = obterPastaRaizArquivosContratos();
+      const nomePasta = nomePastaArquivosContrato(registro, idRegistro);
+      const pasta = obterOuCriarSubpasta(raiz, nomePasta);
+      pastaId = pasta.getId();
+      sheet.getRange(numLinha, idxPasta + 1).setValue(pastaId);
+    }
+
+    SpreadsheetApp.flush();
+    return { idRegistro: idRegistro, pastaId: pastaId, cabecalhos: cab };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function normalizarTipoDocumentoContrato(tipo) {

@@ -6,7 +6,9 @@ const fmtMoeda = new Intl.NumberFormat("pt-BR", {
 });
 const cfg = CONFIG.PAGAMENTOS_LIDERANCA;
 const cfgPessoal = CONFIG.PESSOAL;
+const cfgAp = cfgPessoal.APOIADORES;
 const cfgMun = CONFIG.MICRO_REGIAO.MUNICIPIOS;
+const CAMPOS_REPASSE_PARCEIRO = cfgAp.COLUNAS_PARCEIRO_MODAL || [];
 const COLUNAS_EDITAVEIS = new Set(cfg.COLUNAS_EDITAVEIS || []);
 const COLS_TABELA = 8;
 
@@ -130,6 +132,7 @@ const CAMPOS_KPI = [
   {
     propOrc: "pessoalOrc",
     propPgto: "pessoalPgto",
+    propRepasse: "parPessoal",
     chaveOrc: "PESSOAL_ORC",
     chavePgto: "PESSOAL_PGTO",
     aliasesOrc: ["orcamento-pessoal", "pessoal", "contratos-distribuidos-apoiadores"],
@@ -139,6 +142,7 @@ const CAMPOS_KPI = [
   {
     propOrc: "combustivelOrc",
     propPgto: "combustivelPgto",
+    propRepasse: "parCombustivel",
     chaveOrc: "COMBUSTIVEL_ORC",
     chavePgto: "COMBUSTIVEL_PGTO",
     aliasesOrc: ["orcamento-combustivel"],
@@ -148,6 +152,7 @@ const CAMPOS_KPI = [
   {
     propOrc: "diversosOrc",
     propPgto: "diversosPgto",
+    propRepasse: "parDiversos",
     chaveOrc: "DIVERSOS_ORC",
     chavePgto: "DIVERSOS_PGTO",
     aliasesOrc: ["orcamento-diversos"],
@@ -157,6 +162,7 @@ const CAMPOS_KPI = [
   {
     propOrc: "diaDOrc",
     propPgto: "diaDPgto",
+    propRepasse: "parDiaD",
     chaveOrc: "DIA_D_ORC",
     chavePgto: "DIA_D_PGTO",
     aliasesOrc: ["orcamento-dia-d", "orcamento-diad"],
@@ -169,6 +175,7 @@ let el = {};
 let linhas = [];
 let regioes = [];
 let mapaMunicipioRegiao = new Map();
+let mapaRepasseApoiadores = new Map();
 let nomesColunaPlanilha = {};
 let modalCrud = null;
 let modoCrud = "atualizar";
@@ -584,6 +591,107 @@ function montarMapaMunicipios(valoresMunicipios) {
   return mapa;
 }
 
+function chaveLiderancaMunicipio(lideranca, municipio) {
+  return normalizarChave(lideranca) + "|" + normalizarChave(municipio);
+}
+
+function temSubcabecalhoApoiadores(linha) {
+  if (!linha?.length) return false;
+  const norm = linha.map((h) => normalizarChave(h));
+  const marcadores = ["lider", "integral", "meio", "customizado"];
+  return marcadores.filter((m) => norm.includes(m)).length >= 2;
+}
+
+function cabecalhoApoiadores(valores) {
+  const linha1 = valores[0] || [];
+  const linha2 = valores[1];
+  if (!temSubcabecalhoApoiadores(linha2)) return linha1;
+
+  const n = Math.max(linha1.length, (linha2 || []).length);
+  const cab = [];
+  for (let i = 0; i < n; i++) {
+    const sup = String(linha2[i] ?? "").trim();
+    const grp = String(linha1[i] ?? "").trim();
+    cab.push(sup || grp);
+  }
+  return cab;
+}
+
+function linhaInicioDadosApoiadores(valores) {
+  if (temSubcabecalhoApoiadores(valores[1])) return 3;
+  return cfgAp.LINHA_INICIO_DADOS;
+}
+
+function resolverIndicesRepasseApoiadores(cabecalho) {
+  const normalizados = (cabecalho || []).map((h) => normalizarChave(h));
+  const indices = {};
+
+  let idxLider = normalizados.findIndex((n) =>
+    ["lideranca", "liderança"].some((alias) => normalizarChave(alias) === n)
+  );
+  if (idxLider === -1 && cfgAp.COLUNAS.LIDERANCA != null) {
+    idxLider = cfgAp.COLUNAS.LIDERANCA;
+  }
+  indices.lideranca = idxLider;
+
+  let idxMun = normalizados.findIndex((n) =>
+    ["municipio", "município"].some((alias) => normalizarChave(alias) === n)
+  );
+  if (idxMun === -1 && cfgAp.COLUNAS.MUNICIPIO != null) {
+    idxMun = cfgAp.COLUNAS.MUNICIPIO;
+  }
+  indices.municipio = idxMun;
+
+  CAMPOS_REPASSE_PARCEIRO.forEach((campo) => {
+    let idx = -1;
+    if (cfgAp.COLUNAS[campo.chave] != null) {
+      idx = cfgAp.COLUNAS[campo.chave];
+    }
+    if (idx === -1 && campo.aliases?.length) {
+      idx = normalizados.findIndex((n) =>
+        campo.aliases.some((alias) => normalizarChave(alias) === n)
+      );
+    }
+    indices[campo.prop] = idx;
+  });
+
+  return indices;
+}
+
+function montarMapaRepasseApoiadores(valores) {
+  const mapa = new Map();
+  if (!valores?.length) return mapa;
+
+  const cab = cabecalhoApoiadores(valores);
+  const indices = resolverIndicesRepasseApoiadores(cab);
+  const inicio = linhaInicioDadosApoiadores(valores) - 1;
+
+  for (let i = inicio; i < valores.length; i++) {
+    const linha = valores[i];
+    if (!linha) continue;
+
+    const lideranca = String(valorCampo(linha, indices.lideranca) ?? "").trim();
+    const municipio = String(valorCampo(linha, indices.municipio) ?? "").trim();
+    if (!lideranca || !municipio) continue;
+
+    const item = {};
+    CAMPOS_REPASSE_PARCEIRO.forEach((campo) => {
+      item[campo.prop] = valorCampo(linha, indices[campo.prop]);
+    });
+
+    mapa.set(chaveLiderancaMunicipio(lideranca, municipio), item);
+  }
+
+  return mapa;
+}
+
+function aplicarRepasseApoiador(item) {
+  const repasse = mapaRepasseApoiadores.get(chaveLiderancaMunicipio(item.lideranca, item.municipio));
+  CAMPOS_REPASSE_PARCEIRO.forEach((campo) => {
+    item[campo.prop] = repasse?.[campo.prop] ?? "";
+  });
+}
+
 function indicePorAliases(normalizados, aliases) {
   return normalizados.findIndex((n) =>
     aliases.some((alias) => normalizarChave(alias) === n)
@@ -740,7 +848,7 @@ function linhasFiltradas() {
   });
 }
 
-const ordenacaoPagamentosLideranca = { col: "lideranca", dir: "asc" };
+const ordenacaoPagamentosLideranca = { col: "municipio", dir: "asc" };
 
 function cmpPagLiderancaLideranca(a, b) {
   const T = TabelaOrdenacao;
@@ -784,23 +892,15 @@ function linhaTemConteudo(item) {
   const municipio = String(item.municipio ?? "").trim();
   if (!lideranca || !municipio) return false;
 
-  return (
-    CAMPOS_EDICAO.some(
-      (par) =>
-        parseNumero(item[par.propOrc]) > 0 ||
-        parseNumero(item[par.propPgto]) > 0 ||
-        celulaPreenchida(item[par.propOrc]) ||
-        celulaPreenchida(item[par.propPgto])
-    ) ||
-    CAMPOS_KPI.some(
-      (campo) =>
-        parseNumero(item[campo.propOrc]) > 0 ||
-        parseNumero(item[campo.propPgto]) > 0 ||
-        celulaPreenchida(item[campo.propOrc]) ||
-        celulaPreenchida(item[campo.propPgto])
-    ) ||
-    celulaPreenchida(item.observacao)
-  );
+  if (celulaPreenchida(item.observacao)) return true;
+
+  return CAMPOS_KPI.some((campo) => {
+    return (
+      parseNumero(item[campo.propOrc]) > 0 ||
+      parseNumero(item[campo.propPgto]) > 0 ||
+      parseNumero(item[campo.propRepasse]) > 0
+    );
+  });
 }
 
 function calcularTotaisPagamento(item) {
@@ -844,6 +944,7 @@ function extrairLinhas(valores) {
 
     item.observacao = valorCampo(linha, indices[CAMPO_OBSERVACAO.prop]);
 
+    aplicarRepasseApoiador(item);
     item.finTotal = calcularTotaisPagamento(item);
     if (!linhaTemConteudo(item)) continue;
     itens.push(item);
@@ -853,58 +954,101 @@ function extrairLinhas(valores) {
   return itens;
 }
 
-function somarKpi(filtradas, propOrc, propPgto) {
+function somarKpi(filtradas, propOrc, propPgto, propRepasse) {
   return filtradas.reduce(
     (acc, r) => ({
       orc: acc.orc + parseNumero(r[propOrc]),
       pgto: acc.pgto + parseNumero(r[propPgto]),
+      repasse: acc.repasse + parseNumero(r[propRepasse]),
     }),
-    { orc: 0, pgto: 0 }
+    { orc: 0, pgto: 0, repasse: 0 }
   );
 }
 
-function calcularPercentualPago(orcNum, pagNum) {
+function calcularSegmentosProgressoPagLideranca(orcNum, pagNum, repasseNum) {
   if (!orcNum || orcNum <= 0) return null;
-  return Math.min(100, Math.max(0, (pagNum / orcNum) * 100));
+
+  let pctPgto = (Math.max(0, pagNum || 0) / orcNum) * 100;
+  let pctRepasse = (Math.max(0, repasseNum || 0) / orcNum) * 100;
+  const total = pctPgto + pctRepasse;
+
+  if (total > 100) {
+    const fator = 100 / total;
+    pctPgto *= fator;
+    pctRepasse *= fator;
+  }
+
+  return {
+    pctPgto,
+    pctRepasse,
+    pctCoberto: pctPgto + pctRepasse,
+  };
 }
 
-function htmlBarraProgressoPago(orcNum, pagNum) {
-  const pct = calcularPercentualPago(orcNum, pagNum);
-  if (pct == null) return "";
-  const pctInt = Math.round(pct);
-  return `<div class="orcamento-geral-progress-pago" role="progressbar" aria-valuenow="${pctInt}" aria-valuemin="0" aria-valuemax="100" title="${pctInt}% pago">
-    <div class="orcamento-geral-progress-pago-track" aria-hidden="true">
-      <div class="orcamento-geral-progress-pago-fill" style="width:${pctInt}%"></div>
-    </div>
-  </div>`;
+function htmlBarraProgressoPago(orcNum, pagNum, repasseNum) {
+  const seg = calcularSegmentosProgressoPagLideranca(orcNum, pagNum, repasseNum);
+  if (seg == null) return "";
+
+  const pctInt = Math.round(seg.pctCoberto);
+  const pctPgto = seg.pctPgto.toFixed(1);
+  const pctRepasse = seg.pctRepasse.toFixed(1);
+  const titulo =
+    `${pctPgto}% pagamento · ${pctRepasse}% repasse · ${pctInt}% coberto do orçamento`;
+
+  const htmlPgto =
+    seg.pctPgto > 0
+      ? `<div class="pag-lideranca-progress-segmento pag-lideranca-progress-segmento--pgto" style="width:${seg.pctPgto}%"></div>`
+      : "";
+  const htmlRepasse =
+    seg.pctRepasse > 0
+      ? `<div class="pag-lideranca-progress-segmento pag-lideranca-progress-segmento--repasse" style="width:${seg.pctRepasse}%"></div>`
+      : "";
+
+  return (
+    `<div class="pag-lideranca-progress-pago" role="progressbar" aria-valuenow="${pctInt}" aria-valuemin="0" aria-valuemax="100" aria-valuetext="${escapeHtml(titulo)}" title="${escapeHtml(titulo)}">` +
+    `<div class="pag-lideranca-progress-track" aria-hidden="true">${htmlPgto}${htmlRepasse}</div>` +
+    `</div>`
+  );
 }
 
-function atualizarKpiCard(elOrc, elPgto, elProgress, orc, pgto) {
+function atualizarKpiCard(elOrc, elPgto, elRepasse, elProgress, orc, pgto, repasse) {
   if (elOrc) elOrc.textContent = exibirMoedaKpi(orc);
   if (elPgto) elPgto.textContent = exibirMoedaKpi(pgto);
+  if (elRepasse) elRepasse.textContent = exibirMoedaKpi(repasse);
   if (elProgress) {
-    elProgress.innerHTML = htmlBarraProgressoPago(orc, pgto);
+    elProgress.innerHTML = htmlBarraProgressoPago(orc, pgto, repasse);
     elProgress.setAttribute("aria-hidden", elProgress.innerHTML ? "false" : "true");
   }
 }
 
 function atualizarKpis(filtradas) {
-  const total = { orc: 0, pgto: 0 };
+  const total = { orc: 0, pgto: 0, repasse: 0 };
   CAMPOS_KPI.forEach((campo) => {
-    const soma = somarKpi(filtradas, campo.propOrc, campo.propPgto);
+    const soma = somarKpi(filtradas, campo.propOrc, campo.propPgto, campo.propRepasse);
     total.orc += soma.orc;
     total.pgto += soma.pgto;
+    total.repasse += soma.repasse;
 
     atualizarKpiCard(
       el["kpi" + capitalizar(campo.kpi) + "Orc"],
       el["kpi" + capitalizar(campo.kpi) + "Pgto"],
+      el["kpi" + capitalizar(campo.kpi) + "Repasse"],
       el["kpi" + capitalizar(campo.kpi) + "Progress"],
       soma.orc,
-      soma.pgto
+      soma.pgto,
+      soma.repasse
     );
   });
 
-  atualizarKpiCard(el.kpiTotalOrc, el.kpiTotalPgto, el.kpiTotalProgress, total.orc, total.pgto);
+  atualizarKpiCard(
+    el.kpiTotalOrc,
+    el.kpiTotalPgto,
+    el.kpiTotalRepasse,
+    el.kpiTotalProgress,
+    total.orc,
+    total.pgto,
+    total.repasse
+  );
 }
 
 function capitalizar(s) {
@@ -916,18 +1060,23 @@ function zerarKpis() {
   [
     "kpiTotalOrc",
     "kpiTotalPgto",
+    "kpiTotalRepasse",
     "kpiTotalProgress",
     "kpiPessoalOrc",
     "kpiPessoalPgto",
+    "kpiPessoalRepasse",
     "kpiPessoalProgress",
     "kpiCombustivelOrc",
     "kpiCombustivelPgto",
+    "kpiCombustivelRepasse",
     "kpiCombustivelProgress",
     "kpiDiversosOrc",
     "kpiDiversosPgto",
+    "kpiDiversosRepasse",
     "kpiDiversosProgress",
     "kpiDiaDOrc",
     "kpiDiaDPgto",
+    "kpiDiaDRepasse",
     "kpiDiaDProgress",
   ].forEach((id) => {
     const node = el[id];
@@ -944,23 +1093,34 @@ function zerarKpis() {
 function htmlCelulaPar(r, par, { destaque = false } = {}) {
   const orcNum = parseNumero(r[par.propOrc]);
   const pgtoNum = parseNumero(r[par.propPgto]);
+  const repasseProp = par.propRepasse;
+  const repasseNum = repasseProp ? parseNumero(r[repasseProp]) : 0;
+  const mostrarZeros = destaque || orcNum > 0 || pgtoNum > 0 || repasseNum > 0;
+  const vazio = '<span class="pag-lideranca-celula-vazio" aria-hidden="true"></span>';
   const orc = exibirMoedaCelula(r[par.propOrc], { zero: destaque });
-  const pgto = exibirMoedaCelula(r[par.propPgto], {
-    zero: destaque || orcNum > 0 || pgtoNum > 0,
-  });
-  if (!orc && !pgto) return "";
-  return (
+  const pgto = exibirMoedaCelula(r[par.propPgto], { zero: mostrarZeros });
+  const repasse = repasseProp ? exibirMoedaCelula(r[repasseProp], { zero: mostrarZeros }) : "";
+
+  if (!orc && !pgto && !repasse) return "";
+
+  let html =
     '<div class="pag-lideranca-celula-par' +
     (destaque ? " pag-lideranca-celula-par--total" : "") +
     '">' +
     '<span class="pag-lideranca-celula-orc">' +
-    (orc || '<span class="pag-lideranca-celula-vazio" aria-hidden="true"></span>') +
+    (orc || vazio) +
     "</span>" +
     '<span class="pag-lideranca-celula-pgto">' +
-    (pgto || '<span class="pag-lideranca-celula-vazio" aria-hidden="true"></span>') +
-    "</span>" +
-    "</div>"
-  );
+    (pgto || vazio) +
+    "</span>";
+
+  if (repasseProp) {
+    html +=
+      '<span class="pag-lideranca-celula-repasse">' + (repasse || vazio) + "</span>";
+  }
+
+  html += "</div>";
+  return html;
 }
 
 function classeCelulaParDesktop(idx) {
@@ -969,21 +1129,49 @@ function classeCelulaParDesktop(idx) {
   return idx === 0 ? base + " apoiadores-col-separador" : base;
 }
 
-const PAR_COLUNA_TOTAL = { propOrc: "colunaTotalOrc", propPgto: "colunaTotalPgto" };
+const PAR_COLUNA_TOTAL = {
+  propOrc: "colunaTotalOrc",
+  propPgto: "colunaTotalPgto",
+  propRepasse: "colunaTotalRepasse",
+};
 
 function calcularTotaisColuna(r) {
   return CAMPOS_KPI.reduce(
     (acc, campo) => ({
       orc: acc.orc + parseNumero(r[campo.propOrc]),
       pgto: acc.pgto + parseNumero(r[campo.propPgto]),
+      repasse: acc.repasse + parseNumero(r[campo.propRepasse]),
     }),
-    { orc: 0, pgto: 0 }
+    { orc: 0, pgto: 0, repasse: 0 }
+  );
+}
+
+function calcularSaldoAPagar(orc, pgto, repasse) {
+  return (orc || 0) - (pgto || 0) - (repasse || 0);
+}
+
+function calcularSaldoAPagarItem(r) {
+  const { orc, pgto, repasse } = calcularTotaisColuna(r);
+  return calcularSaldoAPagar(orc, pgto, repasse);
+}
+
+function htmlCelulaSaldoAPagar(r, { destaque = false } = {}) {
+  const { orc, pgto, repasse } = calcularTotaisColuna(r);
+  const saldo = calcularSaldoAPagar(orc, pgto, repasse);
+  if (!destaque && orc <= 0 && pgto <= 0 && repasse <= 0) return "";
+  return (
+    `<span class="pag-lideranca-celula-saldo${destaque ? " pag-lideranca-celula-saldo--total" : ""}">` +
+    `${fmtMoeda.format(saldo)}</span>`
   );
 }
 
 function objetoColunaTotal(r) {
-  const { orc, pgto } = calcularTotaisColuna(r);
-  return { colunaTotalOrc: orc, colunaTotalPgto: pgto };
+  const { orc, pgto, repasse } = calcularTotaisColuna(r);
+  return {
+    colunaTotalOrc: orc,
+    colunaTotalPgto: pgto,
+    colunaTotalRepasse: repasse,
+  };
 }
 
 function htmlCelulaColunaTotal(r, { destaque = false } = {}) {
@@ -1028,20 +1216,39 @@ function montarStackDiversos(r, { destaque = false } = {}) {
 }
 
 function badgesTotaisIdentHtml(r, { destaque = false } = {}) {
-  const { orc, pgto } = calcularTotaisColuna(r);
+  const { orc, pgto, repasse } = calcularTotaisColuna(r);
+  const saldo = calcularSaldoAPagar(orc, pgto, repasse);
   const badges = [];
   if (orc > 0 || destaque) {
     badges.push(
-      `<span class="orcamento-total-badge pag-lideranca-badge-orc">${fmtMoeda.format(orc)}</span>`
+      `<span class="orcamento-total-badge pag-lideranca-badge-orc" title="orçamento total">${fmtMoeda.format(orc)}</span>`
+    );
+  }
+  if (repasse > 0 || destaque) {
+    badges.push(
+      `<span class="orcamento-total-badge pag-lideranca-badge-repasse" title="repasse parceiro">${fmtMoeda.format(repasse)}</span>`
     );
   }
   if (pgto > 0 || destaque) {
     badges.push(
-      `<span class="orcamento-total-badge pag-lideranca-badge-pgto">${fmtMoeda.format(pgto)}</span>`
+      `<span class="orcamento-total-badge pag-lideranca-badge-pgto" title="pagamento efetuado">${fmtMoeda.format(pgto)}</span>`
     );
   }
-  if (!badges.length) return "";
-  return `<span class="pag-lideranca-badges-ident">${badges.join("")}</span>`;
+  if (!badges.length && !destaque) return "";
+
+  const saldoHtml =
+    orc > 0 || pgto > 0 || repasse > 0 || destaque
+      ? `<span class="pag-lideranca-badges-linha pag-lideranca-badges-linha--saldo">` +
+        `<span class="orcamento-total-badge pag-lideranca-badge-saldo" title="saldo a pagar">${fmtMoeda.format(saldo)}</span>` +
+        `</span>`
+      : "";
+
+  return (
+    `<span class="pag-lideranca-badges-ident">` +
+    `<span class="pag-lideranca-badges-linha">${badges.join("")}</span>` +
+    saldoHtml +
+    `</span>`
+  );
 }
 
 function largurasColunas() {
@@ -1118,10 +1325,45 @@ function itemPopoverPar(r, par) {
   const marcador = par.marcador
     ? `<span class="orcamento-geral-popover-marcador popover-marcador--orc-${par.marcador}" aria-hidden="true"></span>`
     : "";
+  const repasseHtml = par.propRepasse
+    ? `<span class="pag-lideranca-popover-repasse">${exibirMoeda(r[par.propRepasse])}</span>`
+    : `<span class="pag-lideranca-popover-repasse pag-lideranca-popover-repasse--vazio" aria-hidden="true"></span>`;
   return `<div class="apoiadores-popover-linha apoiadores-popover-linha--fin pag-lideranca-popover-linha">
     <span class="${rotuloClass}">${marcador}${par.rotulo}</span>
     <span class="pag-lideranca-popover-orc">${exibirMoeda(r[par.propOrc])}</span>
     <span class="pag-lideranca-popover-pgto">${exibirMoeda(r[par.propPgto])}</span>
+    ${repasseHtml}
+  </div>`;
+}
+
+function rotuloKpiPopover(campo) {
+  if (campo.kpi === "combustivel") return "combustível";
+  if (campo.kpi === "diaD") return "dia D";
+  return campo.kpi;
+}
+
+function itemPopoverRepasseKpi(r, campo) {
+  const marcador = classeMarcadorStack(campo.kpi);
+  return `<div class="apoiadores-popover-linha apoiadores-popover-linha--fin pag-lideranca-popover-linha">
+    <span class="apoiadores-popover-rotulo${campo.kpi === "diaD" ? " apoiadores-popover-rotulo--case" : ""}">
+      <span class="orcamento-geral-popover-marcador popover-marcador--orc-${marcador}" aria-hidden="true"></span>
+      ${rotuloKpiPopover(campo)}
+    </span>
+    <span class="pag-lideranca-popover-orc" aria-hidden="true"></span>
+    <span class="pag-lideranca-popover-pgto" aria-hidden="true"></span>
+    <span class="pag-lideranca-popover-repasse">${exibirMoeda(r[campo.propRepasse])}</span>
+  </div>`;
+}
+
+function htmlPopoverSecaoRepasse(r) {
+  const itens = CAMPOS_KPI
+    .filter((campo) => parseNumero(r[campo.propRepasse]) > 0)
+    .map((campo) => itemPopoverRepasseKpi(r, campo))
+    .join("");
+  if (!itens) return "";
+  return `<div class="pag-lideranca-popover-secao">
+    <div class="pag-lideranca-popover-secao-titulo">repasse parceiro</div>
+    ${itens}
   </div>`;
 }
 
@@ -1155,12 +1397,14 @@ function htmlPopover(r) {
         <span></span>
         <span>orçamento</span>
         <span>pagamento</span>
+        <span>repasse</span>
       </div>
       <hr class="apoiadores-popover-divisor" aria-hidden="true">
     </div>
     <div class="apoiadores-popover-tabela">
       ${htmlPopoverSecao("pessoal", CAMPOS_PESSOAL, r)}
       ${htmlPopoverSecao("geral", CAMPOS_GERAL, r)}
+      ${htmlPopoverSecaoRepasse(r)}
     </div>
     ${htmlPopoverObservacao(r)}
   </div>`;
@@ -1169,9 +1413,10 @@ function htmlPopover(r) {
 function montarTotaisKpi(filtradas) {
   const total = {};
   CAMPOS_KPI.forEach((campo) => {
-    const soma = somarKpi(filtradas, campo.propOrc, campo.propPgto);
+    const soma = somarKpi(filtradas, campo.propOrc, campo.propPgto, campo.propRepasse);
     total[campo.propOrc] = soma.orc;
     total[campo.propPgto] = soma.pgto;
+    total[campo.propRepasse] = soma.repasse;
   });
   return total;
 }
@@ -1349,9 +1594,10 @@ async function carregarDados(opcoes = {}) {
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   try {
-    const [valoresPagamentos, valoresMunicipios] = await Promise.all([
+    const [valoresPagamentos, valoresMunicipios, valoresApoiadores] = await Promise.all([
       fetchPlanilha(cfg.PLANILHA),
       fetchPlanilha(cfgMun.PLANILHA).catch(() => []),
+      fetchPlanilha(cfgPessoal.PLANILHA_APOIADORES).catch(() => []),
     ]);
 
     if (valoresPagamentos === null) {
@@ -1360,6 +1606,7 @@ async function carregarDados(opcoes = {}) {
     }
 
     mapaMunicipioRegiao = montarMapaMunicipios(valoresMunicipios || []);
+    mapaRepasseApoiadores = montarMapaRepasseApoiadores(valoresApoiadores || []);
     montar(valoresPagamentos, filtros);
     limparStatus();
   } catch (e) {
@@ -1395,7 +1642,9 @@ function conteudoExtraRelatorioPagina() {
     '<p class="rel-pag-lideranca-legenda">' +
     '<span class="rel-pag-lideranca-legenda-orc">orçamento</span>' +
     '<span class="rel-pag-lideranca-legenda-pgto">pagamento</span>' +
-    '<span class="rel-pag-lideranca-legenda-dica">— em cada célula, orçamento acima e pagamento abaixo</span>' +
+    '<span class="rel-pag-lideranca-legenda-repasse">repasse parceiro</span>' +
+    '<span class="rel-pag-lideranca-legenda-saldo">saldo a pagar</span>' +
+    '<span class="rel-pag-lideranca-legenda-dica">— em cada célula: orçamento, pagamento e repasse; saldo = orçamento − pagamento − repasse</span>' +
     "</p></section>"
   );
 }
@@ -1418,6 +1667,7 @@ function reconstruirColgroupRelatorioPagLideranca(table) {
     "pag-lideranca-col-par",
     "pag-lideranca-col-par",
     "pag-lideranca-col-total",
+    "pag-lideranca-col-saldo",
   ];
   table.querySelectorAll("colgroup").forEach((cg) => {
     cg.replaceChildren(
@@ -1454,6 +1704,28 @@ function garantirTdTotalRelatorioPagLideranca(tr, html) {
   td.innerHTML = html;
 }
 
+function garantirThSaldoRelatorioPagLideranca(thRow) {
+  if (!thRow) return;
+  let thSaldo = thRow.querySelector("th.pag-lideranca-col-saldo");
+  if (!thSaldo) {
+    thSaldo = document.createElement("th");
+    thSaldo.scope = "col";
+    thRow.appendChild(thSaldo);
+  }
+  thSaldo.className = "text-end pag-lideranca-col-saldo pag-lideranca-col-par apoiadores-celula-num";
+  thSaldo.innerHTML = '<span class="pag-lideranca-th-titulo">saldo a pagar</span>';
+}
+
+function garantirTdSaldoRelatorioPagLideranca(tr, html) {
+  let td = tr.querySelector("td.pag-lideranca-col-saldo");
+  if (!td) {
+    td = document.createElement("td");
+    tr.appendChild(td);
+  }
+  td.className = "text-end pag-lideranca-col-saldo pag-lideranca-col-par apoiadores-celula-num";
+  td.innerHTML = html;
+}
+
 function ajustarTabelaRelatorioPagina(table) {
   if (!table?.classList?.contains("pag-lideranca-tabela")) return;
 
@@ -1486,7 +1758,11 @@ function ajustarTabelaRelatorioPagina(table) {
 
   const thRow = table.querySelector("thead tr");
   if (thRow) {
-    const thsPar = [...thRow.querySelectorAll("th.pag-lideranca-col-par, th.pag-lideranca-col-desk")];
+    const thsPar = [...thRow.querySelectorAll("th.pag-lideranca-col-par, th.pag-lideranca-col-desk")].filter(
+      (th) =>
+        !th.classList.contains("pag-lideranca-col-total") &&
+        !th.classList.contains("pag-lideranca-col-saldo")
+    );
     thsPar.forEach((th, idx) => {
       th.className = "text-end pag-lideranca-col-par apoiadores-celula-num";
       const rotulo = ROTULOS_TH_REL_PAG_LIDERANCA[idx] || "";
@@ -1495,6 +1771,7 @@ function ajustarTabelaRelatorioPagina(table) {
         : "";
     });
     garantirThTotalRelatorioPagLideranca(thRow);
+    garantirThSaldoRelatorioPagLideranca(thRow);
   }
 
   reconstruirColgroupRelatorioPagLideranca(table);
@@ -1521,12 +1798,14 @@ function ajustarTabelaRelatorioPagina(table) {
 
     tr.querySelectorAll("td.pag-lideranca-col-par, td.pag-lideranca-col-desk").forEach((td) => {
       if (td.classList.contains("pag-lideranca-col-total")) return;
+      if (td.classList.contains("pag-lideranca-col-saldo")) return;
       td.classList.remove("pag-lideranca-col-desk", "orcamento-tabela-desktop-col");
       td.classList.add("pag-lideranca-col-par", "apoiadores-celula-num");
     });
 
     if (r) {
       garantirTdTotalRelatorioPagLideranca(tr, htmlCelulaColunaTotal(r));
+      garantirTdSaldoRelatorioPagLideranca(tr, htmlCelulaSaldoAPagar(r));
     }
   });
 
@@ -1545,14 +1824,14 @@ function ajustarTabelaRelatorioPagina(table) {
 
     trTotal.querySelectorAll("td.pag-lideranca-col-par, td.pag-lideranca-col-desk").forEach((td) => {
       if (td.classList.contains("pag-lideranca-col-total")) return;
+      if (td.classList.contains("pag-lideranca-col-saldo")) return;
       td.classList.remove("pag-lideranca-col-desk", "orcamento-tabela-desktop-col");
       td.classList.add("pag-lideranca-col-par", "apoiadores-celula-num");
     });
 
-    garantirTdTotalRelatorioPagLideranca(
-      trTotal,
-      htmlCelulaColunaTotal(montarTotaisKpi(filtradas), { destaque: true })
-    );
+    const totais = montarTotaisKpi(filtradas);
+    garantirTdTotalRelatorioPagLideranca(trTotal, htmlCelulaColunaTotal(totais, { destaque: true }));
+    garantirTdSaldoRelatorioPagLideranca(trTotal, htmlCelulaSaldoAPagar(totais, { destaque: true }));
   }
 }
 
@@ -1566,11 +1845,28 @@ function estilosRelatorioPagina() {
     ".page-orcamento .rel-pag-lideranca-legenda{display:flex;flex-wrap:wrap;align-items:center;gap:0.35rem 0.75rem;margin:0;font-size:8pt;color:#64748b;}" +
     ".page-orcamento .rel-pag-lideranca-legenda-orc{font-weight:700;color:#b91c1c;}" +
     ".page-orcamento .rel-pag-lideranca-legenda-pgto{font-weight:700;color:#0e7490;}" +
+    ".page-orcamento .rel-pag-lideranca-legenda-repasse{font-weight:700;color:#15803d;}" +
+    ".page-orcamento .rel-pag-lideranca-legenda-saldo{font-weight:700;color:#5b21b6;}" +
     ".page-orcamento .rel-pag-lideranca-legenda-dica{color:#94a3b8;font-size:7.5pt;}" +
     ".page-orcamento .rel-orcamento-kpis{margin-top:0.2rem;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-layout{display:flex;flex-direction:column;gap:8px;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-total{display:flex;justify-content:center;width:100%;margin:0;}" +
-    ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-total > .col-12{flex:0 0 33%;max-width:33%;width:33%;padding:0;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-grupo{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:0.55rem 0.85rem;width:100%;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-card{grid-column:2;justify-self:center;width:min(100%,12rem);min-width:10.5rem;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-card .dashboard-kpi-valor{white-space:nowrap;font-variant-numeric:tabular-nums;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda{grid-column:3;justify-self:end;width:min(100%,11rem);padding:0.1rem 0 0.1rem 0.45rem;border:none;border-left:1px dashed #cbd5e1;border-radius:0;background:transparent;box-shadow:none;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-titulo{font-size:6pt;font-weight:600;letter-spacing:0.05em;color:#94a3b8;text-transform:uppercase;margin-bottom:0.12rem;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.12rem;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-item{display:flex;align-items:center;gap:0.25rem;line-height:1.2;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-marcador{flex-shrink:0;width:0.35rem;height:0.35rem;border-radius:50%;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-marcador--orc{background:#b91c1c;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-marcador--pgto{background:#0284c7;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-marcador--repasse{background:#15803d;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-texto{font-size:6.5pt;font-weight:400;color:#64748b;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-cor{font-weight:600;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-cor--orc{color:#b91c1c;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-cor--pgto{color:#0284c7;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-cor--repasse{color:#15803d;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-detalhe{display:flex;gap:8px;width:100%;margin:0;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-detalhe > [class*='col-']{flex:1 1 0;min-width:0;padding:0;max-width:none;width:auto;}" +
     ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;border:1px solid rgba(31,78,140,0.14);}" +
@@ -1583,10 +1879,13 @@ function estilosRelatorioPagina() {
     ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-linha{display:flex;flex-direction:column;align-items:center;width:100%;line-height:1.1;}" +
     ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-orc .dashboard-kpi-valor{color:#b91c1c!important;}" +
     ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-pgto .dashboard-kpi-valor{color:#0e7490!important;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-repasse .dashboard-kpi-valor{color:#15803d!important;}" +
     ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-progress{width:100%;margin-top:0.15rem;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-progress .orcamento-geral-progress-pago{max-width:none;width:100%;}" +
-    ".page-orcamento .rel-orcamento-kpis .orcamento-geral-progress-pago-track{height:0.32rem;border-radius:999px;background:rgba(248,113,113,0.22);overflow:hidden;}" +
-    ".page-orcamento .rel-orcamento-kpis .orcamento-geral-progress-pago-fill{height:100%;border-radius:999px;background:#0891b2;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-progress-pago{width:100%;max-width:none;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-progress-track{display:flex;width:100%;height:0.32rem;border-radius:999px;background:rgba(248,113,113,0.28);overflow:hidden;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-progress-segmento{height:100%;min-width:0;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-progress-segmento--pgto{background:#0891b2;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-progress-segmento--repasse{background:#16a34a;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra{display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:8px;width:28px;height:28px;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra svg{width:16px;height:16px;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-card-total{background:#f8fafc!important;border:1px solid rgba(31,78,140,0.14)!important;box-shadow:none!important;border-left:3px solid #0891b2!important;}" +
@@ -1612,25 +1911,32 @@ function estilosRelatorioPagina() {
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.apoiadores-col-ident--rel .apoiadores-rel-ident-municipio{display:block;margin-top:0.12rem;font-size:7pt;line-height:1.2;color:#64748b;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.apoiadores-col-ident{width:28%;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-par{width:13%;}" +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-total{width:16%;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-total{width:14%;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-saldo{width:12%;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-par," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-par{width:13%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-par{width:12%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-total," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-total{width:16%;text-align:right;padding:0.4rem 0.4rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-total{width:14%;text-align:right;padding:0.4rem 0.4rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-saldo," +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-saldo{width:12%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-saldo{color:#5b21b6;font-size:7.5pt;font-weight:700;font-variant-numeric:tabular-nums;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-saldo--total{font-weight:800;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-th-titulo{display:inline-block;font-size:7pt;font-weight:700;color:#475569;text-transform:lowercase;line-height:1.2;white-space:nowrap;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-th-titulo--case{text-transform:none;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par{display:flex;flex-direction:column;align-items:flex-end;gap:0.1rem;line-height:1.15;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-orc{color:#b91c1c;font-size:7pt;font-weight:500;font-variant-numeric:tabular-nums;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-pgto{color:#0e7490;font-size:7.5pt;font-weight:600;font-variant-numeric:tabular-nums;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-repasse{color:#15803d;font-size:7pt;font-weight:600;font-variant-numeric:tabular-nums;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par--total .pag-lideranca-celula-orc," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par--total .pag-lideranca-celula-pgto{font-weight:700;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par--total .pag-lideranca-celula-pgto," +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par--total .pag-lideranca-celula-repasse{font-weight:700;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-linha-total td{border-top:2px solid rgba(148,163,184,0.45);vertical-align:top;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-total-rotulo{display:inline-block;font-size:7.5pt;font-weight:700;text-transform:lowercase;color:#334155;}" +
     "@media print{" +
     ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-card," +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-ilustra," +
-    ".page-orcamento .rel-orcamento-kpis .orcamento-geral-progress-pago-fill," +
-    ".page-orcamento .rel-orcamento-kpis .orcamento-geral-progress-pago-track{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-progress-track," +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-progress-segmento{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}" +
     "}"
   );
 }
@@ -1650,18 +1956,23 @@ function initPagamentosLideranca() {
     vazio: document.getElementById("vazio"),
     kpiTotalOrc: document.getElementById("kpiTotalOrc"),
     kpiTotalPgto: document.getElementById("kpiTotalPgto"),
+    kpiTotalRepasse: document.getElementById("kpiTotalRepasse"),
     kpiTotalProgress: document.getElementById("kpiTotalProgress"),
     kpiPessoalOrc: document.getElementById("kpiPessoalOrc"),
     kpiPessoalPgto: document.getElementById("kpiPessoalPgto"),
+    kpiPessoalRepasse: document.getElementById("kpiPessoalRepasse"),
     kpiPessoalProgress: document.getElementById("kpiPessoalProgress"),
     kpiCombustivelOrc: document.getElementById("kpiCombustivelOrc"),
     kpiCombustivelPgto: document.getElementById("kpiCombustivelPgto"),
+    kpiCombustivelRepasse: document.getElementById("kpiCombustivelRepasse"),
     kpiCombustivelProgress: document.getElementById("kpiCombustivelProgress"),
     kpiDiversosOrc: document.getElementById("kpiDiversosOrc"),
     kpiDiversosPgto: document.getElementById("kpiDiversosPgto"),
+    kpiDiversosRepasse: document.getElementById("kpiDiversosRepasse"),
     kpiDiversosProgress: document.getElementById("kpiDiversosProgress"),
     kpiDiaDOrc: document.getElementById("kpiDiaDOrc"),
     kpiDiaDPgto: document.getElementById("kpiDiaDPgto"),
+    kpiDiaDRepasse: document.getElementById("kpiDiaDRepasse"),
     kpiDiaDProgress: document.getElementById("kpiDiaDProgress"),
     btnSalvar: document.getElementById("btnSalvarApoiador"),
     modalTitulo: document.getElementById("modalApoiadorTitulo"),
