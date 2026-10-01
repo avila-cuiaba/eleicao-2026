@@ -5,6 +5,7 @@ const fmtMoeda = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 2,
 });
 const cfg = CONFIG.ORCAMENTO_GERAL;
+const cfgPagLideranca = CONFIG.PAGAMENTOS_LIDERANCA;
 const COLS_TABELA = 7;
 
 let el = {};
@@ -50,20 +51,45 @@ function celulaPreenchida(val) {
   return String(val ?? "").trim() !== "";
 }
 
-function urlConsulta() {
+function urlConsultaPlanilha(planilhaKey, aba) {
   const url = new URL(CONFIG.WEB_APP_URL);
-  url.searchParams.set("planilha", cfg.PLANILHA);
-  if (cfg.ABA) url.searchParams.set("aba", cfg.ABA);
+  url.searchParams.set("planilha", planilhaKey);
+  if (aba) url.searchParams.set("aba", aba);
   AUTH.aplicarNaUrl(url);
   return url.toString();
 }
 
-async function fetchPlanilha() {
-  const resp = await fetch(urlConsulta(), { method: "GET" });
+function urlConsulta() {
+  return urlConsultaPlanilha(cfg.PLANILHA, cfg.ABA);
+}
+
+async function fetchPlanilhaPorChave(planilhaKey, aba) {
+  const resp = await fetch(urlConsultaPlanilha(planilhaKey, aba), { method: "GET" });
   const json = await resp.json();
   if (!AUTH.tratarResposta(json)) return null;
   if (!json.ok) throw new Error(json.erro || "Falha ao consultar planilha.");
   return json.valores || [];
+}
+
+async function fetchPlanilha() {
+  return fetchPlanilhaPorChave(cfg.PLANILHA, cfg.ABA);
+}
+
+/** Soma col. V (total repasse) da aba pagamentos por liderança (gid 195528017). */
+function somarTotalRepassePlanilhaLideranca(valores) {
+  if (!valores?.length || !cfgPagLideranca?.COLUNAS) return 0;
+  const col = cfgPagLideranca.COLUNAS.PGTO_APOIADOR;
+  const colLider = cfgPagLideranca.COLUNAS.LIDERANCA;
+  const colMun = cfgPagLideranca.COLUNAS.MUNICIPIO;
+  const inicio = (cfgPagLideranca.LINHA_INICIO_DADOS || 2) - 1;
+  let total = 0;
+  for (let i = inicio; i < valores.length; i++) {
+    const linha = valores[i];
+    if (!linha) continue;
+    if (!String(linha[colLider] ?? "").trim() || !String(linha[colMun] ?? "").trim()) continue;
+    total += parseNumero(linha[col]);
+  }
+  return total;
 }
 
 function linhaEstratificada(linha1) {
@@ -177,9 +203,9 @@ function extrairDados(valores) {
   return { linhas, indices, cabecalho };
 }
 
-function calcularTotais(valores, indices, linhas) {
+function calcularTotais(linhas, kpiRepasseParceiros) {
   const kpiTotal = somarColuna(linhas, "orcNum");
-  const kpiRepasse = somarColuna(linhas, "repasseNum");
+  const kpiRepasse = kpiRepasseParceiros ?? 0;
   const kpiPagamento = somarColuna(linhas, "pagNum");
 
   return {
@@ -348,7 +374,7 @@ function renderizarLinha(r) {
   </tr>`;
 }
 
-function renderizarTabela(valores, indices, linhas) {
+function renderizarTabela(linhas, kpiRepasseParceiros) {
   if (!linhas.length) {
     limparKpis();
     destruirPopoversTabela();
@@ -357,7 +383,7 @@ function renderizarTabela(valores, indices, linhas) {
     return;
   }
 
-  const totais = calcularTotais(valores, indices, linhas);
+  const totais = calcularTotais(linhas, kpiRepasseParceiros);
   atualizarKpis(totais);
   el.corpo.innerHTML = linhas.map(renderizarLinha).join("");
   inicializarPopoversTabela(linhas);
@@ -389,9 +415,10 @@ function aposRender() {
   });
 }
 
-function montar(valores) {
-  const { linhas, indices } = extrairDados(valores);
-  renderizarTabela(valores, indices, linhas);
+function montar(valores, valoresPagLideranca) {
+  const { linhas } = extrairDados(valores);
+  const kpiRepasse = somarTotalRepassePlanilhaLideranca(valoresPagLideranca);
+  renderizarTabela(linhas, kpiRepasse);
   aposRender();
 }
 
@@ -405,13 +432,16 @@ async function carregarOrcamentoGeral() {
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   try {
-    const valores = await fetchPlanilha();
-    if (valores === null) {
+    const [valores, valoresPagLideranca] = await Promise.all([
+      fetchPlanilha(),
+      fetchPlanilhaPorChave(cfgPagLideranca.PLANILHA, cfgPagLideranca.ABA),
+    ]);
+    if (valores === null || valoresPagLideranca === null) {
       limparStatus();
       return;
     }
 
-    montar(valores);
+    montar(valores, valoresPagLideranca);
     limparStatus();
   } catch (e) {
     mostrarStatus("Erro ao carregar: " + e.message, "erro");

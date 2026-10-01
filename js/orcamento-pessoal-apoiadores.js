@@ -1164,9 +1164,113 @@ function estilosRelatorioPagina() {
   );
 }
 
+function escapeXmlXls(valor) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function montarLinhasXlsOrcamento() {
+  const items = aplicarOrdenacaoOrcamentoApoiadores(linhasFiltradas());
+  if (!items.length) return null;
+
+  const header = [
+    "município",
+    "liderança",
+    "pessoal",
+    "combustível",
+    "diversos",
+    "dia D",
+    "total",
+  ];
+  const linhasXls = items.map((item) => [
+    String(item.municipio ?? "").trim(),
+    String(item.lideranca ?? "").trim(),
+    exibirMoeda(item.pessoal),
+    exibirMoeda(item.combustivel),
+    exibirMoeda(item.diversos),
+    exibirMoeda(item.diaD),
+    exibirMoeda(item.finTotal),
+  ]);
+
+  return { header, linhas: linhasXls };
+}
+
+function montarXmlXlsOrcamento(dados) {
+  const cell = (valor) =>
+    `<Cell><Data ss:Type="String">${escapeXmlXls(valor)}</Data></Cell>`;
+  const row = (valores) => `<Row>${valores.map(cell).join("")}</Row>`;
+
+  return (
+    "<?xml version=\"1.0\"?>" +
+    "<?mso-application progid=\"Excel.Sheet\"?>" +
+    "<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" " +
+    "xmlns:o=\"urn:schemas-microsoft-com:office:office\" " +
+    "xmlns:x=\"urn:schemas-microsoft-com:office:excel\" " +
+    "xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">" +
+    "<Worksheet ss:Name=\"orcamento\">" +
+    "<Table>" +
+    row(dados.header) +
+    dados.linhas.map(row).join("") +
+    "</Table>" +
+    "</Worksheet>" +
+    "</Workbook>"
+  );
+}
+
+function nomeArquivoXlsOrcamento() {
+  const hoje = new Date();
+  const y = hoje.getFullYear();
+  const m = String(hoje.getMonth() + 1).padStart(2, "0");
+  const d = String(hoje.getDate()).padStart(2, "0");
+  const prefix = filtroFederalJuliana ? "orcamento-juliana" : "orcamento-lideranca";
+  return `${prefix}-${y}${m}${d}.xls`;
+}
+
+function baixarArquivoXls(xml, nomeArquivo) {
+  const blob = new Blob([xml], { type: "application/vnd.ms-excel;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nomeArquivo;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function montarHtmlRelatorioOrcamento() {
+  if (!window.Relatorio || typeof window.Relatorio.montarHtml !== "function") return null;
+  const html = window.Relatorio.montarHtml();
+  return html && String(html).includes("rel-tabela") ? html : null;
+}
+
+async function executarRelatorioPagina(opcoes) {
+  const opcao = opcoes?.opcao;
+
+  if (opcao === "xls") {
+    const dados = montarLinhasXlsOrcamento();
+    if (!dados) {
+      return { tipo: "erro", mensagem: "nenhum dado para exportar." };
+    }
+    baixarArquivoXls(montarXmlXlsOrcamento(dados), nomeArquivoXlsOrcamento());
+    if (typeof AppToast !== "undefined") AppToast.show("arquivo XLS gerado.", "sucesso");
+    return { tipo: "xls" };
+  }
+
+  const html = montarHtmlRelatorioOrcamento();
+  if (!html) {
+    return { tipo: "erro", mensagem: "nenhum dado para imprimir." };
+  }
+  return { tipo: "html", html };
+}
+
 window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
 window.estilosRelatorioPagina = estilosRelatorioPagina;
 window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
+window.montarHtmlRelatorioPagina = montarHtmlRelatorioOrcamento;
+window.executarRelatorioPagina = executarRelatorioPagina;
 
 function initOrcamentoPessoalApoiadores() {
   el = {

@@ -647,8 +647,9 @@ const CONFIG = {
       DIA_D_ORC: 18,          // S — ORCAMENTO-DIA-D
       DIA_D_PGTO: 19,         // T — DIA-D-PGTO
       OBSERVACAO: 20,         // U
+      PGTO_APOIADOR: 21,      // V — total repasse (KPI pagamentos-geral); PGTO-APOIADOR na edição
     },
-    // Somente estas colunas podem ser alteradas pelo formulário (letras D F H J L P R T U).
+    // Somente estas colunas podem ser alteradas pelo formulário (letras D F H J L P R T U V).
     COLUNAS_EDITAVEIS: [
       "PROPRIO_PGTO",      // D
       "LIDER_PGTO",        // F
@@ -659,6 +660,7 @@ const CONFIG = {
       "DIVERSOS_PGTO",     // R
       "DIA_D_PGTO",        // T
       "OBSERVACAO",        // U
+      "PGTO_APOIADOR",     // V
     ],
   },
 

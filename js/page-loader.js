@@ -184,7 +184,11 @@ window.addEventListener("message", (event) => {
             html = resultado.html;
           } else if (resultado?.tipo === "erro") {
             erro = resultado.mensagem || "não foi possível gerar o relatório.";
-          } else if (resultado?.tipo === "txt" || resultado?.tipo === "cancelado") {
+          } else if (
+            resultado?.tipo === "txt" ||
+            resultado?.tipo === "cancelado" ||
+            resultado?.tipo === "xls"
+          ) {
             semAlerta = true;
           }
         } else {

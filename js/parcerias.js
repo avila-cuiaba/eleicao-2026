@@ -290,7 +290,7 @@ function linhasFiltradas() {
   });
 }
 
-const ordenacaoParcerias = { col: "lideranca", dir: "asc" };
+const ordenacaoParcerias = { col: "municipio", dir: "asc" };
 
 function cmpLiderancaParceriasOrdem(a, b) {
   const T = TabelaOrdenacao;

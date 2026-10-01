@@ -1783,8 +1783,8 @@ function inserirLinhaApoiadores(sheet, cabecalhos, dados, corpo) {
 const DASHBOARD_COL_MINIMA = 9; // I (1-based)
 const DASHBOARD_COL_IDEAL = 10; // J (1-based)
 
-// Pagamentos por liderança: somente colunas D F H J L P R T U (índices 0-based).
-const PAGAMENTOS_LIDERANCA_COLS_EDITAVEIS = [3, 5, 7, 9, 11, 15, 17, 19, 20];
+// Pagamentos por liderança: somente colunas D F H J L P R T U V (índices 0-based).
+const PAGAMENTOS_LIDERANCA_COLS_EDITAVEIS = [3, 5, 7, 9, 11, 15, 17, 19, 20, 21];
 
 function atualizarLinhaPagamentosLideranca(sheet, numLinha, existente, cabecalhos, dados) {
   const novaLinha = existente.slice();

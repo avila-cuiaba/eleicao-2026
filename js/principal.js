@@ -112,6 +112,10 @@ const PAGINAS = {
     arquivo: "pages/orcamento-pessoal-apoiadores.html",
     atualizar: true,
     menuGrupo: "orcamento",
+    relatorioOpcoes: [
+      { id: "geral", rotulo: "relatório PDF" },
+      { id: "xls", rotulo: "relatório XLS" },
+    ],
   },
   "orcamento-desembolso": {
     titulo: "orçamento",
@@ -152,6 +156,10 @@ const PAGINAS = {
     arquivo: "pages/pagamentos-lideranca.html",
     atualizar: true,
     menuGrupo: "pagamentos",
+    relatorioOpcoes: [
+      { id: "geral", rotulo: "relatório PDF" },
+      { id: "xls", rotulo: "relatório XLS" },
+    ],
   },
   agenda: {
     titulo: "agenda",

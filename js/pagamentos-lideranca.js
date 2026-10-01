@@ -23,6 +23,13 @@ const CAMPO_OBSERVACAO = {
   aliases: ["observacao", "observação"],
 };
 
+const CAMPO_PGTO_APOIADOR = {
+  prop: "pgtoApoiador",
+  chave: "PGTO_APOIADOR",
+  aliases: ["pgto-apoiador", "pgto apoiador"],
+  el: "campoPgtoApoiador",
+};
+
 const CAMPOS_PESSOAL = [
   {
     propOrc: "proprioValor",
@@ -227,6 +234,12 @@ function atualizarMetadadosPlanilha(valores) {
     const nome = String(cab[idxObs] ?? "").trim();
     nomesColunaPlanilha[CAMPO_OBSERVACAO.prop] = nome || CAMPO_OBSERVACAO.aliases[0];
   }
+
+  const idxPgtoAp = indices[CAMPO_PGTO_APOIADOR.prop];
+  if (idxPgtoAp != null && idxPgtoAp >= 0) {
+    const nome = String(cab[idxPgtoAp] ?? "").trim();
+    nomesColunaPlanilha[CAMPO_PGTO_APOIADOR.prop] = nome || CAMPO_PGTO_APOIADOR.aliases[0];
+  }
 }
 
 function valorMoedaIgual(a, b) {
@@ -263,6 +276,17 @@ function dadosGravacaoAlterados(form, original) {
     }
   }
 
+  if (colunaEditavelPermitida(CAMPO_PGTO_APOIADOR.chave)) {
+    const chavePgtoAp = nomesColunaPlanilha[CAMPO_PGTO_APOIADOR.prop];
+    const inputPgtoAp = el[CAMPO_PGTO_APOIADOR.el];
+    if (chavePgtoAp && inputPgtoAp && !inputPgtoAp.disabled) {
+      const novo = form.pgtoApoiador;
+      if (!valorMoedaIgual(novo, base.pgtoApoiador)) {
+        dados[chavePgtoAp] = novo === "" ? "" : novo;
+      }
+    }
+  }
+
   return dados;
 }
 
@@ -276,6 +300,7 @@ function lerFormulario() {
     lideranca: String(base.lideranca ?? "").trim(),
     municipio: String(base.municipio ?? "").trim(),
     observacao: String(el.campoObservacao?.value ?? "").trim(),
+    pgtoApoiador: lerCampoMoeda(el[CAMPO_PGTO_APOIADOR.el]),
   };
   CAMPOS_EDICAO.forEach((par) => {
     dados[par.propOrc] = parseNumero(el[par.elOrc]?.value);
@@ -341,7 +366,7 @@ function formatarInputMoeda(input) {
 }
 
 function aoDigitarMoedaPgto(e) {
-  const input = e.target.closest(".pag-lideranca-modal-pgto");
+  const input = e.target.closest(".pag-lideranca-modal-pgto, .pag-lideranca-modal-parceiro");
   if (!input || input.disabled) return;
   formatarInputMoeda(input);
   const pos = input.value.length;
@@ -360,7 +385,7 @@ function vincularMascarasMoedaPagamento() {
   form.dataset.mascaraMoedaPgto = "1";
   form.addEventListener("input", aoDigitarMoedaPgto);
   form.addEventListener("blur", (e) => {
-    const input = e.target.closest(".pag-lideranca-modal-pgto");
+    const input = e.target.closest(".pag-lideranca-modal-pgto, .pag-lideranca-modal-parceiro");
     if (input && !input.disabled) formatarInputMoeda(input);
   }, true);
 }
@@ -370,6 +395,10 @@ function preencherFormulario(item) {
   if (el.modalLiderancaNome) el.modalLiderancaNome.textContent = String(dados.lideranca ?? "").trim() || "—";
   if (el.modalMunicipioNome) el.modalMunicipioNome.textContent = String(dados.municipio ?? "").trim();
   if (el.campoObservacao) el.campoObservacao.value = String(dados.observacao ?? "").trim();
+  const inputPgtoAp = el[CAMPO_PGTO_APOIADOR.el];
+  if (inputPgtoAp) {
+    inputPgtoAp.value = valorParaCampoMoeda(dados.pgtoApoiador);
+  }
 
   CAMPOS_EDICAO.forEach((par) => {
     const inputOrc = el[par.elOrc];
@@ -442,6 +471,13 @@ function aplicarAlteracoesLinhaLocal(numLinha, form) {
 
   if (colunaEditavelPermitida(CAMPO_OBSERVACAO.chave)) {
     item.observacao = form.observacao;
+  }
+
+  if (colunaEditavelPermitida(CAMPO_PGTO_APOIADOR.chave)) {
+    const inputPgtoAp = el[CAMPO_PGTO_APOIADOR.el];
+    if (inputPgtoAp && !inputPgtoAp.disabled) {
+      item.pgtoApoiador = form.pgtoApoiador;
+    }
   }
 
   sincronizarTotaisPessoalExibicao(item);
@@ -655,6 +691,11 @@ function resolverIndicesRepasseApoiadores(cabecalho) {
     indices[campo.prop] = idx;
   });
 
+  let idxParceria = normalizados.findIndex((n) => n === "parceria");
+  const colParceria = cfgPessoal.PARCERIAS?.COLUNAS?.PARCERIA;
+  if (idxParceria === -1 && colParceria != null) idxParceria = colParceria;
+  indices.parceria = idxParceria;
+
   return indices;
 }
 
@@ -674,7 +715,9 @@ function montarMapaRepasseApoiadores(valores) {
     const municipio = String(valorCampo(linha, indices.municipio) ?? "").trim();
     if (!lideranca || !municipio) continue;
 
-    const item = {};
+    const item = {
+      parceria: valorCampo(linha, indices.parceria),
+    };
     CAMPOS_REPASSE_PARCEIRO.forEach((campo) => {
       item[campo.prop] = valorCampo(linha, indices[campo.prop]);
     });
@@ -690,6 +733,7 @@ function aplicarRepasseApoiador(item) {
   CAMPOS_REPASSE_PARCEIRO.forEach((campo) => {
     item[campo.prop] = repasse?.[campo.prop] ?? "";
   });
+  item.parceria = repasse?.parceria ?? "";
 }
 
 function indicePorAliases(normalizados, aliases) {
@@ -730,6 +774,12 @@ function resolverIndices(cabecalho) {
   let idxObs = indicePorAliases(normalizados, CAMPO_OBSERVACAO.aliases);
   if (idxObs === -1 && cols[CAMPO_OBSERVACAO.chave] != null) idxObs = cols[CAMPO_OBSERVACAO.chave];
   indices[CAMPO_OBSERVACAO.prop] = idxObs;
+
+  let idxPgtoAp = indicePorAliases(normalizados, CAMPO_PGTO_APOIADOR.aliases);
+  if (idxPgtoAp === -1 && cols[CAMPO_PGTO_APOIADOR.chave] != null) {
+    idxPgtoAp = cols[CAMPO_PGTO_APOIADOR.chave];
+  }
+  indices[CAMPO_PGTO_APOIADOR.prop] = idxPgtoAp;
 
   return indices;
 }
@@ -894,6 +944,8 @@ function linhaTemConteudo(item) {
 
   if (celulaPreenchida(item.observacao)) return true;
 
+  if (parseNumero(item.pgtoApoiador) > 0) return true;
+
   return CAMPOS_KPI.some((campo) => {
     return (
       parseNumero(item[campo.propOrc]) > 0 ||
@@ -943,6 +995,7 @@ function extrairLinhas(valores) {
     });
 
     item.observacao = valorCampo(linha, indices[CAMPO_OBSERVACAO.prop]);
+    item.pgtoApoiador = valorCampo(linha, indices[CAMPO_PGTO_APOIADOR.prop]);
 
     aplicarRepasseApoiador(item);
     item.finTotal = calcularTotaisPagamento(item);
@@ -1021,24 +1074,29 @@ function atualizarKpiCard(elOrc, elPgto, elRepasse, elProgress, orc, pgto, repas
   }
 }
 
+function somarPgtoApoiadorKpi(filtradas) {
+  return filtradas.reduce((acc, r) => acc + parseNumero(r.pgtoApoiador), 0);
+}
+
 function atualizarKpis(filtradas) {
   const total = { orc: 0, pgto: 0, repasse: 0 };
   CAMPOS_KPI.forEach((campo) => {
     const soma = somarKpi(filtradas, campo.propOrc, campo.propPgto, campo.propRepasse);
     total.orc += soma.orc;
     total.pgto += soma.pgto;
-    total.repasse += soma.repasse;
 
     atualizarKpiCard(
       el["kpi" + capitalizar(campo.kpi) + "Orc"],
       el["kpi" + capitalizar(campo.kpi) + "Pgto"],
-      el["kpi" + capitalizar(campo.kpi) + "Repasse"],
-      el["kpi" + capitalizar(campo.kpi) + "Progress"],
+      null,
+      null,
       soma.orc,
       soma.pgto,
-      soma.repasse
+      0
     );
   });
+
+  total.repasse = somarPgtoApoiadorKpi(filtradas);
 
   atualizarKpiCard(
     el.kpiTotalOrc,
@@ -1064,20 +1122,12 @@ function zerarKpis() {
     "kpiTotalProgress",
     "kpiPessoalOrc",
     "kpiPessoalPgto",
-    "kpiPessoalRepasse",
-    "kpiPessoalProgress",
     "kpiCombustivelOrc",
     "kpiCombustivelPgto",
-    "kpiCombustivelRepasse",
-    "kpiCombustivelProgress",
     "kpiDiversosOrc",
     "kpiDiversosPgto",
-    "kpiDiversosRepasse",
-    "kpiDiversosProgress",
     "kpiDiaDOrc",
     "kpiDiaDPgto",
-    "kpiDiaDRepasse",
-    "kpiDiaDProgress",
   ].forEach((id) => {
     const node = el[id];
     if (!node) return;
@@ -1109,17 +1159,15 @@ function htmlCelulaPar(r, par, { destaque = false } = {}) {
     '">' +
     '<span class="pag-lideranca-celula-orc">' +
     (orc || vazio) +
-    "</span>" +
-    '<span class="pag-lideranca-celula-pgto">' +
-    (pgto || vazio) +
     "</span>";
 
   if (repasseProp) {
-    html +=
-      '<span class="pag-lideranca-celula-repasse">' + (repasse || vazio) + "</span>";
+    html += '<span class="pag-lideranca-celula-repasse">' + (repasse || vazio) + "</span>";
+    html += '<span class="pag-lideranca-celula-separador" aria-hidden="true"></span>';
   }
 
-  html += "</div>";
+  html +=
+    '<span class="pag-lideranca-celula-pgto">' + (pgto || vazio) + "</span></div>";
   return html;
 }
 
@@ -1146,19 +1194,37 @@ function calcularTotaisColuna(r) {
   );
 }
 
-function calcularSaldoAPagar(orc, pgto, repasse) {
-  return (orc || 0) - (pgto || 0) - (repasse || 0);
+function calcularSaldoAPagar(orc, pgto, pgtoApoiador) {
+  return (orc || 0) - (pgto || 0) - (pgtoApoiador || 0);
 }
 
 function calcularSaldoAPagarItem(r) {
-  const { orc, pgto, repasse } = calcularTotaisColuna(r);
-  return calcularSaldoAPagar(orc, pgto, repasse);
+  const { orc, pgto } = calcularTotaisColuna(r);
+  return calcularSaldoAPagar(orc, pgto, parseNumero(r.pgtoApoiador));
 }
 
-function htmlCelulaSaldoAPagar(r, { destaque = false } = {}) {
-  const { orc, pgto, repasse } = calcularTotaisColuna(r);
-  const saldo = calcularSaldoAPagar(orc, pgto, repasse);
-  if (!destaque && orc <= 0 && pgto <= 0 && repasse <= 0) return "";
+/** Total do relatório: saldos negativos (pago a mais) não compensam outras lideranças. */
+function somarSaldoAPagarRelatorioTotal(filtradas) {
+  return filtradas.reduce((acc, r) => acc + Math.max(0, calcularSaldoAPagarItem(r)), 0);
+}
+
+function htmlCelulaPgtoApoiador(r, { destaque = false } = {}) {
+  const val = parseNumero(r.pgtoApoiador);
+  if (!destaque && val <= 0) return "";
+  return (
+    `<span class="pag-lideranca-celula-pgto-apoiador${destaque ? " pag-lideranca-celula-pgto-apoiador--total" : ""}">` +
+    `${fmtMoeda.format(val)}</span>`
+  );
+}
+
+function htmlCelulaSaldoAPagar(r, { destaque = false, saldoTotalRelatorio } = {}) {
+  const { orc, pgto } = calcularTotaisColuna(r);
+  const pgtoAp = parseNumero(r.pgtoApoiador);
+  const saldo =
+    saldoTotalRelatorio != null
+      ? saldoTotalRelatorio
+      : calcularSaldoAPagar(orc, pgto, pgtoAp);
+  if (!destaque && orc <= 0 && pgto <= 0 && pgtoAp <= 0) return "";
   return (
     `<span class="pag-lideranca-celula-saldo${destaque ? " pag-lideranca-celula-saldo--total" : ""}">` +
     `${fmtMoeda.format(saldo)}</span>`
@@ -1217,7 +1283,8 @@ function montarStackDiversos(r, { destaque = false } = {}) {
 
 function badgesTotaisIdentHtml(r, { destaque = false } = {}) {
   const { orc, pgto, repasse } = calcularTotaisColuna(r);
-  const saldo = calcularSaldoAPagar(orc, pgto, repasse);
+  const pgtoAp = parseNumero(r.pgtoApoiador);
+  const saldo = calcularSaldoAPagar(orc, pgto, pgtoAp);
   const badges = [];
   if (orc > 0 || destaque) {
     badges.push(
@@ -1237,7 +1304,7 @@ function badgesTotaisIdentHtml(r, { destaque = false } = {}) {
   if (!badges.length && !destaque) return "";
 
   const saldoHtml =
-    orc > 0 || pgto > 0 || repasse > 0 || destaque
+    orc > 0 || pgto > 0 || pgtoAp > 0 || repasse > 0 || destaque
       ? `<span class="pag-lideranca-badges-linha pag-lideranca-badges-linha--saldo">` +
         `<span class="orcamento-total-badge pag-lideranca-badge-saldo" title="saldo a pagar">${fmtMoeda.format(saldo)}</span>` +
         `</span>`
@@ -1325,45 +1392,32 @@ function itemPopoverPar(r, par) {
   const marcador = par.marcador
     ? `<span class="orcamento-geral-popover-marcador popover-marcador--orc-${par.marcador}" aria-hidden="true"></span>`
     : "";
-  const repasseHtml = par.propRepasse
-    ? `<span class="pag-lideranca-popover-repasse">${exibirMoeda(r[par.propRepasse])}</span>`
-    : `<span class="pag-lideranca-popover-repasse pag-lideranca-popover-repasse--vazio" aria-hidden="true"></span>`;
   return `<div class="apoiadores-popover-linha apoiadores-popover-linha--fin pag-lideranca-popover-linha">
     <span class="${rotuloClass}">${marcador}${par.rotulo}</span>
     <span class="pag-lideranca-popover-orc">${exibirMoeda(r[par.propOrc])}</span>
     <span class="pag-lideranca-popover-pgto">${exibirMoeda(r[par.propPgto])}</span>
-    ${repasseHtml}
   </div>`;
 }
 
-function rotuloKpiPopover(campo) {
-  if (campo.kpi === "combustivel") return "combustível";
-  if (campo.kpi === "diaD") return "dia D";
-  return campo.kpi;
+function calcularRepasseParceiroPrevisto(r) {
+  return CAMPOS_KPI.reduce((acc, campo) => acc + parseNumero(r[campo.propRepasse]), 0);
 }
 
-function itemPopoverRepasseKpi(r, campo) {
-  const marcador = classeMarcadorStack(campo.kpi);
-  return `<div class="apoiadores-popover-linha apoiadores-popover-linha--fin pag-lideranca-popover-linha">
-    <span class="apoiadores-popover-rotulo${campo.kpi === "diaD" ? " apoiadores-popover-rotulo--case" : ""}">
-      <span class="orcamento-geral-popover-marcador popover-marcador--orc-${marcador}" aria-hidden="true"></span>
-      ${rotuloKpiPopover(campo)}
-    </span>
-    <span class="pag-lideranca-popover-orc" aria-hidden="true"></span>
-    <span class="pag-lideranca-popover-pgto" aria-hidden="true"></span>
-    <span class="pag-lideranca-popover-repasse">${exibirMoeda(r[campo.propRepasse])}</span>
-  </div>`;
-}
+function htmlPopoverLinhaRepasseParceiro(r) {
+  const previsto = calcularRepasseParceiroPrevisto(r);
+  const pago = parseNumero(r.pgtoApoiador);
+  if (previsto <= 0 && pago <= 0) return "";
 
-function htmlPopoverSecaoRepasse(r) {
-  const itens = CAMPOS_KPI
-    .filter((campo) => parseNumero(r[campo.propRepasse]) > 0)
-    .map((campo) => itemPopoverRepasseKpi(r, campo))
-    .join("");
-  if (!itens) return "";
+  const mostrarZeros = previsto > 0 || pago > 0;
+  const orcHtml = exibirMoedaCelula(previsto, { zero: mostrarZeros });
+  const pgtoHtml = exibirMoedaCelula(pago, { zero: mostrarZeros });
+
   return `<div class="pag-lideranca-popover-secao">
-    <div class="pag-lideranca-popover-secao-titulo">repasse parceiro</div>
-    ${itens}
+    <div class="apoiadores-popover-linha apoiadores-popover-linha--fin pag-lideranca-popover-linha pag-lideranca-popover-linha--repasse">
+      <span class="apoiadores-popover-rotulo">repasse parceiro</span>
+      <span class="pag-lideranca-popover-orc" title="repasse previsto">${orcHtml}</span>
+      <span class="pag-lideranca-popover-pgto" title="pagamento efetuado pelo parceiro">${pgtoHtml}</span>
+    </div>
   </div>`;
 }
 
@@ -1397,14 +1451,13 @@ function htmlPopover(r) {
         <span></span>
         <span>orçamento</span>
         <span>pagamento</span>
-        <span>repasse</span>
       </div>
       <hr class="apoiadores-popover-divisor" aria-hidden="true">
     </div>
     <div class="apoiadores-popover-tabela">
       ${htmlPopoverSecao("pessoal", CAMPOS_PESSOAL, r)}
       ${htmlPopoverSecao("geral", CAMPOS_GERAL, r)}
-      ${htmlPopoverSecaoRepasse(r)}
+      ${htmlPopoverLinhaRepasseParceiro(r)}
     </div>
     ${htmlPopoverObservacao(r)}
   </div>`;
@@ -1418,6 +1471,7 @@ function montarTotaisKpi(filtradas) {
     total[campo.propPgto] = soma.pgto;
     total[campo.propRepasse] = soma.repasse;
   });
+  total.pgtoApoiador = somarPgtoApoiadorKpi(filtradas);
   return total;
 }
 
@@ -1642,9 +1696,10 @@ function conteudoExtraRelatorioPagina() {
     '<p class="rel-pag-lideranca-legenda">' +
     '<span class="rel-pag-lideranca-legenda-orc">orçamento</span>' +
     '<span class="rel-pag-lideranca-legenda-pgto">pagamento</span>' +
-    '<span class="rel-pag-lideranca-legenda-repasse">repasse parceiro</span>' +
+    '<span class="rel-pag-lideranca-legenda-repasse">repasse parceiro (previsto)</span>' +
+    '<span class="rel-pag-lideranca-legenda-pgto-apoiador">pgto apoiador</span>' +
     '<span class="rel-pag-lideranca-legenda-saldo">saldo a pagar</span>' +
-    '<span class="rel-pag-lideranca-legenda-dica">— em cada célula: orçamento, pagamento e repasse; saldo = orçamento − pagamento − repasse</span>' +
+    '<span class="rel-pag-lideranca-legenda-dica">— células: orçamento, repasse previsto, pagamento; saldo = orçamento − (pagamento + pgto apoiador)</span>' +
     "</p></section>"
   );
 }
@@ -1667,6 +1722,7 @@ function reconstruirColgroupRelatorioPagLideranca(table) {
     "pag-lideranca-col-par",
     "pag-lideranca-col-par",
     "pag-lideranca-col-total",
+    "pag-lideranca-col-pgto-apoiador",
     "pag-lideranca-col-saldo",
   ];
   table.querySelectorAll("colgroup").forEach((cg) => {
@@ -1704,6 +1760,35 @@ function garantirTdTotalRelatorioPagLideranca(tr, html) {
   td.innerHTML = html;
 }
 
+function garantirThPgtoApoiadorRelatorioPagLideranca(thRow) {
+  if (!thRow) return;
+  let th = thRow.querySelector("th.pag-lideranca-col-pgto-apoiador");
+  if (!th) {
+    th = document.createElement("th");
+    th.scope = "col";
+    const thSaldo = thRow.querySelector("th.pag-lideranca-col-saldo");
+    if (thSaldo) thRow.insertBefore(th, thSaldo);
+    else thRow.appendChild(th);
+  }
+  th.className =
+    "text-end pag-lideranca-col-pgto-apoiador pag-lideranca-col-par apoiadores-celula-num";
+  th.innerHTML =
+    '<span class="pag-lideranca-th-titulo pag-lideranca-th-titulo--wrap">pagamento<br>parceiro</span>';
+}
+
+function garantirTdPgtoApoiadorRelatorioPagLideranca(tr, html) {
+  let td = tr.querySelector("td.pag-lideranca-col-pgto-apoiador");
+  if (!td) {
+    td = document.createElement("td");
+    const tdSaldo = tr.querySelector("td.pag-lideranca-col-saldo");
+    if (tdSaldo) tr.insertBefore(td, tdSaldo);
+    else tr.appendChild(td);
+  }
+  td.className =
+    "text-end pag-lideranca-col-pgto-apoiador pag-lideranca-col-par apoiadores-celula-num";
+  td.innerHTML = html;
+}
+
 function garantirThSaldoRelatorioPagLideranca(thRow) {
   if (!thRow) return;
   let thSaldo = thRow.querySelector("th.pag-lideranca-col-saldo");
@@ -1713,7 +1798,8 @@ function garantirThSaldoRelatorioPagLideranca(thRow) {
     thRow.appendChild(thSaldo);
   }
   thSaldo.className = "text-end pag-lideranca-col-saldo pag-lideranca-col-par apoiadores-celula-num";
-  thSaldo.innerHTML = '<span class="pag-lideranca-th-titulo">saldo a pagar</span>';
+  thSaldo.innerHTML =
+    '<span class="pag-lideranca-th-titulo pag-lideranca-th-titulo--wrap">saldo<br>a pagar</span>';
 }
 
 function garantirTdSaldoRelatorioPagLideranca(tr, html) {
@@ -1761,6 +1847,7 @@ function ajustarTabelaRelatorioPagina(table) {
     const thsPar = [...thRow.querySelectorAll("th.pag-lideranca-col-par, th.pag-lideranca-col-desk")].filter(
       (th) =>
         !th.classList.contains("pag-lideranca-col-total") &&
+        !th.classList.contains("pag-lideranca-col-pgto-apoiador") &&
         !th.classList.contains("pag-lideranca-col-saldo")
     );
     thsPar.forEach((th, idx) => {
@@ -1771,6 +1858,7 @@ function ajustarTabelaRelatorioPagina(table) {
         : "";
     });
     garantirThTotalRelatorioPagLideranca(thRow);
+    garantirThPgtoApoiadorRelatorioPagLideranca(thRow);
     garantirThSaldoRelatorioPagLideranca(thRow);
   }
 
@@ -1798,6 +1886,7 @@ function ajustarTabelaRelatorioPagina(table) {
 
     tr.querySelectorAll("td.pag-lideranca-col-par, td.pag-lideranca-col-desk").forEach((td) => {
       if (td.classList.contains("pag-lideranca-col-total")) return;
+      if (td.classList.contains("pag-lideranca-col-pgto-apoiador")) return;
       if (td.classList.contains("pag-lideranca-col-saldo")) return;
       td.classList.remove("pag-lideranca-col-desk", "orcamento-tabela-desktop-col");
       td.classList.add("pag-lideranca-col-par", "apoiadores-celula-num");
@@ -1805,6 +1894,7 @@ function ajustarTabelaRelatorioPagina(table) {
 
     if (r) {
       garantirTdTotalRelatorioPagLideranca(tr, htmlCelulaColunaTotal(r));
+      garantirTdPgtoApoiadorRelatorioPagLideranca(tr, htmlCelulaPgtoApoiador(r));
       garantirTdSaldoRelatorioPagLideranca(tr, htmlCelulaSaldoAPagar(r));
     }
   });
@@ -1824,6 +1914,7 @@ function ajustarTabelaRelatorioPagina(table) {
 
     trTotal.querySelectorAll("td.pag-lideranca-col-par, td.pag-lideranca-col-desk").forEach((td) => {
       if (td.classList.contains("pag-lideranca-col-total")) return;
+      if (td.classList.contains("pag-lideranca-col-pgto-apoiador")) return;
       if (td.classList.contains("pag-lideranca-col-saldo")) return;
       td.classList.remove("pag-lideranca-col-desk", "orcamento-tabela-desktop-col");
       td.classList.add("pag-lideranca-col-par", "apoiadores-celula-num");
@@ -1831,7 +1922,17 @@ function ajustarTabelaRelatorioPagina(table) {
 
     const totais = montarTotaisKpi(filtradas);
     garantirTdTotalRelatorioPagLideranca(trTotal, htmlCelulaColunaTotal(totais, { destaque: true }));
-    garantirTdSaldoRelatorioPagLideranca(trTotal, htmlCelulaSaldoAPagar(totais, { destaque: true }));
+    garantirTdPgtoApoiadorRelatorioPagLideranca(
+      trTotal,
+      htmlCelulaPgtoApoiador(totais, { destaque: true })
+    );
+    garantirTdSaldoRelatorioPagLideranca(
+      trTotal,
+      htmlCelulaSaldoAPagar(totais, {
+        destaque: true,
+        saldoTotalRelatorio: somarSaldoAPagarRelatorioTotal(filtradas),
+      })
+    );
   }
 }
 
@@ -1845,7 +1946,8 @@ function estilosRelatorioPagina() {
     ".page-orcamento .rel-pag-lideranca-legenda{display:flex;flex-wrap:wrap;align-items:center;gap:0.35rem 0.75rem;margin:0;font-size:8pt;color:#64748b;}" +
     ".page-orcamento .rel-pag-lideranca-legenda-orc{font-weight:700;color:#b91c1c;}" +
     ".page-orcamento .rel-pag-lideranca-legenda-pgto{font-weight:700;color:#0e7490;}" +
-    ".page-orcamento .rel-pag-lideranca-legenda-repasse{font-weight:700;color:#15803d;}" +
+    ".page-orcamento .rel-pag-lideranca-legenda-repasse{font-weight:700;color:#94a3b8;}" +
+    ".page-orcamento .rel-pag-lideranca-legenda-pgto-apoiador{font-weight:700;color:#0e7490;}" +
     ".page-orcamento .rel-pag-lideranca-legenda-saldo{font-weight:700;color:#5b21b6;}" +
     ".page-orcamento .rel-pag-lideranca-legenda-dica{color:#94a3b8;font-size:7.5pt;}" +
     ".page-orcamento .rel-orcamento-kpis{margin-top:0.2rem;}" +
@@ -1911,22 +2013,28 @@ function estilosRelatorioPagina() {
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.apoiadores-col-ident--rel .apoiadores-rel-ident-municipio{display:block;margin-top:0.12rem;font-size:7pt;line-height:1.2;color:#64748b;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.apoiadores-col-ident{width:28%;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-par{width:13%;}" +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-total{width:14%;}" +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-saldo{width:12%;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-total{width:12%;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-pgto-apoiador{width:11%;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela col.pag-lideranca-col-saldo{width:11%;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-par," +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-par{width:12%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-total," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-total{width:14%;text-align:right;padding:0.4rem 0.4rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-total{width:12%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-pgto-apoiador," +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-pgto-apoiador{width:11%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-pgto-apoiador{color:#0e7490;font-size:7.5pt;font-weight:600;font-variant-numeric:tabular-nums;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela th.pag-lideranca-col-saldo," +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-saldo{width:12%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela td.pag-lideranca-col-saldo{width:11%;text-align:right;padding:0.4rem 0.35rem;font-variant-numeric:tabular-nums;vertical-align:middle;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-saldo{color:#5b21b6;font-size:7.5pt;font-weight:700;font-variant-numeric:tabular-nums;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-saldo--total{font-weight:800;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-th-titulo{display:inline-block;font-size:7pt;font-weight:700;color:#475569;text-transform:lowercase;line-height:1.2;white-space:nowrap;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-th-titulo--wrap{white-space:normal;text-align:right;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-th-titulo--case{text-transform:none;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par{display:flex;flex-direction:column;align-items:flex-end;gap:0.1rem;line-height:1.15;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-orc{color:#b91c1c;font-size:7pt;font-weight:500;font-variant-numeric:tabular-nums;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-pgto{color:#0e7490;font-size:7.5pt;font-weight:600;font-variant-numeric:tabular-nums;}" +
-    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-repasse{color:#15803d;font-size:7pt;font-weight:600;font-variant-numeric:tabular-nums;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-repasse{color:#94a3b8;font-size:7pt;font-weight:500;font-variant-numeric:tabular-nums;}" +
+    ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-separador{display:block;width:100%;max-width:4.25rem;border:none;border-top:1px dashed rgba(148,163,184,0.42);margin:0.06rem 0;min-height:0;line-height:0;}" +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par--total .pag-lideranca-celula-orc," +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par--total .pag-lideranca-celula-pgto," +
     ".page-orcamento table.rel-tabela.pag-lideranca-tabela .pag-lideranca-celula-par--total .pag-lideranca-celula-repasse{font-weight:700;}" +
@@ -1941,10 +2049,135 @@ function estilosRelatorioPagina() {
   );
 }
 
+function textoMoedaXls(val) {
+  return fmtMoeda.format(parseNumero(val));
+}
+
+function linhasRelatorioXlsPagLideranca() {
+  const ordenadas = TabelaOrdenacao.aplicar(
+    linhasFiltradas(),
+    { col: "municipio", dir: "asc" },
+    COMPARADORES_ORDENACAO_PAGAMENTOS_LIDERANCA
+  );
+  return ordenadas.filter((r) => calcularTotaisColuna(r).orc > 0);
+}
+
+function montarLinhasXlsPagLideranca() {
+  const items = linhasRelatorioXlsPagLideranca();
+  if (!items.length) return null;
+
+  const header = [
+    "lideranca",
+    "municipio",
+    "pessoal",
+    "combustivel",
+    "diversos",
+    "dia-D",
+    "orcamento-total",
+    "pagamento-efetuado",
+    "parceria",
+    "repasse-parceria",
+  ];
+  const linhasXls = items.map((r) => {
+    const totais = calcularTotaisColuna(r);
+    return [
+      String(r.lideranca ?? "").trim(),
+      String(r.municipio ?? "").trim(),
+      textoMoedaXls(r.pessoalOrc),
+      textoMoedaXls(r.combustivelOrc),
+      textoMoedaXls(r.diversosOrc),
+      textoMoedaXls(r.diaDOrc),
+      textoMoedaXls(totais.orc),
+      textoMoedaXls(totais.pgto),
+      String(r.parceria ?? "").trim(),
+      textoMoedaXls(r.pgtoApoiador),
+    ];
+  });
+
+  return { header, linhas: linhasXls };
+}
+
+function escapeXmlXls(valor) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function montarXmlXlsPagLideranca(dados) {
+  const cell = (valor) =>
+    `<Cell><Data ss:Type="String">${escapeXmlXls(valor)}</Data></Cell>`;
+  const row = (valores) => `<Row>${valores.map(cell).join("")}</Row>`;
+
+  return (
+    "<?xml version=\"1.0\"?>" +
+    "<?mso-application progid=\"Excel.Sheet\"?>" +
+    "<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" " +
+    "xmlns:o=\"urn:schemas-microsoft-com:office:office\" " +
+    "xmlns:x=\"urn:schemas-microsoft-com:office:excel\" " +
+    "xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">" +
+    "<Worksheet ss:Name=\"pagamentos\">" +
+    "<Table>" +
+    row(dados.header) +
+    dados.linhas.map(row).join("") +
+    "</Table>" +
+    "</Worksheet>" +
+    "</Workbook>"
+  );
+}
+
+function nomeArquivoXlsPagLideranca() {
+  const hoje = new Date();
+  const y = hoje.getFullYear();
+  const m = String(hoje.getMonth() + 1).padStart(2, "0");
+  const d = String(hoje.getDate()).padStart(2, "0");
+  return `pagamentos-lideranca-${y}${m}${d}.xls`;
+}
+
+function baixarArquivoXls(xml, nomeArquivo) {
+  const blob = new Blob([xml], { type: "application/vnd.ms-excel;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nomeArquivo;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function montarHtmlRelatorioPagLideranca() {
+  if (!window.Relatorio || typeof window.Relatorio.montarHtml !== "function") return null;
+  const html = window.Relatorio.montarHtml();
+  return html && String(html).includes("rel-tabela") ? html : null;
+}
+
+async function executarRelatorioPagina(opcoes) {
+  const opcao = opcoes?.opcao;
+
+  if (opcao === "xls") {
+    const dados = montarLinhasXlsPagLideranca();
+    if (!dados) {
+      return { tipo: "erro", mensagem: "nenhum dado para exportar." };
+    }
+    baixarArquivoXls(montarXmlXlsPagLideranca(dados), nomeArquivoXlsPagLideranca());
+    if (typeof AppToast !== "undefined") AppToast.show("arquivo XLS gerado.", "sucesso");
+    return { tipo: "xls" };
+  }
+
+  const html = montarHtmlRelatorioPagLideranca();
+  if (!html) {
+    return { tipo: "erro", mensagem: "nenhum dado para imprimir." };
+  }
+  return { tipo: "html", html };
+}
+
 window.htmlCardsRelatorioPagina = htmlCardsRelatorioPagina;
 window.conteudoExtraRelatorioPagina = conteudoExtraRelatorioPagina;
 window.estilosRelatorioPagina = estilosRelatorioPagina;
 window.ajustarTabelaRelatorioPagina = ajustarTabelaRelatorioPagina;
+window.montarHtmlRelatorioPagina = montarHtmlRelatorioPagLideranca;
+window.executarRelatorioPagina = executarRelatorioPagina;
 
 function initPagamentosLideranca() {
   el = {
@@ -1960,20 +2193,12 @@ function initPagamentosLideranca() {
     kpiTotalProgress: document.getElementById("kpiTotalProgress"),
     kpiPessoalOrc: document.getElementById("kpiPessoalOrc"),
     kpiPessoalPgto: document.getElementById("kpiPessoalPgto"),
-    kpiPessoalRepasse: document.getElementById("kpiPessoalRepasse"),
-    kpiPessoalProgress: document.getElementById("kpiPessoalProgress"),
     kpiCombustivelOrc: document.getElementById("kpiCombustivelOrc"),
     kpiCombustivelPgto: document.getElementById("kpiCombustivelPgto"),
-    kpiCombustivelRepasse: document.getElementById("kpiCombustivelRepasse"),
-    kpiCombustivelProgress: document.getElementById("kpiCombustivelProgress"),
     kpiDiversosOrc: document.getElementById("kpiDiversosOrc"),
     kpiDiversosPgto: document.getElementById("kpiDiversosPgto"),
-    kpiDiversosRepasse: document.getElementById("kpiDiversosRepasse"),
-    kpiDiversosProgress: document.getElementById("kpiDiversosProgress"),
     kpiDiaDOrc: document.getElementById("kpiDiaDOrc"),
     kpiDiaDPgto: document.getElementById("kpiDiaDPgto"),
-    kpiDiaDRepasse: document.getElementById("kpiDiaDRepasse"),
-    kpiDiaDProgress: document.getElementById("kpiDiaDProgress"),
     btnSalvar: document.getElementById("btnSalvarApoiador"),
     modalTitulo: document.getElementById("modalApoiadorTitulo"),
     modalEl: document.getElementById("modalApoiadorCrud"),
@@ -1996,6 +2221,7 @@ function initPagamentosLideranca() {
     campoDiversosPgto: document.getElementById("campoApDiversosPgto"),
     campoDiaDOrc: document.getElementById("campoApDiaDOrc"),
     campoDiaDPgto: document.getElementById("campoApDiaDPgto"),
+    campoPgtoApoiador: document.getElementById("campoApPgtoApoiador"),
   };
 
   if (!el.corpo || !el.filtroRegioes) return;

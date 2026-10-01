@@ -2084,8 +2084,26 @@ body.page-pagamentos-lideranca .pag-lideranca-celula-pgto {
 }
 
 body.page-pagamentos-lideranca .pag-lideranca-celula-repasse {
-  color: #15803d;
-  font-size: 0.78rem;
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-celula-separador {
+  display: block;
+  width: 100%;
+  max-width: 5.25rem;
+  border: none;
+  border-top: 1px dashed rgba(148, 163, 184, 0.42);
+  margin: 0.06rem 0;
+  min-height: 0;
+  line-height: 0;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-celula-pgto-apoiador {
+  color: #0e7490;
+  font-size: 0.82rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -2174,6 +2192,17 @@ body.page-pagamentos-lideranca .pag-lideranca-modal-grid {
   align-items: center;
 }
 
+body.page-pagamentos-lideranca .pag-lideranca-modal-parceiro-linha {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 1fr) minmax(8.75rem, 10.95rem);
+  gap: 0.4rem 0.45rem;
+  align-items: center;
+  justify-content: start;
+  margin-top: 0.55rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed rgba(148, 163, 184, 0.35);
+}
+
 body.page-pagamentos-lideranca .pag-lideranca-modal-rotulo {
   font-size: 0.78rem;
   font-weight: 500;
@@ -2188,6 +2217,15 @@ body.page-pagamentos-lideranca .pag-lideranca-modal-pgto {
   text-align: right;
   max-width: 5.25rem;
   width: 100%;
+  justify-self: end;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-modal-parceiro {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.35rem;
+  text-align: right;
+  width: 100%;
+  max-width: 10.95rem;
   justify-self: end;
 }
 
@@ -2218,6 +2256,11 @@ body.page-pagamentos-lideranca .pag-lideranca-modal-pgto.pag-lideranca-modal-pgt
   cursor: not-allowed;
 }
 
+body.page-pagamentos-lideranca .pag-lideranca-modal-parceiro {
+  border-color: rgba(21, 128, 61, 0.28);
+  color: #15803d;
+}
+
 body.page-pagamentos-lideranca .pag-lideranca-modal-tabs-content {
   padding-top: 0.15rem;
 }
@@ -2237,7 +2280,7 @@ body.page-pagamentos-lideranca .pag-lideranca-modal-obs .form-label {
 
 body.page-pagamentos-lideranca .pag-lideranca-popover-legenda {
   display: grid;
-  grid-template-columns: minmax(6.5rem, 1fr) 4.85rem 5rem 4.85rem;
+  grid-template-columns: minmax(6.5rem, 1fr) 5rem 5.25rem;
   gap: 0.35rem;
   align-items: center;
   font-size: 0.64rem;
@@ -2248,8 +2291,7 @@ body.page-pagamentos-lideranca .pag-lideranca-popover-legenda {
 }
 
 body.page-pagamentos-lideranca .pag-lideranca-popover-legenda span:nth-child(2),
-body.page-pagamentos-lideranca .pag-lideranca-popover-legenda span:nth-child(3),
-body.page-pagamentos-lideranca .pag-lideranca-popover-legenda span:nth-child(4) {
+body.page-pagamentos-lideranca .pag-lideranca-popover-legenda span:nth-child(3) {
   white-space: nowrap;
 }
 
@@ -2263,20 +2305,21 @@ body.page-pagamentos-lideranca .pag-lideranca-popover-legenda span:nth-child(3) 
   text-align: right;
 }
 
-body.page-pagamentos-lideranca .pag-lideranca-popover-legenda span:nth-child(4) {
-  color: #15803d;
-  text-align: right;
-}
-
 body.page-pagamentos-lideranca .pag-lideranca-popover-linha {
   display: grid;
-  grid-template-columns: minmax(6.5rem, 1fr) 4.85rem 5rem 4.85rem;
+  grid-template-columns: minmax(6.5rem, 1fr) 5rem 5.25rem;
   gap: 0.35rem;
   align-items: center;
 }
 
 body.page-pagamentos-lideranca .apoiadores-popover-linha.pag-lideranca-popover-linha {
-  grid-template-columns: minmax(6.5rem, 1fr) 4.85rem 5rem 4.85rem;
+  grid-template-columns: minmax(6.5rem, 1fr) 5rem 5.25rem;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-popover-linha--repasse {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed rgba(148, 163, 184, 0.35);
 }
 
 body.page-pagamentos-lideranca .pag-lideranca-popover-linha .apoiadores-popover-rotulo {
@@ -2325,6 +2368,11 @@ body.page-pagamentos-lideranca .pag-lideranca-th-titulo {
 
 body.page-pagamentos-lideranca .pag-lideranca-th-titulo--case {
   text-transform: none;
+}
+
+body.page-pagamentos-lideranca .pag-lideranca-th-titulo--wrap {
+  white-space: normal;
+  text-align: right;
 }
 
 body.page-pagamentos-lideranca .pag-lideranca-tabela th .orcamento-estratificado-th-campo-linha {
@@ -3538,6 +3586,7 @@ body.page-apoiadores .dashboard-tabela-head {
 
   body.page-pagamentos-lideranca .pag-lideranca-celula-repasse {
     font-size: 0.66rem;
+    color: #94a3b8;
     white-space: nowrap;
   }
 
