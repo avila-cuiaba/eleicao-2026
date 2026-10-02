@@ -280,7 +280,7 @@ function atualizarExportarXlsShell(cfg, id) {
 function atualizarGerarContratosShell(cfg, id) {
   const btn = document.getElementById("btnGerarContratosShell");
   if (!btn) return;
-  const mostrar = !!cfg?.gerarContratosLote && paginaTemRelatorio(cfg, id);
+  const mostrar = !!cfg?.gerarContratosLote;
   btn.hidden = !mostrar;
 }
 

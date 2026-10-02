@@ -150,6 +150,22 @@ function somarColuna(linhas, prop) {
   return linhas.reduce((acc, r) => acc + parseNumero(r[prop]), 0);
 }
 
+function itemEhDespesasPessoal(item) {
+  const k = normalizarChave(item);
+  const aliases = (cfg.DESPESAS_PESSOAL?.ITEM_ALIASES || ["despesas pessoal"]).map((a) =>
+    normalizarChave(a)
+  );
+  return aliases.some((a) => k === a);
+}
+
+function apagarDespesasPessoalDePlanilha(valores) {
+  const ref = cfg.DESPESAS_PESSOAL;
+  if (!ref || !valores?.length) return 0;
+  const linha = valores[ref.APAGAR_LINHA1 - 1];
+  if (!linha) return 0;
+  return parseNumero(linha[ref.APAGAR_COLUNA]);
+}
+
 function extrairDados(valores) {
   if (!valores?.length) {
     return { linhas: [], indices: null, cabecalho: [] };
@@ -158,6 +174,7 @@ function extrairDados(valores) {
   const cabecalho = valores[cfg.LINHA_CABECALHO - 1] || valores[0];
   const indices = resolverIndices(cabecalho);
   const linhas = [];
+  const apagarDespesasPessoalPlanilha = apagarDespesasPessoalDePlanilha(valores);
 
   for (let linha1 = cfg.LINHA_INICIO_DADOS; linha1 <= valores.length; linha1++) {
     const linha = valores[linha1 - 1];
@@ -183,7 +200,10 @@ function extrairDados(valores) {
     const orcNum = parseNumero(orcamento);
     const repasseNum = parseNumero(repasseParceiro);
     const pagNum = parseNumero(pagamento);
-    const aPagarNum = orcNum - (repasseNum + pagNum);
+    let aPagarNum = orcNum - (repasseNum + pagNum);
+    if (itemEhDespesasPessoal(item)) {
+      aPagarNum = apagarDespesasPessoalPlanilha;
+    }
 
     linhas.push({
       linha1,
@@ -212,7 +232,7 @@ function calcularTotais(linhas, kpiRepasseParceiros) {
     kpiTotal,
     kpiRepasse,
     kpiPagamento,
-    kpiAPagar: kpiTotal - (kpiRepasse + kpiPagamento),
+    kpiAPagar: somarColuna(linhas, "aPagarNum"),
   };
 }
 

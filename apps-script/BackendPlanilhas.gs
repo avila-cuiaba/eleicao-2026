@@ -1377,6 +1377,9 @@ function imprimirContratoPdf(corpo) {
   }
 
   const pdf = gerarPdfContratoDeRegistro(registro, pastaId, valoresLinha);
+  const organizacaoAviso = pdf.organizacaoPastaId
+    ? ""
+    : avisoOrganizacaoContratoNaoSalva(registro);
   return responder({
     ok: true,
     url: pdf.url,
@@ -1384,9 +1387,11 @@ function imprimirContratoPdf(corpo) {
     nome: pdf.nome,
     pastaId: pdf.pastaId,
     organizacaoPastaId: pdf.organizacaoPastaId || "",
+    organizacaoUrl: pdf.organizacaoUrl || "",
     modelo: pdf.modeloNome,
     salvoNoDrive: !!pastaId,
     salvoOrganizacao: !!pdf.organizacaoPastaId,
+    organizacaoAviso: organizacaoAviso,
   });
 }
 
@@ -2040,6 +2045,11 @@ function municipioELiderancaContrato(registro) {
     "lideranca",
     "liderança",
     "coordenador",
+    "apoiador",
+    "apoiador-lider",
+    "apoiador lider",
+    "nome-apoiador",
+    "nome apoiador",
   ]);
   return {
     municipio: String(municipio || "").trim(),
@@ -2055,10 +2065,20 @@ function obterPastaOrganizacaoContrato(registro) {
   return obterOuCriarSubpasta(pastaMun, info.lideranca);
 }
 
+function avisoOrganizacaoContratoNaoSalva(registro) {
+  const info = municipioELiderancaContrato(registro);
+  if (!info.municipio && !info.lideranca) {
+    return "informe município e apoiador (vínculo) no cadastro.";
+  }
+  if (!info.municipio) return "município ausente no cadastro.";
+  if (!info.lideranca) return "apoiador (vínculo) ausente no cadastro.";
+  return "não foi possível salvar na pasta município/apoiador.";
+}
+
 function salvarCopiaContratoOrganizacao(pdfBlob, registro) {
   const pasta = obterPastaOrganizacaoContrato(registro);
   if (!pasta) {
-    Logger.log("organização contratos: município ou liderança ausente — cópia não salva.");
+    Logger.log("organização contratos: município ou apoiador ausente — cópia não salva.");
     return null;
   }
   removerContratosPdfColaboradorNaPasta(pasta, registro);

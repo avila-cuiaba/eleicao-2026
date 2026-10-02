@@ -2963,7 +2963,13 @@ async function gerarContratoPdf(item, opcoes) {
         window.open(json.downloadUrl || url, "_blank", "noopener,noreferrer");
       }
     }
-    return { ok: true, salvoNoDrive: !!json.salvoNoDrive, url };
+    return {
+      ok: true,
+      salvoNoDrive: !!json.salvoNoDrive,
+      salvoOrganizacao: !!json.salvoOrganizacao,
+      organizacaoAviso: String(json.organizacaoAviso || "").trim(),
+      url,
+    };
   } finally {
     if (mostrarLoader) limparStatus();
   }
@@ -2977,8 +2983,11 @@ async function gerarContrato(item) {
       mostrarLoader: true,
     });
     if (!resultado?.ok) return;
-    if (resultado.salvoNoDrive) {
-      AppToast.show("contrato salvo na pasta do colaborador", "sucesso");
+    if (resultado.salvoOrganizacao) {
+      AppToast.show("contrato salvo na pasta do colaborador e em município/apoiador", "sucesso");
+    } else if (resultado.salvoNoDrive) {
+      const aviso = resultado.organizacaoAviso ? " " + resultado.organizacaoAviso : "";
+      AppToast.show("contrato na pasta do colaborador." + aviso, "erro");
     } else {
       AppToast.show("contrato gerado", "sucesso");
     }
@@ -2999,8 +3008,9 @@ async function gerarContratosSelecionados() {
   }
 
   const confirmar = await AppConfirm.confirm(
-    `gerar ${elegiveis.length} contrato(s) e salvar na pasta de cada colaborador?\n` +
-      "os arquivos existentes serão substituídos.",
+    `gerar ${elegiveis.length} contrato(s)?\n` +
+      "cada pdf será salvo na pasta do colaborador e na estrutura município/apoiador no drive.\n" +
+      "arquivos existentes serão substituídos.",
     {
       titulo: "gerar contratos",
       icon: "warning",
@@ -3013,6 +3023,8 @@ async function gerarContratosSelecionados() {
   PageLoader.show();
   let gerados = 0;
   let falhas = 0;
+  let orgSalvos = 0;
+  let orgPendentes = 0;
 
   for (const item of elegiveis) {
     try {
@@ -3021,8 +3033,11 @@ async function gerarContratosSelecionados() {
         confirmarSubstituicao: false,
         mostrarLoader: false,
       });
-      if (resultado?.ok) gerados++;
-      else if (!resultado?.ignorado && !resultado?.cancelado) falhas++;
+      if (resultado?.ok) {
+        gerados++;
+        if (resultado.salvoOrganizacao) orgSalvos++;
+        else orgPendentes++;
+      } else if (!resultado?.ignorado && !resultado?.cancelado) falhas++;
     } catch (e) {
       falhas++;
       console.warn("gerar contrato em lote:", e);
@@ -3031,8 +3046,15 @@ async function gerarContratosSelecionados() {
 
   PageLoader.hide();
 
-  if (falhas === 0) {
-    AppToast.show(`${gerados} contrato(s) gerado(s) e salvo(s) no drive.`, "sucesso");
+  if (falhas === 0 && gerados > 0) {
+    let msg = `${gerados} contrato(s) gerado(s).`;
+    if (orgSalvos > 0) {
+      msg += ` ${orgSalvos} em pasta município/apoiador.`;
+    }
+    if (orgPendentes > 0) {
+      msg += ` ${orgPendentes} sem pasta organizacional (confira município e vínculo/apoiador).`;
+    }
+    AppToast.show(msg, orgPendentes > 0 ? "erro" : "sucesso");
   } else if (gerados > 0) {
     AppToast.show(`${gerados} contrato(s) gerado(s); ${falhas} falha(s).`, "erro");
   } else {

@@ -1064,10 +1064,11 @@ function htmlBarraProgressoPago(orcNum, pagNum, repasseNum) {
   );
 }
 
-function atualizarKpiCard(elOrc, elPgto, elRepasse, elProgress, orc, pgto, repasse) {
+function atualizarKpiCard(elOrc, elPgto, elRepasse, elProgress, orc, pgto, repasse, elSaldo, saldo) {
   if (elOrc) elOrc.textContent = exibirMoedaKpi(orc);
   if (elPgto) elPgto.textContent = exibirMoedaKpi(pgto);
   if (elRepasse) elRepasse.textContent = exibirMoedaKpi(repasse);
+  if (elSaldo) elSaldo.textContent = exibirMoedaKpi(saldo);
   if (elProgress) {
     elProgress.innerHTML = htmlBarraProgressoPago(orc, pgto, repasse);
     elProgress.setAttribute("aria-hidden", elProgress.innerHTML ? "false" : "true");
@@ -1085,27 +1086,23 @@ function atualizarKpis(filtradas) {
     total.orc += soma.orc;
     total.pgto += soma.pgto;
 
-    atualizarKpiCard(
-      el["kpi" + capitalizar(campo.kpi) + "Orc"],
-      el["kpi" + capitalizar(campo.kpi) + "Pgto"],
-      null,
-      null,
-      soma.orc,
-      soma.pgto,
-      0
-    );
+    const elOrc = el["kpi" + capitalizar(campo.kpi) + "Orc"];
+    if (elOrc) elOrc.textContent = exibirMoedaKpi(soma.orc);
   });
 
   total.repasse = somarPgtoApoiadorKpi(filtradas);
+  const saldoTotal = somarSaldoAPagarTotal(filtradas);
 
   atualizarKpiCard(
     el.kpiTotalOrc,
     el.kpiTotalPgto,
     el.kpiTotalRepasse,
-    el.kpiTotalProgress,
+    null,
     total.orc,
     total.pgto,
-    total.repasse
+    total.repasse,
+    el.kpiTotalSaldo,
+    saldoTotal
   );
 }
 
@@ -1119,15 +1116,11 @@ function zerarKpis() {
     "kpiTotalOrc",
     "kpiTotalPgto",
     "kpiTotalRepasse",
-    "kpiTotalProgress",
+    "kpiTotalSaldo",
     "kpiPessoalOrc",
-    "kpiPessoalPgto",
     "kpiCombustivelOrc",
-    "kpiCombustivelPgto",
     "kpiDiversosOrc",
-    "kpiDiversosPgto",
     "kpiDiaDOrc",
-    "kpiDiaDPgto",
   ].forEach((id) => {
     const node = el[id];
     if (!node) return;
@@ -1203,9 +1196,13 @@ function calcularSaldoAPagarItem(r) {
   return calcularSaldoAPagar(orc, pgto, parseNumero(r.pgtoApoiador));
 }
 
-/** Total do relatório: saldos negativos (pago a mais) não compensam outras lideranças. */
-function somarSaldoAPagarRelatorioTotal(filtradas) {
-  return filtradas.reduce((acc, r) => acc + Math.max(0, calcularSaldoAPagarItem(r)), 0);
+/** Saldo por registro para coluna/card: negativo (pago a mais) não entra na soma nem na célula. */
+function saldoAPagarExibidoItem(r) {
+  return Math.max(0, calcularSaldoAPagarItem(r));
+}
+
+function somarSaldoAPagarTotal(linhas) {
+  return (linhas || []).reduce((acc, r) => acc + saldoAPagarExibidoItem(r), 0);
 }
 
 function htmlCelulaPgtoApoiador(r, { destaque = false } = {}) {
@@ -1221,9 +1218,7 @@ function htmlCelulaSaldoAPagar(r, { destaque = false, saldoTotalRelatorio } = {}
   const { orc, pgto } = calcularTotaisColuna(r);
   const pgtoAp = parseNumero(r.pgtoApoiador);
   const saldo =
-    saldoTotalRelatorio != null
-      ? saldoTotalRelatorio
-      : calcularSaldoAPagar(orc, pgto, pgtoAp);
+    saldoTotalRelatorio != null ? saldoTotalRelatorio : saldoAPagarExibidoItem(r);
   if (!destaque && orc <= 0 && pgto <= 0 && pgtoAp <= 0) return "";
   return (
     `<span class="pag-lideranca-celula-saldo${destaque ? " pag-lideranca-celula-saldo--total" : ""}">` +
@@ -1930,7 +1925,7 @@ function ajustarTabelaRelatorioPagina(table) {
       trTotal,
       htmlCelulaSaldoAPagar(totais, {
         destaque: true,
-        saldoTotalRelatorio: somarSaldoAPagarRelatorioTotal(filtradas),
+        saldoTotalRelatorio: somarSaldoAPagarTotal(dados),
       })
     );
   }
@@ -1953,22 +1948,14 @@ function estilosRelatorioPagina() {
     ".page-orcamento .rel-orcamento-kpis{margin-top:0.2rem;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-layout{display:flex;flex-direction:column;gap:8px;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-total{display:flex;justify-content:center;width:100%;margin:0;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-grupo{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:0.55rem 0.85rem;width:100%;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-card{grid-column:2;justify-self:center;width:min(100%,12rem);min-width:10.5rem;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-grupo{display:flex;justify-content:center;width:100%;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-card{width:min(100%,13rem);min-width:11.5rem;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-card .pag-lideranca-kpi-duplo{align-items:stretch;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-card .pag-lideranca-kpi-linha{align-items:flex-start;}" +
     ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-card .dashboard-kpi-valor{white-space:nowrap;font-variant-numeric:tabular-nums;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda{grid-column:3;justify-self:end;width:min(100%,11rem);padding:0.1rem 0 0.1rem 0.45rem;border:none;border-left:1px dashed #cbd5e1;border-radius:0;background:transparent;box-shadow:none;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-titulo{font-size:6pt;font-weight:600;letter-spacing:0.05em;color:#94a3b8;text-transform:uppercase;margin-bottom:0.12rem;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.12rem;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-item{display:flex;align-items:center;gap:0.25rem;line-height:1.2;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-marcador{flex-shrink:0;width:0.35rem;height:0.35rem;border-radius:50%;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-marcador--orc{background:#b91c1c;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-marcador--pgto{background:#0284c7;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-marcador--repasse{background:#15803d;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-texto{font-size:6.5pt;font-weight:400;color:#64748b;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-cor{font-weight:600;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-cor--orc{color:#b91c1c;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-cor--pgto{color:#0284c7;}" +
-    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-legenda-cor--repasse{color:#15803d;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-subrotulo{display:block;font-size:6pt;font-weight:500;color:#94a3b8;line-height:1.15;margin-bottom:0.04rem;text-transform:lowercase;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-total-card .pag-lideranca-kpi-subrotulo{text-align:left;width:100%;}" +
+    ".page-orcamento .rel-orcamento-kpis .pag-lideranca-kpi-saldo .dashboard-kpi-valor{color:#5b21b6!important;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-detalhe{display:flex;gap:8px;width:100%;margin:0;}" +
     ".page-orcamento .rel-orcamento-kpis .orcamento-kpi-row-detalhe > [class*='col-']{flex:1 1 0;min-width:0;padding:0;max-width:none;width:auto;}" +
     ".page-orcamento .rel-orcamento-kpis .dashboard-kpi-card{border-radius:8px;overflow:hidden;page-break-inside:avoid;box-shadow:none;border:1px solid rgba(31,78,140,0.14);}" +
@@ -2190,15 +2177,11 @@ function initPagamentosLideranca() {
     kpiTotalOrc: document.getElementById("kpiTotalOrc"),
     kpiTotalPgto: document.getElementById("kpiTotalPgto"),
     kpiTotalRepasse: document.getElementById("kpiTotalRepasse"),
-    kpiTotalProgress: document.getElementById("kpiTotalProgress"),
+    kpiTotalSaldo: document.getElementById("kpiTotalSaldo"),
     kpiPessoalOrc: document.getElementById("kpiPessoalOrc"),
-    kpiPessoalPgto: document.getElementById("kpiPessoalPgto"),
     kpiCombustivelOrc: document.getElementById("kpiCombustivelOrc"),
-    kpiCombustivelPgto: document.getElementById("kpiCombustivelPgto"),
     kpiDiversosOrc: document.getElementById("kpiDiversosOrc"),
-    kpiDiversosPgto: document.getElementById("kpiDiversosPgto"),
     kpiDiaDOrc: document.getElementById("kpiDiaDOrc"),
-    kpiDiaDPgto: document.getElementById("kpiDiaDPgto"),
     btnSalvar: document.getElementById("btnSalvarApoiador"),
     modalTitulo: document.getElementById("modalApoiadorTitulo"),
     modalEl: document.getElementById("modalApoiadorCrud"),

@@ -686,6 +686,12 @@ const CONFIG = {
       PAGAMENTO: { aliases: ["pagamento"] },
       A_PAGAR: { aliases: ["a pagar", "apagar", "a-pagar"] },
     },
+    // Pagamentos — geral: a pagar da linha "despesas pessoal" = célula N2 (gid 0).
+    DESPESAS_PESSOAL: {
+      ITEM_ALIASES: ["despesas pessoal", "despesa pessoal"],
+      APAGAR_LINHA1: 2,
+      APAGAR_COLUNA: 13,
+    },
   },
 
   ORCAMENTO: {
